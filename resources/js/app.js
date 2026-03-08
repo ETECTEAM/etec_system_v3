@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
-import HelloVue from './components/HelloVue.vue'
+import '../css/app.css'
+import App from './App.vue'
 
-createApp(HelloVue).mount('#app')
+createApp(App).mount('#app')
