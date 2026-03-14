@@ -1,5 +1,4 @@
 <script setup>
-
 import Sidebar from "./Sidebar.vue"
 
 </script>
@@ -20,20 +19,4 @@ import Sidebar from "./Sidebar.vue"
     </div>
 
 </div>
-
 </template>
-
-<style scoped>
-
-.layout{
-    display:flex;
-}
-
-.main{
-    flex:1;
-}
-
-.content{
-    padding:20px;
-}
-</style>
