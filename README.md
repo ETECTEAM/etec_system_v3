@@ -169,4 +169,4 @@ Create a Pull Request to the **dev branch**.
 
 # License
 
-This project is open-source under the MIT License.
+This project is new verstion of etec center
