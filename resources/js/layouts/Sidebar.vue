@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue"
 import menu from "../config/sidebar"
+import { RouterLink } from "vue-router"
 
 const user = window.user ?? { role: "super_admin" }
 
@@ -66,14 +67,14 @@ function isActive(route) {
                 <li v-for="item in section.items" :key="item.name">
 
                     <!-- Normal link -->
-                    <a
+                    <RouterLink
                         v-if="!item.children"
-                        :href="item.route"
+                        :to="item.route"
                         :class="[
                             'relative flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13.5px] transition-all duration-150 no-underline font-medium',
                             isActive(item.route)
-                                ? 'bg-indigo-500/25 text-white before:absolute before:left-0 before:top-[18%] before:h-[64%] before:w-[3px] before:bg-gradient-to-b before:from-indigo-400 before:to-violet-500 before:rounded-r-full'
-                                : 'text-white hover:bg-white/[0.06]'
+                            ? 'bg-indigo-500/25 text-white before:absolute before:left-0 before:top-[18%] before:h-[64%] before:w-[3px] before:bg-gradient-to-b before:from-indigo-400 before:to-violet-500 before:rounded-r-full'
+                            : 'text-white hover:bg-white/[0.06]'
                         ]"
                     >
                         <span :class="['w-1.5 h-1.5 rounded-full shrink-0', isActive(item.route) ? 'bg-indigo-400' : 'bg-white/40']"></span>
@@ -81,7 +82,7 @@ function isActive(route) {
                         <span v-if="item.badge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
                             {{ item.badge }}
                         </span>
-                    </a>
+                    </RouterLink>
 
                     <!-- Dropdown -->
                     <div v-else>
@@ -114,8 +115,8 @@ function isActive(route) {
                         >
                             <ul v-show="openDropdowns[item.name]" class="ml-5 mt-1 pl-3 border-l border-white/10 flex flex-col gap-0.5">
                                 <li v-for="child in item.children" :key="child.name">
-                                    <a
-                                        :href="child.route"
+                                    <RouterLink
+                                        :to="child.route"
                                         :class="[
                                             'flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-150 no-underline',
                                             isActive(child.route)
@@ -125,7 +126,7 @@ function isActive(route) {
                                     >
                                         <span :class="['w-1 h-1 rounded-full shrink-0', isActive(child.route) ? 'bg-indigo-400' : 'bg-white/30']"></span>
                                         {{ child.name }}
-                                    </a>
+                                    </RouterLink>
                                 </li>
                             </ul>
                         </transition>

@@ -14,7 +14,7 @@ export default [
             {
                 name: "Home",
                 icon: null,        // icon placeholder
-                route: "/home"
+                route: "/"
             }
         ]
     },
