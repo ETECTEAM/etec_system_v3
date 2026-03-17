@@ -11,7 +11,7 @@ import Sidebar from "./Sidebar.vue"
 
     <div class="flex-1 min-w-0">
         <!-- Page content -->
-        <div class="p-6">
+        <div class="p-3">
             <slot></slot>
         </div>
     </div>
