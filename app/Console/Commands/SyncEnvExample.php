@@ -27,7 +27,7 @@ class SyncEnvExample extends Command
     {
         // 🔒 Block in production
         if (!app()->environment('local')) {
-            $this->warn('❌ This command is only allowed in local environment.');
+            $this->warn('❌ Only allowed in local environment.');
             return Command::FAILURE;
         }
 
@@ -39,29 +39,46 @@ class SyncEnvExample extends Command
             return Command::FAILURE;
         }
 
-        $lines = file($envPath);
-        $result = [];
+        // Read .env
+        $envLines = file($envPath, FILE_IGNORE_NEW_LINES);
 
-        foreach ($lines as $line) {
+        // Read existing .env.example (if exists)
+        $exampleLines = file_exists($examplePath)
+            ? file($examplePath, FILE_IGNORE_NEW_LINES)
+            : [];
+
+        // Extract existing keys
+        $existingKeys = [];
+        foreach ($exampleLines as $line) {
+            if (str_contains($line, '=')) {
+                [$key] = explode('=', $line, 2);
+                $existingKeys[$key] = true;
+            }
+        }
+
+        $newLines = $exampleLines;
+
+        foreach ($envLines as $line) {
             $trim = trim($line);
 
-            // keep comments and empty lines
+            // skip empty/comment
             if ($trim === '' || str_starts_with($trim, '#')) {
-                $result[] = $line;
                 continue;
             }
 
             if (str_contains($line, '=')) {
                 [$key] = explode('=', $line, 2);
-                $result[] = $key . "=\n"; // remove value
-            } else {
-                $result[] = $line;
+
+                // only add if NOT exists
+                if (!isset($existingKeys[$key])) {
+                    $newLines[] = $key . '=';
+                }
             }
         }
 
-        file_put_contents($examplePath, implode('', $result));
+        file_put_contents($examplePath, implode("\n", $newLines) . "\n");
 
-        $this->info('✅ .env.example synced successfully (safe, no secrets)');
+        $this->info('✅ .env.example updated (only new keys added)');
 
         return Command::SUCCESS;
     }
