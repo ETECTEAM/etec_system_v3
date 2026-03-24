@@ -134,6 +134,7 @@ etec_system_v3/
 ```bash
 git pull origin dev
 composer install
+npm install
 git checkout -b feature/your-feature-name
 git commit -m "feat: add your feature"
 git push origin feature/your-feature-name
