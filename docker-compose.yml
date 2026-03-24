@@ -6,12 +6,16 @@ services:
     build: .
     container_name: laravel_app
     working_dir: /var/www
+    user: "1000:1000"
 
     volumes:
       - .:/var/www
 
     ports:
       - "${APP_PORT}:8000"
+
+    env_file:
+      - .env
 
     command: php artisan serve --host=0.0.0.0 --port=8000
 
