@@ -17,7 +17,6 @@ All notable changes to this project will be documented in this file.
 ### 📦 Backend Packages
 - laravel/sanctum (API auth)
 - spatie/laravel-permission (roles & permissions)
-- darkaonline/l5-swagger (API docs)
 
 ### 📦 Frontend Packages
 - vue 3

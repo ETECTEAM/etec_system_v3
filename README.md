@@ -10,7 +10,8 @@
 ## 📌 Overview
 
 **ETEC System v3** is a modern web-based admin system built with **Laravel 12** and **Vue 3**.
-This project follows a **Single Page Application (SPA)** architecture powered by **Vite** and is fully containerized using **Docker** for easy setup and deployment.
+
+This project follows a **Single Page Application (SPA)** architecture powered by **Vite** and is fully containerized using **Docker** for easy setup and consistent development.
 
 ---
 
@@ -30,7 +31,7 @@ This project follows a **Single Page Application (SPA)** architecture powered by
 ### 📦 Requirements
 
 * Docker
-* Docker Compose (v2 → `docker compose`)
+* Docker Compose (`docker compose`)
 
 ---
 
@@ -78,6 +79,12 @@ docker compose up -d --build
 ### 🔑 4. Generate Key & Run Migration
 
 ```bash
+docker exec -it laravel_app php artisan key:generate
+docker exec -it laravel_app php artisan migrate
+```
+or
+
+```bash
 docker exec -it laravel_app bash
 
 php artisan key:generate
@@ -90,11 +97,10 @@ exit
 
 ### 🌐 5. Access Application
 
-| Service          | URL                   |
-| ---------------- | --------------------- |
-| Laravel App      | http://localhost:8001 |
-| phpMyAdmin       | http://localhost:8080 |
-| MySQL (external) | 127.0.0.1:3307        |
+| Service     | URL                   |
+| ----------- | --------------------- |
+| Laravel App | http://localhost:8001 |
+| phpMyAdmin  | http://localhost:8080 |
 
 ---
 
@@ -129,9 +135,22 @@ etec_system_v3/
 git pull origin dev
 composer install
 git checkout -b feature/your-feature-name
-git commit -m "Add feature"
+git commit -m "feat: add your feature"
 git push origin feature/your-feature-name
 ```
+
+---
+
+## 🔄 Environment Sync (Important)
+
+When adding new environment variables:
+
+```bash
+composer run sync-env
+```
+
+✔ Keeps `.env.example` updated
+✔ Prevents missing config for teammates
 
 ---
 
@@ -193,7 +212,7 @@ docker exec -it laravel_app chmod -R 775 storage bootstrap/cache
 # Stop containers
 docker compose down
 
-# Rebuild
+# Rebuild containers
 docker compose up -d --build
 
 # Enter container
@@ -202,36 +221,6 @@ docker exec -it laravel_app bash
 # View logs
 docker logs laravel_app
 ```
-
----
-
-## 📘 API Documentation (Swagger)
-
-Swagger is automatically generated after:
-
-```bash
-composer install
-```
-
----
-
-### 🌐 Access
-
-* Swagger UI: http://localhost:8001/api/documentation
-* Swagger JSON: http://localhost:8001/docs
-
----
-
-### 🔐 Authentication
-
-Use Bearer token from login API.
-
----
-
-### ⚠️ Notes
-
-* Available only in **local environment**
-* Disabled in production for security
 
 ---
 
@@ -254,7 +243,7 @@ Use Bearer token from login API.
 ## 🚀 Future Improvements
 
 * Role & Permission System
-* API Documentation (Swagger)
+* API Documentation (Scribe)
 * Nginx Reverse Proxy + HTTPS
 * CI/CD Pipeline
 
@@ -268,5 +257,5 @@ This project is an upgraded version of the ETEC Center system.
 
 ## 👨‍💻 Author
 
-Prepare by **RAKSMEY**
+Prepared by **RAKSMEY**
 Developer: **ETEC Team**
