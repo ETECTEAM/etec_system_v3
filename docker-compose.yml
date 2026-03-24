@@ -7,6 +7,7 @@ services:
     container_name: laravel_app
     working_dir: /var/www
     user: "1000:1000"
+    restart: unless-stopped
 
     volumes:
       - .:/var/www
@@ -32,18 +33,14 @@ services:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
 
-    ports:
-      - "3307:3306"
-
     volumes:
       - mysql_data:/var/lib/mysql
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: laravel_phpmyadmin
-
-    restart: always
-
+    restart: unless-stopped
+    
     ports:
       - "8080:80"
 
