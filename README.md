@@ -1,172 +1,235 @@
-# ETEC System v2
+# 🚀 ETEC System v3
 
-ETEC System v2 is a web application built using **Laravel 12**, **Vue 3**, **Vite**, and **MySQL**.
-This project is designed as a modern SPA-style admin system.
-
----
-
-# Tech Stack
-
-* Backend: Laravel 12
-* Frontend: Vue 3
-* Build Tool: Vite
-* Database: MySQL
-* Styling: TailwindCSS
+![Version](https://img.shields.io/badge/version-v3-blue)
+![Laravel](https://img.shields.io/badge/Laravel-12-red)
+![Vue](https://img.shields.io/badge/Vue-3-green)
+![Docker](https://img.shields.io/badge/Docker-ready-blue)
 
 ---
 
-# Project Setup Guide
+## 📌 Overview
 
-Follow the steps below to clone and run the project locally.
+**ETEC System v3** is a modern web-based admin system built with **Laravel 12** and **Vue 3**.
+This project follows a **Single Page Application (SPA)** architecture powered by **Vite** and is fully containerized using **Docker** for easy setup and deployment.
 
 ---
 
-# 1. Clone Repository
+## 🧱 Tech Stack
+
+* **Backend:** Laravel 12 (PHP 8.2+)
+* **Frontend:** Vue 3 + Vue Router
+* **Build Tool:** Vite
+* **Database:** MySQL 8
+* **Styling:** Tailwind CSS
+* **Containerization:** Docker & Docker Compose
+
+---
+
+## 🐳 Docker Setup (Recommended)
+
+### 📦 Requirements
+
+* Docker
+* Docker Compose (v2 → `docker compose`)
+
+---
+
+### 🚀 1. Clone Repository
 
 ```bash
-git clone https://github.com/knr-smey/etec_system_v2.git
-```
-
-Navigate into the project folder:
-
-```bash
-cd etec_system_v2
-```
-
-Checkout the development branch:
-
-```bash
+git clone https://github.com/knr-smey/etec_system_v3.git
+cd etec_system_v3
 git checkout dev
 ```
 
 ---
 
-# 2. Install PHP Dependencies
-
-Make sure you have **PHP 8.2+** and **Composer** installed.
-
-```bash
-composer install
-```
-
----
-
-# 3. Install Node Dependencies
-
-Make sure you have **Node.js 18+** installed.
-
-```bash
-npm install
-```
-
----
-
-# 4. Environment Setup
-
-Copy the environment file:
+### ⚙️ 2. Setup Environment
 
 ```bash
 cp .env.example .env
 ```
 
-Generate application key:
+Edit `.env`:
 
-```bash
-php artisan key:generate
-```
+```env
+APP_NAME="ETEC SYSTEM"
+APP_URL=http://127.0.0.1:8001
+APP_PORT=8001
 
----
-
-# 5. Configure Database
-
-Open `.env` and update database settings:
-
-```
 DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
+DB_HOST=mysql
 DB_PORT=3306
 DB_DATABASE=etec_system
 DB_USERNAME=root
-DB_PASSWORD=
-```
-
-Create the database in MySQL:
-
-```
-etec_system
+DB_PASSWORD=00100
 ```
 
 ---
 
-# 6. Run Migration
+### 🏗️ 3. Build & Run Containers
 
 ```bash
+docker compose up -d --build
+```
+
+---
+
+### 🔑 4. Generate Key & Run Migration
+
+```bash
+docker exec -it laravel_app bash
+
+php artisan key:generate
 php artisan migrate
+
+exit
 ```
 
-(Optional seed if available)
+---
+
+### 🌐 5. Access Application
+
+| Service          | URL                   |
+| ---------------- | --------------------- |
+| Laravel App      | http://localhost:8001 |
+| phpMyAdmin       | http://localhost:8080 |
+| MySQL (external) | 127.0.0.1:3307        |
+
+---
+
+### 🔐 phpMyAdmin Login
+
+```
+Server: mysql
+Username: root
+Password: 00100
+```
+
+---
+
+## 📂 Project Structure
 
 ```bash
-php artisan db:seed
+etec_system_v3/
+├── app/
+├── resources/js/
+├── routes/
+├── database/
+├── public/
+├── docker-compose.yml
+└── .env
 ```
 
 ---
 
-# 7. Run Development Server
-
-Start Laravel server:
+## 🔧 Development Workflow
 
 ```bash
-php artisan serve
-```
-
-Run Vite frontend:
-
-```bash
-npm run dev
-```
-
----
-
-# 8. Open Application
-
-Visit:
-
-```
-http://127.0.0.1:8000
-```
-
----
-
-Frontend uses **Vue Router for SPA navigation**.
-
----
-
-# Development Workflow
-
-Typical workflow for contributors:
-
-```
 git pull origin dev
 git checkout -b feature/your-feature-name
 git commit -m "Add feature"
 git push origin feature/your-feature-name
 ```
 
-Create a Pull Request to the **dev branch**.
+---
+
+## ⚠️ Common Issues & Fixes
+
+### ❌ SQLSTATE[HY000] Connection refused
+
+✔ Fix `.env`:
+
+```env
+DB_HOST=mysql
+```
+
+Then:
+
+```bash
+docker exec -it laravel_app php artisan config:clear
+```
 
 ---
 
-# Requirements
+### ❌ Docker command not found
 
-* PHP >= 8.2
-* Composer
-* Node.js >= 18
-* MySQL >= 8
-* Git
+Use:
+
+```bash
+docker compose up -d
+```
 
 ---
 
-# License
+### ❌ MySQL not ready
 
-This project is new verstion of etec center
+Check logs:
+
+```bash
+docker logs laravel_mysql
+```
+
+Wait until:
+
+```
+ready for connections
+```
+
+---
+
+### ❌ Permission issues
+
+```bash
+docker exec -it laravel_app chmod -R 775 storage bootstrap/cache
+```
+
+---
+
+## 🧪 Useful Commands
+
+```bash
+# Stop containers
+docker compose down
+
+# Rebuild
+docker compose up -d --build
+
+# Enter container
+docker exec -it laravel_app bash
+
+# View logs
+docker logs laravel_app
+```
+
+---
+
+## ✨ Features
+
+* SPA Admin Dashboard (Vue 3)
+* RESTful API (Laravel)
+* Authentication System
+* Docker-ready environment
+* Scalable architecture
+
+---
+
+## 🚀 Future Improvements
+
+* Role & Permission System
+* API Documentation (Swagger)
+* Nginx Reverse Proxy + HTTPS
+* CI/CD Pipeline
+
+---
+
+## 📄 License
+
+This project is an upgraded version of the ETEC Center system.
+
+---
+
+## 👨‍💻 Author
+
+Prepare by **RAKSMEY**
+Developer: **ETEC Team**
