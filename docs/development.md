@@ -15,15 +15,6 @@ composer install
 composer run sync-env
 ```
 
----
-
-### 📘 Update Swagger (if API changed)
-
-```bash
-php artisan l5-swagger:generate
-```
-
----
 
 ### 🧹 Clear cache (if something breaks)
 
