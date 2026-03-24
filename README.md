@@ -61,8 +61,8 @@ DB_CONNECTION=mysql
 DB_HOST=mysql
 DB_PORT=3306
 DB_DATABASE=etec_system
-DB_USERNAME=root
-DB_PASSWORD=00100
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
 ```
 
 ---
@@ -127,6 +127,7 @@ etec_system_v3/
 
 ```bash
 git pull origin dev
+composer install
 git checkout -b feature/your-feature-name
 git commit -m "Add feature"
 git push origin feature/your-feature-name
@@ -201,6 +202,42 @@ docker exec -it laravel_app bash
 # View logs
 docker logs laravel_app
 ```
+
+---
+
+## 📘 API Documentation (Swagger)
+
+Swagger is automatically generated after:
+
+```bash
+composer install
+```
+
+---
+
+### 🌐 Access
+
+* Swagger UI: http://localhost:8001/api/documentation
+* Swagger JSON: http://localhost:8001/docs
+
+---
+
+### 🔐 Authentication
+
+Use Bearer token from login API.
+
+---
+
+### ⚠️ Notes
+
+* Available only in **local environment**
+* Disabled in production for security
+
+---
+
+## 📚 Documentation
+
+* Development Workflow: `docs/development.md`
 
 ---
 

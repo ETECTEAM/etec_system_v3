@@ -43,8 +43,8 @@ return [
                 /*
                  * Absolute paths to directory containing the swagger annotations are stored.
                  */
-                'annotations' => [
-                    base_path('app'),
+               'annotations' => [
+                    base_path('app/Swagger'),
                 ],
             ],
         ],
@@ -65,10 +65,9 @@ return [
              * Middleware allows to prevent unexpected access to API documentation
              */
             'middleware' => [
-                'api' => [\App\Http\Middleware\LocalOnlySwaggerDocs::class],
-                'asset' => [\App\Http\Middleware\LocalOnlySwaggerDocs::class],
-                'docs' => [\App\Http\Middleware\LocalOnlySwaggerDocs::class],
-                'oauth2_callback' => [\App\Http\Middleware\LocalOnlySwaggerDocs::class],
+                'api' => [\App\Http\Middleware\SwaggerLocalOnly::class],
+                'asset' => [\App\Http\Middleware\SwaggerLocalOnly::class],
+                'docs' => [\App\Http\Middleware\SwaggerLocalOnly::class],
             ],
 
             /*

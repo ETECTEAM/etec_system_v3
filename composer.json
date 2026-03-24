@@ -58,8 +58,14 @@
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
         ],
-        "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        "post-install-cmd": [
+            "@php artisan optimize:clear",
+            "@php -r \"if (env('APP_ENV') === 'local') { passthru('php artisan l5-swagger:generate'); }\""
+        ],
+       "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
+            "@php artisan optimize:clear",
+            "@php -r \"if (env('APP_ENV') === 'local') { passthru('php artisan l5-swagger:generate'); }\""
         ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
@@ -71,6 +77,9 @@
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
+        ],
+        "sync-env": [
+            "@php artisan app:sync-env-example"
         ]
     },
     "extra": {
