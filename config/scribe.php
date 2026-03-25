@@ -34,22 +34,23 @@ return [
         [
             'match' => [
                 // Match only routes whose paths match this pattern (use * as a wildcard to match any characters). Example: 'users/*'.
-                'prefixes' => ['api/*'],
+                'prefixes' => ['api/v1/*'],
 
                 // Match only routes whose domains match this pattern (use * as a wildcard to match any characters). Example: 'api.*'.
                 'domains' => ['*'],
             ],
 
             // Include these routes even if they did not match the rules above.
-            'include' => [
-                'api/v1/auth/*',
-                'api/v1/courses/*',
-            ],
+            // 'include' => [
+            //     'api/v1/auth/*',
+            //     'api/v1/courses/*',
+            // ],
 
 
             // Exclude these routes even if they matched the rules above.
             'exclude' => [
-                // 'GET /health', 'admin.*'
+                '/api/v1/admin/*',
+                '/api/v1/internal/*',
             ],
         ],
     ],
