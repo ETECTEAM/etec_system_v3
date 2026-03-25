@@ -10,6 +10,7 @@ use function Knuckles\Scribe\Config\removeStrategies;
 // Only the most common configs are shown. See the https://scribe.knuckles.wtf/laravel/reference/config for all.
 
 return [
+    'enabled' => env('SCRIBE_ENABLED', true),
     // The HTML <title> for the generated documentation.
     'title' => config('app.name').' API Documentation',
 
@@ -70,7 +71,7 @@ return [
 
     'laravel' => [
         // Whether to automatically create a docs route for you to view your generated docs. You can still set up routing manually.
-        'add_routes' => true,
+        'add_routes' =>  env('SCRIBE_ENABLED', true),
 
         // URL path to use for the docs endpoint (if `add_routes` is true).
         // By default, `/docs` opens the HTML page, `/docs.postman` opens the Postman collection, and `/docs.openapi` the OpenAPI spec.
