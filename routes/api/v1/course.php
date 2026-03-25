@@ -12,4 +12,10 @@ Route::prefix('courses')->middleware(['auth:sanctum'])->group(function (): void 
             ]);
         })->middleware('permission:course.view');
 
+        Route::get('/hi', function (): JsonResponse {
+            return response()->json([
+                'message' => 'Course list endpoint.',
+            ]);
+        })->middleware('permission:course.view');
+
 });

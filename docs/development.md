@@ -32,3 +32,9 @@ docker compose up -d
 ```
 
 ---
+
+### Generate Scribe api docs
+
+```bash
+php artisan scribe:generate
+```
