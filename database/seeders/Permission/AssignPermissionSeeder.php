@@ -16,9 +16,9 @@ class AssignPermissionSeeder extends Seeder
 
         $allPermissions = Permission::pluck('name')->toArray();
 
-        $superAdmin = Role::firstOrCreate(['name' => 'super_admin']);
-        $admin = Role::firstOrCreate(['name' => 'admin']);
-        $instructor = Role::firstOrCreate(['name' => 'instructor']);
+        $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'sanctum']);
+        $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'sanctum']);
+        $instructor = Role::firstOrCreate(['name' => 'instructor', 'guard_name' => 'sanctum']);
 
 
         // super_admin → ALL permissions

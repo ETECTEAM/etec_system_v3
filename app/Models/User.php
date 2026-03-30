@@ -15,6 +15,8 @@ class User extends Authenticatable
     use HasRoles;
     use Notifiable;
 
+    protected string $guard_name = 'sanctum';
+
     /**
      * The attributes that are mass assignable.
      *
