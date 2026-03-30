@@ -30,8 +30,51 @@ This project follows a **Single Page Application (SPA)** architecture powered by
 
 ### 📦 Requirements
 
+* `make`
 * Docker
 * Docker Compose (`docker compose`)
+
+### 🪟 Windows Setup
+
+If you are using Windows, the recommended setup is `WSL + Docker Desktop`.
+
+#### 1. Install WSL
+
+Open PowerShell as Administrator and run:
+
+```powershell
+wsl --install
+```
+
+Restart your computer if Windows asks.
+
+#### 2. Open Ubuntu
+
+After restart, open the `Ubuntu` app from the Start menu and finish the first-time setup.
+
+#### 3. Install `make`
+
+Inside Ubuntu, run:
+
+```bash
+sudo apt update
+sudo apt install make
+```
+
+Check that it is installed:
+
+```bash
+make --version
+```
+
+#### 4. Enable Docker Desktop WSL integration
+
+- Install Docker Desktop
+- Open Docker Desktop Settings
+- Go to `Resources` → `WSL Integration`
+- Enable integration for your Ubuntu distro
+
+After that, run this project from the Ubuntu terminal, not from Command Prompt.
 
 ---
 
@@ -45,57 +88,22 @@ git checkout dev
 
 ---
 
-### ⚙️ 2. Setup Environment
+### ⚙️ 2. Setup Project
 
 ```bash
-cp .env.example .env
+make setup
 ```
 
-Edit `.env`:
-
-```env
-APP_NAME="ETEC SYSTEM"
-APP_URL=http://127.0.0.1:8001
-APP_PORT=8001
-
-DB_CONNECTION=mysql
-DB_HOST=mysql
-DB_PORT=3306
-DB_DATABASE=etec_system
-DB_USERNAME=your_username
-DB_PASSWORD=your_password
-```
+This command will:
+- create `.env` from `.env.example` if needed
+- build and start Docker containers
+- install Composer dependencies inside Docker
+- generate `APP_KEY`
+- run database migrations
 
 ---
 
-### 🏗️ 3. Build & Run Containers
-
-```bash
-docker compose up -d --build
-```
-
----
-
-### 🔑 4. Generate Key & Run Migration
-
-```bash
-docker exec -it laravel_app php artisan key:generate
-docker exec -it laravel_app php artisan migrate
-```
-or
-
-```bash
-docker exec -it laravel_app bash
-
-php artisan key:generate
-php artisan migrate
-
-exit
-```
-
----
-
-### 🌐 5. Access Application
+### 🌐 3. Access Application
 
 | Service     | URL                   |
 | ----------- | --------------------- |
@@ -133,7 +141,7 @@ etec_system_v3/
 
 ```bash
 git pull origin dev
-composer install
+make install
 npm install
 git checkout -b feature/your-feature-name
 git commit -m "feat: add your feature"
@@ -142,12 +150,56 @@ git push origin feature/your-feature-name
 
 ---
 
+## 📬 API Testing With Postman
+
+This project uses Postman for API testing instead of generated API docs.
+
+### Base URL
+
+```text
+http://localhost:8001/api
+```
+
+### Recommended Postman Setup
+
+- Create a Postman environment named `Local`
+- Add `base_url` = `http://localhost:8001/api`
+- If you use authenticated routes, add `token` for your Bearer token
+
+### Example Headers
+
+```http
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{token}}
+```
+
+### Example Request
+
+```http
+GET {{base_url}}/courses
+```
+
+### Team Workflow
+
+- Use Postman collections to organize endpoints by module
+- Update the collection when API routes or request bodies change
+- Share the exported Postman collection with the team if needed
+
+### Starter Collection
+
+Import this file into Postman:
+
+[`docs/postman/etec_system_v3.postman_collection.json`](/home/raksmey/Downloads/etec_system_v3/docs/postman/etec_system_v3.postman_collection.json)
+
+---
+
 ## 🔄 Environment Sync (Important)
 
 When adding new environment variables:
 
 ```bash
-composer run sync-env
+make sync
 ```
 
 ✔ Keeps `.env.example` updated
@@ -244,7 +296,6 @@ docker logs laravel_app
 ## 🚀 Future Improvements
 
 * Role & Permission System
-* API Documentation (Scribe)
 * Nginx Reverse Proxy + HTTPS
 * CI/CD Pipeline
 

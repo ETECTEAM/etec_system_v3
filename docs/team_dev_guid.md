@@ -6,6 +6,11 @@ This project runs fully in Docker:
 - mysql → Database  
 - phpmyadmin → DB UI  
 
+Requirements:
+- `make`
+- Docker
+- Docker Compose v2 (`docker compose`)
+
 ---
 
 # ⚙️ One-time Setup (New Developer)
@@ -14,6 +19,13 @@ git clone <repo>
 cd project
 
 make setup
+
+What `make setup` does:
+- creates `.env` from `.env.example` if it does not exist
+- builds and starts containers
+- installs Composer dependencies inside Docker
+- generates the Laravel app key
+- runs database migrations
 
 ---
 
@@ -70,15 +82,6 @@ routes/api.php
 
 ---
 
-# 📄 Generate API Docs (Scribe)
-
-make scribe
-
-Access docs:
-http://localhost:${APP_PORT}/docs
-
----
-
 # 🧹 Fix Issues
 
 ## Clear cache
@@ -96,6 +99,7 @@ make up
 - NEVER change database manually (use migrations)  
 - DO NOT use php artisan directly (use Makefile)  
 - Ensure .env is correct (DB_HOST=mysql)  
+- Local Composer is not required because Make commands run inside Docker
 
 ---
 
@@ -104,10 +108,10 @@ make up
 make setup        # full project setup  
 make up           # start docker  
 make down         # stop docker  
+make key          # generate app key  
 make migrate      # run migration  
 make fresh        # fresh migrate (dev only)  
 make clear        # clear cache  
-make scribe       # generate API docs  
 
 make model name=User  
 make controller name=Api/UserController  
@@ -120,7 +124,7 @@ make art cmd="route:list"
 1. Pull code  
 2. Run make migrate  
 3. Develop feature  
-4. Run make scribe (if API changed)  
+4. Test APIs in Postman if API changed  
 
 ---
 

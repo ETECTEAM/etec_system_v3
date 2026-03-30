@@ -1,47 +1,55 @@
+.PHONY: up down install sync key migrate fresh clear art setup model controller
+
+DOCKER_COMPOSE = docker compose
+APP = $(DOCKER_COMPOSE) exec app
+APP_RUN = $(DOCKER_COMPOSE) run --rm app
+
 # Start containers
 up:
-	docker compose up -d
+	$(DOCKER_COMPOSE) up -d --build
 
 # Stop containers
 down:
-	docker compose down
+	$(DOCKER_COMPOSE) down
 
-# Install dependencies
+# Install PHP dependencies inside Docker
 install:
-	composer install
+	$(APP_RUN) composer install
 
-# Sync env
+# Sync env example inside Docker
 sync:
-	composer run sync-env
+	$(APP_RUN) composer run sync-env
+
+# Generate Laravel app key
+key:
+	$(APP) php artisan key:generate
 
 # Run migration
 migrate:
-	docker compose exec app php artisan migrate
+	$(APP) php artisan migrate
 
 # Fresh migration (optional)
 fresh:
-	docker compose exec app php artisan migrate:fresh --seed
+	$(APP) php artisan migrate:fresh --seed
 
 # Clear cache
 clear:
-	docker compose exec app php artisan optimize:clear
-
-# Generate API docs
-scribe:
-	docker compose exec app php artisan scribe:generate
+	$(APP) php artisan optimize:clear
 
 # Custom artisan command
 art:
-	docker compose exec app php artisan $(cmd)
+	$(APP) php artisan $(cmd)
 
 # First time setup (NEW DEV)
 setup:
-	composer install
-	docker compose up -d
-	docker compose exec app php artisan migrate
+	cp -n .env.example .env
+	$(DOCKER_COMPOSE) up -d --build
+	$(APP_RUN) composer install
+	$(APP) php artisan key:generate
+	$(APP) php artisan migrate
 
 model:
-	docker compose exec app php artisan make:model $(name)
+	$(APP) php artisan make:model $(name)
 
 controller:
-	docker compose exec app php artisan make:controller $(name)
+	$(APP) php artisan make:controller $(name)
