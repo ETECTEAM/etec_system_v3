@@ -165,7 +165,10 @@ etec_system_v3/
 ├── database/
 ├── public/
 ├── docker-compose.dev.yml
-├── docker-compose.prod.yml
+├── docker-compose.prod.example.yml
+├── deploy/
+│   ├── nginx/default.conf
+│   └── private/docker-compose.prod.yml  # local/server only, not in git
 └── .env
 ```
 
@@ -198,6 +201,7 @@ Use the production stack to build a deployment image with:
 Commands:
 
 ```bash
+make prod-init
 make prod-build
 make prod-up
 make prod-down
@@ -205,8 +209,11 @@ make prod-down
 
 Production files:
 - `Dockerfile`
-- `docker-compose.prod.yml`
+- `docker-compose.prod.example.yml`
+- `deploy/private/docker-compose.prod.yml` (ignored by git)
 - `deploy/nginx/default.conf`
+
+`make prod-init` copies the tracked example file into the private deploy path. Put any server-only values or host-specific changes in `deploy/private/docker-compose.prod.yml`, and do not commit that file.
 
 ---
 

@@ -1,7 +1,8 @@
-.PHONY: up down install sync key migrate fresh clear art init setup model controller test prod-build prod-up prod-down
+.PHONY: up down install sync key migrate fresh clear art init setup model controller test prod-init prod-build prod-up prod-down
 
 DEV_COMPOSE = docker compose -f docker-compose.dev.yml
-PROD_COMPOSE = docker compose -f docker-compose.prod.yml
+PROD_COMPOSE_FILE = deploy/private/docker-compose.prod.yml
+PROD_COMPOSE = docker compose -f $(PROD_COMPOSE_FILE)
 APP = $(DEV_COMPOSE) exec app
 APP_RUN = $(DEV_COMPOSE) run --rm app
 
@@ -69,6 +70,10 @@ model:
 
 controller:
 	$(APP) php artisan make:controller $(name)
+
+prod-init:
+	mkdir -p deploy/private
+	cp -n docker-compose.prod.example.yml $(PROD_COMPOSE_FILE)
 
 prod-build:
 	$(PROD_COMPOSE) build
