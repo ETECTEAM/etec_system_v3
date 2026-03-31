@@ -1,16 +1,17 @@
-.PHONY: up down install sync key migrate fresh clear art setup model controller
+.PHONY: up down install sync key migrate fresh clear art init setup model controller test prod-build prod-up prod-down
 
-DOCKER_COMPOSE = docker compose
-APP = $(DOCKER_COMPOSE) exec app
-APP_RUN = $(DOCKER_COMPOSE) run --rm app
+DEV_COMPOSE = docker compose -f docker-compose.dev.yml
+PROD_COMPOSE = docker compose -f docker-compose.prod.yml
+APP = $(DEV_COMPOSE) exec app
+APP_RUN = $(DEV_COMPOSE) run --rm app
 
 # Start containers
 up:
-	$(DOCKER_COMPOSE) up -d --build
+	$(DEV_COMPOSE) up -d --build
 
 # Stop containers
 down:
-	$(DOCKER_COMPOSE) down
+	$(DEV_COMPOSE) down
 
 # Install PHP dependencies inside Docker
 install:
@@ -36,14 +37,29 @@ fresh:
 clear:
 	$(APP) php artisan optimize:clear
 
+# Run test suite inside Docker using the app container PHP extensions
+test:
+	$(DEV_COMPOSE) run --rm \
+		-e APP_ENV=testing \
+		-e DB_CONNECTION=sqlite \
+		-e DB_DATABASE=:memory: \
+		-e CACHE_STORE=array \
+		-e SESSION_DRIVER=array \
+		-e QUEUE_CONNECTION=sync \
+		-e MAIL_MAILER=array \
+		app php artisan test
+
 # Custom artisan command
 art:
 	$(APP) php artisan $(cmd)
 
 # First time setup (NEW DEV)
+init:
+	$(MAKE) setup
+
 setup:
 	cp -n .env.example .env
-	$(DOCKER_COMPOSE) up -d --build
+	$(DEV_COMPOSE) up -d --build
 	$(APP_RUN) composer install
 	$(APP) php artisan key:generate
 	$(APP) php artisan migrate
@@ -53,3 +69,12 @@ model:
 
 controller:
 	$(APP) php artisan make:controller $(name)
+
+prod-build:
+	$(PROD_COMPOSE) build
+
+prod-up:
+	$(PROD_COMPOSE) up -d --build
+
+prod-down:
+	$(PROD_COMPOSE) down

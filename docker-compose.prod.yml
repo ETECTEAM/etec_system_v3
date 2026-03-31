@@ -1,0 +1,39 @@
+services:
+  app:
+    build:
+      context: .
+      target: production
+    image: etec-system-v3-app:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+    depends_on:
+      - mysql
+
+  nginx:
+    build:
+      context: .
+      target: nginx
+    image: etec-system-v3-nginx:latest
+    container_name: etec_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+
+  mysql:
+    image: mysql:8
+    container_name: etec_mysql_prod
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_prod_data:/var/lib/mysql
+
+volumes:
+  mysql_prod_data:

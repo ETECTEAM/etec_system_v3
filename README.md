@@ -11,7 +11,7 @@
 
 **ETEC System v3** is a modern web-based admin system built with **Laravel 12** and **Vue 3**.
 
-This project follows a **Single Page Application (SPA)** architecture powered by **Vite** and is fully containerized using **Docker** for easy setup and consistent development.
+This project follows a **Single Page Application (SPA)** architecture powered by **Vite** and is fully containerized using **Docker** for local development and deployment builds.
 
 ---
 
@@ -26,7 +26,39 @@ This project follows a **Single Page Application (SPA)** architecture powered by
 
 ---
 
-## 🐳 Docker Setup (Recommended)
+## 🐳 Quick Start For Teammates
+
+If you only want to run the project locally, use these commands:
+
+```bash
+git clone https://github.com/knr-smey/etec_system_v3.git
+cd etec_system_v3
+git checkout dev
+make init
+```
+
+After first setup:
+
+```bash
+make up
+make test
+```
+
+Open:
+- App: `http://localhost:8001`
+- Vite: `http://localhost:5173`
+- phpMyAdmin: `http://localhost:8080`
+
+`make init` does the first-time setup:
+- creates `.env` if missing
+- builds the Docker containers
+- installs Composer dependencies
+- generates the Laravel app key
+- runs database migrations
+
+---
+
+## 🐳 Docker Setup
 
 ### 📦 Requirements
 
@@ -88,10 +120,10 @@ git checkout dev
 
 ---
 
-### ⚙️ 2. Setup Project
+### ⚙️ 2. First-Time Setup
 
 ```bash
-make setup
+make init
 ```
 
 This command will:
@@ -103,11 +135,12 @@ This command will:
 
 ---
 
-### 🌐 3. Access Application
+### 🌐 3. Access Development Services
 
 | Service     | URL                   |
 | ----------- | --------------------- |
 | Laravel App | http://localhost:8001 |
+| Vite Dev    | http://localhost:5173 |
 | phpMyAdmin  | http://localhost:8080 |
 
 ---
@@ -131,9 +164,49 @@ etec_system_v3/
 ├── routes/
 ├── database/
 ├── public/
-├── docker-compose.yml
+├── docker-compose.dev.yml
+├── docker-compose.prod.yml
 └── .env
 ```
+
+## Development Docker
+
+Use the development stack for coding, hot reload, and database work:
+
+```bash
+make init
+make up
+make down
+make test
+```
+
+Services:
+- `app`: Laravel development server
+- `node`: Vite dev server
+- `mysql`: MySQL 8
+- `phpmyadmin`: database UI
+
+## Deployment Docker
+
+You do not need this for normal teammate onboarding.
+
+Use the production stack to build a deployment image with:
+- PHP-FPM application container
+- Nginx web container
+- built Vite assets
+
+Commands:
+
+```bash
+make prod-build
+make prod-up
+make prod-down
+```
+
+Production files:
+- `Dockerfile`
+- `docker-compose.prod.yml`
+- `deploy/nginx/default.conf`
 
 ---
 
