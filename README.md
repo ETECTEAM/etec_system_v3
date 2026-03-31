@@ -108,6 +108,44 @@ make --version
 
 After that, run this project from the Ubuntu terminal, not from Command Prompt.
 
+#### Common Windows issues
+
+If you get:
+
+```text
+Error code: Wsl/Service/WSL_E_DISTRO_NOT_FOUND
+```
+
+it means WSL is installed, but Ubuntu distro is not installed yet.
+
+Run this in PowerShell:
+
+```powershell
+wsl --list --online
+wsl --install -d Ubuntu
+```
+
+Then open Ubuntu:
+
+```powershell
+wsl -d Ubuntu
+```
+
+If you get:
+
+```text
+Sudo is disabled on this machine...
+```
+
+you are still in PowerShell. `sudo` only works inside Ubuntu shell.
+
+Open Ubuntu first (`wsl -d Ubuntu`), then run:
+
+```bash
+sudo apt update
+sudo apt install -y make
+```
+
 ---
 
 ### 🚀 1. Clone Repository

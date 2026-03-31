@@ -59,7 +59,7 @@ init:
 	$(MAKE) setup
 
 setup:
-	cp -n .env.example .env
+	cp --update=none .env.example .env
 	$(DEV_COMPOSE) up -d --build
 	$(APP_RUN) composer install
 	$(APP) php artisan key:generate
@@ -73,7 +73,7 @@ controller:
 
 prod-init:
 	mkdir -p deploy/private
-	cp -n docker-compose.prod.example.yml $(PROD_COMPOSE_FILE)
+	cp --update=none docker-compose.prod.example.yml $(PROD_COMPOSE_FILE)
 
 prod-build:
 	$(PROD_COMPOSE) build
