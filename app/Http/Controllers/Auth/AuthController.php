@@ -37,15 +37,18 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
+            'login' => ['nullable', 'string', 'required_without:email'],
+            'email' => ['nullable', 'string', 'required_without:login'],
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $credentials['email'])->first();
+        $login = trim((string) ($credentials['login'] ?? $credentials['email'] ?? ''));
+
+        $user = $this->findUserForLogin($login);
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'login' => ['The provided credentials are incorrect.'],
             ]);
         }
 
@@ -89,6 +92,19 @@ class AuthController extends Controller
         }
 
         return $payload;
+    }
+
+    private function findUserForLogin(string $login): ?User
+    {
+        if ($login === '') {
+            return null;
+        }
+
+        $column = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'name';
+
+        return User::query()
+            ->where($column, $login)
+            ->first();
     }
 
     private function sanitizeUser(User $user): array

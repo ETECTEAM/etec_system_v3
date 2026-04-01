@@ -54,6 +54,7 @@ class AuthApiTest extends TestCase
     public function test_user_can_login_and_receive_token(): void
     {
         $user = User::factory()->create([
+            'name' => 'tester',
             'email' => 'tester@example.com',
             'password' => 'password123',
         ]);
@@ -77,6 +78,33 @@ class AuthApiTest extends TestCase
             ]);
     }
 
+    public function test_user_can_login_with_name_and_receive_token(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'tester',
+            'email' => 'tester@example.com',
+            'password' => 'password123',
+        ]);
+        $user->assignRole('instructor');
+
+        $response = $this->postJson('/api/auth/login', [
+            'login' => 'tester',
+            'password' => 'password123',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message', 'Logged in successfully.')
+            ->assertJsonPath('user.name', 'tester')
+            ->assertJsonStructure([
+                'user' => ['id', 'name', 'email'],
+                'roles',
+                'permissions',
+                'token',
+                'message',
+            ]);
+    }
+
     public function test_login_fails_with_invalid_credentials(): void
     {
         User::factory()->create([
@@ -91,7 +119,30 @@ class AuthApiTest extends TestCase
 
         $response
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
+            ->assertJsonValidationErrors(['login']);
+    }
+
+    public function test_login_is_rate_limited_after_too_many_attempts(): void
+    {
+        User::factory()->create([
+            'name' => 'tester',
+            'email' => 'tester@example.com',
+            'password' => 'password123',
+        ]);
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $this->postJson('/api/auth/login', [
+                'login' => 'tester',
+                'password' => 'wrong-password',
+            ])->assertStatus(422);
+        }
+
+        $response = $this->postJson('/api/auth/login', [
+            'login' => 'tester',
+            'password' => 'wrong-password',
+        ]);
+
+        $response->assertStatus(429);
     }
 
     public function test_authenticated_user_can_view_profile(): void

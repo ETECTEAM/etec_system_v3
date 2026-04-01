@@ -1,4 +1,4 @@
-.PHONY: up down install sync key migrate fresh clear art init setup model controller test prod-init prod-build prod-up prod-down
+.PHONY: up down install sync key migrate fresh clear art init setup model controller test test-app t prod-init prod-build prod-up prod-down
 
 DEV_COMPOSE = docker compose -f docker-compose.dev.yml
 PROD_COMPOSE_FILE = deploy/private/docker-compose.prod.yml
@@ -49,6 +49,11 @@ test:
 		-e QUEUE_CONNECTION=sync \
 		-e MAIL_MAILER=array \
 		app php artisan test
+
+test-app:
+	$(APP) php artisan test
+
+t: test-app
 
 # Custom artisan command
 art:
