@@ -2,6 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('app');
+Route::prefix("")->group(function () {
+    includeRouteFiles(__DIR__ ."/web/v1");
 });
