@@ -41,7 +41,7 @@ After first setup:
 
 ```bash
 make up
-make test
+make t
 ```
 
 Open:
@@ -107,6 +107,30 @@ make --version
 - Enable integration for your Ubuntu distro
 
 After that, run this project from the Ubuntu terminal, not from Command Prompt.
+
+#### 5. Daily commands in Ubuntu
+
+Run the project from the Ubuntu terminal:
+
+```bash
+git clone https://github.com/knr-smey/etec_system_v3.git
+cd etec_system_v3
+git checkout dev
+make init
+```
+
+After setup:
+
+```bash
+make up
+make t
+```
+
+To stop containers:
+
+```bash
+make down
+```
 
 #### Common Windows issues
 
@@ -218,7 +242,7 @@ Use the development stack for coding, hot reload, and database work:
 make init
 make up
 make down
-make test
+make t
 ```
 
 Services:
