@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function __construct(private readonly AuthService $authService) {}
+
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -21,15 +24,17 @@ class AuthController extends Controller
 
         $user = User::create($validated);
 
-        // Default role can be changed based on your business rules.
-        if (! $user->hasRole('instructor')) {
-            $user->assignRole('instructor');
+        // Ensure the default API role exists for the configured Sanctum guard.
+        $role = $this->authService->ensureDefaultRole();
+
+        if (! $user->hasRole($role)) {
+            $user->assignRole($role);
         }
 
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json(
-            $this->buildAuthPayload($user, $token, 'Registered successfully.'),
+            $this->authService->buildAuthPayload($user, $token, 'Registered successfully.'),
             201
         );
     }
@@ -42,9 +47,11 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        // Support either the new "login" field or the legacy "email" field.
         $login = trim((string) ($credentials['login'] ?? $credentials['email'] ?? ''));
 
-        $user = $this->findUserForLogin($login);
+        // Resolve the user by email when possible, otherwise fall back to name login.
+        $user = $this->authService->findUserForLogin($login);
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
@@ -55,7 +62,7 @@ class AuthController extends Controller
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json(
-            $this->buildAuthPayload($user, $token, 'Logged in successfully.')
+            $this->authService->buildAuthPayload($user, $token, 'Logged in successfully.')
         );
     }
 
@@ -72,47 +79,6 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        return response()->json($this->buildAuthPayload($user));
-    }
-
-    private function buildAuthPayload(User $user, ?string $token = null, ?string $message = null): array
-    {
-        $payload = [
-            'user' => $this->sanitizeUser($user),
-            'roles' => $user->getRoleNames()->values(),
-            'permissions' => $user->getAllPermissions()->pluck('name')->values(),
-        ];
-
-        if ($token !== null) {
-            $payload['token'] = $token;
-        }
-
-        if ($message !== null) {
-            $payload['message'] = $message;
-        }
-
-        return $payload;
-    }
-
-    private function findUserForLogin(string $login): ?User
-    {
-        if ($login === '') {
-            return null;
-        }
-
-        $column = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'name';
-
-        return User::query()
-            ->where($column, $login)
-            ->first();
-    }
-
-    private function sanitizeUser(User $user): array
-    {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-        ];
+        return response()->json($this->authService->buildAuthPayload($user));
     }
 }
