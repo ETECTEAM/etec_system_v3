@@ -33,6 +33,7 @@ git checkout dev
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
 docker compose up -d --build
 docker compose run --rm app composer install
+docker compose run --rm app npm install
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
 ```
@@ -43,6 +44,7 @@ docker compose exec app php artisan migrate
 [ -f .env ] || cp .env.example .env
 docker compose up -d --build
 docker compose run --rm app composer install
+docker compose run --rm app npm install
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
 ```
@@ -53,6 +55,7 @@ docker compose exec app php artisan migrate
 [ -f .env ] || cp .env.example .env
 docker compose up -d --build
 docker compose run --rm app composer install
+docker compose run --rm app npm install
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
 ```
@@ -88,6 +91,13 @@ docker compose exec app php artisan migrate
 - App: http://localhost:8001
 - Vite: http://localhost:5173
 - phpMyAdmin: http://localhost:8080
+
+The `app` container now runs `composer run dev`, which starts:
+
+- Laravel server
+- Queue listener
+- Laravel Pail
+- Vite dev server
 
 phpMyAdmin login:
 

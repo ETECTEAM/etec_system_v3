@@ -29,6 +29,11 @@ WORKDIR /var/www
 
 FROM php-base AS dev
 
+COPY --from=node:20-bullseye-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:20-bullseye-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+
 CMD ["php-fpm"]
 
 FROM composer:2 AS composer-deps
