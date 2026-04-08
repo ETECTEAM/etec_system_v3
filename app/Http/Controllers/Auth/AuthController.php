@@ -61,7 +61,7 @@ class AuthController extends Controller
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        return redirect('/')->with('success', 'Logged in successfully.');
+        return redirect($this->redirectPathFor($user))->with('success', 'Logged in successfully.');
     }
 
     public function logoutWeb(Request $request): RedirectResponse
@@ -71,5 +71,14 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/login');
+    }
+
+    private function redirectPathFor(User $user): string
+    {
+        if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
+            return '/dashboard';
+        }
+
+        return '/';
     }
 }

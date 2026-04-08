@@ -108,7 +108,7 @@ phpMyAdmin login:
 ## Access App Container Shell
 
 ```bash
-docker compose exec app sh
+docker compose exec app bash
 ```
 
 Then run artisan directly inside container:
