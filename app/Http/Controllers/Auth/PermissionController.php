@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
-class PermissionManagementController extends Controller
+class PermissionController extends Controller
 {
     public function createFeaturePermissions(Request $request): JsonResponse
     {
