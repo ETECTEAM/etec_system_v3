@@ -1,4 +1,4 @@
-export function initAuthParticles(containerId = 'particles-js') {
+export function initParticles(containerId = 'particles-js') {
   if (typeof window === 'undefined') {
     return () => {}
   }
@@ -11,11 +11,13 @@ export function initAuthParticles(containerId = 'particles-js') {
 
   const activeInstance = window.__authParticlesInstance
   const activeCanvas = container.querySelector('canvas[data-auth-particles="true"]')
+  const hasParticlesDom = Array.isArray(window.pJSDom) && window.pJSDom.length > 0
 
   if (
     activeInstance
     && activeInstance.containerId === containerId
     && activeCanvas
+    && hasParticlesDom
   ) {
     return activeInstance.cleanup
   }
@@ -145,6 +147,7 @@ export function initAuthParticles(containerId = 'particles-js') {
 
     resizeObserver.disconnect()
     canvas.remove()
+    window.pJSDom = []
 
     if (window.__authParticlesInstance?.cleanup === cleanup) {
       delete window.__authParticlesInstance
@@ -155,6 +158,7 @@ export function initAuthParticles(containerId = 'particles-js') {
     cleanup,
     containerId,
   }
+  window.pJSDom = [{ container: containerId }]
 
   return cleanup
 }

@@ -1,5 +1,5 @@
 <template>
-  <section class="relative hidden min-h-screen overflow-hidden bg-gradient-to-br from-blue-700 to-blue-900 p-10 lg:flex lg:flex-col lg:justify-between xl:p-16">
+  <section class="relative hidden min-h-screen overflow-hidden bg-gradient-to-br from-blue-900 to-blue-700 p-10 lg:flex lg:flex-col lg:justify-between xl:p-16">
     <div id="particles-js" class="absolute inset-0"></div>
     <div class="absolute -right-10 -top-10 h-56 w-56 rounded-full bg-blue-300/30 blur-3xl"></div>
     <div class="absolute -bottom-16 left-10 h-64 w-64 rounded-full bg-sky-300/20 blur-3xl"></div>

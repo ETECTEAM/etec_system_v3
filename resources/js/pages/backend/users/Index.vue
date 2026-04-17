@@ -5,6 +5,7 @@ import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
 const page = usePage()
 const users = page.props.users ?? []
+const canCreateUser = page.props.canCreateUser ?? false
 </script>
 
 <template>
@@ -17,7 +18,7 @@ const users = page.props.users ?? []
       <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="mb-4 flex items-center justify-between">
           <h2 class="text-lg font-bold text-slate-900">User List</h2>
-          <Link href="/dashboard/users/create" class="rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
+          <Link v-if="canCreateUser" href="/dashboard/users/create" class="rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
             Create User
           </Link>
         </div>

@@ -25,7 +25,7 @@ function submit() {
 
   <DashboardLayout>
     <section class="space-y-6 p-4 sm:p-6">
-      <PageHero eyebrow="User Management" title="Create New User" description="Super admin can add a new account and assign a role from this page." gradient-class="from-slate-900 via-blue-900 to-sky-800" />
+      <PageHero eyebrow="User Management" title="Create New User" description="Create a new account and assign a role based on your access level." gradient-class="from-slate-900 via-blue-900 to-sky-800" />
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submit">

@@ -1,12 +1,12 @@
 <script setup>
 import { onBeforeUnmount, onMounted } from 'vue'
 import AuthHero from '../components/auth/AuthHero.vue'
-import { initAuthParticles } from '../lib/initAuthParticles'
+import { initParticles } from '../lib/particles/initParticles'
 
 let destroyParticles = null
 
 onMounted(() => {
-  destroyParticles = initAuthParticles()
+  destroyParticles = initParticles()
 })
 
 onBeforeUnmount(() => {

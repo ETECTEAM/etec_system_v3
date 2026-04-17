@@ -1,13 +1,11 @@
-<script>
-import AuthLayout from '../../layouts/AuthLayout.vue'
-
-export default {
-  layout: AuthLayout,
-}
-</script>
-
 <script setup>
+import AuthCard from '../../components/auth/AuthCard.vue'
+import AuthLayout from '../../layouts/AuthLayout.vue'
 import { Link, useForm } from '@inertiajs/vue3'
+
+defineOptions({
+  layout: AuthLayout,
+})
 
 const form = useForm({
   login: '',
@@ -20,7 +18,7 @@ function submit() {
 </script>
 
 <template>
-  <div class="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl sm:p-10">
+  <AuthCard>
     <div class="mb-8">
       <h2 class="text-3xl font-black text-slate-900">Sign In</h2>
       <p class="mt-2 text-sm text-slate-600">Use your email or username to continue.</p>
@@ -68,5 +66,5 @@ function submit() {
       New here?
       <Link href="/register" class="font-semibold text-blue-900 hover:text-blue-950">Create account</Link>
     </p>
-  </div>
+  </AuthCard>
 </template>
