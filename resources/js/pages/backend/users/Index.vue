@@ -3,6 +3,7 @@ import axios from 'axios'
 import { onMounted, ref, watch } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import PageHero from '../../../components/PageHero.vue'
+import Pagination from '../../../components/Pagination.vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
 const page = usePage()
@@ -18,6 +19,7 @@ const search = ref('')
 const selectedRole = ref('')
 const roles = ref([])
 const isLoadingUsers = ref(false)
+const hasLoadedUsers = ref(false)
 
 onMounted(async () => {
   await Promise.all([
@@ -55,12 +57,8 @@ async function fetchUsers(pageNumber = 1) {
     }
   } catch (error) {
     console.error('Failed to fetch users', error)
-    users.value = []
-    pagination.value = {
-      current_page: 1,
-      last_page: 1,
-    }
   } finally {
+    hasLoadedUsers.value = true
     isLoadingUsers.value = false
   }
 }
@@ -137,7 +135,7 @@ watch(selectedRole, () => {
           </div>
         </div>
 
-        <div class="overflow-x-auto">
+        <div class="relative overflow-x-auto">
           <table class="min-w-full border-collapse text-left text-sm">
             <thead>
               <tr class="border-b border-slate-200 text-slate-600">
@@ -148,7 +146,7 @@ watch(selectedRole, () => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="user in users" :key="user.id" class="border-b border-slate-100 text-slate-800">
+              <tr v-for="user in users" :key="user.id" class="border-b border-slate-100 text-slate-800 transition-opacity duration-200">
                 <td class="px-3 py-2">{{ user.name }}</td>
                 <td class="px-3 py-2">{{ user.email }}</td>
                 <td class="px-3 py-2">
@@ -190,31 +188,29 @@ watch(selectedRole, () => {
                   </div>
                 </td>
               </tr>
-              <tr v-if="isLoadingUsers">
-                <td colspan="4" class="px-3 py-6 text-center text-slate-500">Loading users...</td>
-              </tr>
-              <tr v-else-if="users.length === 0">
+              <tr v-if="hasLoadedUsers && !isLoadingUsers && users.length === 0">
                 <td colspan="4" class="px-3 py-6 text-center text-slate-500">
                   {{ roles.length === 0 ? 'No roles available or roles could not be loaded.' : 'No users found.' }}
                 </td>
               </tr>
             </tbody>
           </table>
+
+          <div
+            v-if="isLoadingUsers"
+            class="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[1px]"
+          >
+            <div class="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
+          </div>
         </div>
 
-        <div v-if="pagination.last_page > 1" class="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            v-for="pageNumber in pagination.last_page"
-            :key="pageNumber"
-            type="button"
-            class="rounded-lg px-3 py-1.5 text-sm font-medium transition"
-            :class="pageNumber === pagination.current_page
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-200 text-slate-700 hover:bg-slate-300'"
-            @click="fetchUsers(pageNumber)"
-          >
-            {{ pageNumber }}
-          </button>
+        <div v-if="pagination.last_page > 1" class="mt-6">
+          <Pagination
+            :current-page="pagination.current_page"
+            :last-page="pagination.last_page"
+            :disabled="isLoadingUsers"
+            @page-change="fetchUsers"
+          />
         </div>
       </div>
     </section>

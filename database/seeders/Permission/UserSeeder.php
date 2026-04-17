@@ -5,53 +5,37 @@ namespace Database\Seeders\Permission;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $users = [
+        $superAdmin = User::firstOrCreate(
+            ['email' => 'superadmin@example.com'],
             [
                 'name' => 'Super Admin',
-                'email' => 'superadmin@example.com',
-                'password' => 'password',
-                'role' => 'super_admin',
-            ],
-            [
-                'name' => 'Admin User',
-                'email' => 'admin@example.com',
-                'password' => 'password',
-                'role' => 'admin',
-            ],
-            [
-                'name' => 'Instructor User',
-                'email' => 'instructor@example.com',
-                'password' => 'password',
-                'role' => 'instructor',
-            ],
-            [
-                'name' => 'Student User',
-                'email' => 'student@example.com',
-                'password' => 'password',
-                'role' => 'student',
-            ],
-        ];
+                'password' => Hash::make('password'),
+            ]
+        );
 
-        foreach ($users as $defaultUser) {
-            $user = User::firstOrCreate(
-                ['email' => $defaultUser['email']],
-                [
-                    'name' => $defaultUser['name'],
-                    'password' => Hash::make($defaultUser['password']),
-                ]
-            );
+        $superAdmin->forceFill([
+            'name' => 'Super Admin',
+            'password' => Hash::make('password'),
+        ])->save();
 
-            $user->forceFill([
-                'name' => $defaultUser['name'],
-                'password' => Hash::make($defaultUser['password']),
-            ])->save();
+        $superAdmin->syncRoles(['super_admin']);
 
-            $user->syncRoles([$defaultUser['role']]);
-        }
+        $roles = Role::query()
+            ->where('guard_name', 'sanctum')
+            ->whereIn('name', ['admin', 'instructor', 'student'])
+            ->pluck('name')
+            ->all();
+
+        User::factory(100)
+            ->create()
+            ->each(function (User $user) use ($roles): void {
+                $user->syncRoles([$roles[array_rand($roles)]]);
+            });
     }
 }
