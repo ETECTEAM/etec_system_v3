@@ -18,6 +18,10 @@ Route::middleware('auth')->get('/dashboard', function () {
     return Inertia::render('backend/Home');
 });
 
+Route::middleware('auth')->get('/dashboard/notifications', function () {
+    return Inertia::render('backend/notifications/Index');
+});
+
 Route::middleware('auth')->prefix('/dashboard/users')->group(function () {
     Route::get('/', [UserController::class, 'index']);
     Route::get('/data', [UserController::class, 'paginatedIndex']);

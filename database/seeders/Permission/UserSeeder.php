@@ -11,20 +11,45 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $superAdmin = User::firstOrCreate(
-            ['email' => 'superadmin@example.com'],
+        $fixedUsers = [
             [
                 'name' => 'Super Admin',
+                'email' => 'superadmin@etec.com',
+                'role' => 'super_admin',
+            ],
+            [
+                'name' => 'Admin User',
+                'email' => 'admin@etec.com',
+                'role' => 'admin',
+            ],
+            [
+                'name' => 'Instructor User',
+                'email' => 'instructor@etec.com',
+                'role' => 'instructor',
+            ],
+            [
+                'name' => 'Student User',
+                'email' => 'student@etec.com',
+                'role' => 'student',
+            ],
+        ];
+
+        foreach ($fixedUsers as $fixedUser) {
+            $user = User::firstOrCreate(
+                ['email' => $fixedUser['email']],
+                [
+                    'name' => $fixedUser['name'],
+                    'password' => Hash::make('password'),
+                ]
+            );
+
+            $user->forceFill([
+                'name' => $fixedUser['name'],
                 'password' => Hash::make('password'),
-            ]
-        );
+            ])->save();
 
-        $superAdmin->forceFill([
-            'name' => 'Super Admin',
-            'password' => Hash::make('password'),
-        ])->save();
-
-        $superAdmin->syncRoles(['super_admin']);
+            $user->syncRoles([$fixedUser['role']]);
+        }
 
         $roles = Role::query()
             ->where('guard_name', 'sanctum')

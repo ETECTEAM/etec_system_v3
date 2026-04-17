@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\Admin\NotificationController;
 use App\Modules\User\Controllers\UserController;
 use App\Http\Controllers\Auth\PermissionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/roles', [PermissionController::class, 'roles']);
+Route::middleware('auth:sanctum')->get('/notifications', [NotificationController::class, 'index']);
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:super_admin'])->group(function (): void {
     Route::post('/features', [PermissionController::class, 'createFeaturePermissions']);

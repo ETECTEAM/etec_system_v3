@@ -1,5 +1,6 @@
 <script setup>
 import Sidebar from "./Sidebar.vue"
+import DashboardHeader from "./DashboardHeader.vue"
 </script>
 
 <template>
@@ -10,6 +11,7 @@ import Sidebar from "./Sidebar.vue"
     <Sidebar />
 
     <div class="flex-1 min-w-0">
+        <DashboardHeader />
         <!-- Page content -->
         <div class="p-3">
             <slot></slot>

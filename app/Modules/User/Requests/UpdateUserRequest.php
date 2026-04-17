@@ -29,6 +29,7 @@ class UpdateUserRequest extends FormRequest
                 'string',
                 'email',
                 'max:255',
+                'regex:/^[a-zA-Z0-9._%+-]+@etec\.com$/',
                 Rule::unique('users', 'email')->ignore($targetUser?->id),
             ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],

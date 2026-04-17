@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 
 const page = usePage()
@@ -19,11 +19,18 @@ const menuItems = computed(() => {
             match: ['/dashboard'],
             exact: true,
         },
+        // {
+        //     label: 'Notifications',
+        //     href: '/dashboard/notifications',
+        //     match: ['/dashboard/notifications'],
+        //     exact: false,
+        //     isActive: (path) => path.startsWith('/dashboard/notifications'),
+        // },
     ]
 
     if (isSuperAdmin.value) {
         base.push({
-            label: 'User',
+            label: 'User Management',
             key: 'user',
             match: ['/dashboard/users'],
             children: [
@@ -94,6 +101,13 @@ watch(
     },
     { immediate: true },
 )
+
+onMounted(() => {
+    // Keep sidebar section expanded when navigating inside user management.
+    if (currentPath.value.startsWith('/dashboard/users')) {
+        openMenus.value.user = true
+    }
+})
 </script>
 
 <template>

@@ -56,7 +56,7 @@ function submit() {
               type="email"
               autocomplete="email"
               class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
-              placeholder="user@example.com"
+              placeholder="user@etec.com"
             >
             <span v-if="form.errors.email" class="mt-1 block text-xs text-red-600">{{ form.errors.email }}</span>
           </label>
