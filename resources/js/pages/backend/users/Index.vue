@@ -4,6 +4,7 @@ import { onMounted, ref, watch } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import PageHero from '../../../components/PageHero.vue'
 import Pagination from '../../../components/Pagination.vue'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
 const page = usePage()
@@ -14,6 +15,8 @@ const users = ref([])
 const pagination = ref({
   current_page: 1,
   last_page: 1,
+  per_page: 10,
+  total: 0,
 })
 const search = ref('')
 const selectedRole = ref('')
@@ -54,6 +57,8 @@ async function fetchUsers(pageNumber = 1) {
     pagination.value = {
       current_page: response.data.current_page ?? 1,
       last_page: response.data.last_page ?? 1,
+      per_page: response.data.per_page ?? 10,
+      total: response.data.total ?? 0,
     }
   } catch (error) {
     console.error('Failed to fetch users', error)
@@ -89,6 +94,26 @@ function canDelete(user) {
 
 function formatRole(role) {
   return role.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
+}
+
+function paginationStart() {
+  if (pagination.value.total === 0 || users.value.length === 0) {
+    return 0
+  }
+
+  return ((pagination.value.current_page - 1) * pagination.value.per_page) + 1
+}
+
+function paginationEnd() {
+  if (pagination.value.total === 0 || users.value.length === 0) {
+    return 0
+  }
+
+  return ((pagination.value.current_page - 1) * pagination.value.per_page) + users.value.length
+}
+
+function rowNumber(index) {
+  return ((pagination.value.current_page - 1) * pagination.value.per_page) + index + 1
 }
 
 watch(search, () => {
@@ -135,30 +160,36 @@ watch(selectedRole, () => {
           </div>
         </div>
 
-        <div class="relative overflow-x-auto">
-          <table class="min-w-full border-collapse text-left text-sm">
-            <thead>
-              <tr class="border-b border-slate-200 text-slate-600">
-                <th class="px-3 py-2 font-semibold">Name</th>
-                <th class="px-3 py-2 font-semibold">Email</th>
-                <th class="px-3 py-2 font-semibold">Roles</th>
-                <th class="px-3 py-2 text-right font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="user in users" :key="user.id" class="border-b border-slate-100 text-slate-800 transition-opacity duration-200">
-                <td class="px-3 py-2">{{ user.name }}</td>
-                <td class="px-3 py-2">{{ user.email }}</td>
-                <td class="px-3 py-2">
-                  <span
-                    v-for="role in user.roles"
-                    :key="`${user.id}-${role}`"
-                    class="mr-2 inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold capitalize text-slate-700"
-                  >
-                    {{ role.replace('_', ' ') }}
-                  </span>
-                </td>
-                <td class="px-3 py-2 text-right">
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200">
+          <div class="relative">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead class="w-16">No</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Roles</TableHead>
+                <TableHead class="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+              <TableRow v-for="(user, index) in users" :key="user.id" class="transition-opacity duration-200">
+                <TableCell class="text-slate-500">{{ rowNumber(index) }}</TableCell>
+                <TableCell class="font-medium text-slate-900">{{ user.name }}</TableCell>
+                <TableCell class="text-slate-600">{{ user.email }}</TableCell>
+                <TableCell>
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      v-for="role in user.roles"
+                      :key="`${user.id}-${role}`"
+                      class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold capitalize text-slate-700 ring-1 ring-slate-200"
+                    >
+                      {{ role.replace('_', ' ') }}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell class="text-right">
                   <div class="flex justify-end gap-2">
                     <button
                       type="button"
@@ -186,15 +217,16 @@ watch(selectedRole, () => {
                       Delete
                     </button>
                   </div>
-                </td>
-              </tr>
-              <tr v-if="hasLoadedUsers && !isLoadingUsers && users.length === 0">
-                <td colspan="4" class="px-3 py-6 text-center text-slate-500">
+                </TableCell>
+              </TableRow>
+
+              <TableRow v-if="hasLoadedUsers && !isLoadingUsers && users.length === 0">
+                <TableCell colspan="5" class="py-10 text-center text-slate-500">
                   {{ roles.length === 0 ? 'No roles available or roles could not be loaded.' : 'No users found.' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
 
           <div
             v-if="isLoadingUsers"
@@ -202,15 +234,20 @@ watch(selectedRole, () => {
           >
             <div class="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
           </div>
-        </div>
+          </div>
 
-        <div v-if="pagination.last_page > 1" class="mt-6">
-          <Pagination
-            :current-page="pagination.current_page"
-            :last-page="pagination.last_page"
-            :disabled="isLoadingUsers"
-            @page-change="fetchUsers"
-          />
+          <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="text-sm text-slate-500">
+              Showing {{ paginationStart() }} to {{ paginationEnd() }} of {{ pagination.total }} users
+            </div>
+
+            <Pagination
+              :current-page="pagination.current_page"
+              :last-page="pagination.last_page"
+              :disabled="isLoadingUsers"
+              @page-change="fetchUsers"
+            />
+          </div>
         </div>
       </div>
     </section>
