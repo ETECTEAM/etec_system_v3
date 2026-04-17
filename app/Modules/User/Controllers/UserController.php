@@ -36,7 +36,7 @@ class UserController extends Controller
         $users = $this->userService->paginateVisibleUsers($request->user(), [
             'search' => $request->string('search')->toString(),
             'role' => $request->string('role')->toString(),
-        ]);
+        ], 5);
 
         return response()->json($users);
     }

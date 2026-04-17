@@ -1,6 +1,9 @@
 <script setup>
-import { Head, useForm, usePage } from '@inertiajs/vue3'
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
+import { computed } from 'vue'
 import PageHero from '../../../components/PageHero.vue'
+import SelectSearch from '../../../components/ui/SelectSearch.vue'
+import { formatRole } from '../../../lib/roleBadge'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
 const page = usePage()
@@ -15,6 +18,11 @@ const form = useForm({
   role: roleOptions[0] ?? 'admin',
 })
 
+const roleSelectOptions = computed(() => roleOptions.map((role) => ({
+  label: formatRole(role),
+  value: role,
+})))
+
 function submit() {
   form.post('/dashboard/users')
 }
@@ -25,7 +33,7 @@ function submit() {
 
   <DashboardLayout>
     <section class="space-y-6 p-4 sm:p-6">
-      <PageHero eyebrow="User Management" title="Create New User" description="Create a new account and assign a role based on your access level." gradient-class="from-slate-900 via-blue-900 to-sky-800" />
+      <PageHero eyebrow="User Management" title="Create New User" description="Create a new account and assign a role based on your access level." />
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submit">
@@ -78,20 +86,26 @@ function submit() {
 
           <label class="block sm:col-span-2">
             <span class="mb-2 block text-sm font-semibold text-slate-700">Role</span>
-            <select
+            <SelectSearch
               v-model="form.role"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
-            >
-              <option v-for="role in roleOptions" :key="role" :value="role">{{ role }}</option>
-            </select>
+              :options="roleSelectOptions"
+              placeholder="Select role"
+            />
             <span v-if="form.errors.role" class="mt-1 block text-xs text-red-600">{{ form.errors.role }}</span>
           </label>
 
-          <div class="sm:col-span-2">
+          <div class="flex justify-end gap-3 sm:col-span-2">
+            <Link
+              href="/dashboard/users"
+              class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Cancel
+            </Link>
+
             <button
               type="submit"
               :disabled="form.processing"
-              class="w-full rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+              class="rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {{ form.processing ? 'Creating user...' : 'Create User' }}
             </button>

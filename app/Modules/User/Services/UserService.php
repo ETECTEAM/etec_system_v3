@@ -58,7 +58,7 @@ class UserService
             });
     }
 
-    public function paginateVisibleUsers(User $authUser, array $filters = [], int $perPage = 10): LengthAwarePaginator
+    public function paginateVisibleUsers(User $authUser, array $filters = [], int $perPage = 5): LengthAwarePaginator
     {
         $query = $this->queryVisibleUsers($authUser)->with('roles');
 

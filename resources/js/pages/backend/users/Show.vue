@@ -1,5 +1,6 @@
 <script setup>
 import { Head, Link, usePage } from '@inertiajs/vue3'
+import { formatRole, roleBadgeClass } from '../../../lib/roleBadge'
 import PageHero from '../../../components/PageHero.vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
@@ -16,7 +17,7 @@ const user = page.props.user ?? { roles: [] }
         eyebrow="User Management"
         title="View User"
         description="Review account details and assigned role information."
-        gradient-class="from-slate-900 via-blue-900 to-sky-800"
+        
       />
 
       <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
@@ -38,9 +39,12 @@ const user = page.props.user ?? { roles: [] }
                 <span
                   v-for="role in user.roles"
                   :key="role"
-                  class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold capitalize text-slate-700"
+                  :class="[
+                    'inline-flex rounded-full px-3 py-1 text-xs font-semibold',
+                    roleBadgeClass(role),
+                  ]"
                 >
-                  {{ role.replace('_', ' ') }}
+                  {{ formatRole(role) }}
                 </span>
               </div>
             </div>
