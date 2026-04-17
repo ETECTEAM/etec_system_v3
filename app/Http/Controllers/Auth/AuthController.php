@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -28,32 +29,36 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'is_active' => false,
-        ]);
+        [$user] = DB::transaction(function () use ($validated): array {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => $validated['password'],
+                'is_active' => false,
+            ]);
 
-        $role = $this->authService->ensureDefaultRole();
+            $role = $this->authService->ensureDefaultRole();
 
-        if (! $user->hasRole($role)) {
-            $user->assignRole($role);
-        }
+            if (! $user->hasRole($role)) {
+                $user->assignRole($role);
+            }
 
-        $code = (string) random_int(100000, 999999);
+            $code = (string) random_int(100000, 999999);
 
-        VerificationCode::create([
-            'user_id' => $user->id,
-            'code' => $code,
-            'expires_at' => now()->addMinutes(10),
-        ]);
+            VerificationCode::create([
+                'user_id' => $user->id,
+                'code' => $code,
+                'expires_at' => now()->addMinutes(10),
+            ]);
 
-        Notification::create([
-            'title' => 'New Instructor Registered',
-            'message' => $user->name.' registered. Code: '.$code,
-            'is_read' => false,
-        ]);
+            Notification::create([
+                'title' => 'New Instructor Registered',
+                'message' => $user->name.' registered. Code: '.$code,
+                'is_read' => false,
+            ]);
+
+            return [$user];
+        });
 
         Auth::login($user);
         $request->session()->regenerate();
@@ -186,7 +191,7 @@ class AuthController extends Controller
 
     private function redirectPathFor(User $user): string
     {
-        if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
+        if ($user->hasRole('super_admin') || $user->hasRole('admin') || $user->hasRole('instructor')) {
             return '/dashboard';
         }
 

@@ -12,7 +12,8 @@ class NotificationController extends Controller
     public function index(Request $request): JsonResponse
     {
         abort_unless(
-            $request->user()?->hasRole('super_admin') || $request->user()?->hasRole('admin'),
+            $request->user()?->hasRole('super_admin')
+                || $request->user()?->hasRole('admin'),
             403
         );
 

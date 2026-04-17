@@ -5,18 +5,22 @@ import { Link, router, usePage } from '@inertiajs/vue3'
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user ?? null)
+const roles = computed(() => page.props.auth?.roles ?? [])
+const canAccessNotifications = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin'))
 const notifications = ref([])
 const isLoading = ref(false)
 
 onMounted(() => {
-  fetchNotifications()
+  if (canAccessNotifications.value) {
+    fetchNotifications()
+  }
 })
 
 async function fetchNotifications() {
   isLoading.value = true
 
   try {
-    const response = await axios.get('/api/notifications')
+    const response = await axios.get('/dashboard/notifications/data')
     const payload = response.data?.data ?? response.data ?? []
     notifications.value = Array.isArray(payload) ? payload : []
   } catch (error) {
@@ -42,6 +46,7 @@ function goToNotifications() {
 
       <div class="flex items-center gap-4">
         <button
+          v-if="canAccessNotifications"
           type="button"
           class="relative cursor-pointer rounded-lg p-1 transition hover:bg-slate-100"
           :disabled="isLoading"

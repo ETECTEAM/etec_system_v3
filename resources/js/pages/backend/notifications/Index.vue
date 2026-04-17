@@ -15,7 +15,7 @@ async function fetchNotifications() {
   isLoading.value = true
 
   try {
-    const res = await axios.get('/api/notifications')
+    const res = await axios.get('/dashboard/notifications/data')
     const payload = res.data?.data ?? res.data ?? []
     notifications.value = Array.isArray(payload) ? payload : []
   } catch (error) {

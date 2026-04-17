@@ -7,6 +7,7 @@ const page = usePage()
 const currentPath = computed(() => page.url ?? '/')
 const roles = computed(() => page.props.auth?.roles ?? [])
 const isSuperAdmin = computed(() => roles.value.includes('super_admin'))
+const canAccessNotifications = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin'))
 const openMenus = ref({
     user: true,
 })
@@ -19,14 +20,17 @@ const menuItems = computed(() => {
             match: ['/dashboard'],
             exact: true,
         },
-        // {
-        //     label: 'Notifications',
-        //     href: '/dashboard/notifications',
-        //     match: ['/dashboard/notifications'],
-        //     exact: false,
-        //     isActive: (path) => path.startsWith('/dashboard/notifications'),
-        // },
     ]
+
+    if (canAccessNotifications.value) {
+        base.push({
+            label: 'Notifications',
+            href: '/dashboard/notifications',
+            match: ['/dashboard/notifications'],
+            exact: false,
+            isActive: (path) => path.startsWith('/dashboard/notifications'),
+        })
+    }
 
     if (isSuperAdmin.value) {
         base.push({
