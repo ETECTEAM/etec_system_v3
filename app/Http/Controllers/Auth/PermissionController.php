@@ -11,6 +11,16 @@ use Spatie\Permission\Models\Role;
 
 class PermissionController extends Controller
 {
+    public function roles(): JsonResponse
+    {
+        return response()->json(
+            Role::query()
+                ->select(['id', 'name'])
+                ->orderBy('id')
+                ->get()
+        );
+    }
+
     public function createFeaturePermissions(Request $request): JsonResponse
     {
         $validated = $request->validate([

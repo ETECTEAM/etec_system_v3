@@ -32,18 +32,25 @@ const menuItems = computed(() => {
                     href: '/dashboard/users',
                     match: ['/dashboard/users'],
                     exact: false,
+                    isActive: (path) => (
+                        path === '/dashboard/users'
+                        || path.startsWith('/dashboard/users/create')
+                        || path.startsWith('/dashboard/users/edit')
+                    ),
                 },
                 {
                     label: 'User Role',
                     href: '/dashboard/users/roles',
                     match: ['/dashboard/users/roles'],
-                    exact: true,
+                    exact: false,
+                    isActive: (path) => path.startsWith('/dashboard/users/roles'),
                 },
                 {
                     label: 'Permission',
                     href: '/dashboard/users/permissions',
                     match: ['/dashboard/users/permissions'],
-                    exact: true,
+                    exact: false,
+                    isActive: (path) => path.startsWith('/dashboard/users/permissions'),
                 },
             ],
         })
@@ -54,6 +61,10 @@ const menuItems = computed(() => {
 
 function isActive(item) {
     const pathOnly = currentPath.value.split('?')[0].replace(/\/+$/, '') || '/'
+
+    if (typeof item.isActive === 'function') {
+        return item.isActive(pathOnly)
+    }
 
     return item.match.some((targetPath) => {
         const normalizedTarget = targetPath.replace(/\/+$/, '') || '/'

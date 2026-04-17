@@ -4,6 +4,7 @@ namespace App\Modules\User\Services;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
@@ -57,6 +58,33 @@ class UserService
             });
     }
 
+    public function paginateVisibleUsers(User $authUser, array $filters = [], int $perPage = 10): LengthAwarePaginator
+    {
+        $query = $this->queryVisibleUsers($authUser)->with('roles');
+
+        $search = trim((string) ($filters['search'] ?? ''));
+        if ($search !== '') {
+            $query->where(function (Builder $builder) use ($search): void {
+                $builder
+                    ->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('email', 'like', '%'.$search.'%');
+            });
+        }
+
+        $role = trim((string) ($filters['role'] ?? ''));
+        if ($role !== '') {
+            $query->whereHas('roles', function (Builder $builder) use ($role): void {
+                $builder->where('name', $role);
+            });
+        }
+
+        return $query
+            ->paginate($perPage)
+            ->through(function (User $user): array {
+                return $this->presentUser($user);
+            });
+    }
+
     public function roleOptions(User $authUser): Collection
     {
         $roles = $this->assignableRolesFor($authUser);
@@ -66,6 +94,16 @@ class UserService
             ->orderBy('id')
             ->pluck('name')
             ->values();
+    }
+
+    public function presentUser(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'roles' => $user->getRoleNames()->values(),
+        ];
     }
 
     public function create(array $data): User

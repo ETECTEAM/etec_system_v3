@@ -32,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
         ]);
 
+        $middleware->statefulApi();
+
         $middleware->alias([
             'auth' => Authenticate::class,
             'auth.basic' => AuthenticateWithBasicAuth::class,

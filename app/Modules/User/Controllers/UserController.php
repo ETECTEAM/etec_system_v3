@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\User\Requests\StoreUserRequest;
 use App\Modules\User\Requests\UpdateUserRequest;
 use App\Modules\User\Services\UserService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,9 +25,20 @@ class UserController extends Controller
         $this->authorize('viewAny', User::class);
 
         return Inertia::render('backend/users/Index', [
-            'users' => $this->userService->listVisibleUsers($request->user()),
             'canCreateUser' => $request->user() !== null && $this->userService->roleOptions($request->user())->isNotEmpty(),
         ]);
+    }
+
+    public function paginatedIndex(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', User::class);
+
+        $users = $this->userService->paginateVisibleUsers($request->user(), [
+            'search' => $request->string('search')->toString(),
+            'role' => $request->string('role')->toString(),
+        ]);
+
+        return response()->json($users);
     }
 
     public function create(Request $request): Response
@@ -34,6 +46,25 @@ class UserController extends Controller
         $this->authorize('create', User::class);
 
         return Inertia::render('backend/users/Create', [
+            'roleOptions' => $this->userService->roleOptions($request->user()),
+        ]);
+    }
+
+    public function show(Request $request, User $user): Response
+    {
+        $this->authorize('manage', $user);
+
+        return Inertia::render('backend/users/Show', [
+            'user' => $this->userService->presentUser($user),
+        ]);
+    }
+
+    public function edit(Request $request, User $user): Response
+    {
+        $this->authorize('manage', $user);
+
+        return Inertia::render('backend/users/Edit', [
+            'user' => $this->userService->presentUser($user),
             'roleOptions' => $this->userService->roleOptions($request->user()),
         ]);
     }
