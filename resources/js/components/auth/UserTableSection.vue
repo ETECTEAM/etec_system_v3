@@ -58,10 +58,12 @@ const emit = defineEmits([
   'page-change',
 ])
 
+// Only super admins can edit users from this table.
 function canEdit() {
   return props.currentUserRole === 'super_admin'
 }
 
+// Prevent super admins from deleting their own account from the list.
 function canDelete(user) {
   return props.currentUserRole === 'super_admin' && user.id !== props.currentUserId
 }
@@ -82,10 +84,12 @@ function paginationEnd() {
   return ((props.pagination.current_page - 1) * props.pagination.per_page) + props.users.length
 }
 
+// Keep row numbering continuous across paginated pages.
 function rowNumber(index) {
   return ((props.pagination.current_page - 1) * props.pagination.per_page) + index + 1
 }
 
+// Build the role filter options from the backend roles list.
 const roleOptions = computed(() => [
   { label: 'All Roles', value: '' },
   ...props.roles.map((role) => ({
