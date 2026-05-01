@@ -1,7 +1,7 @@
 <script setup>
 import { Head, Link, usePage } from '@inertiajs/vue3'
 import { formatRole, roleBadgeClass } from '../../../lib/roleBadge'
-import PageHero from '../../../components/PageHero.vue'
+import { PageHero } from '../../../components/ui/page-hero'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
 const page = usePage()

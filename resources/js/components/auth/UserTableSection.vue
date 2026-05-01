@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { formatRole, roleBadgeClass } from '../../lib/roleBadge'
-import Pagination from '../Pagination.vue'
-import SelectSearch from '../ui/SelectSearch.vue'
+import { Pagination } from '../ui/pagination'
+import { SelectSearch } from '../ui/select-search'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 
 const props = defineProps({

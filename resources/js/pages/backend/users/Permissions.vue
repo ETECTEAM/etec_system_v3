@@ -1,6 +1,6 @@
 <script setup>
 import { Head } from '@inertiajs/vue3'
-import PageHero from '../../../components/PageHero.vue'
+import { PageHero } from '../../../components/ui/page-hero'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 </script>
 

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 
 const page = usePage()
@@ -8,8 +8,13 @@ const currentPath = computed(() => page.url ?? '/')
 const roles = computed(() => page.props.auth?.roles ?? [])
 const isSuperAdmin = computed(() => roles.value.includes('super_admin'))
 const canAccessNotifications = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin'))
+
+function isUserManagementRoute(path) {
+    return path.split('?')[0].startsWith('/dashboard/users')
+}
+
 const openMenus = ref({
-    user: true,
+    user: isUserManagementRoute(currentPath.value),
 })
 
 const menuItems = computed(() => {
@@ -96,19 +101,8 @@ function toggleMenu(key) {
     openMenus.value[key] = !openMenus.value[key]
 }
 
-watch(
-    currentPath,
-    () => {
-        if (currentPath.value.startsWith('/dashboard/users')) {
-            openMenus.value.user = true
-        }
-    },
-    { immediate: true },
-)
-
-onMounted(() => {
-    // Keep sidebar section expanded when navigating inside user management.
-    if (currentPath.value.startsWith('/dashboard/users')) {
+watch(currentPath, (path) => {
+    if (isUserManagementRoute(path)) {
         openMenus.value.user = true
     }
 })

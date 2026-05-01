@@ -1,8 +1,8 @@
 <script setup>
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
-import PageHero from '../../../components/PageHero.vue'
-import SelectSearch from '../../../components/ui/SelectSearch.vue'
+import { PageHero } from '../../../components/ui/page-hero'
+import { SelectSearch } from '../../../components/ui/select-search'
 import { formatRole } from '../../../lib/roleBadge'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
