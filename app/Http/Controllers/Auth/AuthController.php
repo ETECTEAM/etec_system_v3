@@ -65,7 +65,7 @@ class AuthController extends Controller
 
         $request->session()->put('pending_verification_user_id', $user->id);
 
-        return redirect('/verify-code')->with('success', 'Registration received. Enter your verification code to activate your account.');
+        return redirect('/code-verify')->with('success', 'Registration received. Enter your verification code to activate your account.');
     }
 
     public function showVerifyCode(Request $request): Response|RedirectResponse

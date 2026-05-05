@@ -6,10 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class NotificationController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function showNotificationPage(Request $request): Response
+    {
+        abort_unless(
+            $request->user()?->hasRole('super_admin')
+                || $request->user()?->hasRole('admin'),
+            403
+        );
+
+        return Inertia::render('backend/notifications/Index');
+    }
+
+    public function getNotificationData(Request $request): JsonResponse
     {
         abort_unless(
             $request->user()?->hasRole('super_admin')

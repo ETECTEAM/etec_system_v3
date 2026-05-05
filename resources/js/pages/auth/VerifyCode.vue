@@ -30,7 +30,7 @@ async function submit() {
   try {
     const userId = localStorage.getItem('verify_user_id')
 
-    const response = await axios.post('/api/verify-code', {
+    const response = await axios.post('/api/code-verify', {
       code: code.value,
       user_id: userId ? Number(userId) : null,
     })
