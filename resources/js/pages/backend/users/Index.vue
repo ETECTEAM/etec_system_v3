@@ -3,7 +3,7 @@ import axios from 'axios'
 import { onMounted, ref, watch } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import { PageHero } from '../../../components/ui/page-hero'
-import UserTableSection from '../../../components/auth/UserTableSection.vue'
+import UserTableSection from '../../auth/components/UserTableSection.vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
 const page = usePage()

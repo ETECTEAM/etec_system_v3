@@ -2,7 +2,7 @@
 import axios from 'axios'
 import { onMounted, ref } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
-import AuthCard from '../../components/auth/AuthCard.vue'
+import AuthCard from './components/AuthCard.vue'
 import AuthLayout from '../../layouts/AuthLayout.vue'
 
 defineOptions({

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import AuthCard from '../../components/auth/AuthCard.vue'
+import AuthCard from './components/AuthCard.vue'
 import AuthLayout from '../../layouts/AuthLayout.vue'
 import { Link, useForm } from '@inertiajs/vue3'
 
