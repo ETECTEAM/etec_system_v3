@@ -1,5 +1,6 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
+    "name": "etec_system_v3",
     "private": true,
     "type": "module",
     "scripts": {
@@ -16,6 +17,8 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
-        "vue": "^3.5.29"
+        "@inertiajs/vue3": "^3.0.1",
+        "vue": "^3.5.29",
+        "vue-router": "^4.6.4"
     }
 }

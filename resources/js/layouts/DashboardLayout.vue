@@ -1,39 +1,22 @@
 <script setup>
-
 import Sidebar from "./Sidebar.vue"
-
+import DashboardHeader from "./DashboardHeader.vue"
 </script>
 
 <template>
 
-<div class="layout">
+<div class="flex min-h-screen w-full bg-slate-50">
 
     <!-- Sidebar -->
     <Sidebar />
 
-    <div class="main">
+    <div class="flex-1 min-w-0">
+        <DashboardHeader />
         <!-- Page content -->
-        <div class="content">
+        <div class="p-3">
             <slot></slot>
         </div>
-
     </div>
 
 </div>
-
 </template>
-
-<style scoped>
-
-.layout{
-    display:flex;
-}
-
-.main{
-    flex:1;
-}
-
-.content{
-    padding:20px;
-}
-</style>
