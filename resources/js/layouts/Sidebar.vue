@@ -1,148 +1,190 @@
 <script setup>
-import { ref } from "vue"
-import menu from "../config/sidebar"
+import { computed, ref, watch } from 'vue'
+import { Link, usePage } from '@inertiajs/vue3'
 
-const user = window.user ?? { role: "super_admin" }
+const page = usePage()
 
-const filteredMenu = menu
-    .filter(section => section.roles.includes(user.role))
-    .map(section => ({
-        ...section,
-        items: section.items.filter(item =>
-            !item.roles || item.roles.includes(user.role)
-        )
-    }))
+const currentPath = computed(() => page.url ?? '/')
+const roles = computed(() => page.props.auth?.roles ?? [])
+const isSuperAdmin = computed(() => roles.value.includes('super_admin'))
+const canAccessNotifications = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin'))
 
-const openDropdowns = ref({})
-
-function toggleDropdown(name) {
-    openDropdowns.value[name] = !openDropdowns.value[name]
+function isUserManagementRoute(path) {
+    return path.split('?')[0].startsWith('/dashboard/users')
 }
 
-function isActive(route) {
-    return window.location.pathname === route
+const openMenus = ref({
+    user: isUserManagementRoute(currentPath.value),
+})
+
+const menuItems = computed(() => {
+    const base = [
+        {
+            label: 'Dashboard',
+            href: '/dashboard',
+            match: ['/dashboard'],
+            exact: true,
+        },
+    ]
+
+    if (canAccessNotifications.value) {
+        base.push({
+            label: 'Notifications',
+            href: '/dashboard/notifications',
+            match: ['/dashboard/notifications'],
+            exact: false,
+            isActive: (path) => path.startsWith('/dashboard/notifications'),
+        })
+    }
+
+    if (isSuperAdmin.value) {
+        base.push({
+            label: 'User Management',
+            key: 'user',
+            match: ['/dashboard/users'],
+            children: [
+                {
+                    label: 'User',
+                    href: '/dashboard/users',
+                    match: ['/dashboard/users'],
+                    exact: false,
+                    isActive: (path) => (
+                        path === '/dashboard/users'
+                        || path.startsWith('/dashboard/users/create')
+                        || path.startsWith('/dashboard/users/edit')
+                    ),
+                },
+                {
+                    label: 'User Role',
+                    href: '/dashboard/users/roles',
+                    match: ['/dashboard/users/roles'],
+                    exact: false,
+                    isActive: (path) => path.startsWith('/dashboard/users/roles'),
+                },
+                {
+                    label: 'Permission',
+                    href: '/dashboard/users/permissions',
+                    match: ['/dashboard/users/permissions'],
+                    exact: false,
+                    isActive: (path) => path.startsWith('/dashboard/users/permissions'),
+                },
+            ],
+        })
+    }
+
+    return base
+})
+
+function isActive(item) {
+    const pathOnly = currentPath.value.split('?')[0].replace(/\/+$/, '') || '/'
+
+    if (typeof item.isActive === 'function') {
+        return item.isActive(pathOnly)
+    }
+
+    return item.match.some((targetPath) => {
+        const normalizedTarget = targetPath.replace(/\/+$/, '') || '/'
+
+        if (item.exact) {
+            return pathOnly === normalizedTarget
+        }
+
+        return pathOnly === normalizedTarget || pathOnly.startsWith(`${normalizedTarget}/`)
+    })
 }
+
+function isChildActive(children = []) {
+    return children.some((child) => isActive(child))
+}
+
+function toggleMenu(key) {
+    openMenus.value[key] = !openMenus.value[key]
+}
+
+watch(currentPath, (path) => {
+    if (isUserManagementRoute(path)) {
+        openMenus.value.user = true
+    }
+})
 </script>
 
 <template>
-<aside class="w-[260px] bg-[#0f1117] border-r border-white/5 h-screen sticky top-0 flex flex-col overflow-hidden font-sans">
-
-    <!-- Logo -->
-    <div class="flex items-center gap-3 px-5 py-5 border-b border-white/5">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-sm shadow-[0_0_0_1px_rgba(99,102,241,0.4),0_4px_12px_rgba(99,102,241,0.25)]">
-            E
-        </div>
-        <span class="text-white font-semibold text-[15px] tracking-wide">ETEC</span>
-    </div>
-
-    <!-- User Pill -->
-    <div class="mx-3 mt-3 mb-1 flex items-center gap-2.5 px-3 py-2.5 bg-white/[0.04] border border-white/[0.07] rounded-xl cursor-pointer hover:bg-white/[0.07] transition-colors">
-        <div class="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-400 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-            {{ user.name?.[0]?.toUpperCase() ?? "U" }}
-        </div>
-        <div class="flex flex-col flex-1 min-w-0">
-            <span class="text-gray-200 text-[13px] font-medium truncate">{{ user.name ?? "Admin" }}</span>
-            <span class="text-gray-500 text-[11px] capitalize">{{ user.role.replace("_", " ") }}</span>
-        </div>
-        <svg class="w-3.5 h-3.5 text-gray-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M6 9l6 6 6-6"/>
-        </svg>
-    </div>
-
-    <!-- Nav -->
-    <nav class="flex-1 overflow-y-auto px-3 py-3 scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-
-        <div v-for="section in filteredMenu" :key="section.section" class="mb-5">
-
-            <!-- Section label -->
-            <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-700 px-2 mb-1.5">
-                {{ section.section }}
-            </p>
-
-            <ul class="flex flex-col gap-px">
-                <li v-for="item in section.items" :key="item.name">
-
-                    <!-- Normal link -->
-                    <a
-                        v-if="!item.children"
-                        :href="item.route"
-                        :class="[
-                            'relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13.5px] transition-colors no-underline',
-                            isActive(item.route)
-                                ? 'bg-indigo-500/15 text-indigo-300 font-medium before:absolute before:left-0 before:top-[20%] before:h-[60%] before:w-[3px] before:bg-indigo-500 before:rounded-r-sm'
-                                : 'text-gray-400 hover:bg-white/[0.05] hover:text-gray-200'
-                        ]"
-                    >
-                        <span class="w-1.5 h-1.5 rounded-full bg-current opacity-40 shrink-0"></span>
-                        <span>{{ item.name }}</span>
-                        <span v-if="item.badge" class="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400">
-                            {{ item.badge }}
-                        </span>
-                    </a>
-
-                    <!-- Dropdown -->
-                    <div v-else>
-                        <button
-                            @click="toggleDropdown(item.name)"
-                            :class="[
-                                'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13.5px] transition-colors text-left border-none bg-transparent cursor-pointer',
-                                openDropdowns[item.name]
-                                    ? 'text-gray-200 bg-white/[0.05]'
-                                    : 'text-gray-400 hover:bg-white/[0.05] hover:text-gray-200'
-                            ]"
-                        >
-                            <span class="w-1.5 h-1.5 rounded-full bg-current opacity-40 shrink-0"></span>
-                            <span>{{ item.name }}</span>
-                            <svg
-                                :class="['ml-auto w-3.5 h-3.5 text-gray-600 transition-transform duration-200', openDropdowns[item.name] ? 'rotate-90' : '']"
-                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    <aside class="sticky top-0 h-screen w-full max-w-72 border-r border-blue-900/70 bg-blue-950 text-blue-50">
+        <div class="flex h-full flex-col px-4 py-6">
+            <nav class="mt-2 flex-1">
+                <p class="mb-4 px-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-300/70">Navigation</p>
+                <ul class="space-y-1.5">
+                    <li v-for="item in menuItems" :key="item.href ?? item.key">
+                        <template v-if="item.children">
+                            <button
+                                type="button"
+                                class="group flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition"
+                                :class="isChildActive(item.children)
+                                    ? 'bg-blue-900/80 text-white'
+                                    : 'text-blue-100 hover:bg-blue-900/70 hover:text-white'"
+                                @click="toggleMenu(item.key)"
                             >
-                                <path d="M9 18l6-6-6-6"/>
-                            </svg>
-                        </button>
+                                <span class="flex items-center gap-2">
+                                    <svg class="h-4 w-4 text-blue-300/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M16 19a4 4 0 0 0-8 0" />
+                                        <circle cx="12" cy="7" r="3" />
+                                        <path d="M20 8v6" />
+                                        <path d="M23 11h-6" />
+                                    </svg>
+                                    {{ item.label }}
+                                </span>
+                                <svg class="h-4 w-4 text-blue-300/70 transition" :class="openMenus[item.key] ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
 
-                        <transition
-                            enter-active-class="transition-all duration-200 ease-out overflow-hidden"
-                            leave-active-class="transition-all duration-200 ease-in overflow-hidden"
-                            enter-from-class="max-h-0 opacity-0"
-                            enter-to-class="max-h-96 opacity-100"
-                            leave-from-class="max-h-96 opacity-100"
-                            leave-to-class="max-h-0 opacity-0"
-                        >
-                            <ul v-show="openDropdowns[item.name]" class="ml-[18px] mt-0.5 pl-3 border-l border-white/[0.06] flex flex-col gap-px">
-                                <li v-for="child in item.children" :key="child.name">
-                                    <a
-                                        :href="child.route"
-                                        :class="[
-                                            'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] transition-colors no-underline',
-                                            isActive(child.route)
-                                                ? 'text-indigo-300'
-                                                : 'text-gray-500 hover:bg-white/[0.04] hover:text-gray-300'
-                                        ]"
+                            <ul v-if="openMenus[item.key]" class="ml-4 mt-2 space-y-1.5">
+                                <li v-for="child in item.children" :key="child.href">
+                                    <Link
+                                        :href="child.href"
+                                        class="group relative flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
+                                        :class="isActive(child)
+                                            ? 'bg-blue-900/80 text-white'
+                                            : 'text-blue-100 hover:bg-blue-900/70 hover:text-white'"
                                     >
-                                        <span class="w-1 h-1 rounded-full bg-current opacity-50 shrink-0"></span>
-                                        {{ child.name }}
-                                    </a>
+                                        <span>{{ child.label }}</span>
+                                        <span class="text-xs opacity-70">›</span>
+                                    </Link>
                                 </li>
                             </ul>
-                        </transition>
-                    </div>
+                        </template>
 
-                </li>
-            </ul>
+                        <Link
+                            v-else
+                            :href="item.href"
+                            class="group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition"
+                            :class="isActive(item)
+                                ? 'bg-blue-900/80 text-white'
+                                : 'text-blue-100 hover:bg-blue-900/70 hover:text-white'"
+                        >
+                            <span class="flex items-center gap-2">
+                                <svg class="h-4 w-4 text-blue-300/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M3 10.5 12 4l9 6.5" />
+                                    <path d="M5 9.5V20h14V9.5" />
+                                </svg>
+                                {{ item.label }}
+                            </span>
+                            <span class="text-xs opacity-70">›</span>
+                        </Link>
+                    </li>
+                </ul>
+            </nav>
 
+            <div class="mt-4 border-t border-blue-900/70 pt-4">
+                <Link
+                    href="/logout"
+                    method="post"
+                    as="button"
+                    class="w-full rounded-lg bg-blue-900 px-3 py-2.5 text-sm font-semibold text-blue-50 transition hover:bg-blue-800"
+                >
+                    Logout
+                </Link>
+            </div>
         </div>
-    </nav>
-
-    <!-- Footer -->
-    <div class="px-3 py-3 border-t border-white/5">
-        <a href="/logout" class="flex items-center gap-2 px-2.5 py-2 rounded-lg text-gray-600 text-[13px] hover:bg-red-500/[0.08] hover:text-red-400 transition-colors no-underline">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 shrink-0">
-                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
-            </svg>
-            Sign out
-        </a>
-    </div>
-
-</aside>
+    </aside>
 </template>
