@@ -39,7 +39,7 @@ class UserSeeder extends Seeder
                 ['email' => $fixedUser['email']],
                 [
                     'name' => $fixedUser['name'],
-                    'password' => Hash::make('password'),
+                    'password' => Hash::make('  '),
                 ]
             );
 
