@@ -1,10 +1,10 @@
 <script setup>
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
-import { formatRole, roleBadgeClass } from '../../lib/roleBadge'
-import { Pagination } from '../ui/pagination'
-import { SelectSearch } from '../ui/select-search'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { formatRole, roleBadgeClass } from '@/lib/roleBadge.js'
+import { Pagination } from '@/components/ui/pagination'
+import { SelectSearch } from '../../../components/ui/select-search'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table'
 
 const props = defineProps({
   users: {

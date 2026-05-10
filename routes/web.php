@@ -5,19 +5,6 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Frontend Routes
-|--------------------------------------------------------------------------
-|
-| Public-facing pages and resident portal routes.
-|
-*/
-
-Route::middleware(RedirectAdminFromFrontend::class)->group(function (): void {
-    includeRouteFiles(__DIR__.'/web/frontend');
-});
-
-/*
-|--------------------------------------------------------------------------
 | Backend Routes
 |--------------------------------------------------------------------------
 |
@@ -27,4 +14,19 @@ Route::middleware(RedirectAdminFromFrontend::class)->group(function (): void {
 
 Route::group([], function (): void {
     includeRouteFiles(__DIR__.'/web/backend');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Frontend Routes
+|--------------------------------------------------------------------------
+|
+| Public-facing pages and resident portal routes.
+| Keep these after backend routes so the frontend catch-all does not
+| override auth endpoints like /login and /register.
+|
+*/
+
+Route::middleware(RedirectAdminFromFrontend::class)->group(function (): void {
+    includeRouteFiles(__DIR__.'/web/frontend');
 });
