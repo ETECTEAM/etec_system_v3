@@ -31,10 +31,10 @@ Route::get('/code-verify', [AuthController::class, 'showVerifyCode'])->name('cod
 Route::middleware(['guest', 'throttle:login'])->post('/login', [AuthController::class, 'loginWeb'])->name('login.store');
 
 // Handle new user registration requests.
-Route::middleware('guest')->post('/register', [AuthController::class, 'registerWeb'])->name('register.store');
+Route::middleware(['guest', 'throttle:register'])->post('/register', [AuthController::class, 'registerWeb'])->name('register.store');
 
 // Handle verification code submission for account activation.
-Route::post('/api/code-verify', [AuthController::class, 'verifyCodeApi'])->name('code-verify.store');
+Route::middleware('throttle:otp-verify')->post('/api/code-verify', [AuthController::class, 'verifyCodeApi'])->name('code-verify.store');
 
 // Handle logout for authenticated users.
 Route::middleware('auth')->post('/logout', [AuthController::class, 'logoutWeb'])->name('logout');

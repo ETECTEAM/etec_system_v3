@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\UserStatus;
+use App\Events\PendingUserRegistered;
 use App\Http\Controllers\Controller;
-use App\Models\Notification;
 use App\Models\User;
-use App\Models\VerificationCode;
 use App\Services\AuthService;
+use App\Services\AuthAuditService;
+use App\Services\OtpService;
+use App\Services\UserApprovalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +22,12 @@ use Inertia\Response;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly AuthService $authService) {}
+    public function __construct(
+        private readonly AuthService $authService,
+        private readonly OtpService $otpService,
+        private readonly UserApprovalService $approvalService,
+        private readonly AuthAuditService $auditService,
+    ) {}
 
     public function registerWeb(Request $request): RedirectResponse
     {
@@ -29,12 +37,13 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        [$user] = DB::transaction(function () use ($validated): array {
+        [$user, $otp, $plainCode] = DB::transaction(function () use ($validated): array {
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => $validated['password'],
                 'is_active' => false,
+                'status' => UserStatus::Pending,
             ]);
 
             $role = $this->authService->ensureDefaultRole();
@@ -43,27 +52,19 @@ class AuthController extends Controller
                 $user->assignRole($role);
             }
 
-            $code = (string) random_int(100000, 999999);
+            [$otp, $plainCode] = $this->otpService->createForUser($user);
 
-            VerificationCode::create([
-                'user_id' => $user->id,
-                'code' => $code,
-                'expires_at' => now()->addMinutes(10),
-            ]);
-
-            Notification::create([
-                'title' => 'New Instructor Registered',
-                'message' => $user->name.' registered. Code: '.$code,
-                'is_read' => false,
-            ]);
-
-            return [$user];
+            return [$user, $otp, $plainCode];
         });
+
+        $this->auditService->log($user, 'user.registered', $request->ip());
 
         Auth::login($user);
         $request->session()->regenerate();
 
         $request->session()->put('pending_verification_user_id', $user->id);
+
+        PendingUserRegistered::dispatch($user, $otp, $plainCode);
 
         return redirect('/code-verify')->with('success', 'Registration received. Enter your verification code to activate your account.');
     }
@@ -73,13 +74,21 @@ class AuthController extends Controller
         $pendingUserId = $request->session()->get('pending_verification_user_id');
         $user = $pendingUserId ? User::query()->find($pendingUserId) : null;
 
-        if (! $user && $request->user() && ! $request->user()->is_active) {
+        if (! $user && $request->user() && $request->user()->status !== UserStatus::Active) {
             $user = $request->user();
             $request->session()->put('pending_verification_user_id', $user->id);
         }
 
         if (! $user) {
             return redirect('/register')->with('error', 'Please register first to request a verification code.');
+        }
+
+        if ($user->status === UserStatus::Rejected) {
+            return redirect('/register')->with('error', 'Your registration was rejected. Please contact support.');
+        }
+
+        if ($user->status === UserStatus::Active) {
+            return redirect('/login')->with('success', 'Your account is already active.');
         }
 
         return Inertia::render('auth/VerifyCode', [
@@ -99,7 +108,7 @@ class AuthController extends Controller
         $authenticatedUser = $request->user();
         $user = $pendingUserId ? User::query()->find($pendingUserId) : null;
 
-        if (! $user && $authenticatedUser && ! $authenticatedUser->is_active) {
+        if (! $user && $authenticatedUser && $authenticatedUser->status !== UserStatus::Active) {
             $user = $authenticatedUser;
             $pendingUserId = $authenticatedUser->id;
         }
@@ -115,30 +124,21 @@ class AuthController extends Controller
             ]);
         }
 
-        $verificationCode = VerificationCode::query()
-            ->where('user_id', $user->id)
-            ->where('code', $validated['code'])
-            ->where('is_verified', false)
-            ->where(function ($query): void {
-                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
-            })
-            ->latest('id')
-            ->first();
-
-        if (! $verificationCode) {
+        if ($user->status === UserStatus::Rejected) {
             throw ValidationException::withMessages([
-                'code' => ['The verification code is invalid or has expired.'],
+                'code' => ['Your registration was rejected. Please contact support.'],
             ]);
         }
 
-        $verificationCode->forceFill([
-            'is_verified' => true,
-        ])->save();
+        if ($user->status === UserStatus::Active) {
+            return response()->json([
+                'message' => 'Account is already active.',
+                'redirect' => $this->redirectPathFor($user),
+            ]);
+        }
 
-        $user->forceFill([
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ])->save();
+        $this->otpService->verify($user, $validated['code']);
+        $this->approvalService->approve($user, null, 'otp');
 
         Auth::login($user);
         $request->session()->regenerate();
@@ -168,7 +168,13 @@ class AuthController extends Controller
             ]);
         }
 
-        if (! $user->is_active) {
+        if ($user->status === UserStatus::Rejected) {
+            throw ValidationException::withMessages([
+                'login' => ['Your account was rejected. Please contact support.'],
+            ]);
+        }
+
+        if ($user->status !== UserStatus::Active) {
             throw ValidationException::withMessages([
                 'login' => ['Your account is pending verification. Please complete the 6-digit verification first.'],
             ]);

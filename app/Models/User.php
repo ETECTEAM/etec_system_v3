@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -28,6 +29,8 @@ class User extends Authenticatable
         'email',
         'password',
         'is_active',
+        'status',
+        'verified_at',
     ];
 
     /**
@@ -50,6 +53,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'is_active' => 'boolean',
+            'status' => UserStatus::class,
+            'verified_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -57,5 +62,15 @@ class User extends Authenticatable
     public function verificationCodes(): HasMany
     {
         return $this->hasMany(VerificationCode::class);
+    }
+
+    public function otpVerifications(): HasMany
+    {
+        return $this->hasMany(OtpVerification::class);
+    }
+
+    public function authAuditLogs(): HasMany
+    {
+        return $this->hasMany(AuthAuditLog::class);
     }
 }

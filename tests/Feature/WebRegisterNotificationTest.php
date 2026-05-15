@@ -2,9 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Notification;
 use App\Models\User;
-use App\Models\VerificationCode;
+use App\Models\OtpVerification;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -24,24 +23,18 @@ class WebRegisterNotificationTest extends TestCase
             'password_confirmation' => 'password123',
         ]);
 
-        $response->assertRedirect('/verify-code');
+        $response->assertRedirect('/code-verify');
 
         $user = User::query()->where('email', 'instructor1@etec.com')->first();
 
         $this->assertNotNull($user);
         $this->assertFalse((bool) $user->is_active);
+        $this->assertSame('pending', $user->status->value);
 
-        $verificationCode = VerificationCode::query()->where('user_id', $user->id)->latest('id')->first();
+        $otp = OtpVerification::query()->where('user_id', $user->id)->latest('id')->first();
 
-        $this->assertNotNull($verificationCode);
-        $this->assertSame(6, strlen((string) $verificationCode->code));
-        $this->assertFalse((bool) $verificationCode->is_verified);
-
-        $notification = Notification::query()->latest('id')->first();
-
-        $this->assertNotNull($notification);
-        $this->assertSame('New Instructor Registered', $notification->title);
-        $this->assertStringContainsString('Instructor One registered. Code:', $notification->message);
-        $this->assertFalse((bool) $notification->is_read);
+        $this->assertNotNull($otp);
+        $this->assertNotNull($otp->otp_code);
+        $this->assertNull($otp->verified_at);
     }
 }
