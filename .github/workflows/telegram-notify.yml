@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - dev
+      - main
+      - feature/**
 
 jobs:
   notify:
@@ -12,7 +14,7 @@ jobs:
     steps:
       - name: Send Telegram Notification
         run: |
-          MESSAGE="🚀 ETEC System V3 Update
+          MESSAGE="🚀 ETEC System Update
 
           👤 Developer: ${{ github.actor }}
 
@@ -21,7 +23,7 @@ jobs:
           📝 Commit:
           ${{ github.event.head_commit.message }}
 
-          ✅ Push completed successfully."
+          ✅ Push completed."
 
           curl -s -X POST \
           https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
