@@ -1,4 +1,6 @@
 <script setup>
+import { Card } from '../card'
+
 const props = defineProps({
   eyebrow: {
     type: String,
@@ -14,15 +16,17 @@ const props = defineProps({
   },
   gradientClass: {
     type: String,
-    default: 'from-blue-950 via-blue-900 to-sky-800',
+    default: '',
   },
 })
 </script>
 
 <template>
-  <div :class="`rounded-3xl bg-linear-to-r p-6 text-white shadow-xl ${props.gradientClass}`">
-    <p v-if="props.eyebrow" class="text-xs uppercase tracking-[0.3em] text-blue-100">{{ props.eyebrow }}</p>
-    <h1 class="mt-3 text-3xl font-black">{{ props.title }}</h1>
-    <p v-if="props.description" class="mt-2 max-w-2xl text-sm text-blue-100/90">{{ props.description }}</p>
-  </div>
+  <Card :card-class="props.gradientClass" padding="p-6">
+    <div class="flex flex-col gap-2">
+      <p v-if="props.eyebrow" class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">{{ props.eyebrow }}</p>
+      <h1 class="text-2xl font-semibold text-slate-900 sm:text-3xl">{{ props.title }}</h1>
+      <p v-if="props.description" class="max-w-2xl text-sm text-slate-600">{{ props.description }}</p>
+    </div>
+  </Card>
 </template>

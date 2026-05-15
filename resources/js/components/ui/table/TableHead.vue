@@ -1,5 +1,5 @@
 <template>
-  <th class="h-11 px-4 text-left align-middle text-sm font-semibold whitespace-nowrap text-slate-600">
+  <th class="h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 whitespace-nowrap">
     <slot />
   </th>
 </template>

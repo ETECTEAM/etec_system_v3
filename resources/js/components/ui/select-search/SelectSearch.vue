@@ -113,7 +113,7 @@ onBeforeUnmount(() => {
   <div ref="root" class="relative w-full">
     <button
       type="button"
-      class="flex w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-4 py-2 text-left text-sm transition focus:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+      class="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-left text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
       :disabled="disabled"
       @click="toggleDropdown"
     >
@@ -125,7 +125,7 @@ onBeforeUnmount(() => {
 
     <div
       v-if="open"
-      class="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
+      class="absolute z-50 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
     >
       <div class="border-b border-slate-200 p-2">
         <input
@@ -133,7 +133,7 @@ onBeforeUnmount(() => {
           v-model="search"
           type="text"
           :placeholder="searchPlaceholder"
-          class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+          class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
         >
       </div>
 

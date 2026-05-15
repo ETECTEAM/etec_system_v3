@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
+import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { SelectSearch } from '../../../components/ui/select-search'
 import { formatRole } from '../../../lib/roleBadge'
@@ -23,6 +24,12 @@ const roleSelectOptions = computed(() => roleOptions.map((role) => ({
   value: role,
 })))
 
+const breadcrumbItems = [
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Users', href: '/dashboard/users' },
+  { label: 'Create', current: true },
+]
+
 function submit() {
   form.post('/dashboard/users')
 }
@@ -32,7 +39,8 @@ function submit() {
   <Head title="Create User" />
 
   <DashboardLayout>
-    <section class="space-y-6 p-4 sm:p-6">
+    <section class="space-y-6">
+      <Breadcrumbs :items="breadcrumbItems" />
       <PageHero eyebrow="User Management" title="Create New User" description="Create a new account and assign a role based on your access level." />
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">

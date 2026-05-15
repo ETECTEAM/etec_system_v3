@@ -10,7 +10,7 @@ services:
     volumes:
       - .:/var/www
     env_file:
-      - .env.docker
+      - .env
     command: composer run dev
     ports:
       - "8001:8000"
@@ -23,7 +23,7 @@ services:
     container_name: laravel_mysql
     restart: unless-stopped
     env_file:
-      - .env.docker
+      - .env
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
@@ -36,7 +36,7 @@ services:
     ports:
       - "8080:80"
     env_file:
-      - .env.docker
+      - .env
     environment:
       PMA_HOST: mysql
     depends_on:
