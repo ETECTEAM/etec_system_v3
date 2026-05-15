@@ -13,4 +13,9 @@ class EventServiceProvider extends ServiceProvider
             SendTelegramAdminApproval::class,
         ],
     ];
+
+    public function shouldDiscoverEvents(): bool
+    {
+        return false;
+    }
 }
