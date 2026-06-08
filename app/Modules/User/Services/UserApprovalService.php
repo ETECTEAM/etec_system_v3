@@ -7,6 +7,9 @@ use App\Models\OtpVerification;
 use App\Models\User;
 use App\Modules\Auth\Services\AuthAuditService;
 
+/**
+ * Activates or rejects users from OTP verification or Telegram approval.
+ */
 class UserApprovalService
 {
     public function __construct(private readonly AuthAuditService $auditService) {}
@@ -45,6 +48,7 @@ class UserApprovalService
 
     private function markLatestOtpVerified(User $user): void
     {
+        // Telegram approval should also close the latest pending OTP.
         $otp = OtpVerification::query()
             ->where('user_id', $user->id)
             ->whereNull('verified_at')

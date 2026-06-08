@@ -5,6 +5,9 @@ namespace App\Modules\Auth\Requests\Permissions;
 use App\Modules\Auth\Data\Permissions\CreateFeaturePermissionsData;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates a feature name and actions for bulk permission creation.
+ */
 class CreateFeaturePermissionsRequest extends FormRequest
 {
     public function authorize(): bool
@@ -29,6 +32,7 @@ class CreateFeaturePermissionsRequest extends FormRequest
     {
         $validated = $this->validated();
 
+        // Default actions give every feature the normal CRUD permission set.
         return new CreateFeaturePermissionsData(
             name: $validated['name'],
             actions: $validated['actions'] ?? ['view', 'create', 'update', 'delete'],

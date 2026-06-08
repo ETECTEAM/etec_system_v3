@@ -7,6 +7,9 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Creates and verifies one-time registration codes.
+ */
 class OtpService
 {
     public function __construct(private readonly AuthAuditService $auditService) {}
@@ -15,6 +18,7 @@ class OtpService
     {
         $plainCode = (string) random_int(100000, 999999);
 
+        // Store only a hash so the plain OTP is never saved in the database.
         $otp = OtpVerification::create([
             'user_id' => $user->id,
             'otp_code' => Hash::make($plainCode),
@@ -32,6 +36,7 @@ class OtpService
 
     public function verify(User $user, string $code): OtpVerification
     {
+        // Always verify against the latest unverified OTP for this user.
         $otp = OtpVerification::query()
             ->where('user_id', $user->id)
             ->whereNull('verified_at')
@@ -53,6 +58,7 @@ class OtpService
         if (! Hash::check($code, $otp->otp_code)) {
             $otp->increment('attempts');
 
+            // Failed attempts are audited so abuse can be investigated later.
             $this->auditService->log($user, 'otp.failed', request()->ip(), [
                 'otp_id' => $otp->id,
                 'attempts' => $otp->attempts + 1,

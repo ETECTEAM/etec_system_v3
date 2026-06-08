@@ -5,6 +5,9 @@ namespace App\Modules\Auth\Requests;
 use App\Modules\Auth\Data\VerifyCodeData;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates OTP verification input and builds VerifyCodeData.
+ */
 class VerifyCodeRequest extends FormRequest
 {
     public function authorize(): bool
@@ -27,6 +30,7 @@ class VerifyCodeRequest extends FormRequest
     {
         $validated = $this->validated();
 
+        // user_id is optional because the session usually identifies the pending user.
         return new VerifyCodeData(
             code: $validated['code'],
             userId: isset($validated['user_id']) ? (int) $validated['user_id'] : null,

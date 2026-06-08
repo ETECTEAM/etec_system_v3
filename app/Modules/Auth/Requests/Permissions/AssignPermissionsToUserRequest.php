@@ -5,6 +5,9 @@ namespace App\Modules\Auth\Requests\Permissions;
 use App\Modules\Auth\Data\Permissions\AssignPermissionsToUserData;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates permission names before assigning them directly to a user.
+ */
 class AssignPermissionsToUserRequest extends FormRequest
 {
     public function authorize(): bool

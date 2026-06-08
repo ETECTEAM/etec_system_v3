@@ -2,6 +2,9 @@
 
 namespace App\Modules\Auth\Data\Permissions;
 
+/**
+ * Carries a feature name and action list for generating permissions.
+ */
 readonly class CreateFeaturePermissionsData
 {
     /**

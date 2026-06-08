@@ -5,6 +5,9 @@ namespace App\Modules\Auth\Requests\Permissions;
 use App\Modules\Auth\Data\Permissions\AssignPermissionsToRoleData;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates permission names before syncing them onto a role.
+ */
 class AssignPermissionsToRoleRequest extends FormRequest
 {
     public function authorize(): bool

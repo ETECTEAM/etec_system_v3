@@ -24,6 +24,9 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Coordinates web authentication, registration, OTP verification, and logout.
+ */
 class AuthController extends Controller
 {
     public function __construct(
@@ -37,6 +40,7 @@ class AuthController extends Controller
     {
         $data = $request->toData();
 
+        // User, role, and OTP must be created together or rolled back together.
         [$user, $otp, $plainCode] = DB::transaction(function () use ($data): array {
             $user = User::create([
                 'name' => $data->name,
@@ -64,6 +68,7 @@ class AuthController extends Controller
 
         $request->session()->put('pending_verification_user_id', $user->id);
 
+        // Notify admins after the user and OTP exist.
         PendingUserRegistered::dispatch($user, $otp, $plainCode);
 
         return redirect('/code-verify')->with('success', 'Registration received. Enter your verification code to activate your account.');
@@ -74,6 +79,7 @@ class AuthController extends Controller
         $pendingUserId = $request->session()->get('pending_verification_user_id');
         $user = $pendingUserId ? User::query()->find($pendingUserId) : null;
 
+        // If the session expired but the pending user is logged in, rebuild it.
         if (! $user && $request->user() && $request->user()->status !== UserStatus::Active) {
             $user = $request->user();
             $request->session()->put('pending_verification_user_id', $user->id);
@@ -101,6 +107,7 @@ class AuthController extends Controller
     {
         $data = $request->toData();
 
+        // Prefer session state, then authenticated user, then explicit user id.
         $pendingUserId = $request->session()->get('pending_verification_user_id');
         $authenticatedUser = $request->user();
         $user = $pendingUserId ? User::query()->find($pendingUserId) : null;
@@ -146,6 +153,7 @@ class AuthController extends Controller
     {
         $data = $request->toData();
 
+        // AuthService decides whether the login string is an email or username.
         $user = $this->authService->findUserForLogin($data->login);
 
         if (! $user || ! Hash::check($data->password, $user->password)) {

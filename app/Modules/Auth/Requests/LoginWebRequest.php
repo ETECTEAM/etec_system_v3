@@ -5,6 +5,9 @@ namespace App\Modules\Auth\Requests;
 use App\Modules\Auth\Data\LoginData;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates the backend login form and builds LoginData for the controller.
+ */
 class LoginWebRequest extends FormRequest
 {
     public function authorize(): bool
@@ -28,6 +31,7 @@ class LoginWebRequest extends FormRequest
     {
         $validated = $this->validated();
 
+        // Accept either login or email so the login form can support both fields.
         return new LoginData(
             login: trim((string) ($validated['login'] ?? $validated['email'] ?? '')),
             password: $validated['password'],

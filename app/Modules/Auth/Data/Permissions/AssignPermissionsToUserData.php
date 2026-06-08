@@ -2,6 +2,9 @@
 
 namespace App\Modules\Auth\Data\Permissions;
 
+/**
+ * Carries permission names for assigning direct permissions to a user.
+ */
 readonly class AssignPermissionsToUserData
 {
     /**

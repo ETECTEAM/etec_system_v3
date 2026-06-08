@@ -2,6 +2,9 @@
 
 namespace App\Modules\User\Data;
 
+/**
+ * Carries validated user creation input into UserService.
+ */
 readonly class StoreUserData
 {
     public function __construct(
@@ -12,6 +15,8 @@ readonly class StoreUserData
     ) {}
 
     /**
+     * Returns only columns that belong on the users table.
+     *
      * @return array{name: string, email: string, password: string}
      */
     public function userAttributes(): array

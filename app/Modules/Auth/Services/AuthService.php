@@ -5,6 +5,9 @@ namespace App\Modules\Auth\Services;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Holds reusable authentication helpers for roles, login lookup, and API payloads.
+ */
 class AuthService
 {
     public function ensureDefaultRole(string $roleName = 'instructor', string $guard = 'sanctum'): Role
@@ -18,6 +21,7 @@ class AuthService
             return null;
         }
 
+        // Let users log in with either email or username from the same field.
         $column = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'name';
 
         return User::query()
@@ -50,6 +54,7 @@ class AuthService
     {
         $grouped = [];
 
+        // Convert permission names like course.view into course => [course.view].
         foreach ($permissions as $permission) {
             $resource = explode('.', $permission, 2)[0];
             $grouped[$resource] ??= [];

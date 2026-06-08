@@ -15,6 +15,9 @@ use Illuminate\Http\JsonResponse;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Manages roles and permissions for super-admin API endpoints.
+ */
 class PermissionController extends Controller
 {
     public function roles(): JsonResponse
@@ -33,6 +36,7 @@ class PermissionController extends Controller
 
         $permissions = [];
 
+        // Feature permission names follow feature.action, such as course.view.
         foreach ($data->actions as $action) {
             $permissionName = sprintf('%s.%s', $data->name, $action);
             $permission = Permission::findOrCreate($permissionName, $data->guardName);

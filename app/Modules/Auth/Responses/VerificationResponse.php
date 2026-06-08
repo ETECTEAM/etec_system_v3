@@ -2,6 +2,9 @@
 
 namespace App\Modules\Auth\Responses;
 
+/**
+ * Builds JSON responses for OTP verification endpoints.
+ */
 class VerificationResponse
 {
     public static function alreadyActive(string $redirectPath)

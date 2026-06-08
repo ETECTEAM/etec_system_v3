@@ -5,6 +5,9 @@ namespace App\Modules\Auth\Requests\Permissions;
 use App\Modules\Auth\Data\Permissions\AssignRoleToUserData;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates the role name before assigning a role to a user.
+ */
 class AssignRoleToUserRequest extends FormRequest
 {
     public function authorize(): bool

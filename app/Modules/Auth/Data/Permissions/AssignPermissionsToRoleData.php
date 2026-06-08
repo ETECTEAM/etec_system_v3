@@ -2,6 +2,9 @@
 
 namespace App\Modules\Auth\Data\Permissions;
 
+/**
+ * Carries the role name and permission names for role permission sync.
+ */
 readonly class AssignPermissionsToRoleData
 {
     /**

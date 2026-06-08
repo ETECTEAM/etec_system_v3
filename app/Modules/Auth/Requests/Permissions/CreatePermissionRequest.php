@@ -5,6 +5,9 @@ namespace App\Modules\Auth\Requests\Permissions;
 use App\Modules\Auth\Data\Permissions\CreatePermissionData;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates one permission name before creation.
+ */
 class CreatePermissionRequest extends FormRequest
 {
     public function authorize(): bool

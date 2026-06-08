@@ -5,6 +5,9 @@ namespace App\Modules\Auth\Requests\Permissions;
 use App\Modules\Auth\Data\Permissions\CreateRoleData;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates one role name before creation.
+ */
 class CreateRoleRequest extends FormRequest
 {
     public function authorize(): bool

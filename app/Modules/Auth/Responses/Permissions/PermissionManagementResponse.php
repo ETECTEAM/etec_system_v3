@@ -7,6 +7,9 @@ use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Builds consistent JSON payloads for role and permission management APIs.
+ */
 class PermissionManagementResponse
 {
     /**

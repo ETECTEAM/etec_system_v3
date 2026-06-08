@@ -2,6 +2,9 @@
 
 namespace App\Modules\User\Data;
 
+/**
+ * Carries validated user update input into UserService.
+ */
 readonly class UpdateUserData
 {
     public function __construct(
@@ -12,6 +15,8 @@ readonly class UpdateUserData
     ) {}
 
     /**
+     * Returns users table columns, excluding blank passwords.
+     *
      * @return array{name: string, email: string, password?: string}
      */
     public function userAttributes(): array

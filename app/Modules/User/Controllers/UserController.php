@@ -13,6 +13,9 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Coordinates dashboard user-management pages and actions.
+ */
 class UserController extends Controller
 {
     public function __construct(
@@ -33,6 +36,7 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
+        // Filters are passed to the service so query rules stay in one place.
         $users = $this->userService->paginateVisibleUsers($request->user(), [
             'search' => $request->string('search')->toString(),
             'role' => $request->string('role')->toString(),
@@ -74,6 +78,7 @@ class UserController extends Controller
         $this->authorize('create', User::class);
         $data = $request->toData();
 
+        // The request validates role format; the service enforces role authority.
         $this->userService->ensureRoleIsAssignable($request->user(), $data->role);
         $this->userService->create($data);
 
@@ -85,6 +90,7 @@ class UserController extends Controller
         $this->authorize('manage', $user);
         $data = $request->toData();
 
+        // Re-check assignability before changing a user's role.
         $this->userService->ensureRoleIsAssignable($request->user(), $data->role);
         $this->userService->update($user, $data);
 
