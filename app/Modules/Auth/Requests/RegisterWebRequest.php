@@ -1,17 +1,15 @@
 <?php
 
-namespace App\Modules\User\Requests;
+namespace App\Modules\Auth\Requests;
 
-use App\Modules\User\Data\StoreUserData;
-use App\Modules\User\Services\UserService;
+use App\Modules\Auth\Data\RegisterUserData;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
-class StoreUserRequest extends FormRequest
+class RegisterWebRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return true;
     }
 
     /**
@@ -19,26 +17,21 @@ class StoreUserRequest extends FormRequest
      */
     public function rules(): array
     {
-        $service = app(UserService::class);
-        $roles = $this->user() ? $service->assignableRolesFor($this->user()) : [];
-
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'regex:/^[a-zA-Z0-9._%+-]+@etec\.com$/', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', Rule::in($roles)],
         ];
     }
 
-    public function toData(): StoreUserData
+    public function toData(): RegisterUserData
     {
         $validated = $this->validated();
 
-        return new StoreUserData(
+        return new RegisterUserData(
             name: $validated['name'],
             email: $validated['email'],
             password: $validated['password'],
-            role: $validated['role'],
         );
     }
 }

@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Admin\NotificationController;
 use App\Modules\User\Controllers\UserController;
-use App\Http\Controllers\Auth\PermissionController;
+use App\Modules\Auth\Controllers\PermissionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/roles', [PermissionController::class, 'roles']);

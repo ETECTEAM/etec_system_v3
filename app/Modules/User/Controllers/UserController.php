@@ -72,9 +72,10 @@ class UserController extends Controller
     public function store(StoreUserRequest $request): RedirectResponse
     {
         $this->authorize('create', User::class);
-        $this->userService->ensureRoleIsAssignable($request->user(), $request->validated('role'));
+        $data = $request->toData();
 
-        $this->userService->create($request->validated());
+        $this->userService->ensureRoleIsAssignable($request->user(), $data->role);
+        $this->userService->create($data);
 
         return redirect('/dashboard/users')->with('success', 'User created successfully.');
     }
@@ -82,16 +83,10 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
         $this->authorize('manage', $user);
-        $validated = $request->validated();
-        $this->userService->ensureRoleIsAssignable($request->user(), $validated['role']);
+        $data = $request->toData();
 
-        if (($validated['password'] ?? null) === null || $validated['password'] === '') {
-            unset($validated['password']);
-        }
-
-        unset($validated['password_confirmation']);
-
-        $this->userService->update($user, $validated);
+        $this->userService->ensureRoleIsAssignable($request->user(), $data->role);
+        $this->userService->update($user, $data);
 
         return redirect('/dashboard/users')->with('success', 'User updated successfully.');
     }

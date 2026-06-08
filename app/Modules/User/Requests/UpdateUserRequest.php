@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Requests;
 
+use App\Modules\User\Data\UpdateUserData;
 use App\Modules\User\Services\UserService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -35,5 +36,17 @@ class UpdateUserRequest extends FormRequest
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in($roles)],
         ];
+    }
+
+    public function toData(): UpdateUserData
+    {
+        $validated = $this->validated();
+
+        return new UpdateUserData(
+            name: $validated['name'],
+            email: $validated['email'],
+            password: $validated['password'] ?? null,
+            role: $validated['role'],
+        );
     }
 }

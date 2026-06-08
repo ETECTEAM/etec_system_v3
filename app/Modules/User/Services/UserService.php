@@ -3,6 +3,8 @@
 namespace App\Modules\User\Services;
 
 use App\Models\User;
+use App\Modules\User\Data\StoreUserData;
+use App\Modules\User\Data\UpdateUserData;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -106,27 +108,18 @@ class UserService
         ];
     }
 
-    public function create(array $data): User
+    public function create(StoreUserData $data): User
     {
-        $role = $data['role'];
-        unset($data['role']);
-
-        $user = User::create($data);
-        $user->syncRoles([$role]);
+        $user = User::create($data->userAttributes());
+        $user->syncRoles([$data->role]);
 
         return $user->fresh();
     }
 
-    public function update(User $user, array $data): User
+    public function update(User $user, UpdateUserData $data): User
     {
-        $role = $data['role'] ?? null;
-        unset($data['role']);
-
-        $user->update($data);
-
-        if ($role !== null) {
-            $user->syncRoles([$role]);
-        }
+        $user->update($data->userAttributes());
+        $user->syncRoles([$data->role]);
 
         return $user->fresh();
     }
