@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Users;
 
 use App\Enums\UserStatus;
 use App\Models\OtpVerification;
 use App\Models\User;
+use App\Services\Auth\AuthAuditService;
 
 class UserApprovalService
 {

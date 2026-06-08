@@ -3,7 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\PendingUserRegistered;
-use App\Services\TelegramService;
+use App\Services\Notifications\TelegramService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
 class SendTelegramAdminApproval implements ShouldQueue
