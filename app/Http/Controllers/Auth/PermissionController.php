@@ -3,9 +3,15 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\Permissions\AssignPermissionsToRoleRequest;
+use App\Http\Requests\Auth\Permissions\AssignPermissionsToUserRequest;
+use App\Http\Requests\Auth\Permissions\AssignRoleToUserRequest;
+use App\Http\Requests\Auth\Permissions\CreateFeaturePermissionsRequest;
+use App\Http\Requests\Auth\Permissions\CreatePermissionRequest;
+use App\Http\Requests\Auth\Permissions\CreateRoleRequest;
+use App\Http\Responses\Auth\Permissions\PermissionManagementResponse;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -21,133 +27,67 @@ class PermissionController extends Controller
         );
     }
 
-    public function createFeaturePermissions(Request $request): JsonResponse
+    public function createFeaturePermissions(CreateFeaturePermissionsRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'actions' => ['nullable', 'array', 'min:1'],
-            'actions.*' => ['required', 'string', 'max:255'],
-            'guard_name' => ['nullable', 'string', 'max:255'],
-        ]);
+        $data = $request->toData();
 
-        $guardName = $validated['guard_name'] ?? 'sanctum';
-        $actions = $validated['actions'] ?? ['view', 'create', 'update', 'delete'];
         $permissions = [];
 
-        foreach ($actions as $action) {
-            $permissionName = sprintf('%s.%s', $validated['name'], $action);
-            $permission = Permission::findOrCreate($permissionName, $guardName);
+        foreach ($data->actions as $action) {
+            $permissionName = sprintf('%s.%s', $data->name, $action);
+            $permission = Permission::findOrCreate($permissionName, $data->guardName);
             $permissions[] = $permission->name;
         }
 
         sort($permissions);
 
-        return response()->json([
-            'message' => 'Feature permissions created successfully.',
-            'feature' => $validated['name'],
-            'permissions' => $permissions,
-        ], 201);
+        return PermissionManagementResponse::featureCreated($data->name, $permissions);
     }
 
-    public function createRole(Request $request): JsonResponse
+    public function createRole(CreateRoleRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'guard_name' => ['nullable', 'string', 'max:255'],
-        ]);
+        $data = $request->toData();
 
-        $role = Role::findOrCreate(
-            $validated['name'],
-            $validated['guard_name'] ?? 'sanctum'
-        );
+        $role = Role::findOrCreate($data->name, $data->guardName);
 
-        return response()->json([
-            'message' => 'Role created successfully.',
-            'role' => [
-                'id' => $role->id,
-                'name' => $role->name,
-                'guard_name' => $role->guard_name,
-            ],
-        ], 201);
+        return PermissionManagementResponse::roleCreated($role);
     }
 
-    public function createPermission(Request $request): JsonResponse
+    public function createPermission(CreatePermissionRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'guard_name' => ['nullable', 'string', 'max:255'],
-        ]);
+        $data = $request->toData();
 
-        $permission = Permission::findOrCreate(
-            $validated['name'],
-            $validated['guard_name'] ?? 'sanctum'
-        );
+        $permission = Permission::findOrCreate($data->name, $data->guardName);
 
-        return response()->json([
-            'message' => 'Permission created successfully.',
-            'permission' => [
-                'id' => $permission->id,
-                'name' => $permission->name,
-                'guard_name' => $permission->guard_name,
-            ],
-        ], 201);
+        return PermissionManagementResponse::permissionCreated($permission);
     }
 
-    public function assignPermissionsToRole(Request $request): JsonResponse
+    public function assignPermissionsToRole(AssignPermissionsToRoleRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'role_name' => ['required', 'string', 'exists:roles,name'],
-            'permissions' => ['required', 'array', 'min:1'],
-            'permissions.*' => ['required', 'string', 'exists:permissions,name'],
-        ]);
+        $data = $request->toData();
 
-        $role = Role::findByName($validated['role_name'], 'sanctum');
-        $role->syncPermissions($validated['permissions']);
+        $role = Role::findByName($data->roleName, 'sanctum');
+        $role->syncPermissions($data->permissions);
 
-        return response()->json([
-            'message' => 'Permissions assigned to role successfully.',
-            'role' => $role->name,
-            'permissions' => $role->permissions()->pluck('name')->values(),
-        ]);
+        return PermissionManagementResponse::rolePermissionsAssigned($role, $role->permissions()->pluck('name')->values());
     }
 
-    public function assignRoleToUser(Request $request, User $user): JsonResponse
+    public function assignRoleToUser(AssignRoleToUserRequest $request, User $user): JsonResponse
     {
-        $validated = $request->validate([
-            'role_name' => ['required', 'string', 'exists:roles,name'],
-        ]);
+        $data = $request->toData();
 
-        $role = Role::findByName($validated['role_name'], 'sanctum');
+        $role = Role::findByName($data->roleName, 'sanctum');
         $user->syncRoles([$role]);
 
-        return response()->json([
-            'message' => 'Role assigned to user successfully.',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-            ],
-            'roles' => $user->getRoleNames()->values(),
-        ]);
+        return PermissionManagementResponse::roleAssignedToUser($user, $user->getRoleNames()->values());
     }
 
-    public function assignPermissionsToUser(Request $request, User $user): JsonResponse
+    public function assignPermissionsToUser(AssignPermissionsToUserRequest $request, User $user): JsonResponse
     {
-        $validated = $request->validate([
-            'permissions' => ['required', 'array', 'min:1'],
-            'permissions.*' => ['required', 'string', 'exists:permissions,name'],
-        ]);
+        $data = $request->toData();
 
-        $user->syncPermissions($validated['permissions']);
+        $user->syncPermissions($data->permissions);
 
-        return response()->json([
-            'message' => 'Permissions assigned to user successfully.',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-            ],
-            'permissions' => $user->getAllPermissions()->pluck('name')->values(),
-        ]);
+        return PermissionManagementResponse::permissionsAssignedToUser($user, $user->getAllPermissions()->pluck('name')->values());
     }
 }

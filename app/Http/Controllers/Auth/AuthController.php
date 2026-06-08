@@ -5,6 +5,10 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\UserStatus;
 use App\Events\PendingUserRegistered;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginWebRequest;
+use App\Http\Requests\Auth\RegisterWebRequest;
+use App\Http\Requests\Auth\VerifyCodeRequest;
+use App\Http\Responses\Auth\VerificationResponse;
 use App\Models\User;
 use App\Services\Auth\AuthAuditService;
 use App\Services\Auth\AuthService;
@@ -29,19 +33,15 @@ class AuthController extends Controller
         private readonly AuthAuditService $auditService,
     ) {}
 
-    public function registerWeb(Request $request): RedirectResponse
+    public function registerWeb(RegisterWebRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'regex:/^[a-zA-Z0-9._%+-]+@etec\.com$/', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
+        $data = $request->toData();
 
-        [$user, $otp, $plainCode] = DB::transaction(function () use ($validated): array {
+        [$user, $otp, $plainCode] = DB::transaction(function () use ($data): array {
             $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => $validated['password'],
+                'name' => $data->name,
+                'email' => $data->email,
+                'password' => $data->password,
                 'is_active' => false,
                 'status' => UserStatus::Pending,
             ]);
@@ -97,12 +97,9 @@ class AuthController extends Controller
         ]);
     }
 
-    public function verifyCodeApi(Request $request): JsonResponse
+    public function verifyCodeApi(VerifyCodeRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => ['required', 'digits:6'],
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
-        ]);
+        $data = $request->toData();
 
         $pendingUserId = $request->session()->get('pending_verification_user_id');
         $authenticatedUser = $request->user();
@@ -113,8 +110,8 @@ class AuthController extends Controller
             $pendingUserId = $authenticatedUser->id;
         }
 
-        if (! $user && isset($validated['user_id'])) {
-            $user = User::query()->find((int) $validated['user_id']);
+        if (! $user && $data->userId !== null) {
+            $user = User::query()->find($data->userId);
             $pendingUserId = $user?->id;
         }
 
@@ -131,13 +128,10 @@ class AuthController extends Controller
         }
 
         if ($user->status === UserStatus::Active) {
-            return response()->json([
-                'message' => 'Account is already active.',
-                'redirect' => $this->redirectPathFor($user),
-            ]);
+            return VerificationResponse::alreadyActive($this->redirectPathFor($user));
         }
 
-        $this->otpService->verify($user, $validated['code']);
+        $this->otpService->verify($user, $data->code);
         $this->approvalService->approve($user, null, 'otp');
 
         Auth::login($user);
@@ -145,24 +139,16 @@ class AuthController extends Controller
 
         $request->session()->forget('pending_verification_user_id');
 
-        return response()->json([
-            'message' => 'Account verified successfully.',
-            'redirect' => $this->redirectPathFor($user),
-        ]);
+        return VerificationResponse::verified($this->redirectPathFor($user));
     }
 
-    public function loginWeb(Request $request): RedirectResponse
+    public function loginWeb(LoginWebRequest $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'login' => ['nullable', 'string', 'required_without:email'],
-            'email' => ['nullable', 'string', 'required_without:login'],
-            'password' => ['required', 'string'],
-        ]);
+        $data = $request->toData();
 
-        $login = trim((string) ($credentials['login'] ?? $credentials['email'] ?? ''));
-        $user = $this->authService->findUserForLogin($login);
+        $user = $this->authService->findUserForLogin($data->login);
 
-        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+        if (! $user || ! Hash::check($data->password, $user->password)) {
             throw ValidationException::withMessages([
                 'login' => ['The provided credentials are incorrect.'],
             ]);
@@ -180,7 +166,7 @@ class AuthController extends Controller
             ]);
         }
 
-        Auth::login($user, $request->boolean('remember'));
+        Auth::login($user, $data->remember);
         $request->session()->regenerate();
 
         return redirect($this->redirectPathFor($user))->with('success', 'Logged in successfully.');
