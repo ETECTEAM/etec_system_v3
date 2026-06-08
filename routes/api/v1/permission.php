@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\Admin\NotificationController;
 use App\Modules\User\Controllers\UserController;
 use App\Modules\Auth\Controllers\PermissionController;
+use App\Modules\Notification\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/roles', [PermissionController::class, 'roles']);

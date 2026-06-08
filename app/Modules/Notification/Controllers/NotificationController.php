@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Modules\Notification\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Displays dashboard notifications and returns notification data.
+ */
 class NotificationController extends Controller
 {
     public function showNotificationPage(Request $request): Response

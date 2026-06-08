@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -10,6 +10,9 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Renders user role and permission management pages.
+ */
 class UserManagementController extends Controller
 {
     public function index(Request $request): Response
