@@ -12,21 +12,21 @@ use Illuminate\Http\RedirectResponse;
 class TermController extends Controller
 {
     public function index(Request $request)
-{
-    $query = Term::query();
+    {
+        $query = Term::query();
 
-    // SEARCH
-    if ($request->search) {
-        $query->where('term_name', 'like', '%' . $request->search . '%');
+        // SEARCH
+        if ($request->search) {
+            $query->where('term_name', 'like', '%' . $request->search . '%');
+        }
+
+        return Inertia::render('backend/terms/Index', [
+            'terms' => $query->latest()->paginate(7)->withQueryString(),
+            'filters' => [
+                'search' => $request->search ?? '',
+            ]
+        ]);
     }
-
-    return Inertia::render('backend/terms/Index', [
-        'terms' => $query->latest()->paginate(7)->withQueryString(),
-        'filters' => [
-            'search' => $request->search ?? '',
-        ]
-    ]);
-}
 
     public function create(): Response
     {

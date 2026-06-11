@@ -9,8 +9,8 @@ class Term extends Model
     //
     protected $fillable = ['term_name'];
 
-    // public function times()
-    // {
-    //     return $this->hasMany(Time::class);
-    // }
+    public function times()
+    {
+        return $this->hasMany(Time::class);
+    }
 }

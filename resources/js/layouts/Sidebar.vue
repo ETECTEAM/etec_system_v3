@@ -98,7 +98,26 @@ const menuItems = computed(() => {
                     ),
                 },
             ],
-        }
+        },
+            {
+                label: 'Time Management',
+                key: 'time',
+                match: ['/dashboard/times'],
+                children: [
+                    {
+                        label: 'Times',
+                        href: '/dashboard/times',
+                        match: ['/dashboard/times'],
+                        exact: false,
+                        isActive: (path) => (
+                            path === '/dashboard/times'
+                            || path.startsWith('/dashboard/times/create')
+                            || path.startsWith('/dashboard/times/edit')
+                            || /^\/dashboard\/times\/\d+$/.test(path)
+                        ),
+                    },
+                ],
+            }
     )
     }
 
