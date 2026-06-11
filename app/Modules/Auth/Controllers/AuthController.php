@@ -39,9 +39,10 @@ class AuthController extends Controller
     public function registerWeb(RegisterWebRequest $request): RedirectResponse
     {
         $data = $request->toData();
+        $otpVerificationEnabled = (bool) config('auth.otp.enabled', true);
 
         // User, role, and OTP must be created together or rolled back together.
-        [$user, $otp, $plainCode] = DB::transaction(function () use ($data): array {
+        [$user, $otp, $plainCode] = DB::transaction(function () use ($data, $otpVerificationEnabled): array {
             $user = User::create([
                 'name' => $data->name,
                 'email' => $data->email,
@@ -56,6 +57,10 @@ class AuthController extends Controller
                 $user->assignRole($role);
             }
 
+            if (! $otpVerificationEnabled) {
+                return [$user, null, null];
+            }
+
             [$otp, $plainCode] = $this->otpService->createForUser($user);
 
             return [$user, $otp, $plainCode];
@@ -65,6 +70,12 @@ class AuthController extends Controller
 
         Auth::login($user);
         $request->session()->regenerate();
+
+        if (! $otpVerificationEnabled) {
+            $this->approvalService->approve($user, null, 'otp_disabled');
+
+            return redirect($this->redirectPathFor($user))->with('success', 'Registration completed. OTP verification is disabled.');
+        }
 
         $request->session()->put('pending_verification_user_id', $user->id);
 
