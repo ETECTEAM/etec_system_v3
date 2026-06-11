@@ -1,19 +1,25 @@
 <script setup>
-import DashboardLayout from '@/layouts/DashboardLayout.vue'
-import { Head, useForm, Link, usePage } from '@inertiajs/vue3'
+import { useForm } from '@inertiajs/vue3'
 
-const page = usePage()
-const term = page.props.term
-
-const form = useForm({
-  term_name: term.term_name,
+// ✅ receive term from modal
+const props = defineProps({
+  term: Object
 })
 
+// ✅ emit close event
+const emit = defineEmits(['close'])
+
+// ✅ form
+const form = useForm({
+  term_name: props.term.term_name,
+})
+
+// ✅ submit
 function submit() {
-  form.put(`/dashboard/terms/${term.id}`, {
+  form.put(`/dashboard/terms/${props.term.id}`, {
     onSuccess: () => {
-      // optional redirect handled by backend
-    },
+      emit('close') // close modal after success
+    }
   })
 }
 </script>
@@ -31,7 +37,7 @@ function submit() {
       </div>
 
       <!-- Card -->
-      <form @submit.prevent="submit" class="rounded-md border bg-white p-6 shadow-sm space-y-6">
+      <form @submit.prevent="submit" class="rounded-2xl border bg-white p-6 shadow-sm space-y-6">
 
         <!-- Input -->
         <div>
@@ -40,7 +46,7 @@ function submit() {
           <input
             v-model="form.term_name"
             type="text"
-            class="mt-2 w-full rounded-md border border-gray-300 px-4 py-3 text-sm
+            class="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm
                    focus:border-yellow-500 focus:ring-2 focus:ring-yellow-100 outline-none transition"
           />
 
@@ -54,7 +60,7 @@ function submit() {
 
           <Link
             href="/dashboard/terms"
-            class="rounded-md border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            class="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
           >
             Cancel
           </Link>
@@ -62,7 +68,7 @@ function submit() {
           <button
             type="submit"
             :disabled="form.processing"
-            class="rounded-md bg-yellow-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-yellow-600 disabled:opacity-50"
+            class="rounded-xl bg-yellow-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-yellow-600 disabled:opacity-50"
           >
             {{ form.processing ? 'Updating...' : 'Update Term' }}
           </button>
@@ -72,5 +78,5 @@ function submit() {
       </form>
 
     </div>
-  </DashboardLayout>
+  </div>
 </template>
