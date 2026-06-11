@@ -79,7 +79,27 @@ const menuItems = computed(() => {
                     isActive: (path) => path.startsWith('/dashboard/users/permissions'),
                 },
             ],
-        })
+        },
+        {
+            label: 'Term Management',
+            key: 'term',
+            match: ['/dashboard/terms'],
+            children: [
+                {
+                    label: 'Terms',
+                    href: '/dashboard/terms',
+                    match: ['/dashboard/terms'],
+                    exact: false,
+                    isActive: (path) => (
+                        path === '/dashboard/terms'
+                        || path.startsWith('/dashboard/terms/create')
+                        || path.startsWith('/dashboard/terms/edit')
+                        || /^\/dashboard\/users\/\d+$/.test(path)
+                    ),
+                },
+            ],
+        }
+    )
     }
 
     return base
