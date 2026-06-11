@@ -51,13 +51,13 @@ watch(search, (value) => {
             v-model="search"
             type="text"
             placeholder="Search term..."
-            class="w-full max-w-sm rounded-xl border px-4 py-2 text-sm
+            class="w-full max-w-sm rounded-md border px-4 py-2 text-sm
               focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"
           />
 
           <Link
             href="/dashboard/terms/create"
-            class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
           >
             + Create Term
           </Link>
@@ -66,7 +66,7 @@ watch(search, (value) => {
       </div>
 
       <!-- Table -->
-      <div class="rounded-2xl bg-white shadow-sm overflow-hidden">
+      <div class="rounded-md bg-white shadow-sm overflow-hidden">
 
         <table class="w-full text-left">
 
@@ -83,7 +83,7 @@ watch(search, (value) => {
             <tr
               v-for="term in terms.data"
               :key="term.id"
-              class="border-b hover:bg-gray-50"
+              class="border-b border-gray-300 hover:bg-gray-50"
             >
               <td class="p-4 text-gray-500">
                 {{ term.id }}

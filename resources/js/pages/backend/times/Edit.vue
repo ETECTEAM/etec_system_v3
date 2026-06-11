@@ -36,7 +36,7 @@ function submit() {
 
             <form
                 @submit.prevent="submit"
-                class="rounded-2xl border bg-white p-6 shadow-sm space-y-6"
+                class="rounded-md border bg-white p-6 shadow-sm space-y-6"
             >
 
                 <div>
@@ -47,7 +47,7 @@ function submit() {
                     <input
                         v-model="form.time_name"
                         type="text"
-                        class="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm
+                        class="mt-2 w-full rounded-md border border-gray-300 px-4 py-3 text-sm
                         focus:border-yellow-500 focus:ring-2 focus:ring-yellow-100 outline-none"
                     />
 
@@ -66,7 +66,7 @@ function submit() {
 
                     <select
                         v-model="form.term_id"
-                        class="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm
+                        class="mt-2 w-full rounded-md border border-gray-300 px-4 py-3 text-sm
                         focus:border-yellow-500 focus:ring-2 focus:ring-yellow-100 outline-none"
                     >
                         <option value="">Select Term</option>
@@ -92,7 +92,7 @@ function submit() {
 
                     <Link
                         href="/dashboard/times"
-                        class="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                        class="rounded-md border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                     >
                         Cancel
                     </Link>
@@ -100,7 +100,7 @@ function submit() {
                     <button
                         type="submit"
                         :disabled="form.processing"
-                        class="rounded-xl bg-yellow-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-yellow-600 disabled:opacity-50"
+                        class="rounded-md bg-yellow-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-yellow-600 disabled:opacity-50"
                     >
                         {{ form.processing ? 'Updating...' : 'Update Time' }}
                     </button>
