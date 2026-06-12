@@ -79,39 +79,6 @@ private function canManageInstructors(User $user): bool
         ]);
     }
 
-<<<<<<< HEAD
-  public function show(Request $request, User $user): Response
-{
-    if (! $this->canViewInstructors($request->user())) {
-        abort(403);
-    }
-
-    if (! $user->hasRole('instructor')) {
-        abort(404);
-=======
-    public function show(Request $request, User $user): Response
-    {
-        // A user must be manageable by the current user before details are shown.
-        $this->authorize('manage', $user);
-
-        // Present the user through the service so the frontend receives a stable shape.
-        return Inertia::render('backend/users/Show', [
-            'user' => $this->userService->presentUser($user),
-        ]);
-    }
-
-    public function edit(Request $request, User $user): Response
-    {
-        // Reuse the manage policy for edit access.
-        $this->authorize('manage', $user);
-
-        // Load the editable user plus the roles available to the current admin.
-        return Inertia::render('backend/users/Edit', [
-            'user' => $this->userService->presentUser($user),
-            'roleOptions' => $this->userService->roleOptions($request->user()),
-        ]);
->>>>>>> origin/dev
-    }
 
     return Inertia::render('backend/users/Show', [
         'user' => $this->userService->presentUser($user),
@@ -193,3 +160,6 @@ private function canManageInstructors(User $user): bool
     return redirect('/dashboard/users')->with('success', 'Instructor deleted successfully.');
 }
 }
+ 
+
+
