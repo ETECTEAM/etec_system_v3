@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use App\Modules\User\Requests\StoreUserRequest;
 use App\Modules\User\Services\UserService;
@@ -60,10 +61,76 @@ class UserManagementController extends Controller
         // Only super admins can access user management pages.
         abort_unless($request->user()?->hasRole('super_admin'), 403);
 
-        // Fetch all available roles to display in the view.
+        // Fetch roles with permission and user counts for the management matrix.
         return Inertia::render('backend/users/Roles', [
-            'roles' => Role::query()->pluck('name')->values(),
+            'roles' => Role::query()
+                ->with('permissions')
+                ->withCount('users')
+                ->orderBy('id')
+                ->get()
+                ->map(function (Role $role): array {
+                    return [
+                        'id' => $role->id,
+                        'name' => $role->name,
+                        'users_count' => $role->users_count,
+                        'permissions' => $role->permissions->pluck('name')->values(),
+                    ];
+                }),
+            'permissions' => Permission::query()
+                ->where('guard_name', 'sanctum')
+                ->orderBy('name')
+                ->pluck('name')
+                ->values(),
+            'users' => User::query()
+                ->with('roles')
+                ->orderBy('name')
+                ->get(['id', 'name', 'email'])
+                ->map(function (User $user): array {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'roles' => $user->getRoleNames()->values(),
+                    ];
+                }),
         ]);
+    }
+
+    // Assign permissions to a role so every user with that role inherits them.
+    public function assignRolePermissions(Request $request, Role $role): RedirectResponse
+    {
+        // Only super admins can change role permission defaults.
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
+
+        $validated = $request->validate([
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['required', 'string', 'exists:permissions,name'],
+        ]);
+
+        $role->syncPermissions($validated['permissions'] ?? []);
+
+        return back()->with('success', 'Role permissions updated successfully.');
+    }
+
+    // Assign the selected users to a role from the role management page.
+    public function assignUsersToRole(Request $request, Role $role): RedirectResponse
+    {
+        // Only super admins can move users between roles.
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
+
+        $validated = $request->validate([
+            'users' => ['nullable', 'array'],
+            'users.*' => ['required', 'integer', 'exists:users,id'],
+        ]);
+
+        User::query()
+            ->whereIn('id', $validated['users'] ?? [])
+            ->get()
+            ->each(function (User $user) use ($role): void {
+                $user->syncRoles([$role->name]);
+            });
+
+        return back()->with('success', 'Users assigned to role successfully.');
     }
 
     // Show the list of permissions. Only accessible to super admins.
@@ -72,10 +139,45 @@ class UserManagementController extends Controller
         // Only super admins can access user management pages.
         abort_unless($request->user()?->hasRole('super_admin'), 403);
 
-        // Fetch all available permissions to display in the view.
+        // Fetch users with role and direct permission data for assignment.
         return Inertia::render('backend/users/Permissions', [
-            'permissions' => Permission::query()->pluck('name')->values(),
+            'users' => User::query()
+                ->with(['roles', 'permissions'])
+                ->latest('id')
+                ->get(['id', 'name', 'email'])
+                ->map(function (User $user): array {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'roles' => $user->getRoleNames()->values(),
+                        'direct_permissions' => $user->getDirectPermissions()->pluck('name')->values(),
+                        'role_permissions' => $user->getPermissionsViaRoles()->pluck('name')->values(),
+                        'all_permissions' => $user->getAllPermissions()->pluck('name')->values(),
+                    ];
+                }),
+            'permissions' => Permission::query()
+                ->where('guard_name', 'sanctum')
+                ->orderBy('name')
+                ->pluck('name')
+                ->values(),
         ]);
+    }
+
+    // Assign extra permissions directly to a user without changing the user's role.
+    public function assignPermissions(Request $request, User $user): RedirectResponse
+    {
+        // Only super admins can give user-specific permission overrides.
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
+
+        $validated = $request->validate([
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['required', 'string', 'exists:permissions,name'],
+        ]);
+
+        $user->syncPermissions($validated['permissions'] ?? []);
+
+        return back()->with('success', 'User permissions updated successfully.');
     }
 
     // Handle the form submission to create a new user. Only accessible to super admins.

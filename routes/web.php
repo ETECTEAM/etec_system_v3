@@ -120,12 +120,3 @@ Route::middleware(['auth'])->group(function () {
 |--------------------------------------------------------------------------
 */
 
-<<<<<<< HEAD
-// Route::middleware(RedirectAdminFromFrontend::class)->group(function (): void {
-//     includeRouteFiles(__DIR__.'/web/frontend');
-// });
-=======
-Route::middleware(RedirectAdminFromFrontend::class)->group(function (): void {
-    includeRouteFiles(__DIR__.'/web/frontend');
-});
->>>>>>> 8c762159b54856bc87fbd12c230f63929af3c175
