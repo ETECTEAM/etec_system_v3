@@ -1,6 +1,4 @@
 <script setup>
-import { Card } from '../card'
-
 const props = defineProps({
   eyebrow: {
     type: String,
@@ -22,11 +20,9 @@ const props = defineProps({
 </script>
 
 <template>
-  <Card :card-class="props.gradientClass" padding="p-6">
-    <div class="flex flex-col gap-2">
-      <p v-if="props.eyebrow" class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">{{ props.eyebrow }}</p>
-      <h1 class="text-2xl font-semibold text-slate-900 sm:text-3xl">{{ props.title }}</h1>
-      <p v-if="props.description" class="max-w-2xl text-sm text-slate-600">{{ props.description }}</p>
-    </div>
-  </Card>
+  <div :class="['flex flex-col gap-2', props.gradientClass]">
+    <p v-if="props.eyebrow" class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">{{ props.eyebrow }}</p>
+    <h1 class="text-3xl font-bold text-slate-900 sm:text-4xl">{{ props.title }}</h1>
+    <p v-if="props.description" class="max-w-3xl text-base text-slate-600">{{ props.description }}</p>
+  </div>
 </template>

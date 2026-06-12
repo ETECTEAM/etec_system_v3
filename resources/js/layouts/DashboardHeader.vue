@@ -3,7 +3,14 @@ import axios from 'axios'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 
-const emit = defineEmits(['open-sidebar'])
+const props = defineProps({
+  sidebarCollapsed: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+const emit = defineEmits(['open-sidebar', 'toggle-sidebar'])
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user ?? null)
@@ -96,11 +103,17 @@ function handleEscape(event) {
             <path fill-rule="evenodd" d="M3 5.75A.75.75 0 0 1 3.75 5h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 5.75ZM3 10a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 10Zm0 4.25a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
           </svg>
         </button>
-
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Dashboard</p>
-          <h1 class="text-lg font-semibold text-slate-900">ETEC Control Center</h1>
-        </div>
+        <button
+          type="button"
+          class="hidden rounded-lg border border-slate-200 p-1.5 text-slate-600 transition hover:bg-slate-50 lg:inline-flex"
+          :aria-pressed="props.sidebarCollapsed"
+          aria-label="Toggle sidebar"
+          @click="emit('toggle-sidebar')"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M3 5.75A.75.75 0 0 1 3.75 5h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 5.75ZM3 10a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 10Zm0 4.25a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+          </svg>
+        </button>
       </div>
 
       <div class="flex items-center gap-3 sm:gap-4">
