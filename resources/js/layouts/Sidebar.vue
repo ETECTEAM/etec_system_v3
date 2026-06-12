@@ -21,12 +21,18 @@ const currentPath = computed(() => page.url ?? '/')
 const roles = computed(() => page.props.auth?.roles ?? [])
 const isSuperAdmin = computed(() => roles.value.includes('super_admin'))
 const canAccessNotifications = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin'))
+const canAccessFloors = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin') || roles.value.includes('instructor'))
 
 function isUserManagementRoute(path) {
     return path.split('?')[0].startsWith('/dashboard/users')
 }
 
+function isFloorRoute(path) {
+    return path.split('?')[0].startsWith('/dashboard/floors')
+}
+
 const openMenus = ref({
+    floor: isFloorRoute(currentPath.value),
     user: isUserManagementRoute(currentPath.value),
 })
 
@@ -39,6 +45,28 @@ const menuItems = computed(() => {
             exact: true,
         },
     ]
+
+    if (canAccessFloors.value) {
+        base.push({
+            label: 'Floor',
+            key: 'floor',
+            match: ['/dashboard/floors'],
+            children: [
+                {
+                    label: 'Index',
+                    href: '/dashboard/floors',
+                    match: ['/dashboard/floors'],
+                    exact: true,
+                },
+                {
+                    label: 'Create',
+                    href: '/dashboard/floors/create',
+                    match: ['/dashboard/floors/create'],
+                    exact: false,
+                },
+            ],
+        })
+    }
 
     if (canAccessNotifications.value) {
         base.push({
@@ -108,7 +136,15 @@ function isActive(item) {
 }
 
 function isChildActive(children = []) {
-    return children.some((child) => isActive(child))
+    return children.some((child) => {
+        if (isActive(child)) {
+            return true
+        }
+        if (child.children) {
+            return isChildActive(child.children)
+        }
+        return false
+    })
 }
 
 function toggleMenu(key) {
@@ -122,6 +158,10 @@ function toggleMenu(key) {
 watch(currentPath, (path) => {
     if (isUserManagementRoute(path)) {
         openMenus.value.user = true
+    }
+
+    if (isFloorRoute(path)) {
+        openMenus.value.floor = true
     }
 })
 </script>
@@ -190,8 +230,47 @@ watch(currentPath, (path) => {
                                 </button>
 
                                 <ul v-if="openMenus[item.key] && !props.collapsed" class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3">
-                                    <li v-for="child in item.children" :key="child.href">
+                                    <li v-for="child in item.children" :key="child.href ?? child.key">
+                                        <template v-if="child.children">
+                                            <button
+                                                type="button"
+                                                :title="props.collapsed ? child.label : ''"
+                                                :class="[
+                                                    'flex w-full items-center rounded-lg text-sm font-medium transition',
+                                                    props.collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2',
+                                                    isChildActive(child.children)
+                                                        ? 'bg-blue-50 text-blue-700'
+                                                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                                                ]"
+                                                @click="toggleMenu(child.key)"
+                                            >
+                                                <span class="flex items-center gap-2">
+                                                    <span v-if="!props.collapsed">{{ child.label }}</span>
+                                                </span>
+                                                <svg v-if="!props.collapsed" class="h-3 w-3 text-slate-400 transition" :class="openMenus[child.key] ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+
+                                            <ul v-if="openMenus[child.key] && !props.collapsed" class="ml-3 mt-1 space-y-1 border-l border-slate-200 pl-3">
+                                                <li v-for="grandchild in child.children" :key="grandchild.href">
+                                                    <Link
+                                                        :href="grandchild.href"
+                                                        class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
+                                                        :class="isActive(grandchild)
+                                                            ? 'bg-blue-50 text-blue-700'
+                                                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                                                        @click="emit('close')"
+                                                    >
+                                                        <span>{{ grandchild.label }}</span>
+                                                        <span class="text-xs text-slate-400">›</span>
+                                                    </Link>
+                                                </li>
+                                            </ul>
+                                        </template>
+
                                         <Link
+                                            v-else
                                             :href="child.href"
                                             class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
                                             :class="isActive(child)
