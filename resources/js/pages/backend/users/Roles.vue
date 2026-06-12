@@ -423,8 +423,8 @@ watch(permissionSearch, () => {
                         type="button"
                         class="flex h-5 w-5 items-center justify-center rounded border transition"
                         :class="isResourceFullyChecked(resource) || isResourcePartiallyChecked(resource)
-                          ? 'border-blue-700 bg-blue-700 text-white'
-                          : 'border-slate-300 bg-white text-transparent hover:border-blue-400'"
+                          ? 'border-emerald-600 bg-emerald-600 text-white'
+                          : 'border-slate-300 bg-white text-transparent hover:border-emerald-500'"
                         :aria-pressed="isResourceFullyChecked(resource)"
                         :aria-label="`Select all ${resource.replaceAll('_', ' ')} permissions`"
                         @click="toggleResourcePermissions(resource)"
