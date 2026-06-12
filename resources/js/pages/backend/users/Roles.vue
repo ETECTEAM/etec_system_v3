@@ -13,6 +13,7 @@ const permissions = computed(() => page.props.permissions ?? [])
 const users = computed(() => page.props.users ?? [])
 const selectedRoleId = ref(roles.value[0]?.id ? String(roles.value[0].id) : '')
 const userSearch = ref('')
+const permissionSearch = ref('')
 const matrixPage = ref(1)
 const matrixPerPage = 10
 
@@ -54,25 +55,38 @@ const resources = computed(() => {
     .filter((resource, index, list) => list.indexOf(resource) === index)
 })
 
-const matrixLastPage = computed(() => Math.max(1, Math.ceil(resources.value.length / matrixPerPage)))
+const filteredResources = computed(() => {
+  const keyword = permissionSearch.value.trim().toLowerCase()
+
+  if (keyword === '') {
+    return resources.value
+  }
+
+  return resources.value.filter((resource) => {
+    return resource.replaceAll('_', ' ').toLowerCase().includes(keyword)
+      || actions.value.some((action) => permissionName(resource, action)?.toLowerCase().includes(keyword))
+  })
+})
+
+const matrixLastPage = computed(() => Math.max(1, Math.ceil(filteredResources.value.length / matrixPerPage)))
 const paginatedResources = computed(() => {
   const start = (matrixPage.value - 1) * matrixPerPage
 
-  return resources.value.slice(start, start + matrixPerPage)
+  return filteredResources.value.slice(start, start + matrixPerPage)
 })
 const matrixStart = computed(() => {
-  if (resources.value.length === 0) {
+  if (filteredResources.value.length === 0) {
     return 0
   }
 
   return ((matrixPage.value - 1) * matrixPerPage) + 1
 })
 const matrixEnd = computed(() => {
-  if (resources.value.length === 0) {
+  if (filteredResources.value.length === 0) {
     return 0
   }
 
-  return Math.min(matrixPage.value * matrixPerPage, resources.value.length)
+  return Math.min(matrixPage.value * matrixPerPage, filteredResources.value.length)
 })
 
 const roleSummaries = computed(() => roles.value.map((role) => ({
@@ -95,6 +109,9 @@ const filteredUsers = computed(() => {
 })
 
 const selectedUserCount = computed(() => assignUsersForm.users.length)
+const allPermissionsSelected = computed(() => {
+  return permissions.value.length > 0 && form.permissions.length === permissions.value.length
+})
 
 function permissionName(resource, action) {
   const name = `${resource}.${action}`
@@ -126,6 +143,23 @@ function togglePermission(permission) {
 
 function isChecked(permission) {
   return permission ? form.permissions.includes(permission) : false
+}
+
+function selectAllPermissions() {
+  form.permissions = [...permissions.value]
+}
+
+function toggleAllPermissions(event) {
+  if (event.target.checked) {
+    selectAllPermissions()
+    return
+  }
+
+  clearAllPermissions()
+}
+
+function clearAllPermissions() {
+  form.permissions = []
 }
 
 function savePermissions() {
@@ -177,6 +211,10 @@ function changeMatrixPage(page) {
 watch(selectedRoleId, syncFormFromSelectedRole, { immediate: true })
 
 watch(resources, () => {
+  matrixPage.value = 1
+})
+
+watch(permissionSearch, () => {
   matrixPage.value = 1
 })
 </script>
@@ -263,15 +301,56 @@ watch(resources, () => {
           </div>
         </aside>
 
-        <form class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" @submit.prevent="savePermissions">
-          <div class="flex flex-col gap-3 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 class="text-base font-bold text-slate-900">Permissions Matrix</h2>
-              <p class="mt-1 text-sm text-slate-600">
-                {{ selectedRole ? formatRole(selectedRole.name) : 'Select a role' }} role access by module.
-              </p>
+        <form class="self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" @submit.prevent="savePermissions">
+          <div class="flex flex-col gap-4 border-b border-slate-200 p-5">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 class="text-base font-bold text-slate-900">Permissions Matrix</h2>
+                <p class="mt-1 text-sm text-slate-600">
+                  {{ selectedRole ? formatRole(selectedRole.name) : 'Select a role' }} role access by module.
+                </p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-200"
+                    :checked="allPermissionsSelected"
+                    @change="toggleAllPermissions"
+                  >
+                  <span>Select All</span>
+                </label>
+                <button
+                  type="button"
+                  class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                  title="Clear all permissions"
+                  aria-label="Clear all permissions"
+                  @click="clearAllPermissions"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4h8v2" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v5" />
+                    <path d="M14 11v5" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <p class="text-sm font-semibold text-blue-700">{{ form.permissions.length }} selected</p>
+
+            <label class="relative block">
+              <span class="sr-only">Search permissions</span>
+              <input
+                v-model="permissionSearch"
+                type="text"
+                placeholder="Search modules or permissions..."
+                class="w-full rounded-xl border border-slate-300 px-4 py-2.5 pr-10 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              >
+              <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+            </label>
           </div>
 
           <p v-if="form.errors.permissions" class="m-5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -318,11 +397,15 @@ watch(resources, () => {
                 </tr>
               </tbody>
             </table>
+
+            <div v-if="filteredResources.length === 0" class="px-5 py-10 text-center text-sm text-slate-500">
+              No permissions found.
+            </div>
           </div>
 
           <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="text-sm text-slate-500">
-              Showing {{ matrixStart }} to {{ matrixEnd }} of {{ resources.length }} modules
+              Showing {{ matrixStart }} to {{ matrixEnd }} of {{ filteredResources.length }} modules
             </div>
 
             <Pagination
