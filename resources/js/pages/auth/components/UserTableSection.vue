@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { Link } from '@inertiajs/vue3'
+import { Link, router } from '@inertiajs/vue3'
 import { formatRole, roleBadgeClass } from '@/lib/roleBadge.js'
 import { Pagination } from '@/components/ui/pagination'
 import { Card } from '@/components/ui/card'
@@ -29,10 +29,7 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  canCreateUser: {
-    type: Boolean,
-    default: false,
-  },
+
   currentUserRole: {
     type: String,
     default: null,
@@ -109,31 +106,46 @@ const searchError = computed(() => {
 })
 
 function actionItemsFor(user) {
-  const items = [
-    { key: 'view', label: 'View' },
+  return [
+    {
+      key: 'view',
+      label: 'View',
+    },
+    {
+      key: 'edit',
+      label: 'Edit',
+    },
+    {
+      key: 'delete',
+      label: 'Delete',
+      danger: true,
+    },
   ]
-
-  if (canEdit()) {
-    items.push({ key: 'edit', label: 'Edit' })
-  }
-
-  items.push({
-    key: 'delete',
-    label: 'Delete',
-    disabled: !canDelete(user),
-    hint: !canDelete(user) ? 'Unavailable' : '',
-  })
-
-  return items
 }
+const actions = [
+    {
+        key: 'view',
+        label: 'View',
+    },
+    {
+        key: 'edit',
+        label: 'Edit',
+    },
+    {
+        key: 'delete',
+        label: 'Delete',
+    },
+]
 
 function handleAction(action, user) {
   if (action.key === 'view') {
-    emit('view-user', user.id)
+    router.visit(`/dashboard/users/${user.id}`)
+    return
   }
 
   if (action.key === 'edit') {
-    emit('edit-user', user.id)
+    router.visit(`/dashboard/users/${user.id}/edit`)
+    return
   }
 
   if (action.key === 'delete') {
@@ -147,18 +159,12 @@ function handleAction(action, user) {
     <div class="border-b border-slate-200 px-6 py-5">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">User Directory</p>
-          <h2 class="mt-1 text-xl font-semibold text-slate-900">Users</h2>
-          <p class="mt-1 text-sm text-slate-500">Manage accounts, roles, and access levels.</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Instructor Directory</p>
+          <h2 class="mt-1 text-xl font-semibold text-slate-900">Instructors</h2>
+          <p class="mt-1 text-sm text-slate-500">Manage registered instructors and their access.</p>
         </div>
 
-        <Link
-          v-if="canCreateUser"
-          href="/dashboard/users/create"
-          class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-        >
-          Create User
-        </Link>
+        
       </div>
 
       <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -231,7 +237,7 @@ function handleAction(action, user) {
 
           <TableRow v-if="hasLoaded && !isLoading && users.length === 0">
             <TableCell colspan="5" class="py-10 text-center text-slate-500">
-              {{ roles.length === 0 ? 'No roles available or roles could not be loaded.' : 'No users found.' }}
+              {{ roles.length === 0 ? 'No roles available or roles could not be loaded.' : 'No instructors found.' }}
             </TableCell>
           </TableRow>
         </TableBody>
@@ -243,7 +249,7 @@ function handleAction(action, user) {
       >
         <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
           <div class="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
-          <span class="text-sm text-slate-600">Loading users...</span>
+          <span class="text-sm text-slate-600">Loading instructors...</span>
         </div>
       </div>
     </div>

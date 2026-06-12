@@ -18,28 +18,39 @@ use Inertia\Response;
  */
 class UserController extends Controller
 {
+    private function canViewInstructors(User $user): bool
+{
+    return $user->hasRole('admin') || $user->hasRole('instructor');
+}
+
+private function canManageInstructors(User $user): bool
+{
+    return $user->hasRole('admin');
+}
     public function __construct(
         private readonly UserService $userService
     ) {
     }
 
-    public function index(Request $request): Response
-    {
-        $this->authorize('viewAny', User::class);
-
-        return Inertia::render('backend/users/Index', [
-            'canCreateUser' => $request->user() !== null && $this->userService->roleOptions($request->user())->isNotEmpty(),
-        ]);
+   public function index(Request $request): Response
+{
+    if (! $this->canViewInstructors($request->user())) {
+        abort(403);
     }
 
+    return Inertia::render('backend/users/Index', [
+        'canCreateUser' => false,
+    ]);
+}
     public function paginatedIndex(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', User::class);
+        if (! $this->canViewInstructors($request->user())) {
+            abort(403);
+        }
 
-        // Filters are passed to the service so query rules stay in one place.
         $users = $this->userService->paginateVisibleUsers($request->user(), [
             'search' => $request->string('search')->toString(),
-            'role' => $request->string('role')->toString(),
+            'role' => 'instructor',
         ], 5);
 
         return response()->json($users);
@@ -54,24 +65,32 @@ class UserController extends Controller
         ]);
     }
 
-    public function show(Request $request, User $user): Response
-    {
-        $this->authorize('manage', $user);
-
-        return Inertia::render('backend/users/Show', [
-            'user' => $this->userService->presentUser($user),
-        ]);
+  public function show(Request $request, User $user): Response
+{
+    if (! $this->canViewInstructors($request->user())) {
+        abort(403);
     }
 
-    public function edit(Request $request, User $user): Response
-    {
-        $this->authorize('manage', $user);
-
-        return Inertia::render('backend/users/Edit', [
-            'user' => $this->userService->presentUser($user),
-            'roleOptions' => $this->userService->roleOptions($request->user()),
-        ]);
+    if (! $user->hasRole('instructor')) {
+        abort(404);
     }
+
+    return Inertia::render('backend/users/Show', [
+        'user' => $this->userService->presentUser($user),
+    ]);
+}
+
+   public function edit(Request $request, User $user): Response
+{
+    if (! $this->canManageInstructors($request->user())) {
+        abort(403);
+    }
+
+    return Inertia::render('backend/users/Edit', [
+        'user' => $this->userService->presentUser($user),
+        'roleOptions' => $this->userService->roleOptions($request->user()),
+    ]);
+}
 
     public function store(StoreUserRequest $request): RedirectResponse
     {
@@ -85,24 +104,28 @@ class UserController extends Controller
         return redirect('/dashboard/users')->with('success', 'User created successfully.');
     }
 
-    public function update(UpdateUserRequest $request, User $user): RedirectResponse
-    {
-        $this->authorize('manage', $user);
-        $data = $request->toData();
-
-        // Re-check assignability before changing a user's role.
-        $this->userService->ensureRoleIsAssignable($request->user(), $data->role);
-        $this->userService->update($user, $data);
-
-        return redirect('/dashboard/users')->with('success', 'User updated successfully.');
+  public function update(UpdateUserRequest $request, User $user): RedirectResponse
+{
+    if (! $this->canManageInstructors($request->user())) {
+        abort(403);
     }
+
+    $data = $request->toData();
+
+    $this->userService->ensureRoleIsAssignable($request->user(), $data->role);
+    $this->userService->update($user, $data);
+
+    return redirect('/dashboard/users')->with('success', 'Instructor updated successfully.');
+}
 
     public function destroy(Request $request, User $user): RedirectResponse
-    {
-        $this->authorize('manage', $user);
-
-        $this->userService->delete($user);
-
-        return redirect('/dashboard/users')->with('success', 'User deleted successfully.');
+{
+    if (! $this->canManageInstructors($request->user())) {
+        abort(403);
     }
+
+    $this->userService->delete($user);
+
+    return redirect('/dashboard/users')->with('success', 'Instructor deleted successfully.');
+}
 }

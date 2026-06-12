@@ -12,9 +12,7 @@ class LocaleController extends Controller
         $validated = $request->validate([
             'locale' => ['required', 'string', 'max:10'],
         ]);
-
         session(['locale' => $validated['locale']]);
-
         return back();
     }
 }

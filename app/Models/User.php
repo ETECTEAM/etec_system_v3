@@ -17,21 +17,22 @@ class User extends Authenticatable
     use HasRoles;
     use Notifiable;
 
-    protected string $guard_name = 'sanctum';
+   protected string $guard_name = 'web';
+
 
     /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'is_active',
-        'status',
-        'verified_at',
-    ];
+   protected $fillable = [
+    'name',
+    'email',
+    'password',
+    'is_active',
+    'status',
+    'role',
+];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -63,12 +64,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(VerificationCode::class);
     }
-
     public function otpVerifications(): HasMany
     {
         return $this->hasMany(OtpVerification::class);
     }
-
     public function authAuditLogs(): HasMany
     {
         return $this->hasMany(AuthAuditLog::class);

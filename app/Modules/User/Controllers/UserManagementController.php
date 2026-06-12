@@ -11,6 +11,7 @@ use Inertia\Response;
 use Spatie\Permission\Models\Role;
 use App\Modules\User\Requests\StoreUserRequest;
 use App\Modules\User\Services\UserService;
+use Spatie\Permission\Models\Permission;
 
 /**
  * Renders user role and permission management pages.
