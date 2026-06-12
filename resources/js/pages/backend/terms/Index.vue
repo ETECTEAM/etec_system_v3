@@ -76,7 +76,7 @@ function closeCreateModal() {
 <template>
   <DashboardLayout>
 
-    <div class="p-6 space-y-8">
+    <div class="p-6 space-y-8 pl-1.5 pr-0.5">
 
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 
@@ -92,13 +92,13 @@ function closeCreateModal() {
         <div class="flex items-center gap-3 w-full md:w-auto">
 
           <div class="relative w-full md:w-80">
-            <input v-model="search" type="text" placeholder="Search terms..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm
+            <input v-model="search" type="text" placeholder="Search terms..." class="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm
                      focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none" />
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400"></i>
           </div>
 
           <button @click="openCreateModal" class="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600
-                   text-white px-5 py-2.5 rounded-xl shadow hover:scale-105 transition">
+                   text-white px-5 py-2.5 text-sm rounded shadow hover:scale-105 transition">
             <i class="fa-solid fa-plus"></i>
             New Term
           </button>
@@ -106,37 +106,38 @@ function closeCreateModal() {
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl shadow border overflow-hidden">
+      <div class="bg-white rounded shadow border-gray-400 overflow-hidden ">
 
         <table class="w-full text-sm">
 
-          <thead class="bg-gray-50 uppercase text-xs tracking-wider">
+          <thead class="bg-gray-50  text-xs tracking-wider">
             <tr>
-              <th class="px-6 py-4 text-xl text-blue-600  text-left">ID</th>
-              <th class="px-6 py-4 text-xl text-blue-600  text-left">Term Name</th>
-              <th class="px-20 py-4 text-xl text-blue-600  text-right">Actions</th>
+              <th class="px-6 py-4 text-sm text-gray-600   text-left">ID</th>
+              <th class="px-6 py-4 text-sm text-gray-600   text-left">Term Name</th>
+              <th class="px-20 py-4 text-sm text-gray-600   text-right">Actions</th>
             </tr>
           </thead>
 
           <tbody>
 
             <tr v-for="term in terms.data" :key="term.id" class="border-t hover:bg-gray-50 transition duration-150">
-              <td class="px-6 py-4 text-gray-400 font-medium text-xl ">
+              <td class="px-6 py-4 text-gray-400 font-medium text-sm ">
                 {{ term.id }}
               </td>
 
-              <td class="px-6 py-4 font-semibold text-gray-800 text-xl ">
+              <td class="px-6 py-4 font-semibold text-gray-800 text-sm ">
                 {{ term.term_name }}
               </td>
+              
 
               <td class="px-6 py-4 text-right space-x-2">
 
-                <button @click="openEditModal(term)" class="px-3 py-1.5 text-lg rounded-lg bg-amber-400 text-white
+                <button @click="openEditModal(term)" class="px-3 py-1.5 text-sm rounded-lg bg-amber-400 text-white
                          hover:bg-amber-500 transition shadow-sm cursor-pointer">
                   <i class="fa-regular fa-pen-to-square"></i> Edit
                 </button>
 
-                <button @click="deleteTerm(term.id)" class="px-3 py-1.5 text-lg rounded-lg bg-red-500 text-white
+                <button @click="deleteTerm(term.id)" class="px-3 py-1.5 text-sm rounded-lg bg-red-500 text-white
                          hover:bg-blue-600 transition shadow-sm cursor-pointer">
                   <i class="fa-solid fa-trash-can"></i> Delete
                 </button>
@@ -149,7 +150,7 @@ function closeCreateModal() {
 
         <div v-if="!terms?.data?.length" class="flex flex-col items-center justify-center py-20">
 
-          <div class="text-5xl mb-4">📭</div>
+          <!-- <div class="text-5xl mb-4">📭</div> -->
 
           <p class="text-lg font-semibold text-gray-800">
             {{ search ? `No results for "${search}"` : 'No terms yet' }}
@@ -172,13 +173,13 @@ function closeCreateModal() {
 
       <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-600">
 
-        <div class="text-2xl ">
+        <div class="text-sm ">
           Showing <span class="font-semibold">{{ terms.from }}</span>
           to <span class="font-semibold">{{ terms.to }}</span>
           of <span class="font-semibold">{{ terms.total }}</span>
         </div>
 
-        <div class="flex flex-wrap gap-2 text-2xl">
+        <div class="flex flex-wrap gap-2 text-sm">
           <Link v-for="link in terms.links" :key="link.label" :href="link.url || '#'" v-html="link.label"
             class="px-3 py-1 rounded-lg border text-sm transition" :class="{
               'bg-blue-600 text-white border-blue-600': link.active,
