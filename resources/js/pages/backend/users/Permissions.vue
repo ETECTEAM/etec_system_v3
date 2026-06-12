@@ -139,9 +139,14 @@ watch(resources, () => {
 
   <DashboardLayout>
     <section class="space-y-6">
+<<<<<<< HEAD
       <Breadcrumbs :items="breadcrumbItems" />
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <PageHero eyebrow="User Management" title="User & Permission" description="Give selected users extra permissions without changing their role." />
+=======
+      <Breadcrumbs :items="breadcrumbItems"/>
+      <PageHero eyebrow="User Management" title="Permission" description="Configure access rules and permission mapping for each role." />
+>>>>>>> 614892dc5d6c1829f122fdebb7f43b88424d43c4
 
         <div class="flex gap-3">
           <Link
