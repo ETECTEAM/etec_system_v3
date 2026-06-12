@@ -33,13 +33,16 @@ const breadcrumbItems = [
   { label: 'Roles & Permission', current: true },
 ]
 
+// The selected role drives both the permission matrix and the user assignment list.
 const selectedRole = computed(() => roles.value.find((role) => String(role.id) === selectedRoleId.value) ?? null)
 const totalUsers = computed(() => roles.value.reduce((total, role) => total + Number(role.users_count ?? 0), 0))
 const activeRoles = computed(() => roles.value.length)
+// Count modules where the current role does not have every available action.
 const restrictedModules = computed(() => resources.value.filter((resource) => {
   return actions.value.some((action) => permissionName(resource, action) && !form.permissions.includes(permissionName(resource, action)))
 }).length)
 
+// Build the action columns shown in the matrix.
 const actions = computed(() => {
   const discovered = permissions.value
     .map((permission) => permission.split('.')[1])
@@ -49,12 +52,14 @@ const actions = computed(() => {
     .filter((action, index, list) => list.indexOf(action) === index)
 })
 
+// Build the unique module list from all permission names.
 const resources = computed(() => {
   return permissions.value
     .map((permission) => permission.split('.')[0])
     .filter((resource, index, list) => list.indexOf(resource) === index)
 })
 
+// Filter modules by the search box before paginating them.
 const filteredResources = computed(() => {
   const keyword = permissionSearch.value.trim().toLowerCase()
 
@@ -94,6 +99,7 @@ const roleSummaries = computed(() => roles.value.map((role) => ({
   selected: String(role.id) === selectedRoleId.value,
 })))
 
+// Narrow the user list by name, email, or assigned role.
 const filteredUsers = computed(() => {
   const keyword = userSearch.value.trim().toLowerCase()
 
@@ -113,12 +119,14 @@ const allPermissionsSelected = computed(() => {
   return permissions.value.length > 0 && form.permissions.length === permissions.value.length
 })
 
+// Return the full permission key only when it exists in the backend list.
 function permissionName(resource, action) {
   const name = `${resource}.${action}`
 
   return permissions.value.includes(name) ? name : null
 }
 
+// Reset both forms whenever the selected role changes.
 function syncFormFromSelectedRole() {
   form.permissions = [...(selectedRole.value?.permissions ?? [])]
   assignUsersForm.users = users.value
@@ -145,10 +153,40 @@ function isChecked(permission) {
   return permission ? form.permissions.includes(permission) : false
 }
 
+function resourcePermissions(resource) {
+  return actions.value
+    .map((action) => permissionName(resource, action))
+    .filter(Boolean)
+}
+
+function isResourceFullyChecked(resource) {
+  const currentPermissions = resourcePermissions(resource)
+
+  return currentPermissions.length > 0 && currentPermissions.every((permission) => form.permissions.includes(permission))
+}
+
+function isResourcePartiallyChecked(resource) {
+  const currentPermissions = resourcePermissions(resource)
+
+  return currentPermissions.some((permission) => form.permissions.includes(permission)) && !isResourceFullyChecked(resource)
+}
+
+function toggleResourcePermissions(resource) {
+  const currentPermissions = resourcePermissions(resource)
+
+  if (isResourceFullyChecked(resource)) {
+    form.permissions = form.permissions.filter((permission) => !currentPermissions.includes(permission))
+    return
+  }
+
+  form.permissions = [...new Set([...form.permissions, ...currentPermissions])]
+}
+
 function selectAllPermissions() {
   form.permissions = [...permissions.value]
 }
 
+// Keep the checkbox handler separate so the template stays simple.
 function toggleAllPermissions(event) {
   if (event.target.checked) {
     selectAllPermissions()
@@ -162,6 +200,7 @@ function clearAllPermissions() {
   form.permissions = []
 }
 
+// Save the selected permissions for the active role.
 function savePermissions() {
   if (!selectedRole.value) {
     return
@@ -194,6 +233,7 @@ function initials(name) {
     .toUpperCase()
 }
 
+// Save the user-role assignments for the active role.
 function saveAssignedUsers() {
   if (!selectedRole.value) {
     return
@@ -225,6 +265,7 @@ watch(permissionSearch, () => {
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
+      <!-- Top summary and actions for the role management page. -->
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <PageHero eyebrow="User Management" title="Role & Permission" description="Manage role defaults and set permission access across modules." />
 
@@ -247,6 +288,7 @@ watch(permissionSearch, () => {
       </div>
 
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <!-- Quick stats used to understand the current access setup at a glance. -->
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Total Users</p>
           <p class="mt-3 text-3xl font-bold text-slate-900">{{ totalUsers }}</p>
@@ -270,6 +312,7 @@ watch(permissionSearch, () => {
       </div>
 
       <div class="grid gap-6 2xl:grid-cols-[280px_1fr_340px]">
+        <!-- Left panel: pick the role to edit. -->
         <aside class="self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div class="flex items-center justify-between px-2 pb-3">
             <h2 class="text-base font-bold text-slate-900">Roles</h2>
@@ -301,6 +344,7 @@ watch(permissionSearch, () => {
           </div>
         </aside>
 
+        <!-- Middle panel: permission matrix for the selected role. -->
         <form class="self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" @submit.prevent="savePermissions">
           <div class="flex flex-col gap-4 border-b border-slate-200 p-5">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -374,7 +418,21 @@ watch(permissionSearch, () => {
               <tbody class="divide-y divide-slate-100 bg-white">
                 <tr v-for="resource in paginatedResources" :key="resource" class="hover:bg-slate-50">
                   <td class="sticky left-0 z-10 bg-white px-5 py-4 font-semibold capitalize text-slate-800">
-                    {{ resource.replaceAll('_', ' ') }}
+                    <div class="flex items-center gap-3">
+                      <button
+                        type="button"
+                        class="flex h-5 w-5 items-center justify-center rounded border transition"
+                        :class="isResourceFullyChecked(resource) || isResourcePartiallyChecked(resource)
+                          ? 'border-blue-700 bg-blue-700 text-white'
+                          : 'border-slate-300 bg-white text-transparent hover:border-blue-400'"
+                        :aria-pressed="isResourceFullyChecked(resource)"
+                        :aria-label="`Select all ${resource.replaceAll('_', ' ')} permissions`"
+                        @click="toggleResourcePermissions(resource)"
+                      >
+                        <span class="text-xs font-bold">{{ isResourcePartiallyChecked(resource) ? '-' : '✓' }}</span>
+                      </button>
+                      <span>{{ resource.replaceAll('_', ' ') }}</span>
+                    </div>
                   </td>
                   <td
                     v-for="action in actions"
@@ -417,6 +475,7 @@ watch(permissionSearch, () => {
           </div>
         </form>
 
+        <!-- Right panel: assign users to the selected role. -->
         <form class="self-start rounded-2xl border border-slate-200 bg-white shadow-sm" @submit.prevent="saveAssignedUsers">
           <div class="border-b border-slate-200 p-5">
             <h2 class="text-base font-bold text-slate-900">Assign Users to Role</h2>
