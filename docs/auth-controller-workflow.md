@@ -1,6 +1,60 @@
-# AuthController Workflow
+# Auth Module Workflow
 
-This document reflects the current authentication flow implemented across `AuthController`, `OtpService`, `UserApprovalService`, and the Telegram approval webhook.
+This document reflects the current module-first authentication flow implemented across `AuthController`, auth requests, DTOs, services, responses, events, listeners, and the Telegram approval webhook.
+
+## Team Structure Rule
+
+Feature code belongs inside `app/Modules/{FeatureName}`.
+
+```text
+app/Modules/Auth/
+  Controllers/
+  Data/
+  Events/
+  Listeners/
+  Requests/
+  Responses/
+  Services/
+
+app/Modules/User/
+  Controllers/
+  Data/
+  Policies/
+  Requests/
+  Services/
+```
+
+Shared application code stays global.
+
+```text
+app/Models
+app/Enums
+app/Providers
+app/Helpers
+app/Http/Middleware
+```
+
+Do not create global feature folders like `app/Data/Auth`, `app/Services/Auth`, or `app/Http/Requests/Auth`. New feature code should live inside its module.
+
+## Layer Flow
+
+Use this flow for web forms and APIs.
+
+```text
+Route
+  -> Controller
+  -> Request
+  -> Data
+  -> Service
+  -> Response
+```
+
+- `Controller` coordinates the workflow.
+- `Request` validates incoming input.
+- `Data` contains DTOs with clean typed values.
+- `Service` contains business logic.
+- `Response` formats reusable JSON responses.
+- Simple web redirects can return directly from controllers.
 
 ## Main Routes
 
@@ -15,22 +69,23 @@ This document reflects the current authentication flow implemented across `AuthC
 
 ## Register Flow
 
-Endpoint: `registerWeb(Request)`
+Endpoint: `AuthController::registerWeb(RegisterWebRequest)`
 
-1. Validates:
+1. `RegisterWebRequest` validates:
    - `name` is required
    - `email` is required, unique, valid, and must match `@etec.com`
    - `password` is required, minimum 8 characters, and must be confirmed
-2. Creates the user in a database transaction with:
+2. `RegisterWebRequest::toData()` returns `RegisterUserData`.
+3. Creates the user in a database transaction with:
    - `status = pending`
    - `is_active = false`
-3. Ensures the default role exists and assigns it to the user.
-4. Creates a new OTP with `OtpService::createForUser($user)`.
-5. Logs the `user.registered` audit event.
-6. Logs the new user in immediately and regenerates the session.
-7. Stores `pending_verification_user_id` in session.
-8. Dispatches `PendingUserRegistered($user, $otp, $plainCode)`.
-9. Redirects to `/code-verify` with a success message.
+4. Ensures the default role exists and assigns it to the user.
+5. Creates a new OTP with `OtpService::createForUser($user)`.
+6. Logs the `user.registered` audit event.
+7. Logs the new user in immediately and regenerates the session.
+8. Stores `pending_verification_user_id` in session.
+9. Dispatches `PendingUserRegistered($user, $otp, $plainCode)`.
+10. Redirects to `/code-verify` with a success message.
 
 ### OTP Created During Registration
 
@@ -70,7 +125,7 @@ Important note:
 
 ## Show Verification Page
 
-Endpoint: `showVerifyCode(Request)`
+Endpoint: `AuthController::showVerifyCode(Request)`
 
 1. Reads `pending_verification_user_id` from the session.
 2. If that session value is missing, it falls back to the authenticated user when the account is not active yet.
@@ -84,25 +139,26 @@ Endpoint: `showVerifyCode(Request)`
 
 ## OTP Verification Flow
 
-Endpoint: `verifyCodeApi(Request)`
+Endpoint: `AuthController::verifyCodeApi(VerifyCodeRequest)`
 
-1. Validates:
+1. `VerifyCodeRequest` validates:
    - `code` is required and must be exactly 6 digits
    - optional `user_id` must exist in `users`
-2. Resolves the pending user in this order:
+2. `VerifyCodeRequest::toData()` returns `VerifyCodeData`.
+3. Resolves the pending user in this order:
    - `pending_verification_user_id` from session
    - authenticated user when status is not active
-   - `user_id` from the request
-3. If no user is found, throws:
+   - `userId` from the DTO
+4. If no user is found, throws:
    - `Verification session has expired. Please register again.`
-4. If the user is rejected, throws:
+5. If the user is rejected, throws:
    - `Your registration was rejected. Please contact support.`
-5. If the user is already active, returns JSON:
+6. If the user is already active, returns JSON through `VerificationResponse::alreadyActive()`:
    - `message = Account is already active.`
    - `redirect = role-based path`
-6. Calls `OtpService::verify($user, $validated['code'])`.
-7. If OTP verification succeeds, calls `UserApprovalService::approve($user, null, 'otp')`.
-8. Logs the user in, regenerates the session, clears `pending_verification_user_id`, and returns:
+7. Calls `OtpService::verify($user, $data->code)`.
+8. If OTP verification succeeds, calls `UserApprovalService::approve($user, null, 'otp')`.
+9. Logs the user in, regenerates the session, clears `pending_verification_user_id`, and returns JSON through `VerificationResponse::verified()`:
    - `message = Account verified successfully.`
    - `redirect = role-based path`
 
@@ -150,26 +206,27 @@ Important note:
 
 ## Login Flow
 
-Endpoint: `loginWeb(Request)`
+Endpoint: `AuthController::loginWeb(LoginWebRequest)`
 
-1. Validates:
+1. `LoginWebRequest` validates:
    - `login` or `email`
    - `password`
-2. Resolves the login identifier from `login` first, then `email`.
-3. `AuthService::findUserForLogin()` searches:
+2. `LoginWebRequest::toData()` returns `LoginData`.
+3. Resolves the login identifier from `login` first, then `email`.
+4. `AuthService::findUserForLogin()` searches:
    - by `email` when the input looks like an email
    - by `name` otherwise
-4. If the user is missing or the password is wrong, throws:
+5. If the user is missing or the password is wrong, throws:
    - `The provided credentials are incorrect.`
-5. If the user is rejected, throws:
+6. If the user is rejected, throws:
    - `Your account was rejected. Please contact support.`
-6. If the user is not active, throws:
+7. If the user is not active, throws:
    - `Your account is pending verification. Please complete the 6-digit verification first.`
-7. If valid, logs the user in with optional `remember`, regenerates the session, and redirects to the role-based path with `Logged in successfully.`
+8. If valid, logs the user in with optional `remember`, regenerates the session, and redirects to the role-based path with `Logged in successfully.`
 
 ## Logout Flow
 
-Endpoint: `logoutWeb(Request)`
+Endpoint: `AuthController::logoutWeb(Request)`
 
 1. Logs the user out.
 2. Invalidates the session.
@@ -184,3 +241,22 @@ Method: `redirectPathFor(User)`
 - `admin` => `/dashboard`
 - `instructor` => `/dashboard`
 - any other role => `/`
+
+## Adding New Module Code
+
+For a new feature, start with this structure.
+
+```text
+app/Modules/Course/
+  Controllers/
+  Data/
+  Requests/
+  Responses/
+  Services/
+```
+
+Routes should import controllers from the module namespace.
+
+```php
+use App\Modules\Course\Controllers\CourseController;
+```

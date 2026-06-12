@@ -13,7 +13,7 @@
 */
 
 // Import necessary classes for route definitions and controller handling.
-use App\Http\Controllers\Admin\NotificationController;
+use App\Modules\Notification\Controllers\NotificationController;
 
 // Group routes that require authentication and specific roles (super_admin or admin).
 use Illuminate\Support\Facades\Route;

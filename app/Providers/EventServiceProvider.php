@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-use App\Events\PendingUserRegistered;
-use App\Listeners\SendTelegramAdminApproval;
+use App\Modules\Auth\Events\PendingUserRegistered;
+use App\Modules\Auth\Listeners\SendTelegramAdminApproval;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider

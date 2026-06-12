@@ -14,7 +14,7 @@
 */
 
 // Import necessary classes for route definitions and controller handling.
-use App\Http\Controllers\Admin\UserManagementController;
+use App\Modules\User\Controllers\UserManagementController;
 
 // Group routes that require authentication for user management actions.
 use App\Modules\User\Controllers\UserController;
@@ -40,8 +40,17 @@ Route::middleware('auth')->prefix('/dashboard/users')->group(function () {
     // Additional routes for user management actions.
     Route::get('/roles', [UserManagementController::class, 'roles']);
 
+    // Route to assign permissions to a specific role.
+    Route::put('/roles/{role}/permissions', [UserManagementController::class, 'assignRolePermissions']);
+
+    // Route to assign selected users to a specific role.
+    Route::put('/roles/{role}/users', [UserManagementController::class, 'assignUsersToRole']);
+
     // Route to fetch permissions data for user management.
     Route::get('/permissions', [UserManagementController::class, 'permissions']);
+
+    // Route to assign direct permissions to a specific user.
+    Route::put('/{user}/permissions', [UserManagementController::class, 'assignPermissions']);
 
     // Routes for handling user creation, updating, viewing, and deletion.
     Route::get('/{user}', [UserController::class, 'show']);

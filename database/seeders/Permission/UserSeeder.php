@@ -57,7 +57,7 @@ class UserSeeder extends Seeder
             ->pluck('name')
             ->all();
 
-        User::factory(100)
+        User::factory(20)
             ->create()
             ->each(function (User $user) use ($roles): void {
                 $user->syncRoles([$roles[array_rand($roles)]]);

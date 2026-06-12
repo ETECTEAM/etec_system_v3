@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Admin\TimeController;
+use App\Modules\Times\Controllers\TimeController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')

@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Admin\TermController;
+use App\Modules\Terms\Controllers\TermController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')
