@@ -23,3 +23,4 @@ Route::middleware('auth')->get('/dashboard', function () {
     // Render the 'backend/Home' view using Inertia for the dashboard page.
     return Inertia::render('backend/Home');
 })->name('dashboard');
+

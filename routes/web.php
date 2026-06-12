@@ -16,6 +16,10 @@ Route::group([], function (): void {
     includeRouteFiles(__DIR__.'/web/backend');
 });
 
+// Root redirect
+Route::get('/', function () {
+    return redirect('/admin/courses');
+});
 /*
 |--------------------------------------------------------------------------
 | Frontend Routes
@@ -27,6 +31,6 @@ Route::group([], function (): void {
 |
 */
 
-Route::middleware(RedirectAdminFromFrontend::class)->group(function (): void {
-    includeRouteFiles(__DIR__.'/web/frontend');
-});
+// Route::middleware(RedirectAdminFromFrontend::class)->group(function (): void {
+//     includeRouteFiles(__DIR__.'/web/frontend');
+// });

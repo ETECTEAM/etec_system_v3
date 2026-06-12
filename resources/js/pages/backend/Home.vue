@@ -12,8 +12,8 @@ const primaryRole = computed(() => roles.value[0] ?? 'guest')
 
 <template>
   <Head title="Dashboard" />
-
   <DashboardLayout>
+    
     <section class="space-y-6 p-4 sm:p-6">
       <div class="rounded-3xl bg-gradient-to-r from-blue-950 via-blue-900 to-sky-800 p-6 text-white shadow-xl">
         <p class="text-sm uppercase tracking-[0.3em] text-blue-100">ETEC Dashboard</p>

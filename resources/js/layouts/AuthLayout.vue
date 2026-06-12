@@ -21,6 +21,7 @@ onBeforeUnmount(() => {
 
       <section class="flex min-h-screen items-center justify-center bg-white p-6 sm:p-10 xl:border-l xl:border-gray-200 xl:p-16">
         <slot />
+      
       </section>
     </div>
   </main>
