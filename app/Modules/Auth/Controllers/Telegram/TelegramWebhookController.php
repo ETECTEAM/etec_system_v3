@@ -1,22 +1,26 @@
 <?php
 
-namespace App\Http\Controllers\Telegram;
+namespace App\Modules\Auth\Controllers\Telegram;
 
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\OtpVerification;
-use App\Services\AuthAuditService;
-use App\Services\UserApprovalService;
+use App\Modules\Auth\Services\AuthAuditService;
+use App\Modules\User\Services\UserApprovalService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Telegram\Bot\Laravel\Facades\Telegram;
 
+/**
+ * Handles Telegram inline-button callbacks for user approval and rejection.
+ */
 class TelegramWebhookController extends Controller
 {
     public function __invoke(Request $request, UserApprovalService $approvalService, AuthAuditService $auditService): Response
     {
         $secret = config('telegram.webhook_secret');
 
+        // When configured, Telegram must send the shared webhook secret header.
         if ($secret && $request->header('X-Telegram-Bot-Api-Secret-Token') !== $secret) {
             return response()->noContent(401);
         }
@@ -31,6 +35,7 @@ class TelegramWebhookController extends Controller
         $data = (string) $callback['data'];
         [$action, $otpId] = array_pad(explode(':', $data, 2), 2, null);
 
+        // Supported callback payloads are approve:{otp_id} and reject:{otp_id}.
         if (! in_array($action, ['approve', 'reject'], true) || ! $otpId) {
             Telegram::answerCallbackQuery([
                 'callback_query_id' => $callback['id'],

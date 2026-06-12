@@ -4,6 +4,9 @@ namespace App\Modules\User\Policies;
 
 use App\Models\User;
 
+/**
+ * Defines who can view and manage dashboard users.
+ */
 class UserPolicy
 {
     public function viewAny(User $authUser): bool

@@ -10,7 +10,7 @@
 | Guest-only access and request throttling are applied where appropriate.
 |
 */
-use App\Http\Controllers\Auth\AuthController; // Handles backend authentication actions.
+use App\Modules\Auth\Controllers\AuthController; // Handles backend authentication actions.
 use Illuminate\Support\Facades\Route; // Registers web routes for the application.
 use Inertia\Inertia; // Renders Inertia-powered frontend pages.
 

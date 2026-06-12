@@ -1,15 +1,19 @@
 <?php
 
-namespace App\Http\Controllers\Auth;
+namespace App\Modules\Auth\Controllers;
 
 use App\Enums\UserStatus;
-use App\Events\PendingUserRegistered;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Services\AuthService;
-use App\Services\AuthAuditService;
-use App\Services\OtpService;
-use App\Services\UserApprovalService;
+use App\Modules\Auth\Events\PendingUserRegistered;
+use App\Modules\Auth\Requests\LoginWebRequest;
+use App\Modules\Auth\Requests\RegisterWebRequest;
+use App\Modules\Auth\Requests\VerifyCodeRequest;
+use App\Modules\Auth\Responses\VerificationResponse;
+use App\Modules\Auth\Services\AuthAuditService;
+use App\Modules\Auth\Services\AuthService;
+use App\Modules\Auth\Services\OtpService;
+use App\Modules\User\Services\UserApprovalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +23,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Permission\Models\Role;
 
+/**
+ * Coordinates web authentication, registration, OTP verification, and logout.
+ */
 class AuthController extends Controller
 {
     public function __construct(
@@ -29,28 +37,25 @@ class AuthController extends Controller
         private readonly AuthAuditService $auditService,
     ) {}
 
-    public function registerWeb(Request $request): RedirectResponse
+    public function registerWeb(RegisterWebRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'regex:/^[a-zA-Z0-9._%+-]+@etec\.com$/', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
+        $data = $request->toData();
 
-        [$user, $otp, $plainCode] = DB::transaction(function () use ($validated): array {
+        [$user, $otp, $plainCode] = DB::transaction(function () use ($data): array {
             $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => $validated['password'],
+                'name' => $data->name,
+                'email' => $data->email,
+                'password' => $data->password,
                 'is_active' => false,
                 'status' => UserStatus::Pending,
+                'role' => 'instructor',
             ]);
 
-            $role = $this->authService->ensureDefaultRole();
+            // Create instructor role if not exists
+            Role::findOrCreate('instructor', 'web');
 
-            if (! $user->hasRole($role)) {
-                $user->assignRole($role);
-            }
+            // Assign Spatie role instructor
+            $user->syncRoles(['instructor']);
 
             [$otp, $plainCode] = $this->otpService->createForUser($user);
 
@@ -66,7 +71,8 @@ class AuthController extends Controller
 
         PendingUserRegistered::dispatch($user, $otp, $plainCode);
 
-        return redirect('/code-verify')->with('success', 'Registration received. Enter your verification code to activate your account.');
+        return redirect('/code-verify')
+            ->with('success', 'Registration received. Enter your verification code to activate your account.');
     }
 
     public function showVerifyCode(Request $request): Response|RedirectResponse
@@ -74,6 +80,7 @@ class AuthController extends Controller
         $pendingUserId = $request->session()->get('pending_verification_user_id');
         $user = $pendingUserId ? User::query()->find($pendingUserId) : null;
 
+        // If the session expired but the pending user is logged in, rebuild it.
         if (! $user && $request->user() && $request->user()->status !== UserStatus::Active) {
             $user = $request->user();
             $request->session()->put('pending_verification_user_id', $user->id);
@@ -97,13 +104,11 @@ class AuthController extends Controller
         ]);
     }
 
-    public function verifyCodeApi(Request $request): JsonResponse
+    public function verifyCodeApi(VerifyCodeRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => ['required', 'digits:6'],
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
-        ]);
+        $data = $request->toData();
 
+        // Prefer session state, then authenticated user, then explicit user id.
         $pendingUserId = $request->session()->get('pending_verification_user_id');
         $authenticatedUser = $request->user();
         $user = $pendingUserId ? User::query()->find($pendingUserId) : null;
@@ -113,8 +118,8 @@ class AuthController extends Controller
             $pendingUserId = $authenticatedUser->id;
         }
 
-        if (! $user && isset($validated['user_id'])) {
-            $user = User::query()->find((int) $validated['user_id']);
+        if (! $user && $data->userId !== null) {
+            $user = User::query()->find($data->userId);
             $pendingUserId = $user?->id;
         }
 
@@ -131,13 +136,10 @@ class AuthController extends Controller
         }
 
         if ($user->status === UserStatus::Active) {
-            return response()->json([
-                'message' => 'Account is already active.',
-                'redirect' => $this->redirectPathFor($user),
-            ]);
+            return VerificationResponse::alreadyActive($this->redirectPathFor($user));
         }
 
-        $this->otpService->verify($user, $validated['code']);
+        $this->otpService->verify($user, $data->code);
         $this->approvalService->approve($user, null, 'otp');
 
         Auth::login($user);
@@ -145,46 +147,39 @@ class AuthController extends Controller
 
         $request->session()->forget('pending_verification_user_id');
 
-        return response()->json([
-            'message' => 'Account verified successfully.',
-            'redirect' => $this->redirectPathFor($user),
+        return VerificationResponse::verified($this->redirectPathFor($user));
+    }
+
+    public function loginWeb(LoginWebRequest $request): RedirectResponse
+{
+    $data = $request->toData();
+
+    $user = $this->authService->findUserForLogin($data->login);
+
+    if (! $user) {
+        throw ValidationException::withMessages([
+            'login' => ['Email not found.'],
         ]);
     }
 
-    public function loginWeb(Request $request): RedirectResponse
-    {
-        $credentials = $request->validate([
-            'login' => ['nullable', 'string', 'required_without:email'],
-            'email' => ['nullable', 'string', 'required_without:login'],
-            'password' => ['required', 'string'],
+    if ($user->status === UserStatus::Rejected) {
+        throw ValidationException::withMessages([
+            'login' => ['Your account was rejected. Please contact support.'],
         ]);
-
-        $login = trim((string) ($credentials['login'] ?? $credentials['email'] ?? ''));
-        $user = $this->authService->findUserForLogin($login);
-
-        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'login' => ['The provided credentials are incorrect.'],
-            ]);
-        }
-
-        if ($user->status === UserStatus::Rejected) {
-            throw ValidationException::withMessages([
-                'login' => ['Your account was rejected. Please contact support.'],
-            ]);
-        }
-
-        if ($user->status !== UserStatus::Active) {
-            throw ValidationException::withMessages([
-                'login' => ['Your account is pending verification. Please complete the 6-digit verification first.'],
-            ]);
-        }
-
-        Auth::login($user, $request->boolean('remember'));
-        $request->session()->regenerate();
-
-        return redirect($this->redirectPathFor($user))->with('success', 'Logged in successfully.');
     }
+
+    if ($user->status !== UserStatus::Active) {
+        throw ValidationException::withMessages([
+            'login' => ['Your account is pending verification. Please complete the 6-digit verification first.'],
+        ]);
+    }
+
+    Auth::login($user, $data->remember);
+    $request->session()->regenerate();
+
+    return redirect($this->redirectPathFor($user))
+        ->with('success', 'Logged in successfully.');
+}
 
     public function logoutWeb(Request $request): RedirectResponse
     {
@@ -197,8 +192,12 @@ class AuthController extends Controller
 
     private function redirectPathFor(User $user): string
     {
-        if ($user->hasRole('super_admin') || $user->hasRole('admin') || $user->hasRole('instructor')) {
+        if ($user->hasRole('admin')) {
             return '/dashboard';
+        }
+
+        if ($user->hasRole('instructor')) {
+            return '/dashboard/users';
         }
 
         return '/';

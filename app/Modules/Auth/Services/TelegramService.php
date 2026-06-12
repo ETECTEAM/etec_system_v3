@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Modules\Auth\Services;
 
 use App\Models\OtpVerification;
 use App\Models\User;
@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Cache;
 use Telegram\Bot\Laravel\Facades\Telegram;
 use Throwable;
 
+/**
+ * Sends Telegram approval messages for pending registrations.
+ */
 class TelegramService
 {
     public function sendAdminApprovalRequest(User $user, OtpVerification $otp, string $plainCode): void
@@ -15,6 +18,7 @@ class TelegramService
         $chatId = config('telegram.admin_chat_id');
         $lockKey = "telegram:approval-request:{$otp->id}";
 
+        // Skip duplicates so the same OTP does not notify admins repeatedly.
         if (! $chatId || ! Cache::add($lockKey, true, now()->addDay())) {
             return;
         }

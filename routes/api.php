@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Telegram\TelegramWebhookController;
+use App\Modules\Auth\Controllers\Telegram\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
 
 

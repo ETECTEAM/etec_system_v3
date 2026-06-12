@@ -14,7 +14,7 @@
 */
 
 // Import necessary classes for route definitions and controller handling.
-use App\Http\Controllers\Admin\UserManagementController;
+use App\Modules\User\Controllers\UserManagementController;
 
 // Group routes that require authentication for user management actions.
 use App\Modules\User\Controllers\UserController;
