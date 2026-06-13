@@ -111,7 +111,46 @@ const menuItems = computed(() => {
                     isActive: (path) => path.startsWith('/dashboard/users/permissions'),
                 },
             ],
-        })
+        },
+        {
+            label: 'Term Management',
+            key: 'term',
+            match: ['/dashboard/terms'],
+            children: [
+                {
+                    label: 'Terms',
+                    href: '/dashboard/terms',
+                    match: ['/dashboard/terms'],
+                    exact: false,
+                    isActive: (path) => (
+                        path === '/dashboard/terms'
+                        || path.startsWith('/dashboard/terms/create')
+                        || path.startsWith('/dashboard/terms/edit')
+                        || /^\/dashboard\/users\/\d+$/.test(path)
+                    ),
+                },
+            ],
+        },
+            {
+                label: 'Time Management',
+                key: 'time',
+                match: ['/dashboard/times'],
+                children: [
+                    {
+                        label: 'Times',
+                        href: '/dashboard/times',
+                        match: ['/dashboard/times'],
+                        exact: false,
+                        isActive: (path) => (
+                            path === '/dashboard/times'
+                            || path.startsWith('/dashboard/times/create')
+                            || path.startsWith('/dashboard/times/edit')
+                            || /^\/dashboard\/times\/\d+$/.test(path)
+                        ),
+                    },
+                ],
+            }
+    )
     }
 
     return base
