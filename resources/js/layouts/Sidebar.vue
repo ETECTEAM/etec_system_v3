@@ -18,12 +18,17 @@ const roles = computed(() => page.props.auth?.roles ?? [])
 const isSuperAdmin = computed(() => roles.value.includes('super_admin'))
 const canAccessNotifications = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin'))
 
+function isClassManagementRoute(path) {
+    return path.split('?')[0].startsWith('/class-types') || path.split('?')[0].startsWith('/class-categories')
+}
+
 function isUserManagementRoute(path) {
     return path.split('?')[0].startsWith('/dashboard/users')
 }
 
 const openMenus = ref({
     user: isUserManagementRoute(currentPath.value),
+    classes: isClassManagementRoute(currentPath.value),
 })
 
 const menuItems = computed(() => {
@@ -42,15 +47,43 @@ const menuItems = computed(() => {
             href: '/dashboard/notifications',
             match: ['/dashboard/notifications'],
             exact: false,
+            icon: 'notification',
             isActive: (path) => path.startsWith('/dashboard/notifications'),
         })
     }
+    // ------------------------------------------------------------
+    // CLASS MANAGEMENT (Admin)
+    // ------------------------------------------------------------
+    base.push({
+        label: 'Class Management',
+        key: 'classes',
+        match: ['/class-types', '/class-categories'],
+        icon: 'classes',
+        children: [
+            {
+                label: 'Class Type',
+                href: '/class-types',
+                match: ['/class-types'],
+                exact: false,
+                isActive: (path) => path.startsWith('/class-types'),
+            },
+            {
+                label: 'Class Category',
+                href: '/class-categories',
+                match: ['/class-categories'],
+                exact: false,
+                isActive: (path) => path.startsWith('/class-categories'),
+            },
+        ],
+    })
+
 
     if (isSuperAdmin.value) {
         base.push({
             label: 'User Management',
             key: 'user',
             match: ['/dashboard/users'],
+            icon: 'user',
             children: [
                 {
                     label: 'User',
@@ -115,6 +148,10 @@ watch(currentPath, (path) => {
     if (isUserManagementRoute(path)) {
         openMenus.value.user = true
     }
+    
+    if (isClassManagementRoute(path)) {
+        openMenus.value.classes = true
+    }
 })
 </script>
 
@@ -159,14 +196,32 @@ watch(currentPath, (path) => {
                                     @click="toggleMenu(item.key)"
                                 >
                                     <span class="flex items-center gap-2">
-                                        <svg class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        
+                                        <svg v-if="item.icon === 'classes'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                                            <path d="M6 6h10M6 10h10" />
+                                        </svg>
+
+                                        <svg v-else-if="item.icon === 'user'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <path d="M16 19a4 4 0 0 0-8 0" />
                                             <circle cx="12" cy="7" r="3" />
                                             <path d="M20 8v6" />
                                             <path d="M23 11h-6" />
                                         </svg>
+
+                                        <svg v-else-if="item.icon === 'notification'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                                            <path d="M10.3c0 1.3 1.1 2.3 2.4 2.3s2.4-1 2.4-2.3" />
+                                        </svg>
+
+                                        <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M3 10.5 12 4l9 6.5" />
+                                            <path d="M5 9.5V20h14V9.5" />
+                                        </svg>
+
                                         {{ item.label }}
                                     </span>
+                                    
                                     <svg class="h-4 w-4 text-slate-400 transition" :class="openMenus[item.key] ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
                                     </svg>

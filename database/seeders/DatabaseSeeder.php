@@ -7,6 +7,8 @@ use Database\Seeders\Permission\PermissionSeeder;
 use Database\Seeders\Permission\RoleSeeder;
 use Database\Seeders\Permission\AssignPermissionSeeder;
 use Database\Seeders\Permission\UserSeeder;
+use Database\Seeders\Class\ClassTypeSeeder;
+use Database\Seeders\Class\ClassCategorySeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,6 +19,8 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             AssignPermissionSeeder::class,
             UserSeeder::class,
+            ClassTypeSeeder::class,
+            ClassCategorySeeder::class,
         ]);
     }
 }
