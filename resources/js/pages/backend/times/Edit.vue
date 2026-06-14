@@ -1,115 +1,128 @@
 <script setup>
-import DashboardLayout from '@/layouts/DashboardLayout.vue'
-import { Head, useForm, Link, usePage } from '@inertiajs/vue3'
+import { useForm, usePage } from '@inertiajs/vue3'
+import { watch } from 'vue'
 
 const page = usePage()
 
-const time = page.props.time
-const terms = page.props.terms
-
-const form = useForm({
-    time_name: time.time_name,
-    term_id: time.term_id,
+const props = defineProps({
+  time: Object
 })
 
+const terms = page.props.terms
+
+const emit = defineEmits(['close'])
+
+const form = useForm({
+  time_name: '',
+  term_id: '',
+})
+
+// fill form when data comes
+watch(
+  () => props.time,
+  (val) => {
+    if (val) {
+      form.time_name = val.time_name
+      form.term_id = val.term_id
+    }
+  },
+  { immediate: true }
+)
+
 function submit() {
-    form.put(`/dashboard/times/${time.id}`)
+  form.put(`/dashboard/times/${props.time.id}`, {
+    preserveScroll: true,
+    onSuccess: () => emit('close')
+  })
 }
 </script>
-
 <template>
-    <Head title="Edit Time" />
+  <div>
 
-    <DashboardLayout>
+    <!-- HEADER (same as Terms) -->
+    <div class="text-center mb-4">
+      <h2 class="text-lg font-bold text-gray-900">
+        Edit Time
+      </h2>
+      <p class="text-sm text-gray-500">
+        Update time information
+      </p>
+    </div>
 
-        <div class="max-w-xl mx-auto space-y-6">
+    <!-- FORM -->
+    <form
+      @submit.prevent="submit"
+      class="rounded-2xl border bg-white p-6 shadow-sm space-y-5"
+    >
 
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">
-                    Edit Time
-                </h1>
+      <!-- TIME NAME -->
+      <div>
+        <label class="text-sm font-medium text-gray-700">
+          Time Name
+        </label>
 
-                <p class="text-sm text-gray-500">
-                    Update time information
-                </p>
-            </div>
+        <input
+          v-model="form.time_name"
+          type="text"
+          class="mt-2 w-full rounded-xl border px-4 py-3 text-sm
+                 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none"
+          placeholder="Enter time name"
+        />
 
-            <form
-                @submit.prevent="submit"
-                class="rounded-md border bg-white p-6 shadow-sm space-y-6"
-            >
+        <p v-if="form.errors.time_name" class="text-red-500 text-sm mt-1">
+          {{ form.errors.time_name }}
+        </p>
+      </div>
 
-                <div>
-                    <label class="text-sm font-medium text-gray-700">
-                        Time Name
-                    </label>
+      <!-- TERM SELECT -->
+      <div>
+        <label class="text-sm font-medium text-gray-700">
+          Term
+        </label>
 
-                    <input
-                        v-model="form.time_name"
-                        type="text"
-                        class="mt-2 w-full rounded-md border border-gray-300 px-4 py-3 text-sm
-                        focus:border-yellow-500 focus:ring-2 focus:ring-yellow-100 outline-none"
-                    />
+        <select
+          v-model="form.term_id"
+          class="mt-2 w-full rounded-xl border px-4 py-3 text-sm bg-gray-50
+                 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition"
+        >
+          <option value="">Select Term</option>
 
-                    <p
-                        v-if="form.errors.time_name"
-                        class="text-red-500 text-sm mt-1"
-                    >
-                        {{ form.errors.time_name }}
-                    </p>
-                </div>
+          <option
+            v-for="term in terms"
+            :key="term.id"
+            :value="term.id"
+          >
+            {{ term.term_name }}
+          </option>
+        </select>
 
-                <div>
-                    <label class="text-sm font-medium text-gray-700">
-                        Term
-                    </label>
+        <p v-if="form.errors.term_id" class="text-red-500 text-sm mt-1">
+          {{ form.errors.term_id }}
+        </p>
+      </div>
 
-                    <select
-                        v-model="form.term_id"
-                        class="mt-2 w-full rounded-md border border-gray-300 px-4 py-3 text-sm
-                        focus:border-yellow-500 focus:ring-2 focus:ring-yellow-100 outline-none"
-                    >
-                        <option value="">Select Term</option>
+      <!-- ACTIONS -->
+      <div class="flex justify-end gap-3">
 
-                        <option
-                            v-for="term in terms"
-                            :key="term.id"
-                            :value="term.id"
-                        >
-                            {{ term.term_name }}
-                        </option>
-                    </select>
+        <button
+          type="button"
+          @click="$emit('close')"
+          class="rounded-xl border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 active:bg-orange-300"
+        >
+          Cancel
+        </button>
 
-                    <p
-                        v-if="form.errors.term_id"
-                        class="text-red-500 text-sm mt-1"
-                    >
-                        {{ form.errors.term_id }}
-                    </p>
-                </div>
+        <button
+          type="submit"
+          :disabled="form.processing"
+          class="rounded-xl bg-yellow-500 px-4 py-2 text-sm font-semibold text-white hover:bg-yellow-600 disabled:opacity-50"
+        >
+          {{ form.processing ? 'Updating...' : 'Update Time' }}
+        </button>
 
-                <div class="flex justify-end gap-3">
+      </div>
 
-                    <Link
-                        href="/dashboard/times"
-                        class="rounded-md border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                    >
-                        Cancel
-                    </Link>
+    </form>
 
-                    <button
-                        type="submit"
-                        :disabled="form.processing"
-                        class="rounded-md bg-yellow-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-yellow-600 disabled:opacity-50"
-                    >
-                        {{ form.processing ? 'Updating...' : 'Update Time' }}
-                    </button>
-
-                </div>
-
-            </form>
-
-        </div>
-
-    </DashboardLayout>
+  </div>
 </template>

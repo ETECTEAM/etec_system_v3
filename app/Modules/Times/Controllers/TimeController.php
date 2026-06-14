@@ -31,6 +31,11 @@ class TimeController extends Controller
             'filters' => [
                 'search' => $request->search ?? '',
             ],
+
+            // ✅ ADD THIS
+            'terms' => Term::select('id', 'term_name')
+                ->orderBy('term_name')
+                ->get(),
         ]);
     }
 

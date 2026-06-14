@@ -144,10 +144,10 @@ const menuItems = computed(() => {
             ],
         },
         {
-            label: 'Term Management',
-            key: 'term',
-            match: ['/dashboard/terms'],
-            icon: 'term',
+            label: 'Schdule Management',
+            key: 'schdule',
+            match: ['/dashboard/schdules'],
+            icon: 'schdule',
             children: [
                 {
                     label: 'Terms',
@@ -160,14 +160,6 @@ const menuItems = computed(() => {
                         || path.startsWith('/dashboard/terms/edit')
                     ),
                 },
-            ],
-        },
-        {
-            label: 'Time Management',
-            key: 'time',
-            match: ['/dashboard/times'],
-            icon: 'time',
-            children: [
                 {
                     label: 'Times',
                     href: '/dashboard/times',
@@ -177,11 +169,42 @@ const menuItems = computed(() => {
                         path === '/dashboard/times'
                         || path.startsWith('/dashboard/times/create')
                         || path.startsWith('/dashboard/times/edit')
-                        || /^\/dashboard\/times\/\d+$/.test(path)
+                    ),
+                },
+                {
+                    label: 'Schdules',
+                    href: '/dashboard/schdule',
+                    match: ['/dashboard/schdule'],
+                    exact: false,
+                    isActive: (path) => (
+                        path === '/dashboard/schdule'
+                        || path.startsWith('/dashboard/schdule/create')
+                        || path.startsWith('/dashboard/schdule/edit')
                     ),
                 },
             ],
-        })
+        },
+        // {
+        //     label: 'Time Management',
+        //     key: 'time',
+        //     match: ['/dashboard/times'],
+        //     icon: 'time',
+        //     children: [
+        //         {
+        //             label: 'Times',
+        //             href: '/dashboard/times',
+        //             match: ['/dashboard/times'],
+        //             exact: false,
+        //             isActive: (path) => (
+        //                 path === '/dashboard/times'
+        //                 || path.startsWith('/dashboard/times/create')
+        //                 || path.startsWith('/dashboard/times/edit')
+        //                 || /^\/dashboard\/times\/\d+$/.test(path)
+        //             ),
+        //         },
+        //     ],
+        // }
+    )
     }
 
     return base

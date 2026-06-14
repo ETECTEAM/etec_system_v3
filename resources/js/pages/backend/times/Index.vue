@@ -1,168 +1,257 @@
 <script setup>
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
-import { Link, router } from '@inertiajs/vue3'
+import { Link, router, usePage } from '@inertiajs/vue3'
 import { ref, watch } from 'vue'
 
+import Create from './Create.vue'
+import Edit from './Edit.vue'
+import PageHero from '../../../components/ui/page-hero/PageHero.vue'
+import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
+
+// PROPS
 const props = defineProps({
-    times: Object,
-    filters: Object,
+  times: Object,
+  filters: Object,
 })
 
+// SEARCH
 const search = ref(props.filters.search ?? '')
 
 let timeout = null
 
 watch(search, (value) => {
-    clearTimeout(timeout)
+  clearTimeout(timeout)
 
-    timeout = setTimeout(() => {
-        router.get(
-            '/dashboard/times',
-            {
-                search: value,
-                page: 1,
-            },
-            {
-                preserveState: true,
-                replace: true,
-            }
-        )
-    }, 400)
+  timeout = setTimeout(() => {
+    router.get(
+      '/dashboard/times',
+      {
+        search: value,
+        page: 1,
+      },
+      {
+        preserveState: true,
+        replace: true,
+        preserveScroll: true,
+      }
+    )
+  }, 400)
 })
+
+// TERMS (for select in Create/Edit)
+const page = usePage()
+const terms = page.props.terms
+
+// CREATE MODAL
+const showCreateModal = ref(false)
+
+function openCreateModal() {
+  showCreateModal.value = true
+}
+
+function closeCreateModal() {
+  showCreateModal.value = false
+}
+
+// EDIT MODAL
+const showEditModal = ref(false)
+const selectedTime = ref(null)
+
+function openEditModal(time) {
+  selectedTime.value = time
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  selectedTime.value = null
+}
+
+// DELETE
+function deleteTime(id) {
+  if (confirm('Are you sure you want to delete this time?')) {
+    router.delete(`/dashboard/times/${id}`, {
+      preserveScroll: true,
+    })
+  }
+}
+const breadcrumbItems = [
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Times', current: true },
+]
 </script>
-
 <template>
-    <DashboardLayout>
+  <DashboardLayout>
 
-        <div class="space-y-6">
+    <section class="space-y-6">
+        <Breadcrumbs :items="breadcrumbItems" />
+        <PageHero eyebrow="Times Management" title="Time" description="View existing times and manage times." />
 
-            <div class="flex items-center justify-between">
+      <!-- CARD -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
 
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">
-                        Times
-                    </h1>
+        <!-- HEADER -->
+        <div class="border-b border-slate-200 px-6 py-5">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-                    <p class="text-sm text-gray-500">
-                        Manage all times
-                    </p>
-                </div>
+            <div class="flex items-center gap-3">
+              <h2 class="text-xl font-semibold text-slate-900">Times</h2>
 
-                <div class="flex items-center justify-end gap-4 w-[40%]">
-
-                    <input
-                        v-model="search"
-                        type="text"
-                        placeholder="Search time..."
-                        class="w-full max-w-sm rounded-md border px-4 py-2 text-sm
-                        focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"
-                    />
-
-                    <Link
-                        href="/dashboard/times/create"
-                        class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                    >
-                        + Create Time
-                    </Link>
-
-                </div>
-
+              <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-sm font-semibold text-blue-600">
+                {{ times.total }}
+              </span>
             </div>
 
-            <div class="rounded-md bg-white shadow-sm overflow-hidden">
+            <button
+              @click="openCreateModal"
+              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Create Time
+            </button>
+          </div>
 
-                <table class="w-full text-left">
+          <!-- SEARCH -->
+          <div class="mt-4 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
 
-                    <thead class="border-b border-gray-500 bg-gray-100 text-gray-600 text-sm">
-                        <tr>
-                            <th class="p-4">ID</th>
-                            <th class="p-4">Time Name</th>
-                            <th class="p-4">Term</th>
-                            <th class="p-4 text-right">Action</th>
-                        </tr>
-                    </thead>
+            <input
+              v-model="search"
+              type="text"
+              placeholder="Search times..."
+              class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+            />
 
-                    <tbody>
+          </div>
+        </div>
 
-                        <tr
-                            v-for="time in times.data"
-                            :key="time.id"
-                            class="border-b border-gray-300 hover:bg-gray-50"
-                        >
-                            <td class="p-4 text-gray-500">
-                                {{ time.id }}
-                            </td>
+        <!-- TABLE -->
+        <div class="relative">
+          <table class="w-full text-sm">
 
-                            <td class="p-4 font-medium text-gray-900">
-                                {{ time.time_name }}
-                            </td>
+            <thead>
+              <tr>
+                <th class="px-6 py-3 text-left text-slate-600">ID</th>
+                <th class="px-6 py-3 text-left text-slate-600">Time Name</th>
+                <th class="px-6 py-3 text-left text-slate-600">Term</th>
+                <th class="px-6 py-3 text-right text-slate-600">Actions</th>
+              </tr>
+            </thead>
 
-                            <td class="p-4">
-                                {{ time.term?.term_name }}
-                            </td>
+            <tbody>
 
-                            <td class="p-4 text-right space-x-2">
+              <tr
+                v-for="time in times.data"
+                :key="time.id"
+                class="border-t border-slate-200 hover:bg-slate-50 transition"
+              >
+                <td class="px-6 py-4 text-slate-500">{{ time.id }}</td>
 
-                                <Link
-                                    :href="`/dashboard/times/${time.id}/edit`"
-                                    class="rounded-md bg-yellow-500 px-3 py-1 text-white text-sm hover:bg-yellow-600"
-                                >
-                                    Edit
-                                </Link>
+                <td class="px-6 py-4 font-medium text-slate-900">
+                  {{ time.time_name }}
+                </td>
 
-                                <Link
-                                    :href="`/dashboard/times/${time.id}`"
-                                    method="delete"
-                                    as="button"
-                                    class="rounded-md bg-red-500 px-3 py-1 text-white text-sm hover:bg-red-600"
-                                >
-                                    Delete
-                                </Link>
+                <td class="px-6 py-4 text-slate-600">
+                  {{ time.term?.term_name || '-' }}
+                </td>
 
-                            </td>
-                        </tr>
+                <td class="px-6 py-4 text-right space-x-2">
 
-                        <tr v-if="!times?.data?.length">
-                            <td
-                                colspan="4"
-                                class="text-center py-6 text-gray-500"
-                            >
-                                No times found
-                            </td>
-                        </tr>
+                  <button
+                    @click="openEditModal(time)"
+                    class="px-3 py-1.5 text-sm rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition"
+                  >
+                    Edit
+                  </button>
 
-                    </tbody>
+                  <button
+                    @click="deleteTime(time.id)"
+                    class="px-3 py-1.5 text-sm rounded-lg bg-red-700 text-white hover:bg-red-800 transition"
+                  >
+                    Delete
+                  </button>
 
-                </table>
+                </td>
+              </tr>
 
-            </div>
+              <tr v-if="!times?.data?.length">
+                <td colspan="4" class="py-10 text-center text-slate-500">
+                  {{ search ? `No results for "${search}"` : 'No times found.' }}
+                </td>
+              </tr>
 
-            <div class="flex justify-between items-center text-sm text-gray-600">
+            </tbody>
 
-                <div>
-                    Showing {{ times.from }} to {{ times.to }}
-                    of {{ times.total }}
-                </div>
+          </table>
+        </div>
 
-                <div class="space-x-2">
+        <!-- FOOTER -->
+        <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
 
-                    <Link
-                        v-for="link in times.links"
-                        :key="link.label"
-                        :href="link.url || '#'"
-                        v-html="link.label"
-                        class="px-3 py-1 border rounded-lg"
-                        :class="{
-                            'bg-blue-600 text-white': link.active,
-                            'opacity-50 pointer-events-none': !link.url
-                        }"
-                    />
+          <p class="text-sm text-slate-500">
+            Showing {{ times.from }}–{{ times.to }} of {{ times.total }} times
+          </p>
 
-                </div>
-
-            </div>
+          <div class="flex flex-wrap gap-2 text-sm">
+            <Link
+              v-for="link in times.links"
+              :key="link.label"
+              :href="link.url || '#'"
+              v-html="link.label"
+              class="px-3 py-1 rounded-lg border text-sm transition"
+              :class="{
+                'bg-blue-600 text-white border-blue-600': link.active,
+                'hover:bg-gray-100': !link.active,
+                'opacity-40 pointer-events-none': !link.url
+              }"
+            />
+          </div>
 
         </div>
 
-    </DashboardLayout>
+      </div>
+
+    </section>
+
+    <!-- CREATE MODAL -->
+    <transition name="fade">
+      <div
+        v-if="showCreateModal"
+        class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+        @click.self="closeCreateModal"
+      >
+        <div class="bg-white rounded-xl w-full max-w-lg p-6 shadow-lg relative">
+          <button @click="closeCreateModal" class="absolute top-3 right-3 text-gray-400 hover:text-black">
+            ✖
+          </button>
+
+          <Create
+            :terms="terms"
+            @close="closeCreateModal"
+          />
+        </div>
+      </div>
+    </transition>
+
+    <!-- EDIT MODAL -->
+    <transition name="fade">
+      <div
+        v-if="showEditModal"
+        class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+        @click.self="closeEditModal"
+      >
+        <div class="bg-white rounded-xl w-full max-w-lg p-6 shadow-lg relative">
+          <button @click="closeEditModal" class="absolute top-3 right-3 text-gray-400 hover:text-black">
+            ✖
+          </button>
+
+          <Edit
+            v-if="selectedTime"
+            :time="selectedTime"
+            :terms="terms"
+            @close="closeEditModal"
+          />
+        </div>
+      </div>
+    </transition>
+
+  </DashboardLayout>
 </template>
