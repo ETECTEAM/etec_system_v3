@@ -34,9 +34,11 @@ watch(search, (value) => {
 })
 
 function deleteTerm(id) {
+if(confirm('Are you sur want to delete !?')){
   router.delete(`/dashboard/terms/${id}`, {
     preserveScroll: true
   })
+}
 }
 
 function handleKey(e) {
