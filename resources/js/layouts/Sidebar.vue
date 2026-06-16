@@ -35,10 +35,19 @@ function isFloorRoute(path) {
     return path.split('?')[0].startsWith('/dashboard/floors')
 }
 
+// ====== START: it my code me - Registration Route Function ======
+function isRegistrationRoute(path) {
+    return path.split('?')[0].startsWith('/dashboard/admin/classes') || path.split('?')[0].startsWith('/dashboard/admin/registrations')
+}
+// ====== END: it my code me - Registration Route Function ======
+
 const openMenus = ref({
     floor: isFloorRoute(currentPath.value),
     user: isUserManagementRoute(currentPath.value),
     classes: isClassManagementRoute(currentPath.value),
+    // ====== START: it my code me - Registration Menu State ======
+    registration: isRegistrationRoute(currentPath.value),
+    // ====== END: it my code me - Registration Menu State ======
 })
 
 const menuItems = computed(() => {
@@ -83,6 +92,33 @@ const menuItems = computed(() => {
             isActive: (path) => path.startsWith('/dashboard/notifications'),
         })
     }
+
+    // ====== START: it my code me - Registration Menu Block ======
+    if (canAccessNotifications.value) {
+        base.push({
+            label: 'Registration Setups',
+            key: 'registration',
+            match: ['/dashboard/admin/classes', '/dashboard/admin/registrations'],
+            icon: 'classes',
+            children: [
+                {
+                    label: 'Class Schedules',
+                    href: '/dashboard/admin/classes',
+                    match: ['/dashboard/admin/classes'],
+                    exact: false,
+                    isActive: (path) => path.startsWith('/dashboard/admin/classes'),
+                },
+                {
+                    label: 'Registrations',
+                    href: '/dashboard/admin/registrations',
+                    match: ['/dashboard/admin/registrations'],
+                    exact: false,
+                    isActive: (path) => path.startsWith('/dashboard/admin/registrations'),
+                },
+            ],
+        })
+    }
+    // ====== END: it my code me - Registration Menu Block ======
 
     // Class Management (Admin / Workers)
     base.push({
@@ -234,6 +270,11 @@ watch(currentPath, (path) => {
     if (isClassManagementRoute(path)) {
         openMenus.value.classes = true
     }
+    // ====== START: it my code me - Registration Menu Watcher ======
+    if (isRegistrationRoute(path)) {
+        openMenus.value.registration = true
+    }
+    // ====== END: it my code me - Registration Menu Watcher ======
 })
 </script>
 
