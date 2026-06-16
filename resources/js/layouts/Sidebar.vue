@@ -35,10 +35,18 @@ function isFloorRoute(path) {
     return path.split('?')[0].startsWith('/dashboard/floors')
 }
 
+function isScheduleRoute(path) {
+    const p = path.split('?')[0]
+    return p.startsWith('/dashboard/terms') 
+        || p.startsWith('/dashboard/times') 
+        || p.startsWith('/dashboard/schdule')
+}
+
 const openMenus = ref({
     floor: isFloorRoute(currentPath.value),
     user: isUserManagementRoute(currentPath.value),
     classes: isClassManagementRoute(currentPath.value),
+    schdule: isScheduleRoute(currentPath.value),
 })
 
 const menuItems = computed(() => {
@@ -256,6 +264,9 @@ watch(currentPath, (path) => {
     }
     if (isClassManagementRoute(path)) {
         openMenus.value.classes = true
+    }
+    if (isScheduleRoute(path)) {
+        openMenus.value.schdule = true
     }
 })
 </script>
