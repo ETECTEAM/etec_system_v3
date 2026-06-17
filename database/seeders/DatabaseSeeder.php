@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Time;
 use Illuminate\Database\Seeder;
 use Database\Seeders\Permission\PermissionSeeder;
 use Database\Seeders\Permission\RoleSeeder;
@@ -21,6 +22,8 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             ClassTypeSeeder::class,
             ClassCategorySeeder::class,
+            TermSeeder::class,
+            TimeSeeder::class,
         ]);
     }
 }
