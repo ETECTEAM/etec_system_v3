@@ -24,7 +24,8 @@ export default defineConfig({
         host: '0.0.0.0',
         port: 5173,
         hmr: {
-            host: 'localhost',
+            // host: 'localhost',
+            host:'https://last-provolone-pantry.ngrok-free.dev'
         },
         watch: {
             usePolling: true,
