@@ -36,10 +36,18 @@ function isBuildingRoute(path) {
     return p.startsWith('/dashboard/buildings') || p.startsWith('/dashboard/floors') || p.startsWith('/dashboard/rooms')
 }
 
+function isScheduleRoute(path) {
+    const p = path.split('?')[0]
+    return p.startsWith('/dashboard/terms') 
+        || p.startsWith('/dashboard/times') 
+        || p.startsWith('/dashboard/schdule')
+}
+
 const openMenus = ref({
     building_management: isBuildingRoute(currentPath.value),
     user: isUserManagementRoute(currentPath.value),
     classes: isClassManagementRoute(currentPath.value),
+    schdule: isScheduleRoute(currentPath.value),
 })
 
 const menuItems = computed(() => {
@@ -151,10 +159,10 @@ const menuItems = computed(() => {
             ],
         },
         {
-            label: 'Term Management',
-            key: 'term',
-            match: ['/dashboard/terms'],
-            icon: 'term',
+            label: 'Schdule Management',
+            key: 'schdule',
+            match: ['/dashboard/schdules'],
+            icon: 'schdule',
             children: [
                 {
                     label: 'Terms',
@@ -167,14 +175,6 @@ const menuItems = computed(() => {
                         || path.startsWith('/dashboard/terms/edit')
                     ),
                 },
-            ],
-        },
-        {
-            label: 'Time Management',
-            key: 'time',
-            match: ['/dashboard/times'],
-            icon: 'time',
-            children: [
                 {
                     label: 'Times',
                     href: '/dashboard/times',
@@ -184,11 +184,42 @@ const menuItems = computed(() => {
                         path === '/dashboard/times'
                         || path.startsWith('/dashboard/times/create')
                         || path.startsWith('/dashboard/times/edit')
-                        || /^\/dashboard\/times\/\d+$/.test(path)
+                    ),
+                },
+                {
+                    label: 'Schdules',
+                    href: '/dashboard/schdule',
+                    match: ['/dashboard/schdule'],
+                    exact: false,
+                    isActive: (path) => (
+                        path === '/dashboard/schdule'
+                        || path.startsWith('/dashboard/schdule/create')
+                        || path.startsWith('/dashboard/schdule/edit')
                     ),
                 },
             ],
-        })
+        },
+        // {
+        //     label: 'Time Management',
+        //     key: 'time',
+        //     match: ['/dashboard/times'],
+        //     icon: 'time',
+        //     children: [
+        //         {
+        //             label: 'Times',
+        //             href: '/dashboard/times',
+        //             match: ['/dashboard/times'],
+        //             exact: false,
+        //             isActive: (path) => (
+        //                 path === '/dashboard/times'
+        //                 || path.startsWith('/dashboard/times/create')
+        //                 || path.startsWith('/dashboard/times/edit')
+        //                 || /^\/dashboard\/times\/\d+$/.test(path)
+        //             ),
+        //         },
+        //     ],
+        // }
+    )
     }
 
     return base
@@ -240,6 +271,9 @@ watch(currentPath, (path) => {
     }
     if (isClassManagementRoute(path)) {
         openMenus.value.classes = true
+    }
+    if (isScheduleRoute(path)) {
+        openMenus.value.schdule = true
     }
 })
 </script>
