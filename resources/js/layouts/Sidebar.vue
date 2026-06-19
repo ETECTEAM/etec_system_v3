@@ -31,12 +31,13 @@ function isUserManagementRoute(path) {
     return path.split('?')[0].startsWith('/dashboard/users')
 }
 
-function isFloorRoute(path) {
-    return path.split('?')[0].startsWith('/dashboard/floors')
+function isBuildingRoute(path) {
+    const p = path.split('?')[0]
+    return p.startsWith('/dashboard/buildings') || p.startsWith('/dashboard/floors') || p.startsWith('/dashboard/rooms')
 }
 
 const openMenus = ref({
-    floor: isFloorRoute(currentPath.value),
+    building_management: isBuildingRoute(currentPath.value),
     user: isUserManagementRoute(currentPath.value),
     classes: isClassManagementRoute(currentPath.value),
 })
@@ -48,25 +49,32 @@ const menuItems = computed(() => {
             href: '/dashboard',
             match: ['/dashboard'],
             exact: true,
+            icon: 'home',
         },
     ]
 
     if (canAccessFloors.value) {
         base.push({
-            label: 'Floor',
-            key: 'floor',
-            match: ['/dashboard/floors'],
+            label: 'Building Management',
+            key: 'building_management',
+            match: ['/dashboard/buildings', '/dashboard/floors', '/dashboard/rooms'],
             children: [
                 {
-                    label: 'Index',
-                    href: '/dashboard/floors',
-                    match: ['/dashboard/floors'],
-                    exact: true,
+                    label: 'Buildings',
+                    href: '/dashboard/buildings',
+                    match: ['/dashboard/buildings'],
+                    exact: false,
                 },
                 {
-                    label: 'Create',
-                    href: '/dashboard/floors/create',
-                    match: ['/dashboard/floors/create'],
+                    label: 'Floors',
+                    href: '/dashboard/floors',
+                    match: ['/dashboard/floors'],
+                    exact: false,
+                },
+                {
+                    label: 'Rooms',
+                    href: '/dashboard/rooms',
+                    match: ['/dashboard/rooms'],
                     exact: false,
                 },
             ],
@@ -79,8 +87,7 @@ const menuItems = computed(() => {
             href: '/dashboard/notifications',
             match: ['/dashboard/notifications'],
             exact: false,
-            icon: 'notification',
-            isActive: (path) => path.startsWith('/dashboard/notifications'),
+            icon: 'bell',
         })
     }
 
@@ -228,8 +235,8 @@ watch(currentPath, (path) => {
     if (isUserManagementRoute(path)) {
         openMenus.value.user = true
     }
-    if (isFloorRoute(path)) {
-        openMenus.value.floor = true
+    if (isBuildingRoute(path)) {
+        openMenus.value.building_management = true
     }
     if (isClassManagementRoute(path)) {
         openMenus.value.classes = true
@@ -292,15 +299,25 @@ watch(currentPath, (path) => {
                                             <path d="M6 6h10M6 10h10" />
                                         </svg>
 
-                                        <svg v-else-if="item.icon === 'user'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <svg v-else-if="item.icon === 'user' || item.key === 'user'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <path d="M16 19a4 4 0 0 0-8 0" />
                                             <circle cx="12" cy="7" r="3" />
                                             <path d="M20 8v6" />
                                             <path d="M23 11h-6" />
                                         </svg>
 
+                                        <svg v-else-if="item.key === 'building_management'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                                            <line x1="9" y1="22" x2="9" y2="16"></line>
+                                            <line x1="15" y1="22" x2="15" y2="16"></line>
+                                            <line x1="9" y1="16" x2="15" y2="16"></line>
+                                            <path d="M9 6h6"></path>
+                                            <path d="M9 10h6"></path>
+                                        </svg>
+
                                         <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="9" y1="3" x2="9" y2="21"></line>
                                         </svg>
 
                                         <span v-if="!props.collapsed">{{ item.label }}</span>
@@ -342,13 +359,16 @@ watch(currentPath, (path) => {
                                 @click="emit('close')"
                             >
                                 <span class="flex items-center gap-2">
-                                    <svg v-if="item.icon === 'notification'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <svg v-if="item.icon === 'notification' || item.icon === 'bell'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                                         <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                                     </svg>
-                                    <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <svg v-else-if="item.icon === 'home'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                                         <polyline points="9 22 9 12 15 12 15 22" />
+                                    </svg>
+                                    <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                                     </svg>
                                     <span v-if="!props.collapsed">{{ item.label }}</span>
                                 </span>
