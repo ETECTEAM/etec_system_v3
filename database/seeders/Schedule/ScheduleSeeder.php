@@ -7,106 +7,82 @@ use Illuminate\Support\Facades\DB;
 
 class ScheduleSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $schedules = [
+        $data = [
 
-            // =========================
-            // PHP + Laravel (Class Type = 3)
-            // Mon - Tue (Term = 1)
-            // =========================
+            // PHP + Laravel
             [
                 'class_type_id' => 3,
-                'term_id'       => 1,
-                'time_id'       => 1, // 09:00 - 10:30
-            ],
-            [
-                'class_type_id' => 3,
-                'term_id'       => 1,
-                'time_id'       => 2, // 11:00 - 12:15
-            ],
-            [
-                'class_type_id' => 3,
-                'term_id'       => 1,
-                'time_id'       => 3, // 12:30 - 01:45
+                'term_id' => 1,
+                'times' => [1, 2, 3],
             ],
 
-            // =========================
-            // C++ Programming (Class Type = 3)
-            // Mon - Thur (Term = 3)
-            // =========================
+            // C++ Programming
             [
                 'class_type_id' => 3,
-                'term_id'       => 3,
-                'time_id'       => 4,
-            ],
-            [
-                'class_type_id' => 3,
-                'term_id'       => 3,
-                'time_id'       => 5,
-            ],
-            [
-                'class_type_id' => 3,
-                'term_id'       => 3,
-                'time_id'       => 6,
+                'term_id' => 3,
+                'times' => [4, 5, 6],
             ],
 
-            // =========================
-            // Web Design + React.js (Class Type = 3)
-            // Wed - Thur (Term = 2)
-            // =========================
+            // Web Design + React
             [
                 'class_type_id' => 3,
-                'term_id'       => 2,
-                'time_id'       => 2,
-            ],
-            [
-                'class_type_id' => 3,
-                'term_id'       => 2,
-                'time_id'       => 3,
+                'term_id' => 2,
+                'times' => [2, 3],
             ],
 
-            // =========================
-            // Python + Flask (Weekend Class = 4)
-            // Sat - Sun (Term = 7)
-            // =========================
+            // Python + Flask
             [
                 'class_type_id' => 4,
-                'term_id'       => 7,
-                'time_id'       => 7,
-            ],
-            [
-                'class_type_id' => 4,
-                'term_id'       => 7,
-                'time_id'       => 8,
+                'term_id' => 7,
+                'times' => [7, 8],
             ],
 
-            // =========================
-            // UI/UX Design (Figma)
-            // Friday (Term = 4)
-            // =========================
+            // UI/UX Design
             [
                 'class_type_id' => 4,
-                'term_id'       => 4,
-                'time_id'       => 5,
+                'term_id' => 4,
+                'times' => [5],
             ],
         ];
 
-        foreach ($schedules as $schedule) {
-            DB::table('schedules')->updateOrInsert(
+        foreach ($data as $item) {
+
+            // 1. create schedule ONLY ONCE
+            $schedule = DB::table('schedules')->updateOrInsert(
                 [
-                    'class_type_id' => $schedule['class_type_id'],
-                    'term_id'       => $schedule['term_id'],
-                    'time_id'       => $schedule['time_id'],
+                    'class_type_id' => $item['class_type_id'],
+                    'term_id'       => $item['term_id'],
                 ],
                 [
-                    'updated_at' => now(),
-                    'created_at' => now(),
+                    'class_type_id' => $item['class_type_id'],
+                    'term_id'       => $item['term_id'],
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
                 ]
             );
+
+            // get schedule id
+            $scheduleId = DB::table('schedules')
+                ->where('class_type_id', $item['class_type_id'])
+                ->where('term_id', $item['term_id'])
+                ->value('id');
+
+            // 2. insert MANY times
+            foreach ($item['times'] as $timeId) {
+
+                DB::table('schedule_time')->updateOrInsert(
+                    [
+                        'schedule_id' => $scheduleId,
+                        'time_id'     => $timeId,
+                    ],
+                    [
+                        'schedule_id' => $scheduleId,
+                        'time_id'     => $timeId,
+                    ]
+                );
+            }
         }
     }
 }

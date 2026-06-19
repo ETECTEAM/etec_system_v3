@@ -22,20 +22,20 @@ class TimeController extends Controller
             $query->where('time_name', 'like', '%' . $request->search . '%');
         }
 
-        // ✅ TERM FILTER (ADD THIS)
+        //  TERM FILTER (ADD THIS)
         if ($request->filled('term_id')) {
             $query->where('term_id', $request->term_id);
         }
 
         return Inertia::render('backend/times/Index', [
             'times' => $query
-                ->latest()
-                ->paginate(7)
-                ->withQueryString(),
+                    ->orderBy('id', 'asc')
+                    ->paginate(7)
+                    ->withQueryString(),
 
             'filters' => [
                 'search' => $request->search ?? '',
-                'term_id' => $request->term_id ?? '', // ✅ ADD THIS
+                'term_id' => $request->term_id ?? '', //  ADD THIS
             ],
 
             'terms' => Term::select('id', 'term_name')

@@ -48,8 +48,8 @@ class ScheduleController extends Controller
         }
 
         return Inertia::render('backend/schdule/Index', [
-            'schedules' => $query
-                ->latest()
+            'schedules' =>$query
+                ->orderBy('id', 'asc')
                 ->paginate(7)
                 ->withQueryString(),
 

@@ -10,13 +10,13 @@ class TermSeeder extends Seeder
     public function run(): void
     {
         $fixedTerms = [
-            ['term_name' => 'Mon - Tue'],
-            ['term_name' => 'Wed - Thur'],
-            ['term_name' => 'Mon - Thur'],
+            ['term_name' => 'Mon & Tue'],
+            ['term_name' => 'Wed & Thur'],
+            ['term_name' => 'Mon & Thur'],
             ['term_name' => 'Friday'],
             ['term_name' => 'Saturday'],
             ['term_name' => 'Sunday'],
-            ['term_name' => 'Sat - Sun'],
+            ['term_name' => 'Sat & Sun'],
         ];
 
         foreach ($fixedTerms as $term) {
