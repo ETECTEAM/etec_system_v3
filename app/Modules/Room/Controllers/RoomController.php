@@ -4,6 +4,7 @@ namespace App\Modules\Room\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Room;
+use App\Modules\Room\Requests\BulkStoreRoomRequest;
 use App\Modules\Room\Requests\StoreRoomRequest;
 use App\Modules\Room\Requests\UpdateRoomRequest;
 use App\Modules\Room\Services\RoomService;
@@ -58,6 +59,22 @@ class RoomController extends Controller
 
         return redirect('/dashboard/rooms')->with('success', 'Room created successfully.');
     }
+
+    public function bulkStore(BulkStoreRoomRequest $request): RedirectResponse
+    {
+        $payload = $request->payload();
+
+        $createdRooms = $this->roomService->createSequence(
+            $payload['floor_id'],
+            $payload['start_room_number'],
+            $payload['total_rooms'],
+            $payload['capacity'],
+            $payload['status'],
+        );
+
+        return redirect('/dashboard/rooms')->with('success', $createdRooms->count().' rooms created successfully.');
+    }
+
 
     public function update(UpdateRoomRequest $request, Room $room): RedirectResponse
     {

@@ -27,12 +27,13 @@ function isUserManagementRoute(path) {
     return path.split('?')[0].startsWith('/dashboard/users')
 }
 
-function isFloorRoute(path) {
-    return path.split('?')[0].startsWith('/dashboard/floors')
+function isBuildingRoute(path) {
+    const p = path.split('?')[0]
+    return p.startsWith('/dashboard/buildings') || p.startsWith('/dashboard/floors') || p.startsWith('/dashboard/rooms')
 }
 
 const openMenus = ref({
-    floor: isFloorRoute(currentPath.value),
+    building_management: isBuildingRoute(currentPath.value),
     user: isUserManagementRoute(currentPath.value),
 })
 
@@ -49,20 +50,26 @@ const menuItems = computed(() => {
 
     if (canAccessFloors.value) {
         base.push({
-            label: 'Floor',
-            key: 'floor',
-            match: ['/dashboard/floors'],
+            label: 'Building Management',
+            key: 'building_management',
+            match: ['/dashboard/buildings', '/dashboard/floors', '/dashboard/rooms'],
             children: [
                 {
-                    label: 'Index',
-                    href: '/dashboard/floors',
-                    match: ['/dashboard/floors'],
-                    exact: true,
+                    label: 'Buildings',
+                    href: '/dashboard/buildings',
+                    match: ['/dashboard/buildings'],
+                    exact: false,
                 },
                 {
-                    label: 'Create',
-                    href: '/dashboard/floors/create',
-                    match: ['/dashboard/floors/create'],
+                    label: 'Floors',
+                    href: '/dashboard/floors',
+                    match: ['/dashboard/floors'],
+                    exact: false,
+                },
+                {
+                    label: 'Rooms',
+                    href: '/dashboard/rooms',
+                    match: ['/dashboard/rooms'],
                     exact: false,
                 },
             ],
@@ -162,8 +169,8 @@ watch(currentPath, (path) => {
         openMenus.value.user = true
     }
 
-    if (isFloorRoute(path)) {
-        openMenus.value.floor = true
+    if (isBuildingRoute(path)) {
+        openMenus.value.building_management = true
     }
 })
 </script>
@@ -218,11 +225,23 @@ watch(currentPath, (path) => {
                                     @click="toggleMenu(item.key)"
                                 >
                                     <span class="flex items-center gap-2">
-                                        <svg class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <svg v-if="item.key === 'user'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <path d="M16 19a4 4 0 0 0-8 0" />
                                             <circle cx="12" cy="7" r="3" />
                                             <path d="M20 8v6" />
                                             <path d="M23 11h-6" />
+                                        </svg>
+                                        <svg v-else-if="item.key === 'building_management'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                                            <line x1="9" y1="22" x2="9" y2="16"></line>
+                                            <line x1="15" y1="22" x2="15" y2="16"></line>
+                                            <line x1="9" y1="16" x2="15" y2="16"></line>
+                                            <path d="M9 6h6"></path>
+                                            <path d="M9 10h6"></path>
+                                        </svg>
+                                        <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="9" y1="3" x2="9" y2="21"></line>
                                         </svg>
                                         <span v-if="!props.collapsed">{{ item.label }}</span>
                                     </span>
