@@ -1,6 +1,6 @@
 # ETEC System v3
 
-Docker-first setup guide for Windows, macOS, and Linux.
+Docker-optional setup guide for Windows, macOS, and Linux.
 
 ## Requirements
 
@@ -49,7 +49,7 @@ git checkout dev
 ### Windows (PowerShell)
 
 ```powershell
-if (!(Test-Path .env)) { Copy-Item .env.example .env }
+if (!(Test-Path .env)) { Copy-Item .env.docker .env }
 docker compose up -d --build
 docker compose run --rm app composer install
 docker compose run --rm app npm install
@@ -60,7 +60,7 @@ docker compose exec app php artisan migrate
 ### macOS (Terminal)
 
 ```bash
-[ -f .env ] || cp .env.example .env
+[ -f .env ] || cp .env.docker .env
 docker compose up -d --build
 docker compose run --rm app composer install
 docker compose run --rm app npm install
@@ -71,7 +71,7 @@ docker compose exec app php artisan migrate
 ### Linux (Terminal)
 
 ```bash
-[ -f .env ] || cp .env.example .env
+[ -f .env ] || cp .env.docker .env
 docker compose up -d --build
 docker compose run --rm app composer install
 docker compose run --rm app npm install
@@ -97,18 +97,8 @@ macOS/Linux (Terminal):
 
 ### 2. Update local database settings
 
-Open `.env` and change the Docker database host to your local database host.
-
-Example:
-
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=etec_system
-DB_USERNAME=root
-DB_PASSWORD=secret
-```
+The `.env.example` file already uses local defaults (127.0.0.1). Update the
+values if your local database credentials differ.
 
 If you want to run the app locally on port `8001`, keep or update:
 
@@ -207,7 +197,7 @@ docker compose exec app php artisan migrate
 Start Laravel:
 
 ```bash
-php artisan serve --host=127.0.0.1 --port=8001
+php artisan serve --port=8001
 ```
 
 Start Vite:
@@ -240,7 +230,7 @@ php artisan migrate
 - Vite: http://localhost:5173
 - phpMyAdmin: http://localhost:8080
 
-The `app` container now runs `composer run dev`, which starts:
+The `app` container runs `composer run dev`, which starts:
 
 - Laravel server
 - Queue listener
@@ -256,7 +246,15 @@ phpMyAdmin login:
 
 - Server: `mysql`
 - Username: `root`
-- Password: value from `DB_PASSWORD` in `.env`
+- Password: value from `DB_PASSWORD` in `.env.docker`
+
+## Environment Notes
+
+- Local development uses `.env` copied from `.env.example`.
+- Docker development uses `.env.docker` (docker-compose loads it), and it is also copied to `.env`
+	so `php artisan key:generate` can write the APP_KEY.
+- Keep `APP_URL` aligned with the URL you use in the browser to avoid session/CSRF issues.
+- Vite runs on `http://127.0.0.1:5173` locally and maps to the same port in Docker.
 
 ## Access App Container Shell
 

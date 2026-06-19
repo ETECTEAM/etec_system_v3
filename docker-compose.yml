@@ -3,44 +3,64 @@ services:
     build:
       context: .
       target: dev
-    container_name: laravel_app
+    container_name: system_app
     working_dir: /var/www
     user: "1000:1000"
-    restart: unless-stopped
+    restart: always
+    environment:
+      HOME: /home/app
+      COMPOSER_HOME: /home/app/.composer
+      npm_config_cache: /home/app/.npm
     volumes:
       - .:/var/www
+      - vendor_data:/var/www/vendor
+      - node_modules_data:/var/www/node_modules
+      - composer_cache:/home/app/.composer/cache
+      - npm_cache:/home/app/.npm
     env_file:
       - .env
-    command: composer run dev
+    command: >
+      sh -c "
+      composer install --no-interaction --prefer-dist &&
+      npm install &&
+      composer run dev
+      "
     ports:
-      - "${APP_PORT:-8001}:8000"
+      - "8002:8000"
       - "5173:5173"
     depends_on:
       - mysql
 
   mysql:
     image: mysql:8
-    container_name: laravel_mysql
-    restart: unless-stopped
+    container_name: system_mysql
+    restart: always
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
-      - "${MYSQL_PORT:-3307}:3306"
+      - "3307:3306"
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: laravel_phpmyadmin
-    restart: unless-stopped
+    container_name: system_phpmyadmin
+    restart: always
     ports:
-      - "8080:80"
+      - "8081:80"
     environment:
       PMA_HOST: mysql
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      PMA_USER: ${DB_USERNAME}
+      PMA_PASSWORD: ${DB_PASSWORD}
     depends_on:
       - mysql
 
 volumes:
   mysql_data:
+  vendor_data:
+  node_modules_data:
+  composer_cache:
+  npm_cache:

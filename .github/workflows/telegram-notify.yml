@@ -1,0 +1,30 @@
+name: Telegram Notification
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+      - feature/**
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Telegram Notification
+        run: |
+          MESSAGE="🚀 ETEC System Update
+
+          👤 Developer: ${{ github.actor }}
+
+          🌿 Branch: ${{ github.ref_name }}
+
+          📝 Commit: ${{ github.event.head_commit.message }}
+
+          ✅ Push completed."
+
+          curl -s -X POST \
+          https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
+          -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+          -d text="$MESSAGE"

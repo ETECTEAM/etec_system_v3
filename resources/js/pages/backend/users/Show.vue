@@ -1,18 +1,26 @@
 <script setup>
 import { Head, Link, usePage } from '@inertiajs/vue3'
 import { formatRole, roleBadgeClass } from '../../../lib/roleBadge'
+import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
 const page = usePage()
 const user = page.props.user ?? { roles: [] }
+
+const breadcrumbItems = [
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Users', href: '/dashboard/users' },
+  { label: 'View User', current: true },
+]
 </script>
 
 <template>
   <Head :title="`View User - ${user.name ?? 'User'}`" />
 
   <DashboardLayout>
-    <section class="space-y-6 p-4 sm:p-6">
+    <section class="space-y-6">
+      <Breadcrumbs :items="breadcrumbItems" />
       <PageHero
         eyebrow="User Management"
         title="View User"

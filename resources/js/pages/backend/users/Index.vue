@@ -2,6 +2,7 @@
 import axios from 'axios'
 import { onMounted, ref, watch } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
+import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import UserTableSection from '../../auth/components/UserTableSection.vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
@@ -22,6 +23,11 @@ const selectedRole = ref('')
 const roles = ref([])
 const isLoadingUsers = ref(false)
 const hasLoadedUsers = ref(false)
+
+const breadcrumbItems = [
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Users', current: true },
+]
 
 onMounted(async () => {
   await Promise.all([
@@ -97,7 +103,8 @@ watch(selectedRole, () => {
   <Head title="User" />
 
   <DashboardLayout>
-    <section class="space-y-6 p-4 sm:p-6">
+    <section class="space-y-6">
+      <Breadcrumbs :items="breadcrumbItems" />
       <PageHero eyebrow="User Management" title="User" description="View existing users and manage account roles." />
 
       <UserTableSection

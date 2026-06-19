@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "inertiajs/inertia-laravel": "^3.0",
+        "irazasyed/telegram-bot-sdk": "^3.16",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^2.10.1",
@@ -48,12 +49,19 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve --host=0.0.0.0 --port=8000\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev -- --host 0.0.0.0 --port 5173\" --names=server,queue,logs,vite --kill-others"
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185\" \"php artisan serve --host=0.0.0.0 --port=8000\" \"php artisan queue:listen --tries=1 --timeout=0\" \"npm run dev -- --host 0.0.0.0 --port 5173\" --names=server,queue,vite --kill-others"
         ],
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "seed": "php artisan db:seed",
+        "seed-permission": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Core\\\\CoreSeeder\"",
+        "seed-core": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Core\\\\CoreSeeder\"",
+        "seed-class": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Class\\\\ClassSeeder\"",
+        "seed-report": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Feature\\\\Report\\\\ReportSeeder\"",
+        "seed-landrent": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Feature\\\\Report\\\\LandRentReportSeeder\"",
+        "seed-invoice-test": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Feature\\\\Invoice\\\\InvoiceTestSeeder\"",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

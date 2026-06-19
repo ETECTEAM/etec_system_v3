@@ -3,12 +3,17 @@
 namespace App\Modules\User\Services;
 
 use App\Models\User;
+use App\Modules\User\Data\StoreUserData;
+use App\Modules\User\Data\UpdateUserData;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Contains dashboard user-management business logic.
+ */
 class UserService
 {
     /**
@@ -16,10 +21,12 @@ class UserService
      */
     public function assignableRolesFor(User $authUser): array
     {
+        // Super admins can manage every built-in role.
         if ($authUser->hasRole('super_admin')) {
             return ['super_admin', 'admin', 'instructor', 'student'];
         }
 
+        // Admins can only create/manage operational users.
         if ($authUser->hasRole('admin')) {
             return ['instructor', 'student'];
         }
@@ -31,6 +38,7 @@ class UserService
     {
         $query = User::query()->latest('id');
 
+        // Visibility mirrors the same hierarchy as assignment permissions.
         if ($authUser->hasRole('super_admin')) {
             return $query;
         }
@@ -106,27 +114,18 @@ class UserService
         ];
     }
 
-    public function create(array $data): User
+    public function create(StoreUserData $data): User
     {
-        $role = $data['role'];
-        unset($data['role']);
-
-        $user = User::create($data);
-        $user->syncRoles([$role]);
+        $user = User::create($data->userAttributes());
+        $user->syncRoles([$data->role]);
 
         return $user->fresh();
     }
 
-    public function update(User $user, array $data): User
+    public function update(User $user, UpdateUserData $data): User
     {
-        $role = $data['role'] ?? null;
-        unset($data['role']);
-
-        $user->update($data);
-
-        if ($role !== null) {
-            $user->syncRoles([$role]);
-        }
+        $user->update($data->userAttributes());
+        $user->syncRoles([$data->role]);
 
         return $user->fresh();
     }

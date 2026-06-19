@@ -2,9 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Notification;
 use App\Models\User;
-use App\Models\VerificationCode;
+use App\Models\OtpVerification;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -24,24 +23,45 @@ class WebRegisterNotificationTest extends TestCase
             'password_confirmation' => 'password123',
         ]);
 
-        $response->assertRedirect('/verify-code');
+        $response->assertRedirect('/code-verify');
 
         $user = User::query()->where('email', 'instructor1@etec.com')->first();
 
         $this->assertNotNull($user);
         $this->assertFalse((bool) $user->is_active);
+        $this->assertSame('pending', $user->status->value);
 
-        $verificationCode = VerificationCode::query()->where('user_id', $user->id)->latest('id')->first();
+        $otp = OtpVerification::query()->where('user_id', $user->id)->latest('id')->first();
 
-        $this->assertNotNull($verificationCode);
-        $this->assertSame(6, strlen((string) $verificationCode->code));
-        $this->assertFalse((bool) $verificationCode->is_verified);
+        $this->assertNotNull($otp);
+        $this->assertNotNull($otp->otp_code);
+        $this->assertNull($otp->verified_at);
+    }
 
-        $notification = Notification::query()->latest('id')->first();
+    public function test_web_register_approves_user_when_otp_verification_is_disabled(): void
+    {
+        config(['auth.otp.enabled' => false]);
 
-        $this->assertNotNull($notification);
-        $this->assertSame('New Instructor Registered', $notification->title);
-        $this->assertStringContainsString('Instructor One registered. Code:', $notification->message);
-        $this->assertFalse((bool) $notification->is_read);
+        $this->withoutMiddleware(ValidateCsrfToken::class);
+
+        $response = $this->post('/register', [
+            'name' => 'Instructor Two',
+            'email' => 'instructor2@etec.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertRedirect('/dashboard');
+
+        $user = User::query()->where('email', 'instructor2@etec.com')->first();
+
+        $this->assertNotNull($user);
+        $this->assertTrue((bool) $user->is_active);
+        $this->assertSame('active', $user->status->value);
+        $this->assertNotNull($user->verified_at);
+        $this->assertNotNull($user->email_verified_at);
+        $this->assertDatabaseMissing('otp_verifications', [
+            'user_id' => $user->id,
+        ]);
     }
 }

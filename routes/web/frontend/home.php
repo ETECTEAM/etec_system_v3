@@ -27,10 +27,11 @@ Route::get('/', function () {
         return redirect('/dashboard');
     }
 
-    return Inertia::render('home/Home');
+    return Inertia::render('frontend/home/Home');
 });
 
-// Catch-all route to handle any undefined paths and render the home view.
+// Catch-all route to handle undefined frontend paths.
+// Keep this route last so it does not override auth routes like /login or /register.
 Route::get('/{any}', function () {
-    return Inertia::render('home/Home');
+    return Inertia::render('frontend/home/Home');
 })->where('any', '.*');

@@ -63,10 +63,10 @@ function changePage(page) {
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center justify-center gap-1.5">
+  <div class="flex flex-wrap items-center justify-center gap-2">
     <button
       type="button"
-      class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-all duration-200 hover:border-slate-300 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+      class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
       :disabled="props.disabled || props.currentPage === 1"
       @click="changePage(props.currentPage - 1)"
     >
@@ -77,11 +77,11 @@ function changePage(page) {
       v-for="(page, index) in visiblePages"
       :key="`${page}-${index}`"
       type="button"
-      class="rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200"
+      class="rounded-xl px-3 py-1.5 text-sm font-medium transition-all duration-200"
       :class="[
         page === props.currentPage
           ? 'border border-blue-600 bg-blue-600 text-white shadow-sm'
-          : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-100',
+          : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
         page === '...' ? 'cursor-default border-transparent bg-transparent hover:border-transparent hover:bg-transparent' : '',
       ]"
       :disabled="props.disabled || page === '...'"
@@ -92,7 +92,7 @@ function changePage(page) {
 
     <button
       type="button"
-      class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-all duration-200 hover:border-slate-300 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+      class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
       :disabled="props.disabled || props.currentPage === props.lastPage"
       @click="changePage(props.currentPage + 1)"
     >
