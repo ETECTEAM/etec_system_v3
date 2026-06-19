@@ -22,32 +22,9 @@ class UpdateFloorRequest extends FormRequest
         $floor = $this->route('floor');
 
         return [
-            'building_id' => ['nullable', 'integer', 'exists:buildings,id'],
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('floors', 'name')
-                    ->where(fn ($query) => $query->where('building_id', $this->input('building_id')))
-                    ->ignore($floor?->id),
-            ],
-            'code' => [
-                'nullable',
-                'string',
-                'max:255',
-                Rule::unique('floors', 'code')
-                    ->where(fn ($query) => $query->where('building_id', $this->input('building_id')))
-                    ->ignore($floor?->id),
-            ],
-            'level' => [
-                'nullable',
-                'integer',
-                'min:-50',
-                'max:300',
-                Rule::unique('floors', 'level')
-                    ->where(fn ($query) => $query->where('building_id', $this->input('building_id')))
-                    ->ignore($floor?->id),
-            ],
+            'name' => ['required', 'string', 'max:255', Rule::unique('floors', 'name')->ignore($floor?->id)],
+            'code' => ['nullable', 'string', 'max:255', Rule::unique('floors', 'code')->ignore($floor?->id)],
+            'level' => ['nullable', 'integer', 'min:-50', 'max:300', Rule::unique('floors', 'level')->ignore($floor?->id)],
         ];
     }
 
@@ -56,7 +33,6 @@ class UpdateFloorRequest extends FormRequest
         $validated = $this->validated();
 
         return new FloorData(
-            building_id: isset($validated['building_id']) ? (int) $validated['building_id'] : null,
             name: $validated['name'],
             code: $validated['code'] ?? null,
             level: isset($validated['level']) ? (int) $validated['level'] : null,

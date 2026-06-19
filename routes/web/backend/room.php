@@ -11,7 +11,6 @@ Route::middleware('auth')->prefix('/dashboard/rooms')->group(function () {
     Route::get('/{room}', [RoomController::class, 'show']);
 
     Route::post('/', [RoomController::class, 'store']);
-    Route::post('/auto-generate', [RoomController::class, 'bulkStore']);
     Route::put('/{room}', [RoomController::class, 'update']);
     Route::delete('/{room}', [RoomController::class, 'destroy']);
 });

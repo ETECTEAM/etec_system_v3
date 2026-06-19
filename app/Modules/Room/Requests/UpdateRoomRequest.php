@@ -18,14 +18,12 @@ class UpdateRoomRequest extends FormRequest
         $roomId = $this->route('room')?->id;
 
         return [
-            'floor_id' => ['nullable', 'integer', 'exists:floors,id'],
+            'floor_id' => ['nullable', 'integer'],
             'room_number' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('rooms', 'room_number')
-                    ->where(fn ($query) => $query->where('floor_id', $this->input('floor_id')))
-                    ->ignore($roomId),
+                Rule::unique('rooms', 'room_number')->ignore($roomId),
             ],
             'capacity' => ['nullable', 'integer', 'min:1'],
             'status' => ['required', 'string', Rule::in(['available', 'occupied', 'maintenance'])],

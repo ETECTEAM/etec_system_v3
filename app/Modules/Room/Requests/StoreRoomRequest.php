@@ -16,13 +16,8 @@ class StoreRoomRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'floor_id' => ['nullable', 'integer', 'exists:floors,id'],
-            'room_number' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('rooms', 'room_number')->where(fn ($query) => $query->where('floor_id', $this->input('floor_id'))),
-            ],
+            'floor_id' => ['nullable', 'integer'],
+            'room_number' => ['required', 'string', 'max:255', 'unique:rooms,room_number'],
             'capacity' => ['nullable', 'integer', 'min:1'],
             'status' => ['required', 'string', Rule::in(['available', 'occupied', 'maintenance'])],
         ];

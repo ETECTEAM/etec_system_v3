@@ -11,11 +11,7 @@ class FloorService
 {
     public function paginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
-        $query = Floor::query()
-            ->with('building')
-            ->orderByRaw('level is null')
-            ->orderBy('level')
-            ->orderBy('name');
+        $query = Floor::query()->orderByRaw('level is null')->orderBy('level')->orderBy('name');
 
         $search = trim((string) ($filters['search'] ?? ''));
         if ($search !== '') {
@@ -50,14 +46,12 @@ class FloorService
     }
 
     /**
-     * @return array{id: int, building_id: int|null, building_name: string|null, name: string, code: string|null, level: int|null, created_at: string|null, updated_at: string|null}
+     * @return array{id: int, name: string, code: string|null, level: int|null, created_at: string|null, updated_at: string|null}
      */
     public function present(Floor $floor): array
     {
         return [
             'id' => $floor->id,
-            'building_id' => $floor->building_id,
-            'building_name' => $floor->building?->name,
             'name' => $floor->name,
             'code' => $floor->code,
             'level' => $floor->level,

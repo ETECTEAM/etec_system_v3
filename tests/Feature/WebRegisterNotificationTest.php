@@ -37,4 +37,31 @@ class WebRegisterNotificationTest extends TestCase
         $this->assertNotNull($otp->otp_code);
         $this->assertNull($otp->verified_at);
     }
+
+    public function test_web_register_approves_user_when_otp_verification_is_disabled(): void
+    {
+        config(['auth.otp.enabled' => false]);
+
+        $this->withoutMiddleware(ValidateCsrfToken::class);
+
+        $response = $this->post('/register', [
+            'name' => 'Instructor Two',
+            'email' => 'instructor2@etec.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertRedirect('/dashboard');
+
+        $user = User::query()->where('email', 'instructor2@etec.com')->first();
+
+        $this->assertNotNull($user);
+        $this->assertTrue((bool) $user->is_active);
+        $this->assertSame('active', $user->status->value);
+        $this->assertNotNull($user->verified_at);
+        $this->assertNotNull($user->email_verified_at);
+        $this->assertDatabaseMissing('otp_verifications', [
+            'user_id' => $user->id,
+        ]);
+    }
 }
