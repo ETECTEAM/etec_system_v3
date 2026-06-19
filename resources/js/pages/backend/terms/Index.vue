@@ -88,7 +88,7 @@ const breadcrumbItems = [
 
       <!-- Breadcrumb (optional) -->
         <Breadcrumbs :items="breadcrumbItems" />
-        <PageHero eyebrow="Terms Management" title="Term" description="View existing terms and manage Terms." />
+        <PageHero eyebrow="Terms Management" title="Terms" description="Read, create, update, and delete terms records " />
 
 
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
@@ -97,32 +97,26 @@ const breadcrumbItems = [
         <div class="border-b border-slate-200 px-6 py-5">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-            <div class="flex items-center gap-3">
-              <h2 class="text-xl font-semibold text-slate-900">Terms</h2>
-              <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-sm font-semibold text-blue-600">
-                {{ terms.total }}
-              </span>
+            <!-- Search -->
+            <div class=" w-[24%] lg:items-end">
+  
+              <input
+                v-model="search"
+                type="text"
+                placeholder="Search terms..."
+                class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              >
+  
             </div>
 
             <button
               @click="openCreateModal"
-              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-950"
             >
               Create Term
             </button>
           </div>
 
-          <!-- Search -->
-          <div class="mt-4 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
-
-            <input
-              v-model="search"
-              type="text"
-              placeholder="Search terms..."
-              class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-            >
-
-          </div>
         </div>
 
         <!-- Table -->
@@ -130,7 +124,7 @@ const breadcrumbItems = [
           <table class="w-full text-sm">
 
             <thead>
-              <tr>
+              <tr class="bg-gray-50 border-b border-gray-200">
                 <th class="px-6 py-3 text-left text-slate-600">ID</th>
                 <th class="px-6 py-3 text-left text-slate-600">Term Name</th>
                 <th class="px-6 py-3 text-right text-slate-600">Actions</th>
@@ -155,14 +149,14 @@ const breadcrumbItems = [
 
                   <button
                     @click="openEditModal(term)"
-                    class="px-3 py-1.5 text-sm rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition"
+                    class="px-5 py-2 text-sm rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition"
                   >
                     Edit
                   </button>
 
                   <button
                     @click="deleteTerm(term.id)"
-                    class="px-3 py-1.5 text-sm rounded-lg bg-red-700 text-white hover:bg-red-800 transition"
+                    class="px-5 py-2 text-sm rounded-lg bg-red-700 text-white hover:bg-red-800 transition"
                   >
                     Delete
                   </button>
@@ -194,7 +188,7 @@ const breadcrumbItems = [
               :key="link.label"
               :href="link.url || '#'"
               v-html="link.label"
-              class="px-3 py-1 rounded-lg border text-sm transition"
+              class="px-3 py-2 rounded-lg border text-sm transition"
               :class="{
                 'bg-blue-600 text-white border-blue-600': link.active,
                 'hover:bg-gray-100': !link.active,

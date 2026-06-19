@@ -9,6 +9,9 @@ use Database\Seeders\Permission\AssignPermissionSeeder;
 use Database\Seeders\Permission\UserSeeder;
 use Database\Seeders\Class\ClassTypeSeeder;
 use Database\Seeders\Class\ClassCategorySeeder;
+use Database\Seeders\Schedule\ScheduleSeeder;
+use Database\Seeders\Term\TermSeeder;
+use Database\Seeders\Time\TimeSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -21,6 +24,9 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             ClassTypeSeeder::class,
             ClassCategorySeeder::class,
+            TermSeeder::class,
+            TimeSeeder::class,
+            ScheduleSeeder::class
         ]);
     }
 }

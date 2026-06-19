@@ -17,9 +17,14 @@ class TimeController extends Controller
     {
         $query = Time::with('term');
 
-        // Search
+        // SEARCH
         if ($request->filled('search')) {
             $query->where('time_name', 'like', '%' . $request->search . '%');
+        }
+
+        // ✅ TERM FILTER (ADD THIS)
+        if ($request->filled('term_id')) {
+            $query->where('term_id', $request->term_id);
         }
 
         return Inertia::render('backend/times/Index', [
@@ -30,9 +35,9 @@ class TimeController extends Controller
 
             'filters' => [
                 'search' => $request->search ?? '',
+                'term_id' => $request->term_id ?? '', // ✅ ADD THIS
             ],
 
-            // ✅ ADD THIS
             'terms' => Term::select('id', 'term_name')
                 ->orderBy('term_name')
                 ->get(),
