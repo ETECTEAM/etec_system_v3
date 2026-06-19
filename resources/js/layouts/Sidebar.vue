@@ -1,4 +1,4 @@
-<script setup>
+*<script setup>
 import { computed, ref, watch } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 
@@ -17,9 +17,14 @@ const currentPath = computed(() => page.url ?? '/')
 const roles = computed(() => page.props.auth?.roles ?? [])
 const isSuperAdmin = computed(() => roles.value.includes('super_admin'))
 const canAccessNotifications = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin'))
+const canAccessFloors = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin') || roles.value.includes('instructor'))
 
 function isUserManagementRoute(path) {
     return path.split('?')[0].startsWith('/dashboard/users')
+}
+
+function isFloorRoute(path) {
+    return path.split('?')[0].startsWith('/dashboard/floors') || path.split('?')[0].startsWith('/dashboard/buildings')
 }
 
 const openMenus = ref({
@@ -33,8 +38,19 @@ const menuItems = computed(() => {
             href: '/dashboard',
             match: ['/dashboard'],
             exact: true,
+            icon: 'home',
         },
     ]
+
+    if (canAccessFloors.value) {
+        base.push({
+            label: 'Building',
+            href: '/dashboard/buildings',
+            match: ['/dashboard/buildings', '/dashboard/floors'],
+            exact: false,
+            icon: 'building',
+        })
+    }
 
     if (canAccessNotifications.value) {
         base.push({
@@ -43,6 +59,7 @@ const menuItems = computed(() => {
             match: ['/dashboard/notifications'],
             exact: false,
             isActive: (path) => path.startsWith('/dashboard/notifications'),
+            icon: 'bell',
         })
     }
 
@@ -199,11 +216,23 @@ watch(currentPath, (path) => {
                                 @click="emit('close')"
                             >
                                 <span class="flex items-center gap-2">
-                                    <svg class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                        <path d="M3 10.5 12 4l9 6.5" />
-                                        <path d="M5 9.5V20h14V9.5" />
+                                    <svg v-if="item.icon === 'home'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                                        <polyline points="9 22 9 12 15 12 15 22" />
                                     </svg>
-                                    {{ item.label }}
+                                    <svg v-else-if="item.icon === 'building'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+                                    </svg>
+                                    <svg v-else-if="item.icon === 'bell'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                                    </svg>
+                                    <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="12" y1="8" x2="12" y2="12" />
+                                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                                    </svg>
+                                    <span>{{ item.label }}</span>
                                 </span>
                                 <span class="text-xs text-slate-400">›</span>
                             </Link>
