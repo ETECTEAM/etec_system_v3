@@ -88,23 +88,23 @@ const menuItems = computed(() => {
     base.push({
         label: 'Class Management',
         key: 'classes',
-        match: ['/class-types', '/class-categories'],
+        match: ['/dashboard/class-types'], 
         icon: 'classes',
         children: [
             {
                 label: 'Class Type',
-                href: '/class-types',
-                match: ['/class-types'],
+                href: '/dashboard/class-types', 
+                match: ['/dashboard/class-types'],
                 exact: false,
-                isActive: (path) => path.startsWith('/class-types'),
+                isActive: (path) => path.startsWith('/dashboard/class-types'),
             },
             {
-                label: 'Class Category',
-                href: '/class-categories',
-                match: ['/class-categories'],
+                label: 'Class List',
+                href: '/dashboard/class-list',
+                match: ['/dashboard/class-list'],
                 exact: false,
-                isActive: (path) => path.startsWith('/class-categories'),
-            },
+                isActive: (path) => path.startsWith('/dashboard/class-list'),
+            }
         ],
     })
 

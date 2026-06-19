@@ -9,6 +9,7 @@ use Database\Seeders\Permission\AssignPermissionSeeder;
 use Database\Seeders\Permission\UserSeeder;
 use Database\Seeders\Class\ClassTypeSeeder;
 use Database\Seeders\Class\ClassCategorySeeder;
+use Database\Seeders\Class\ClassListSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -20,7 +21,7 @@ class DatabaseSeeder extends Seeder
             AssignPermissionSeeder::class,
             UserSeeder::class,
             ClassTypeSeeder::class,
-            ClassCategorySeeder::class,
+            ClassListSeeder::class,
         ]);
     }
 }
