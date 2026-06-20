@@ -347,7 +347,7 @@ watch(permissionSearch, () => {
       <div class="grid gap-6 2xl:grid-cols-[280px_1fr_340px]">
         <!-- Left panel: pick the role to edit. -->
         <aside class="self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <!-- <div class="flex items-center justify-between pb-3">
+          <div class="flex items-center justify-between pb-3">
             <h2 class="text-base font-bold text-slate-900">Roles</h2>
             <button
               type="button"
@@ -359,7 +359,7 @@ watch(permissionSearch, () => {
               </svg>
               Create Role
             </button>
-          </div> -->
+          </div>
 
           <div class="space-y-2">
             <button
