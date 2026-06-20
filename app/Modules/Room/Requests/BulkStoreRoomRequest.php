@@ -23,6 +23,7 @@ class BulkStoreRoomRequest extends FormRequest
             'total_rooms' => ['required', 'integer', 'min:1', 'max:200'],
             'capacity' => ['nullable', 'integer', 'min:1'],
             'status' => ['required', 'string', Rule::in(['available', 'occupied', 'maintenance'])],
+            'redirect_back' => ['nullable', 'boolean'],
         ];
     }
 

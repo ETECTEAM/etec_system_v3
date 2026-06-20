@@ -85,7 +85,7 @@ watch(search, () => {
           <input
             v-model="search"
             type="search"
-            class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 sm:max-w-sm"
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:max-w-sm"
             placeholder="Search room number or status"
           >
 

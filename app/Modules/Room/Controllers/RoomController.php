@@ -72,6 +72,10 @@ class RoomController extends Controller
             $payload['status'],
         );
 
+        if ($request->boolean('redirect_back')) {
+            return back()->with('success', $createdRooms->count().' rooms created successfully.');
+        }
+
         return redirect('/dashboard/rooms')->with('success', $createdRooms->count().' rooms created successfully.');
     }
 

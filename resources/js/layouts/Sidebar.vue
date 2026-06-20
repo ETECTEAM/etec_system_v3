@@ -1,4 +1,4 @@
-*<script setup>
+<script setup>
 import { computed, ref, watch } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 
@@ -23,6 +23,10 @@ const isSuperAdmin = computed(() => roles.value.includes('super_admin'))
 const canAccessNotifications = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin'))
 const canAccessFloors = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin') || roles.value.includes('instructor'))
 
+function isClassManagementRoute(path) {
+    return path.split('?')[0].startsWith('/class-types') || path.split('?')[0].startsWith('/class-categories')
+}
+
 function isUserManagementRoute(path) {
     return path.split('?')[0].startsWith('/dashboard/users')
 }
@@ -35,6 +39,7 @@ function isBuildingRoute(path) {
 const openMenus = ref({
     building_management: isBuildingRoute(currentPath.value),
     user: isUserManagementRoute(currentPath.value),
+    classes: isClassManagementRoute(currentPath.value),
 })
 
 const menuItems = computed(() => {
@@ -87,11 +92,36 @@ const menuItems = computed(() => {
         })
     }
 
+    // Class Management (Admin / Workers)
+    base.push({
+        label: 'Class Management',
+        key: 'classes',
+        match: ['/class-types', '/class-categories'],
+        icon: 'classes',
+        children: [
+            {
+                label: 'Class Type',
+                href: '/class-types',
+                match: ['/class-types'],
+                exact: false,
+                isActive: (path) => path.startsWith('/class-types'),
+            },
+            {
+                label: 'Class Category',
+                href: '/class-categories',
+                match: ['/class-categories'],
+                exact: false,
+                isActive: (path) => path.startsWith('/class-categories'),
+            },
+        ],
+    })
+
     if (isSuperAdmin.value) {
         base.push({
             label: 'User Management',
             key: 'user',
             match: ['/dashboard/users'],
+            icon: 'user',
             children: [
                 {
                     label: 'User',
@@ -118,6 +148,45 @@ const menuItems = computed(() => {
                     match: ['/dashboard/users/permissions'],
                     exact: false,
                     isActive: (path) => path.startsWith('/dashboard/users/permissions'),
+                },
+            ],
+        },
+        {
+            label: 'Term Management',
+            key: 'term',
+            match: ['/dashboard/terms'],
+            icon: 'term',
+            children: [
+                {
+                    label: 'Terms',
+                    href: '/dashboard/terms',
+                    match: ['/dashboard/terms'],
+                    exact: false,
+                    isActive: (path) => (
+                        path === '/dashboard/terms'
+                        || path.startsWith('/dashboard/terms/create')
+                        || path.startsWith('/dashboard/terms/edit')
+                    ),
+                },
+            ],
+        },
+        {
+            label: 'Time Management',
+            key: 'time',
+            match: ['/dashboard/times'],
+            icon: 'time',
+            children: [
+                {
+                    label: 'Times',
+                    href: '/dashboard/times',
+                    match: ['/dashboard/times'],
+                    exact: false,
+                    isActive: (path) => (
+                        path === '/dashboard/times'
+                        || path.startsWith('/dashboard/times/create')
+                        || path.startsWith('/dashboard/times/edit')
+                        || /^\/dashboard\/times\/\d+$/.test(path)
+                    ),
                 },
             ],
         })
@@ -160,7 +229,6 @@ function toggleMenu(key) {
     if (props.collapsed) {
         return
     }
-
     openMenus.value[key] = !openMenus.value[key]
 }
 
@@ -171,6 +239,9 @@ watch(currentPath, (path) => {
 
     if (isBuildingRoute(path)) {
         openMenus.value.building_management = true
+    }
+    if (isClassManagementRoute(path)) {
+        openMenus.value.classes = true
     }
 })
 </script>
@@ -202,12 +273,12 @@ watch(currentPath, (path) => {
                         @click="emit('close')"
                     >
                         <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M4.22 4.22a.75.75 0 0 1 1.06 0L10 8.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L11.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L8.94 10 4.22 5.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd" d="M4.22 4.22a.75.75 0 0 1 1.06 0L10 8.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L11.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L8.94 10 4.22 5.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
                         </svg>
                     </button>
                 </div>
 
-                <nav class="mt-6 flex-1">
+                <nav class="mt-6 flex-1 overflow-y-auto">
                     <p v-if="!props.collapsed" class="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Navigation</p>
                     <ul class="space-y-1.5">
                         <li v-for="item in menuItems" :key="item.href ?? item.key">
@@ -225,13 +296,17 @@ watch(currentPath, (path) => {
                                     @click="toggleMenu(item.key)"
                                 >
                                     <span class="flex items-center gap-2">
-                                        <svg v-if="item.key === 'user'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <svg v-if="item.icon === 'classes'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                                            <path d="M6 6h10M6 10h10" />
+                                        </svg>
+                                        <svg v-else-if="item.key === 'user' || item.icon === 'user'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <path d="M16 19a4 4 0 0 0-8 0" />
                                             <circle cx="12" cy="7" r="3" />
                                             <path d="M20 8v6" />
                                             <path d="M23 11h-6" />
                                         </svg>
-                                        <svg v-else-if="item.key === 'building_management'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <svg v-else-if="item.key === 'building_management' || item.icon === 'building'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
                                             <line x1="9" y1="22" x2="9" y2="16"></line>
                                             <line x1="15" y1="22" x2="15" y2="16"></line>
@@ -239,12 +314,23 @@ watch(currentPath, (path) => {
                                             <path d="M9 6h6"></path>
                                             <path d="M9 10h6"></path>
                                         </svg>
+                                        <svg v-else-if="item.key === 'term' || item.icon === 'term'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                        <svg v-else-if="item.key === 'time' || item.icon === 'time'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
                                         <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                                             <line x1="9" y1="3" x2="9" y2="21"></line>
                                         </svg>
                                         <span v-if="!props.collapsed">{{ item.label }}</span>
                                     </span>
+                                    
                                     <svg v-if="!props.collapsed" class="h-4 w-4 text-slate-400 transition" :class="openMenus[item.key] ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
                                     </svg>
@@ -252,46 +338,7 @@ watch(currentPath, (path) => {
 
                                 <ul v-if="openMenus[item.key] && !props.collapsed" class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3">
                                     <li v-for="child in item.children" :key="child.href ?? child.key">
-                                        <template v-if="child.children">
-                                            <button
-                                                type="button"
-                                                :title="props.collapsed ? child.label : ''"
-                                                :class="[
-                                                    'flex w-full items-center rounded-lg text-sm font-medium transition',
-                                                    props.collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2',
-                                                    isChildActive(child.children)
-                                                        ? 'bg-blue-50 text-blue-700'
-                                                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
-                                                ]"
-                                                @click="toggleMenu(child.key)"
-                                            >
-                                                <span class="flex items-center gap-2">
-                                                    <span v-if="!props.collapsed">{{ child.label }}</span>
-                                                </span>
-                                                <svg v-if="!props.collapsed" class="h-3 w-3 text-slate-400 transition" :class="openMenus[child.key] ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
-                                                </svg>
-                                            </button>
-
-                                            <ul v-if="openMenus[child.key] && !props.collapsed" class="ml-3 mt-1 space-y-1 border-l border-slate-200 pl-3">
-                                                <li v-for="grandchild in child.children" :key="grandchild.href">
-                                                    <Link
-                                                        :href="grandchild.href"
-                                                        class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
-                                                        :class="isActive(grandchild)
-                                                            ? 'bg-blue-50 text-blue-700'
-                                                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-                                                        @click="emit('close')"
-                                                    >
-                                                        <span>{{ grandchild.label }}</span>
-                                                        <span class="text-xs text-slate-400">›</span>
-                                                    </Link>
-                                                </li>
-                                            </ul>
-                                        </template>
-
                                         <Link
-                                            v-else
                                             :href="child.href"
                                             class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
                                             :class="isActive(child)
@@ -323,6 +370,15 @@ watch(currentPath, (path) => {
                                     <svg v-if="item.icon === 'home'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                                         <polyline points="9 22 9 12 15 12 15 22" />
+                                    </svg>
+                                    <svg v-else-if="item.icon === 'bell' || item.icon === 'notification'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                                    </svg>
+                                    <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="12" y1="8" x2="12" y2="12" />
+                                        <line x1="12" y1="16" x2="12.01" y2="16" />
                                     </svg>
                                     <span v-if="!props.collapsed">{{ item.label }}</span>
                                 </span>

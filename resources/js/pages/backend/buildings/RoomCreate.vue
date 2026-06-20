@@ -95,7 +95,7 @@ function submitAuto() {
               v-model="form.floor_id"
               type="number"
               min="1"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
               placeholder="Optional"
             >
             <span v-if="form.errors.floor_id" class="mt-1 block text-xs text-red-600">{{ form.errors.floor_id }}</span>
@@ -106,7 +106,7 @@ function submitAuto() {
             <input
               v-model="form.room_number"
               type="text"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
               placeholder="Example: A-101"
             >
             <span v-if="form.errors.room_number" class="mt-1 block text-xs text-red-600">{{ form.errors.room_number }}</span>
@@ -118,7 +118,7 @@ function submitAuto() {
               v-model="form.capacity"
               type="number"
               min="1"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
               placeholder="Optional"
             >
             <span v-if="form.errors.capacity" class="mt-1 block text-xs text-red-600">{{ form.errors.capacity }}</span>
@@ -128,7 +128,7 @@ function submitAuto() {
             <span class="mb-2 block text-sm font-semibold text-slate-700">Status</span>
             <select
               v-model="form.status"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
             >
               <option value="available">Available</option>
               <option value="occupied">Occupied</option>
@@ -148,7 +148,7 @@ function submitAuto() {
             <button
               type="submit"
               :disabled="form.processing"
-              class="rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+              class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {{ form.processing ? 'Creating...' : 'Create Room' }}
             </button>
@@ -164,7 +164,7 @@ function submitAuto() {
               v-model="autoForm.floor_id"
               type="number"
               min="1"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
               placeholder="Optional"
             >
             <span v-if="autoForm.errors.floor_id" class="mt-1 block text-xs text-red-600">{{ autoForm.errors.floor_id }}</span>
@@ -175,7 +175,7 @@ function submitAuto() {
             <input
               v-model="autoForm.start_room_number"
               type="text"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
               placeholder="Example: A-101"
             >
             <span v-if="autoForm.errors.start_room_number" class="mt-1 block text-xs text-red-600">{{ autoForm.errors.start_room_number }}</span>
@@ -188,7 +188,7 @@ function submitAuto() {
               type="number"
               min="1"
               max="200"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
             >
             <span v-if="autoForm.errors.total_rooms" class="mt-1 block text-xs text-red-600">{{ autoForm.errors.total_rooms }}</span>
           </label>
@@ -199,7 +199,7 @@ function submitAuto() {
               v-model="autoForm.capacity"
               type="number"
               min="1"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
               placeholder="Optional"
             >
             <span v-if="autoForm.errors.capacity" class="mt-1 block text-xs text-red-600">{{ autoForm.capacity }}</span>
@@ -209,7 +209,7 @@ function submitAuto() {
             <span class="mb-2 block text-sm font-semibold text-slate-700">Status</span>
             <select
               v-model="autoForm.status"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
             >
               <option value="available">Available</option>
               <option value="occupied">Occupied</option>
@@ -254,7 +254,7 @@ function submitAuto() {
             <button
               type="submit"
               :disabled="autoForm.processing || generatedRooms.length === 0"
-              class="rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+              class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {{ autoForm.processing ? 'Generating...' : 'Create Auto Rooms' }}
             </button>

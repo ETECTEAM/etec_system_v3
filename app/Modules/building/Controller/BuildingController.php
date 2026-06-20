@@ -48,7 +48,18 @@ class BuildingController extends Controller
     {
         $this->authorizeAccess($request);
 
-        return Inertia::render('backend/buildings/Create');
+        $building = null;
+        if ($request->has('building_id')) {
+            $buildingModel = Building::with('floors.rooms')->find($request->input('building_id'));
+            if ($buildingModel) {
+                $building = $this->buildingService->presentBuilding($buildingModel);
+            }
+        }
+
+        return Inertia::render('backend/buildings/Create', [
+            'building' => $building,
+            'initialStep' => (int) $request->input('step', 1),
+        ]);
     }
 
     public function edit(Request $request, Building $building): Response
@@ -62,7 +73,11 @@ class BuildingController extends Controller
 
     public function store(StoreBuildingRequest $request): RedirectResponse
     {
-        $this->buildingService->create($request->toData());
+        $building = $this->buildingService->create($request->toData());
+
+        if ($request->input('redirect_to') === 'wizard') {
+            return redirect('/dashboard/buildings/create?building_id='.$building->id.'&step=2')->with('success', 'Building created successfully.');
+        }
 
         return redirect('/dashboard/buildings')->with('success', 'Building created successfully.');
     }
@@ -70,6 +85,10 @@ class BuildingController extends Controller
     public function update(UpdateBuildingRequest $request, Building $building): RedirectResponse
     {
         $this->buildingService->update($building, $request->toData());
+
+        if ($request->input('redirect_to') === 'wizard') {
+            return redirect('/dashboard/buildings/create?building_id='.$building->id.'&step=2')->with('success', 'Building updated successfully.');
+        }
 
         return redirect('/dashboard/buildings')->with('success', 'Building updated successfully.');
     }
