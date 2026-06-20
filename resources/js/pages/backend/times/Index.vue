@@ -15,18 +15,22 @@ const props = defineProps({
 })
 
 // SEARCH
-const search = ref(props.filters.search ?? '')
+const filters = ref({
+  search: props.filters.search ?? '',
+  term_id: props.filters.term_id ?? '',
+})
 
 let timeout = null
 
-watch(search, (value) => {
+watch(filters, (value) => {
   clearTimeout(timeout)
 
   timeout = setTimeout(() => {
     router.get(
       '/dashboard/times',
       {
-        search: value,
+        search: value.search,
+        term_id: value.term_id,
         page: 1,
       },
       {
@@ -36,7 +40,8 @@ watch(search, (value) => {
       }
     )
   }, 400)
-})
+}, { deep: true })
+
 
 // TERMS (for select in Create/Edit)
 const page = usePage()
@@ -85,7 +90,7 @@ const breadcrumbItems = [
 
     <section class="space-y-6">
         <Breadcrumbs :items="breadcrumbItems" />
-        <PageHero eyebrow="Times Management" title="Time" description="View existing times and manage times." />
+        <PageHero eyebrow="Times Management" title="Times" description="Read, create, update, and delete times records " />
 
       <!-- CARD -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
@@ -93,34 +98,39 @@ const breadcrumbItems = [
         <!-- HEADER -->
         <div class="border-b border-slate-200 px-6 py-5">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div class="flex flex-wrap gap-3 items-center w-full lg:w-[80%]">
+               <!-- SEARCH -->
+              <input
+                  v-model="filters.search"
+                  type="text"
+                  placeholder="Search times..."
+                  class="w-[30%] rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                />
 
-            <div class="flex items-center gap-3">
-              <h2 class="text-xl font-semibold text-slate-900">Times</h2>
+              <select
+                  v-model="filters.term_id"
+                  class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                >
+                  <option value="">All Terms</option>
 
-              <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-sm font-semibold text-blue-600">
-                {{ times.total }}
-              </span>
+                  <option
+                    v-for="term in terms"
+                    :key="term.id"
+                    :value="term.id"
+                  >
+                    {{ term.term_name }}
+                  </option>
+                </select>
             </div>
 
             <button
               @click="openCreateModal"
-              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-950"
             >
               Create Time
             </button>
           </div>
 
-          <!-- SEARCH -->
-          <div class="mt-4 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
-
-            <input
-              v-model="search"
-              type="text"
-              placeholder="Search times..."
-              class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-            />
-
-          </div>
         </div>
 
         <!-- TABLE -->
@@ -128,7 +138,7 @@ const breadcrumbItems = [
           <table class="w-full text-sm">
 
             <thead>
-              <tr>
+              <tr class="bg-gray-50 border-b border-gray-200">
                 <th class="px-6 py-3 text-left text-slate-600">ID</th>
                 <th class="px-6 py-3 text-left text-slate-600">Time Name</th>
                 <th class="px-6 py-3 text-left text-slate-600">Term</th>
@@ -157,14 +167,14 @@ const breadcrumbItems = [
 
                   <button
                     @click="openEditModal(time)"
-                    class="px-3 py-1.5 text-sm rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition"
+                    class="px-5 py-2 text-sm rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition"
                   >
                     Edit
                   </button>
 
                   <button
                     @click="deleteTime(time.id)"
-                    class="px-3 py-1.5 text-sm rounded-lg bg-red-700 text-white hover:bg-red-800 transition"
+                    class="px-5 py-2 text-sm rounded-lg bg-red-700 text-white hover:bg-red-800 transition"
                   >
                     Delete
                   </button>
@@ -196,7 +206,7 @@ const breadcrumbItems = [
               :key="link.label"
               :href="link.url || '#'"
               v-html="link.label"
-              class="px-3 py-1 rounded-lg border text-sm transition"
+              class="px-3 py-2 rounded-lg border text-sm transition"
               :class="{
                 'bg-blue-600 text-white border-blue-600': link.active,
                 'hover:bg-gray-100': !link.active,
