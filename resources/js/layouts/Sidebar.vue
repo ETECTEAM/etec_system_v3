@@ -36,10 +36,18 @@ function isBuildingRoute(path) {
     return p.startsWith('/dashboard/buildings') || p.startsWith('/dashboard/floors') || p.startsWith('/dashboard/rooms')
 }
 
+function isScheduleRoute(path) {
+    const p = path.split('?')[0]
+    return p.startsWith('/dashboard/terms') 
+        || p.startsWith('/dashboard/times') 
+        || p.startsWith('/dashboard/schdule')
+}
+
 const openMenus = ref({
     building_management: isBuildingRoute(currentPath.value),
     user: isUserManagementRoute(currentPath.value),
     classes: isClassManagementRoute(currentPath.value),
+    schdule: isScheduleRoute(currentPath.value),
 })
 
 const menuItems = computed(() => {
@@ -87,7 +95,6 @@ const menuItems = computed(() => {
             href: '/dashboard/notifications',
             match: ['/dashboard/notifications'],
             exact: false,
-            isActive: (path) => path.startsWith('/dashboard/notifications'),
             icon: 'bell',
         })
     }
@@ -152,10 +159,10 @@ const menuItems = computed(() => {
             ],
         },
         {
-            label: 'Term Management',
-            key: 'term',
-            match: ['/dashboard/terms'],
-            icon: 'term',
+            label: 'Schedule Management',
+            key: 'schdule',
+            match: ['/dashboard/schdules'],
+            icon: 'schdule',
             children: [
                 {
                     label: 'Terms',
@@ -168,14 +175,6 @@ const menuItems = computed(() => {
                         || path.startsWith('/dashboard/terms/edit')
                     ),
                 },
-            ],
-        },
-        {
-            label: 'Time Management',
-            key: 'time',
-            match: ['/dashboard/times'],
-            icon: 'time',
-            children: [
                 {
                     label: 'Times',
                     href: '/dashboard/times',
@@ -185,14 +184,48 @@ const menuItems = computed(() => {
                         path === '/dashboard/times'
                         || path.startsWith('/dashboard/times/create')
                         || path.startsWith('/dashboard/times/edit')
-                        || /^\/dashboard\/times\/\d+$/.test(path)
+                    ),
+                },
+                {
+                    label: 'Schedules',
+                    href: '/dashboard/schdule',
+                    match: ['/dashboard/schdule'],
+                    exact: false,
+                    isActive: (path) => (
+                        path === '/dashboard/schdule'
+                        || path.startsWith('/dashboard/schdule/create')
+                        || path.startsWith('/dashboard/schdule/edit')
                     ),
                 },
             ],
-        })
+        },
+        // {
+        //     label: 'Time Management',
+        //     key: 'time',
+        //     match: ['/dashboard/times'],
+        //     icon: 'time',
+        //     children: [
+        //         {
+        //             label: 'Times',
+        //             href: '/dashboard/times',
+        //             match: ['/dashboard/times'],
+        //             exact: false,
+        //             isActive: (path) => (
+        //                 path === '/dashboard/times'
+        //                 || path.startsWith('/dashboard/times/create')
+        //                 || path.startsWith('/dashboard/times/edit')
+        //                 || /^\/dashboard\/times\/\d+$/.test(path)
+        //             ),
+        //         },
+        //     ],
+        // }
+    )
     }
 
-    return base
+    const singleItems = base.filter(item => !item.children)
+    const dropdownItems = base.filter(item => item.children)
+
+    return [...singleItems, ...dropdownItems]
 })
 
 function isActive(item) {
@@ -236,12 +269,14 @@ watch(currentPath, (path) => {
     if (isUserManagementRoute(path)) {
         openMenus.value.user = true
     }
-
     if (isBuildingRoute(path)) {
         openMenus.value.building_management = true
     }
     if (isClassManagementRoute(path)) {
         openMenus.value.classes = true
+    }
+    if (isScheduleRoute(path)) {
+        openMenus.value.schdule = true
     }
 })
 </script>
@@ -258,7 +293,7 @@ watch(currentPath, (path) => {
         <aside
             :class="[
                 'relative h-screen border-r border-slate-200 bg-white transition-all duration-200 lg:sticky lg:top-0',
-                props.collapsed ? 'w-20' : 'w-64',
+                props.collapsed ? 'w-20' : 'w-72',
             ]"
         >
             <div :class="['flex h-full flex-col py-6', props.collapsed ? 'px-3' : 'px-4']">
@@ -295,34 +330,26 @@ watch(currentPath, (path) => {
                                     ]"
                                     @click="toggleMenu(item.key)"
                                 >
-                                    <span class="flex items-center gap-2">
+                                    <span class="flex flex-1 items-center gap-2 text-left">
                                         <svg v-if="item.icon === 'classes'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
                                             <path d="M6 6h10M6 10h10" />
                                         </svg>
-                                        <svg v-else-if="item.key === 'user' || item.icon === 'user'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+
+                                        <svg v-else-if="item.icon === 'user' || item.key === 'user'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <path d="M16 19a4 4 0 0 0-8 0" />
                                             <circle cx="12" cy="7" r="3" />
                                             <path d="M20 8v6" />
                                             <path d="M23 11h-6" />
                                         </svg>
-                                        <svg v-else-if="item.key === 'building_management' || item.icon === 'building'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+
+                                        <svg v-else-if="item.key === 'building_management'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
                                             <line x1="9" y1="22" x2="9" y2="16"></line>
                                             <line x1="15" y1="22" x2="15" y2="16"></line>
                                             <line x1="9" y1="16" x2="15" y2="16"></line>
                                             <path d="M9 6h6"></path>
                                             <path d="M9 10h6"></path>
-                                        </svg>
-                                        <svg v-else-if="item.key === 'term' || item.icon === 'term'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                                        </svg>
-                                        <svg v-else-if="item.key === 'time' || item.icon === 'time'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <circle cx="12" cy="12" r="10"></circle>
-                                            <polyline points="12 6 12 12 16 14"></polyline>
                                         </svg>
                                         <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -367,18 +394,16 @@ watch(currentPath, (path) => {
                                 @click="emit('close')"
                             >
                                 <span class="flex items-center gap-2">
-                                    <svg v-if="item.icon === 'home'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                                        <polyline points="9 22 9 12 15 12 15 22" />
-                                    </svg>
-                                    <svg v-else-if="item.icon === 'bell' || item.icon === 'notification'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <svg v-if="item.icon === 'notification' || item.icon === 'bell'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                                         <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                                     </svg>
+                                    <svg v-else-if="item.icon === 'home'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                                        <polyline points="9 22 9 12 15 12 15 22" />
+                                    </svg>
                                     <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                        <circle cx="12" cy="12" r="10" />
-                                        <line x1="12" y1="8" x2="12" y2="12" />
-                                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                                     </svg>
                                     <span v-if="!props.collapsed">{{ item.label }}</span>
                                 </span>

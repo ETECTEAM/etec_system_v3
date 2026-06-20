@@ -15,4 +15,9 @@ class Time extends Model
     {
         return $this->belongsTo(Term::class);
     }
+
+    public function schedules()
+    {
+        return $this->belongsToMany(Schedule::class, 'schedule_time');
+    }
 }

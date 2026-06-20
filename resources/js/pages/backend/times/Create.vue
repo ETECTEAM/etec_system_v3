@@ -1,110 +1,125 @@
 <script setup>
-import DashboardLayout from '@/layouts/DashboardLayout.vue'
-import { Link, useForm, Head, usePage } from '@inertiajs/vue3'
+import { useForm } from '@inertiajs/vue3'
+import { nextTick, onMounted, ref } from 'vue'
 
-const page = usePage()
+const props = defineProps({
+  terms: Array
+})
 
-const terms = page.props.terms
+const emit = defineEmits(['close'])
 
 const form = useForm({
-    time_name: '',
-    term_id: '',
+  time_name: '',
+  term_id: '',
+})
+
+const inputRef = ref(null)
+
+onMounted(() => {
+  nextTick(() => {
+    inputRef.value?.focus()
+  })
 })
 
 function submit() {
-    form.post('/dashboard/times')
+  form.post('/dashboard/times', {
+    preserveScroll: true,
+    onSuccess: () => {
+      form.reset()
+      emit('close')
+    }
+  })
 }
 </script>
 
 <template>
-    <Head title="Create Time" />
+  <div>
 
-    <DashboardLayout>
-        <div class="max-w-xl mx-auto space-y-6">
+    <!-- HEADER -->
+    <div class="text-center mb-4">
+      <h2 class="text-lg font-bold text-gray-900">
+        Create Time
+      </h2>
+      <p class="text-sm text-gray-500">
+        Add a new time schedule
+      </p>
+    </div>
 
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">Create Time</h1>
-                <p class="text-sm text-gray-500">
-                    Add a new time schedule
-                </p>
-            </div>
+    <!-- FORM -->
+    <form
+      @submit.prevent="submit"
+      class="rounded-2xl border bg-white p-6 shadow-sm space-y-5"
+    >
 
-            <form
-                @submit.prevent="submit"
-                class="rounded-md border bg-white p-6 shadow-sm space-y-5"
-            >
+      <!-- TIME NAME -->
+      <div>
+        <label class="text-sm font-medium text-gray-700">
+          Time Name
+        </label>
 
-                <div>
-                    <label class="text-sm font-medium text-gray-700">
-                        Time Name
-                    </label>
+        <input
+          ref="inputRef"
+          v-model="form.time_name"
+          type="text"
+          placeholder="Enter time name"
+          class="mt-2 w-full rounded-xl border px-4 py-3 text-sm
+                 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none"
+        />
 
-                    <input
-                        v-model="form.time_name"
-                        type="text"
-                        class="mt-2 w-full rounded-md border px-4 py-3 text-sm
-                        focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none"
-                        placeholder="Enter time name"
-                    />
+        <p v-if="form.errors.time_name" class="text-red-500 text-sm mt-1">
+          {{ form.errors.time_name }}
+        </p>
+      </div>
 
-                    <p
-                        v-if="form.errors.time_name"
-                        class="text-red-500 text-sm mt-1"
-                    >
-                        {{ form.errors.time_name }}
-                    </p>
-                </div>
+      <!-- TERM SELECT -->
+      <div>
+        <label class="text-sm font-medium text-gray-700">
+          Term
+        </label>
 
-                <div>
-                    <label class="text-sm font-medium text-gray-700">
-                        Term
-                    </label>
+        <select
+          v-model="form.term_id"
+          class="mt-2 w-full rounded-xl border px-4 py-3 text-sm bg-gray-50
+                 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition"
+        >
+          <option value="">Select Term</option>
 
-                    <select
-                        v-model="form.term_id"
-                        class="mt-2 w-full rounded-md border px-4 py-3 text-sm
-                        focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none"
-                    >
-                        <option value="">Select Term</option>
+          <option
+            v-for="term in terms"
+            :key="term.id"
+            :value="term.id"
+          >
+            {{ term.term_name }}
+          </option>
+        </select>
 
-                        <option
-                            v-for="term in terms"
-                            :key="term.id"
-                            :value="term.id"
-                        >
-                            {{ term.term_name }}
-                        </option>
-                    </select>
+        <p v-if="form.errors.term_id" class="text-red-500 text-sm mt-1">
+          {{ form.errors.term_id }}
+        </p>
+      </div>
 
-                    <p
-                        v-if="form.errors.term_id"
-                        class="text-red-500 text-sm mt-1"
-                    >
-                        {{ form.errors.term_id }}
-                    </p>
-                </div>
+      <!-- ACTIONS -->
+      <div class="flex justify-end gap-3">
 
-                <div class="flex justify-end gap-3">
+        <button
+          type="button"
+          @click="$emit('close')"
+          class="rounded-xl border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 active:bg-orange-300 cursor-pointer"
+        >
+          Cancel
+        </button>
 
-                    <Link
-                        href="/dashboard/times"
-                        class="rounded-md border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                        Cancel
-                    </Link>
+        <button
+          type="submit"
+          :disabled="form.processing"
+          class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {{ form.processing ? 'Creating...' : 'Create Time' }}
+        </button>
 
-                    <button
-                        type="submit"
-                        :disabled="form.processing"
-                        class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                    >
-                        Create Time
-                    </button>
+      </div>
 
-                </div>
+    </form>
 
-            </form>
-
-        </div>
-    </DashboardLayout>
+  </div>
 </template>

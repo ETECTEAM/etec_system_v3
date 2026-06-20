@@ -40,6 +40,9 @@ Route::middleware('auth')->prefix('/dashboard/users')->group(function () {
     // Additional routes for user management actions.
     Route::get('/roles', [UserManagementController::class, 'roles']);
 
+    // Route to create a new role from the roles management page.
+    Route::post('/roles', [UserManagementController::class, 'storeRole']);
+
     // Route to assign permissions to a specific role.
     Route::put('/roles/{role}/permissions', [UserManagementController::class, 'assignRolePermissions']);
 
