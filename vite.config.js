@@ -22,10 +22,10 @@ export default defineConfig({
 
     server: {
         host: '0.0.0.0',
-        port: 5173,
+        port: 5174,
         hmr: {
-            // host: 'localhost',
-            host:'https://last-provolone-pantry.ngrok-free.dev'
+            host:'last-provolone-pantry.ngrok-free.dev',
+            // host:'localhost'
         },
         watch: {
             usePolling: true,

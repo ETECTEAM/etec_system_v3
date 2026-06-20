@@ -3,8 +3,8 @@
 use App\Models\Time;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-
-Route::middleware('auth')->prefix('/dashboard/students')->group(function(){
+// middleware('auth')
+Route::prefix('/dashboard/students')->group(function(){
     Route::get('/', function () {
         return Inertia::render('backend/students/List');
     })->name('students.index');

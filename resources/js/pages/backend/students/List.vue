@@ -1,13 +1,12 @@
 <script setup>
-
 import { ref } from 'vue'
-
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
-
 import { QrcodeCanvas } from 'qrcode.vue'
+import { QrCode } from '@lucide/vue';
 
 const showQr = ref(false)
 const qrUrl = 'https://last-provolone-pantry.ngrok-free.dev/dashboard/students/form'
+// const qrUrl = 'http://127.0.0.1:8000/students/form';
 const students = ref([
     {
         id: 1,
@@ -32,38 +31,29 @@ const students = ref([
 
     <DashboardLayout>
 
-        <div class="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
+        <div class="space-y-5">
 
             <!-- Header -->
 
-            <div
-                class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"
-            >
-
+            <div class=" flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm" >
                 <div>
-
                     <h1 class="text-3xl font-bold text-slate-900">
                         QR Registration
                     </h1>
-
                     <p class="text-sm text-slate-500 mt-1">
                         Generate QR for student registration
                     </p>
-
                 </div>
 
-                <button
-                    @click="showQr = true"
-                    class="bg-blue-600 hover:bg-blue-700 transition text-white px-6 py-3 rounded-xl"
-                >
-                    Generate QR
+                <button @click="showQr = true" class="bg-blue-600 hover:bg-blue-700 transition text-white px-4 py-3 rounded-lg flex justify-center items-center gap-3">
+                    <QrCode /> Generate QR
                 </button>
 
             </div>
 
             <!-- Table -->
 
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" >
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" >
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead class="bg-slate-100">
