@@ -159,7 +159,7 @@ const menuItems = computed(() => {
             ],
         },
         {
-            label: 'Schdule Management',
+            label: 'Schedule Management',
             key: 'schdule',
             match: ['/dashboard/schdules'],
             icon: 'schdule',
@@ -187,7 +187,7 @@ const menuItems = computed(() => {
                     ),
                 },
                 {
-                    label: 'Schdules',
+                    label: 'Schedules',
                     href: '/dashboard/schdule',
                     match: ['/dashboard/schdule'],
                     exact: false,
@@ -222,7 +222,10 @@ const menuItems = computed(() => {
     )
     }
 
-    return base
+    const singleItems = base.filter(item => !item.children)
+    const dropdownItems = base.filter(item => item.children)
+
+    return [...singleItems, ...dropdownItems]
 })
 
 function isActive(item) {
@@ -290,7 +293,7 @@ watch(currentPath, (path) => {
         <aside
             :class="[
                 'relative h-screen border-r border-slate-200 bg-white transition-all duration-200 lg:sticky lg:top-0',
-                props.collapsed ? 'w-20' : 'w-64',
+                props.collapsed ? 'w-20' : 'w-72',
             ]"
         >
             <div :class="['flex h-full flex-col py-6', props.collapsed ? 'px-3' : 'px-4']">
@@ -327,7 +330,7 @@ watch(currentPath, (path) => {
                                     ]"
                                     @click="toggleMenu(item.key)"
                                 >
-                                    <span class="flex items-center gap-2">
+                                    <span class="flex flex-1 items-center gap-2 text-left">
                                         <svg v-if="item.icon === 'classes'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
                                             <path d="M6 6h10M6 10h10" />
