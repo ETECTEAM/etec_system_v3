@@ -26,14 +26,15 @@ export default defineConfig({
         origin: 'http://127.0.0.1:5173',
         cors: {
             origin: [
-                'http://127.0.0.1:8000', // បន្ថែមសម្រាប់ Laravel Port 8000 ធម្មតា
+                'http://127.0.0.1:8000',
                 'http://localhost:8000',
-                'http://127.0.0.1:8002', // រក្សាទុកសម្រាប់ Docker ឬ Port 8002 ចាស់របស់អ្នក
+                'http://127.0.0.1:8002',
                 'http://localhost:8002',
             ],
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
             allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
         },
+        // កំណត់យកតែ 127.0.0.1 សម្រាប់រត់លើម៉ាស៊ីនផ្ទាល់ខ្លួនធម្មតា
         hmr: {
             host: '127.0.0.1',
         },

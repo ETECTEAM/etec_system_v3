@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Time;
 use Illuminate\Database\Seeder;
 use Database\Seeders\Class\ClassSeeder;
 use Database\Seeders\Core\CoreSeeder;
