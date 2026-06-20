@@ -41,9 +41,11 @@ function isStudentRoute(path) {
 }
 
 function isClassManagementRoute(path) {
+  const p = path.split("?")[0];
   return (
-    path.split("?")[0].startsWith("/class-types") ||
-    path.split("?")[0].startsWith("/class-categories")
+    p.startsWith("/class-types") ||
+    p.startsWith("/dashboard/class-types") ||
+    p.startsWith("/dashboard/class-list")
   );
 }
 
@@ -149,27 +151,28 @@ const menuItems = computed(() => {
     });
   }
 
-  // Class Management
+  // Class Management (បញ្ចូលលីង Class Type និង Class List ឱ្យត្រូវតាមម៉ឺនុយរួម)
   base.push({
     label: "Class Management",
     key: "classes",
-    match: ["/class-types", "/class-categories"],
+    match: ["/class-types",  "/dashboard/class-types", "/dashboard/class-list"],
     icon: "classes",
     children: [
       {
         label: "Class Type",
-        href: "/class-types",
-        match: ["/class-types"],
+        href: "/dashboard/class-types",
+        match: ["/dashboard/class-types", "/class-types"],
         exact: false,
-        isActive: (path) => path.startsWith("/class-types"),
+        isActive: (path) => path.startsWith("/dashboard/class-types") || path.startsWith("/class-types"),
       },
       {
-        label: "Class Category",
-        href: "/class-categories",
-        match: ["/class-categories"],
+        label: "Class List",
+        href: "/dashboard/class-list",
+        match: ["/dashboard/class-list"],
         exact: false,
-        isActive: (path) => path.startsWith("/class-categories"),
+        isActive: (path) => path.startsWith("/dashboard/class-list"),
       },
+     
     ],
   });
 
