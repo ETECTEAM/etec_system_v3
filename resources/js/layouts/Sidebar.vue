@@ -94,7 +94,7 @@ const menuItems = computed(() => {
     base.push({
       label: "Student Management",
       key: "student",
-      match: ["/dashboard/students"],
+      match: ["/dashboard/students","/dashboard/admin/registrations","/dashboard/admin/classes" ],
       icon: "student",
       children: [
         {
@@ -107,6 +107,26 @@ const menuItems = computed(() => {
             path.startsWith("/dashboard/students/create") ||
             path.startsWith("/dashboard/students/edit"),
         },
+        {
+           label: "registrations",
+          href: "/dashboard/admin/registrations",
+          match: ["/dashboard/admin/registrations"],
+          exact: false,
+           isActive: (path) =>
+            path === "/dashboard/admin/registrations" ||
+            path.startsWith("/dashboard/admin/registrations") ||
+            path.startsWith("/dashboard/admin/registrations"),
+        },
+        {
+          label: "Class registrations",
+          href: "/dashboard/admin/classes",
+          match: ["/dashboard/admin/classes"],
+          exact: false,
+          isActive: (path) =>
+            path === "/dashboard/admin/classes" ||
+            path.startsWith("/dashboard/admin/classes") ||
+            path.startsWith("/dashboard/admin/classes"),
+        }
       ],
     });
   }
