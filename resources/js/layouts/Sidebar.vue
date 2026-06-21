@@ -99,6 +99,14 @@ const menuItems = computed(() => {
         })
     }
 
+    base.push({
+        label: 'Certificates',
+        href: '/dashboard/certificates',
+        match: ['/dashboard/certificates'],
+        exact: false,
+        icon: 'certificate',
+    })
+
     // Class Management (Admin / Workers)
     base.push({
         label: 'Class Management',
@@ -397,6 +405,10 @@ watch(currentPath, (path) => {
                                     <svg v-if="item.icon === 'notification' || item.icon === 'bell'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                                         <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                                    </svg>
+                                    <svg v-else-if="item.icon === 'certificate'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M6 3h12v13H6z" />
+                                        <path d="M9 7h6M9 10h6M10 16l2 4 2-4" />
                                     </svg>
                                     <svg v-else-if="item.icon === 'home'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
