@@ -21,17 +21,4 @@ class ClassType extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
-
-    protected $with = ['classCategories'];
-
-    public function classCategories(): HasMany
-    {
-        return $this->hasMany(ClassCategory::class, 'class_type_id', 'class_type_id');
-    }
-
-    public function activeCategories(): HasMany
-    {
-        return $this->hasMany(ClassCategory::class, 'class_type_id', 'class_type_id')
-            ->where('is_active', true);
-    }
 }

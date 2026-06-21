@@ -18,18 +18,26 @@ const props = defineProps({
 })
 
 // SEARCH
-const search = ref(props.filters.search ?? '')
+const filters = ref({
+  search: props.filters.search ?? '',
+  class_type_id: props.filters.class_type_id ?? '',
+  term_id: props.filters.term_id ?? '',
+  time_id: props.filters.time_id ?? '',
+})
 
 let timeout = null
 
-watch(search, (value) => {
+watch(filters, (value) => {
   clearTimeout(timeout)
 
   timeout = setTimeout(() => {
     router.get(
       '/dashboard/schdule',
       {
-        search: value,
+        search: value.search,
+        class_type_id: value.class_type_id,
+        term_id: value.term_id,
+        time_id: value.time_id,
         page: 1,
       },
       {
@@ -39,7 +47,7 @@ watch(search, (value) => {
       }
     )
   }, 400)
-})
+}, { deep: true })
 
 // CREATE MODAL
 const showCreateModal = ref(false)
@@ -86,42 +94,81 @@ const breadcrumbItems = [
 
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Schedules Management" title="Schedule" description="View existing schedules and manage schedules." />
+      <PageHero eyebrow="Schedules Management" title="Schedules" description="Read, create, update, and delete schedules records" />
 
       <!-- CARD -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
 
         <!-- HEADER -->
         <div class="border-b border-slate-200 px-6 py-5">
-          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        
+          <div class="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-            <div class="flex items-center gap-3">
-              <h2 class="text-xl font-semibold text-slate-900">Schedules</h2>
+            <div class="flex flex-wrap gap-3 items-center w-full lg:w-[80%]">
 
-              <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-sm font-semibold text-blue-600">
-                {{ schedules.total }}
-              </span>
+              <!-- SEARCH -->
+              <input
+                v-model="filters.search"
+                type="text"
+                placeholder="Search schedules..."
+                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm w-[30%]"
+              />
+
+              <!-- CLASS TYPE -->
+              <select
+                v-model="filters.class_type_id"
+                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+              >
+                <option value="">All Class Types</option>
+                <option
+                  v-for="ct in classTypes"
+                  :key="ct.id"
+                  :value="ct.id"
+                >
+                  {{ ct.type_name }}
+                </option>
+              </select>
+
+              <!-- TERM -->
+              <select
+                v-model="filters.term_id"
+                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+              >
+                <option value="">All Terms</option>
+                <option
+                  v-for="t in terms"
+                  :key="t.id"
+                  :value="t.id"
+                >
+                  {{ t.term_name }}
+                </option>
+              </select>
+
+              <!-- TIME -->
+              <select
+                v-model="filters.time_id"
+                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+              >
+                <option value="">All Times</option>
+                <option
+                  v-for="t in times"
+                  :key="t.id"
+                  :value="t.id"
+                >
+                  {{ t.time_name }}
+                </option>
+              </select>
+
             </div>
 
             <button
               @click="openCreateModal"
-              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-950"
             >
               Create Schedule
             </button>
           </div>
 
-          <!-- SEARCH -->
-          <div class="mt-4 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
-
-            <input
-              v-model="search"
-              type="text"
-              placeholder="Search schedules by class type or term..."
-              class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-            />
-
-          </div>
         </div>
 
         <!-- TABLE -->
@@ -129,7 +176,7 @@ const breadcrumbItems = [
           <table class="w-full text-sm">
 
             <thead>
-              <tr>
+              <tr class="bg-gray-50 border-b border-gray-200">
                 <th class="px-6 py-3 text-left text-slate-600">ID</th>
                 <th class="px-6 py-3 text-left text-slate-600">Class Type</th>
                 <th class="px-6 py-3 text-left text-slate-600">Term</th>
@@ -174,14 +221,14 @@ const breadcrumbItems = [
 
                   <button
                     @click="openEditModal(schdule)"
-                    class="px-3 py-1.5 text-sm rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition"
+                    class="px-5 py-2 text-sm rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition"
                   >
                     Edit
                   </button>
 
                   <button
                     @click="deleteSchedule(schdule.id)"
-                    class="px-3 py-1.5 text-sm rounded-lg bg-red-700 text-white hover:bg-red-800 transition"
+                    class="px-5 py-2 text-sm rounded-lg bg-red-700 text-white hover:bg-red-800 transition"
                   >
                     Delete
                   </button>
@@ -213,7 +260,7 @@ const breadcrumbItems = [
               :key="link.label"
               :href="link.url || '#'"
               v-html="link.label"
-              class="px-3 py-1 rounded-lg border text-sm transition"
+              class="px-3 py-2 rounded-lg border text-sm transition"
               :class="{
                 'bg-blue-600 text-white border-blue-600': link.active,
                 'hover:bg-gray-100': !link.active,
