@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Database\Seeders\Permission\AssignPermissionSeeder;
-use Database\Seeders\Permission\PermissionSeeder;
-use Database\Seeders\Permission\RoleSeeder;
+use Database\Seeders\Core\AssignPermissionSeeder;
+use Database\Seeders\Core\PermissionSeeder;
+use Database\Seeders\Core\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

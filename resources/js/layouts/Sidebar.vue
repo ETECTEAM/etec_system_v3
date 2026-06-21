@@ -29,7 +29,6 @@ const canAccessFloors = computed(
     roles.value.includes("admin") ||
     roles.value.includes("instructor")
 );
-
 const canAccessRegisters = computed(
   () =>
     roles.value.includes("super_admin") ||
@@ -38,16 +37,15 @@ const canAccessRegisters = computed(
 );
 
 function isStudentRoute(path) {
-  return (
-    path.startsWith("/dashboard/students") ||
-    path.startsWith("/qr")
-  );
+  return path.startsWith("/dashboard/students") || path.startsWith("/qr");
 }
 
 function isClassManagementRoute(path) {
+  const p = path.split("?")[0];
   return (
-    path.split("?")[0].startsWith("/class-types") ||
-    path.split("?")[0].startsWith("/class-categories")
+    p.startsWith("/class-types") ||
+    p.startsWith("/dashboard/class-types") ||
+    p.startsWith("/dashboard/class-list")
   );
 }
 
@@ -55,16 +53,31 @@ function isUserManagementRoute(path) {
   return path.split("?")[0].startsWith("/dashboard/users");
 }
 
-function isFloorRoute(path) {
-  return path.split("?")[0].startsWith("/dashboard/floors");
+function isBuildingRoute(path) {
+  const p = path.split("?")[0];
+  return (
+    p.startsWith("/dashboard/buildings") ||
+    p.startsWith("/dashboard/floors") ||
+    p.startsWith("/dashboard/rooms")
+  );
+}
+
+function isScheduleRoute(path) {
+  const p = path.split("?")[0];
+  return (
+    p.startsWith("/dashboard/terms") ||
+    p.startsWith("/dashboard/times") ||
+    p.startsWith("/dashboard/schdule")
+  );
 }
 
 const openMenus = ref({
-  floor: isFloorRoute(currentPath.value),
+  building_management: isBuildingRoute(currentPath.value),
   user: isUserManagementRoute(currentPath.value),
   classes: isClassManagementRoute(currentPath.value),
+  schdule: isScheduleRoute(currentPath.value),
+  student: isStudentRoute(currentPath.value),
 });
-
 
 const menuItems = computed(() => {
   const base = [
@@ -73,6 +86,7 @@ const menuItems = computed(() => {
       href: "/dashboard",
       match: ["/dashboard"],
       exact: true,
+      icon: "home",
     },
   ];
 
@@ -82,22 +96,12 @@ const menuItems = computed(() => {
       key: "student",
       match: ["/dashboard/students"],
       icon: "student",
-
       children: [
-        // {
-        //   label: "QR Registration",
-        //   href: "/qr",
-        //   match: ["/qr"],
-        //   exact: true,
-
-        //   isActive: (path) => path === "/qr",
-        // },
         {
           label: "Students",
           href: "/dashboard/students",
           match: ["/dashboard/students"],
           exact: false,
-
           isActive: (path) =>
             path === "/dashboard/students" ||
             path.startsWith("/dashboard/students/create") ||
@@ -109,20 +113,27 @@ const menuItems = computed(() => {
 
   if (canAccessFloors.value) {
     base.push({
-      label: "Floor",
-      key: "floor",
-      match: ["/dashboard/floors"],
+      label: "Building Management",
+      key: "building_management",
+      match: ["/dashboard/buildings", "/dashboard/floors", "/dashboard/rooms"],
+      icon: "building_management",
       children: [
         {
-          label: "Index",
-          href: "/dashboard/floors",
-          match: ["/dashboard/floors"],
-          exact: true,
+          label: "Buildings",
+          href: "/dashboard/buildings",
+          match: ["/dashboard/buildings"],
+          exact: false,
         },
         {
-          label: "Create",
-          href: "/dashboard/floors/create",
-          match: ["/dashboard/floors/create"],
+          label: "Floors",
+          href: "/dashboard/floors",
+          match: ["/dashboard/floors"],
+          exact: false,
+        },
+        {
+          label: "Rooms",
+          href: "/dashboard/rooms",
+          match: ["/dashboard/rooms"],
           exact: false,
         },
       ],
@@ -140,27 +151,28 @@ const menuItems = computed(() => {
     });
   }
 
-  // Class Management (Admin / Workers)
+  // Class Management (បញ្ចូលលីង Class Type និង Class List ឱ្យត្រូវតាមម៉ឺនុយរួម)
   base.push({
     label: "Class Management",
     key: "classes",
-    match: ["/class-types", "/class-categories"],
+    match: ["/class-types",  "/dashboard/class-types", "/dashboard/class-list"],
     icon: "classes",
     children: [
       {
         label: "Class Type",
-        href: "/class-types",
-        match: ["/class-types"],
+        href: "/dashboard/class-types",
+        match: ["/dashboard/class-types", "/class-types"],
         exact: false,
-        isActive: (path) => path.startsWith("/class-types"),
+        isActive: (path) => path.startsWith("/dashboard/class-types") || path.startsWith("/class-types"),
       },
       {
-        label: "Class Category",
-        href: "/class-categories",
-        match: ["/class-categories"],
+        label: "Class List",
+        href: "/dashboard/class-list",
+        match: ["/dashboard/class-list"],
         exact: false,
-        isActive: (path) => path.startsWith("/class-categories"),
+        isActive: (path) => path.startsWith("/dashboard/class-list"),
       },
+     
     ],
   });
 
@@ -200,10 +212,10 @@ const menuItems = computed(() => {
         ],
       },
       {
-        label: "Term Management",
-        key: "term",
-        match: ["/dashboard/terms"],
-        icon: "term",
+        label: "Schedule Management",
+        key: "schdule",
+        match: ["/dashboard/terms", "/dashboard/times", "/dashboard/schdule"],
+        icon: "schdule",
         children: [
           {
             label: "Terms",
@@ -215,14 +227,6 @@ const menuItems = computed(() => {
               path.startsWith("/dashboard/terms/create") ||
               path.startsWith("/dashboard/terms/edit"),
           },
-        ],
-      },
-      {
-        label: "Time Management",
-        key: "time",
-        match: ["/dashboard/times"],
-        icon: "time",
-        children: [
           {
             label: "Times",
             href: "/dashboard/times",
@@ -234,12 +238,25 @@ const menuItems = computed(() => {
               path.startsWith("/dashboard/times/edit") ||
               /^\/dashboard\/times\/\d+$/.test(path),
           },
+          {
+            label: "Schedules",
+            href: "/dashboard/schdule",
+            match: ["/dashboard/schdule"],
+            exact: false,
+            isActive: (path) =>
+              path === "/dashboard/schdule" ||
+              path.startsWith("/dashboard/schdule/create") ||
+              path.startsWith("/dashboard/schdule/edit"),
+          },
         ],
       }
     );
   }
 
-  return base;
+  const singleItems = base.filter((item) => !item.children);
+  const dropdownItems = base.filter((item) => item.children);
+
+  return [...singleItems, ...dropdownItems];
 });
 
 function isActive(item) {
@@ -286,11 +303,17 @@ watch(currentPath, (path) => {
   if (isUserManagementRoute(path)) {
     openMenus.value.user = true;
   }
-  if (isFloorRoute(path)) {
-    openMenus.value.floor = true;
+  if (isBuildingRoute(path)) {
+    openMenus.value.building_management = true;
   }
   if (isClassManagementRoute(path)) {
     openMenus.value.classes = true;
+  }
+  if (isScheduleRoute(path)) {
+    openMenus.value.schdule = true;
+  }
+  if (isStudentRoute(path)) {
+    openMenus.value.student = true;
   }
 });
 </script>
@@ -326,9 +349,7 @@ watch(currentPath, (path) => {
           ]"
         >
           <div v-if="!props.collapsed">
-            <p
-              class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400"
-            >
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
               ETEC
             </p>
             <p class="text-base font-semibold text-slate-900">Control Center</p>
@@ -338,131 +359,68 @@ watch(currentPath, (path) => {
             class="rounded-lg border border-slate-200 p-1 text-slate-500 transition hover:bg-slate-50 lg:hidden"
             @click="emit('close')"
           >
-            <svg
-              class="h-4 w-4"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M4.22 4.22a.75.75 0 0 1 1.06 0L10 8.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L11.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L8.94 10 4.22 5.28a.75.75 0 0 1 0-1.06Z"
-                clip-rule="evenodd"
-              />
+            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M4.22 4.22a.75.75 0 0 1 1.06 0L10 8.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L11.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L8.94 10 4.22 5.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/>
             </svg>
           </button>
         </div>
 
         <nav class="mt-6 flex-1 overflow-y-auto">
-          <p
-            v-if="!props.collapsed"
-            class="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400"
-          >
+          <p v-if="!props.collapsed" class="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
             Navigation
           </p>
           <ul class="space-y-1.5">
             <li v-for="item in menuItems" :key="item.href ?? item.key">
+              
               <template v-if="item.children">
                 <button
                   type="button"
                   :title="props.collapsed ? item.label : ''"
                   :class="[
                     'flex w-full items-center rounded-xl text-sm font-semibold transition',
-                    props.collapsed
-                      ? 'justify-center px-2 py-3'
-                      : 'justify-between px-3 py-2',
-                    isChildActive(item.children)
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                    props.collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2',
+                    isChildActive(item.children) ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
                   ]"
                   @click="toggleMenu(item.key)"
                 >
-                  <span class="flex items-center gap-2">
-                    <svg
-                      v-if="item.icon === 'classes'"
-                      class="h-4 w-4 text-slate-400"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"
-                      />
+                  <span class="flex flex-1 items-center gap-2 text-left">
+                    <svg v-if="item.icon === 'classes'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
                       <path d="M6 6h10M6 10h10" />
                     </svg>
 
-                    <svg
-                      v-else-if="item.icon === 'user'"
-                      class="h-4 w-4 text-slate-400"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
-                    >
+                    <svg v-else-if="item.icon === 'user'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M16 19a4 4 0 0 0-8 0" />
                       <circle cx="12" cy="7" r="3" />
                       <path d="M20 8v6" />
                       <path d="M23 11h-6" />
                     </svg>
 
-                    <svg
-                      v-else
-                      class="h-4 w-4 text-slate-400"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"
-                      />
+                    <svg v-else-if="item.icon === 'building_management'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                      <line x1="9" y1="22" x2="9" y2="16"></line>
+                      <line x1="15" y1="22" x2="15" y2="16"></line>
+                    </svg>
+
+                    <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="9" y1="3" x2="9" y2="21"></line>
                     </svg>
 
                     <span v-if="!props.collapsed">{{ item.label }}</span>
                   </span>
-
-                  <svg
-                    v-if="!props.collapsed"
-                    class="h-4 w-4 text-slate-400 transition"
-                    :class="openMenus[item.key] ? 'rotate-180' : ''"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z"
-                      clip-rule="evenodd"
-                    />
+                  
+                  <svg v-if="!props.collapsed" class="h-4 w-4 text-slate-400 transition" :class="openMenus[item.key] ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
                   </svg>
                 </button>
 
-                <ul
-                  v-if="openMenus[item.key] && !props.collapsed"
-                  class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3"
-                >
-                  <li
-                    v-for="child in item.children"
-                    :key="child.href ?? child.key"
-                  >
+                <ul v-if="openMenus[item.key] && !props.collapsed" class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3">
+                  <li v-for="child in item.children" :key="child.href">
                     <Link
                       :href="child.href"
                       class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
-                      :class="
-                        isActive(child)
-                          ? 'bg-blue-50 text-blue-700'
-                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                      "
+                      :class="isActive(child) ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
                       @click="emit('close')"
                     >
                       <span>{{ child.label }}</span>
@@ -478,50 +436,28 @@ watch(currentPath, (path) => {
                 :title="props.collapsed ? item.label : ''"
                 :class="[
                   'flex items-center rounded-xl text-sm font-semibold transition',
-                  props.collapsed
-                    ? 'justify-center px-2 py-3'
-                    : 'justify-between px-3 py-2',
-                  isActive(item)
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                  props.collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2',
+                  isActive(item) ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
                 ]"
                 @click="emit('close')"
               >
                 <span class="flex items-center gap-2">
-                  <svg
-                    v-if="item.icon === 'notification'"
-                    class="h-4 w-4 text-slate-400"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    aria-hidden="true"
-                  >
+                  <svg v-if="item.icon === 'notification'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                   </svg>
-                  <svg
-                    v-else
-                    class="h-4 w-4 text-slate-400"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    aria-hidden="true"
-                  >
+                  <svg v-else-if="item.icon === 'home'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                     <polyline points="9 22 9 12 15 12 15 22" />
                   </svg>
+                  <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  </svg>
                   <span v-if="!props.collapsed">{{ item.label }}</span>
                 </span>
-                <span v-if="!props.collapsed" class="text-xs text-slate-400"
-                  >›</span
-                >
+                <span v-if="!props.collapsed" class="text-xs text-slate-400">›</span>
               </Link>
+
             </li>
           </ul>
         </nav>

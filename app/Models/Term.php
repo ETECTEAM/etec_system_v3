@@ -13,4 +13,9 @@ class Term extends Model
     {
         return $this->hasMany(Time::class);
     }
+
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class);
+    }
 }

@@ -1,108 +1,90 @@
 <script setup>
-import { Card } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Head, Link } from '@inertiajs/vue3'
+import DashboardLayout from '@/layouts/DashboardLayout.vue'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
+import { PageHero } from '@/components/ui/page-hero'    
+import { Card } from '@/components/ui/card'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 
-defineProps({
-    show: Boolean,
-    classType: Object
+const props = defineProps({
+  classType: Object
 });
 
-defineEmits(['close']);
+const breadcrumbItems = [
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Class Management', href: '/dashboard/class-types' },
+  { label: 'View Class Type', current: true },
+]
 
 const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-        year: 'numeric', month: 'short', day: 'numeric'
-    });
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'short', day: 'numeric'
+  });
 };
 </script>
 
 <template>
-    <Transition
-        enter-active-class="ease-out duration-300"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="ease-in duration-200"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-    >
-        <div v-if="show" class="fixed inset-0 bg-slate-900/15 backdrop-blur-[1px] flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+  <Head title="View Class Type" />
 
-                <!-- Header -->
-                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <button @click="$emit('close')" class="text-sm font-semibold text-slate-500 hover:text-slate-900 transition">← Back</button>
-                    <h2 class="font-bold text-slate-800">Class Type Details</h2>
-                    <button @click="$emit('close')" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
-                </div>
+  <DashboardLayout>
+    <section class="space-y-6">
+      <Breadcrumbs :items="breadcrumbItems" />
+      
+      <PageHero
+        eyebrow="Class Management"
+        title="View Class Type"
+        description="Review class type definitions and linked categories."
+      />
 
-                <div class="p-6 overflow-y-auto space-y-6">
-
-                    <!-- Overview + Status -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <Card class="md:col-span-2 space-y-4">
-                            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Overview</h3>
-                            <div>
-                                <p class="text-xs text-slate-400 font-bold uppercase">Type Name</p>
-                                <p class="text-lg font-bold text-slate-900">{{ classType?.type_name }}</p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-slate-400 font-bold uppercase">Description</p>
-                                <p class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">{{ classType?.description || 'No description provided.' }}</p>
-                            </div>
-                        </Card>
-
-                        <Card class="space-y-4">
-                            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Status</h3>
-                            <span
-                                :class="classType?.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'"
-                                class="inline-block px-3 py-1 rounded-full text-xs font-bold"
-                            >
-                                {{ classType?.is_active ? 'Active' : 'Inactive' }}
-                            </span>
-                            <div class="text-sm text-slate-600 space-y-2">
-                                <p><span class="font-bold text-slate-400">Created:</span> {{ formatDate(classType?.created_at) }}</p>
-                                <p><span class="font-bold text-slate-400">Updated:</span> {{ formatDate(classType?.updated_at) }}</p>
-                            </div>
-                        </Card>
-                    </div>
-
-                    <!-- Connected Categories -->
-                    <Card class="p-0 overflow-hidden">
-                        <div class="px-6 py-4 border-b border-slate-100">
-                            <h3 class="font-bold text-slate-900">Connected Categories</h3>
-                        </div>
-                        <Table v-if="classType?.class_categories?.length > 0">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Category Name</TableHead>
-                                    <TableHead>Code</TableHead>
-                                    <TableHead>Status</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow
-                                    v-for="cat in classType.class_categories"
-                                    :key="cat.class_category_id"
-                                >
-                                    <TableCell class="font-bold">{{ cat.category_name }}</TableCell>
-                                    <TableCell class="font-mono text-slate-500">{{ cat.category_code }}</TableCell>
-                                    <TableCell>
-                                        <span
-                                            class="text-xs font-bold"
-                                            :class="cat.is_active ? 'text-emerald-600' : 'text-rose-600'"
-                                        >
-                                            {{ cat.is_active ? 'Active' : 'Inactive' }}
-                                        </span>
-                                    </TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                        <div v-else class="p-8 text-center text-slate-400 text-sm">No linked categories found.</div>
-                    </Card>
-
-                </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 space-y-8">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="space-y-5">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Type Name</p>
+              <p class="mt-2 text-base font-semibold text-slate-900">{{ classType?.type_name }}</p>
             </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Description</p>
+              <p class="mt-2 text-sm text-slate-600 bg-slate-50 p-4 rounded-lg">{{ classType?.description || 'No description provided.' }}</p>
+            </div>
+          </div>
+
+          <div class="space-y-5">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Status</p>
+              <div class="mt-2">
+                <span :class="classType?.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'"
+                      class="inline-flex rounded-full px-3 py-1 text-xs font-bold">
+                  {{ classType?.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p class="font-semibold text-slate-400">Created At</p>
+                <p class="text-slate-700">{{ formatDate(classType?.created_at) }}</p>
+              </div>
+              <div>
+                <p class="font-semibold text-slate-400">Updated At</p>
+                <p class="text-slate-700">{{ formatDate(classType?.updated_at) }}</p>
+              </div>
+            </div>
+          </div>
         </div>
-    </Transition>
+        <div class="flex gap-3 pt-4 border-t border-slate-100">
+          <Link href="/dashboard/class-types"
+                class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+              Back to List
+          </Link>
+          
+          <Link :href="`/dashboard/class-types/${classType.class_type_id}/edit`"
+                class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+              Edit Class Type
+          </Link>
+      </div>
+      </div>
+    </section>
+  </DashboardLayout>
 </template>

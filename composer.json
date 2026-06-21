@@ -56,6 +56,13 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "seed": "php artisan db:seed",
+        "seed-permission": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Core\\\\CoreSeeder\"",
+        "seed-core": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Core\\\\CoreSeeder\"",
+        "seed-class": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Class\\\\ClassSeeder\"",
+        "seed-report": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Feature\\\\Report\\\\ReportSeeder\"",
+        "seed-landrent": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Feature\\\\Report\\\\LandRentReportSeeder\"",
+        "seed-invoice-test": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Feature\\\\Invoice\\\\InvoiceTestSeeder\"",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
