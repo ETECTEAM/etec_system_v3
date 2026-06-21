@@ -415,20 +415,21 @@ watch(currentPath, (path) => {
                   </svg>
                 </button>
 
-                <ul v-if="openMenus[item.key] && !props.collapsed" class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3">
-                  <li v-for="child in item.children" :key="child.href">
-                    <Link
-                      :href="child.href"
-                      class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
-                      :class="isActive(child) ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-                      @click="emit('close')"
-                    >
-                      <span>{{ child.label }}</span>
-                      <span class="text-xs text-slate-400">›</span>
-                    </Link>
-                  </li>
-                </ul>
-              </template>
+                                <ul v-if="openMenus[item.key] && !props.collapsed" class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3">
+                                    <li v-for="child in item.children" :key="child.href ?? child.key">
+                                        <Link
+                                            :href="child.href"
+                                            class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
+                                            :class="isActive(child)
+                                                ? 'bg-blue-50 text-blue-700'
+                                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                                            @click="emit('close')"
+                                        >
+                                            <span>{{ child.label }}</span>
+                                        </Link>
+                                    </li>
+                                </ul>
+                            </template>
 
               <Link
                 v-else
@@ -455,7 +456,6 @@ watch(currentPath, (path) => {
                   </svg>
                   <span v-if="!props.collapsed">{{ item.label }}</span>
                 </span>
-                <span v-if="!props.collapsed" class="text-xs text-slate-400">›</span>
               </Link>
 
             </li>

@@ -47,10 +47,12 @@ class ScheduleController extends Controller
             });
         }
 
+        $perPage = $request->input('per_page', 7);
+
         return Inertia::render('backend/schdule/Index', [
             'schedules' =>$query
                 ->orderBy('id', 'asc')
-                ->paginate(7)
+                ->paginate($perPage)
                 ->withQueryString(),
 
             // IMPORTANT: return ALL filters
@@ -59,6 +61,7 @@ class ScheduleController extends Controller
                 'class_type_id' => $request->class_type_id ?? '',
                 'term_id' => $request->term_id ?? '',
                 'time_id' => $request->time_id ?? '',
+                'per_page' => (int) $perPage,
             ],
 
             'classTypes' => ClassType::select('class_type_id', 'type_name')

@@ -20,6 +20,7 @@ const filters = ref({
   class_type_id: props.filters.class_type_id ?? '',
   term_id: props.filters.term_id ?? '',
   time_id: props.filters.time_id ?? '',
+  per_page: props.filters.per_page ?? 7,
 })
 
 let timeout = null
@@ -35,6 +36,7 @@ watch(filters, (value) => {
         class_type_id: value.class_type_id,
         term_id: value.term_id,
         time_id: value.time_id,
+        per_page: value.per_page,
         page: 1,
       },
       {
@@ -129,6 +131,18 @@ const breadcrumbItems = [
                 >
                   {{ t.time_name }}
                 </option>
+              </select>
+
+              <!-- PER PAGE -->
+              <select
+                v-model="filters.per_page"
+                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+              >
+                <option :value="5">Show 5</option>
+                <option :value="7">Show 7</option>
+                <option :value="10">Show 10</option>
+                <option :value="20">Show 20</option>
+                <option :value="50">Show 50</option>
               </select>
 
             </div>
