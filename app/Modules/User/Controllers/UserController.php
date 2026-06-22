@@ -32,12 +32,6 @@ private function canManageInstructors(User $user): bool
     ) {
     }
 
-<<<<<<< HEAD
-   public function index(Request $request): Response
-{
-    if (! $this->canViewInstructors($request->user())) {
-        abort(403);
-=======
     public function index(Request $request): Response
     {
         // Allow only users with permission to view the user list.
@@ -47,7 +41,6 @@ private function canManageInstructors(User $user): bool
         return Inertia::render('backend/users/Index', [
             'canCreateUser' => $request->user() !== null && $this->userService->roleOptions($request->user())->isNotEmpty(),
         ]);
->>>>>>> origin/dev
     }
 
     return Inertia::render('backend/users/Index', [
@@ -62,7 +55,13 @@ private function canManageInstructors(User $user): bool
 
         $users = $this->userService->paginateVisibleUsers($request->user(), [
             'search' => $request->string('search')->toString(),
-            'role' => 'instructor',
+            'role' => $request->string('role')->toString(),
+            'status' => $request->string('status')->toString(),
+            'student_class' => $request->string('student_class')->toString(),
+            'student_status' => $request->string('student_status')->toString(),
+            'employment_type' => $request->string('employment_type')->toString(),
+            'shift_preference' => $request->string('shift_preference')->toString(),
+            'available_for_class' => $request->string('available_for_class')->toString(),
         ], 5);
 
         return response()->json($users);
@@ -79,16 +78,27 @@ private function canManageInstructors(User $user): bool
         ]);
     }
 
+    public function show(Request $request, User $user): Response
+    {
+        // A user must be manageable by the current user before details are shown.
+        $this->authorize('manage', $user);
+
+        // Present the user through the service so the frontend receives a stable shape.
+        return Inertia::render('backend/users/Show', [
+            'user' => $this->userService->presentUser($user->load(['roles', 'studentData', 'instructorData'])),
+        ]);
+    }
 
     return Inertia::render('backend/users/Show', [
         'user' => $this->userService->presentUser($user),
     ]);
 }
 
-   public function edit(Request $request, User $user): Response
-{
-    if (! $this->canManageInstructors($request->user())) {
-        abort(403);
+        // Load the editable user plus the roles available to the current admin.
+        return Inertia::render('backend/users/Edit', [
+            'user' => $this->userService->presentUser($user->load(['roles', 'studentData', 'instructorData'])),
+            'roleOptions' => $this->userService->roleOptions($request->user()),
+        ]);
     }
 
     return Inertia::render('backend/users/Edit', [
@@ -110,12 +120,6 @@ private function canManageInstructors(User $user): bool
         return redirect('/dashboard/users')->with('success', 'User created successfully.');
     }
 
-<<<<<<< HEAD
-  public function update(UpdateUserRequest $request, User $user): RedirectResponse
-{
-    if (! $this->canManageInstructors($request->user())) {
-        abort(403);
-=======
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
         // Only managers of this user can update their account details.
@@ -127,7 +131,6 @@ private function canManageInstructors(User $user): bool
         $this->userService->update($user, $data);
 
         return redirect('/dashboard/users')->with('success', 'User updated successfully.');
->>>>>>> origin/dev
     }
 
     $data = $request->toData();
@@ -139,11 +142,6 @@ private function canManageInstructors(User $user): bool
 }
 
     public function destroy(Request $request, User $user): RedirectResponse
-<<<<<<< HEAD
-{
-    if (! $this->canManageInstructors($request->user())) {
-        abort(403);
-=======
     {
         // Deletion uses the same management rule as viewing and editing.
         $this->authorize('manage', $user);
@@ -152,7 +150,6 @@ private function canManageInstructors(User $user): bool
         $this->userService->delete($user);
 
         return redirect('/dashboard/users')->with('success', 'User deleted successfully.');
->>>>>>> origin/dev
     }
 
     $this->userService->delete($user);

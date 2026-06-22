@@ -1,73 +1,15 @@
 <script setup>
-<<<<<<< HEAD
-import { onMounted, ref } from 'vue'
-import { Head } from '@inertiajs/vue3'
-=======
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import { computed, ref, watch } from 'vue'
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
+import { computed, nextTick, ref, watch } from 'vue'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { Pagination } from '../../../components/ui/pagination'
 import { formatRole, roleBadgeClass } from '../../../lib/roleBadge'
->>>>>>> origin/dev
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import axios from 'axios'
 
-<<<<<<< HEAD
-const roles = ref([])
-const roleName = ref('')
-const loading = ref(false)
-const saving = ref(false)
-const error = ref('')
-const success = ref('')
-
-async function fetchRoles() {
-    loading.value = true
-    error.value = ''
-
-    try {
-        const response = await axios.get('/dashboard/permissions/roles')
-        roles.value = response.data
-    } catch (e) {
-        error.value = 'Cannot fetch roles.'
-        console.error(e)
-    } finally {
-        loading.value = false
-    }
-}
-
-async function createRole() {
-    error.value = ''
-    success.value = ''
-
-    if (!roleName.value.trim()) {
-        error.value = 'Role name is required.'
-        return
-    }
-
-    saving.value = true
-
-    try {
-        await axios.post('/dashboard/permissions/roles', {
-            name: roleName.value.trim(),
-            guard_name: 'web',
-        })
-
-        success.value = 'Role created successfully.'
-        roleName.value = ''
-
-        await fetchRoles()
-    } catch (e) {
-        error.value = e.response?.data?.message ?? 'Cannot create role.'
-        console.error(e)
-    } finally {
-        saving.value = false
-    }
-}
-
-onMounted(() => {
-    fetchRoles()
-=======
 const page = usePage()
 const roles = computed(() => page.props.roles ?? [])
 const permissions = computed(() => page.props.permissions ?? [])
@@ -85,6 +27,39 @@ const form = useForm({
 const assignUsersForm = useForm({
   users: [],
 })
+
+// Create-role modal state.
+const showCreateModal = ref(false)
+const createRoleForm = useForm({
+  name: '',
+})
+
+function openCreateModal() {
+  createRoleForm.reset()
+  createRoleForm.clearErrors()
+  showCreateModal.value = true
+}
+
+function closeCreateModal() {
+  showCreateModal.value = false
+  createRoleForm.reset()
+  createRoleForm.clearErrors()
+}
+
+function submitCreateRole() {
+  createRoleForm.post('/dashboard/users/roles', {
+    onSuccess: () => {
+      closeCreateModal()
+      // Auto-select the newly added role (last in list after redirect).
+      nextTick(() => {
+        const last = roles.value[roles.value.length - 1]
+        if (last) {
+          selectedRoleId.value = String(last.id)
+        }
+      })
+    },
+  })
+}
 
 const preferredActions = ['view', 'create', 'update', 'delete', 'manage', 'approve', 'export', 'track']
 
@@ -317,108 +292,10 @@ watch(resources, () => {
 
 watch(permissionSearch, () => {
   matrixPage.value = 1
->>>>>>> origin/dev
 })
 </script>
 
 <template>
-<<<<<<< HEAD
-    <Head title="User Roles" />
-
-    <DashboardLayout>
-        <section class="space-y-6 p-4 sm:p-6">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-900">User Roles</h1>
-                <p class="mt-1 text-sm text-slate-600">
-                    View and create system roles.
-                </p>
-            </div>
-
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h2 class="text-lg font-bold text-slate-900">Create Role</h2>
-
-                <div class="mt-4 flex flex-col gap-3 sm:flex-row">
-                    <input
-                        v-model="roleName"
-                        type="text"
-                        placeholder="admin, instructor, super_admin"
-                        class="w-full rounded-xl border border-slate-300 px-4 py-2 outline-none focus:border-blue-500"
-                    />
-
-                    <button
-                        type="button"
-                        class="rounded-xl bg-blue-600 px-5 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
-                        :disabled="saving"
-                        @click="createRole"
-                    >
-                        {{ saving ? 'Saving...' : 'Save' }}
-                    </button>
-                </div>
-
-                <p v-if="error" class="mt-3 text-sm font-medium text-red-600">
-                    {{ error }}
-                </p>
-
-                <p v-if="success" class="mt-3 text-sm font-medium text-emerald-600">
-                    {{ success }}
-                </p>
-            </div>
-
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-slate-900">Role List</h2>
-
-                    <button
-                        type="button"
-                        class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                        @click="fetchRoles"
-                    >
-                        Refresh
-                    </button>
-                </div>
-
-                <p v-if="loading" class="mt-4 text-sm text-slate-500">
-                    Loading...
-                </p>
-
-                <div v-else class="mt-4 overflow-x-auto">
-                    <table class="w-full border border-slate-200 text-sm">
-                        <thead>
-                            <tr class="bg-slate-50">
-                                <th class="border border-slate-200 p-3 text-left">ID</th>
-                                <th class="border border-slate-200 p-3 text-left">Name</th>
-                                <th class="border border-slate-200 p-3 text-left">Guard</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            <tr v-for="role in roles" :key="role.id">
-                                <td class="border border-slate-200 p-3">
-                                    {{ role.id }}
-                                </td>
-
-                                <td class="border border-slate-200 p-3 font-semibold capitalize">
-                                    {{ role.name.replace('_', ' ') }}
-                                </td>
-
-                                <td class="border border-slate-200 p-3">
-                                    {{ role.guard_name }}
-                                </td>
-                            </tr>
-
-                            <tr v-if="roles.length === 0">
-                                <td colspan="3" class="p-4 text-center text-slate-500">
-                                    No roles found.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-    </DashboardLayout>
-</template>
-=======
   <Head title="Role & Permission" />
 
   <DashboardLayout>
@@ -473,9 +350,18 @@ watch(permissionSearch, () => {
       <div class="grid gap-6 2xl:grid-cols-[280px_1fr_340px]">
         <!-- Left panel: pick the role to edit. -->
         <aside class="self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between px-2 pb-3">
+          <div class="flex items-center justify-between pb-3">
             <h2 class="text-base font-bold text-slate-900">Roles</h2>
-            <span class="text-sm font-semibold text-slate-400">+</span>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-blue-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              @click="openCreateModal"
+            >
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Create Role
+            </button>
           </div>
 
           <div class="space-y-2">
@@ -702,6 +588,124 @@ watch(permissionSearch, () => {
         </form>
       </div>
     </section>
+
+    <!-- ── Create Role Modal ── -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div
+          v-if="showCreateModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-role-title"
+          tabindex="-1"
+          @keydown.esc.prevent="closeCreateModal"
+        >
+          <!-- Backdrop -->
+          <div
+            class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            @click="closeCreateModal"
+          />
+
+          <!-- Panel: max-h + overflow-y-auto prevents bottom clipping on short viewports -->
+          <div class="modal-panel relative z-10 flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" style="max-height: calc(100vh - 2rem);">
+            <!-- Header -->
+            <div class="flex shrink-0 items-center justify-between border-b border-slate-200 px-6 py-4">
+              <h2 id="create-role-title" class="text-base font-bold text-slate-900">Create New Role</h2>
+              <button
+                type="button"
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                aria-label="Close modal"
+                @click="closeCreateModal"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Body (scrollable if content overflows) -->
+            <form
+              id="create-role-form"
+              class="flex min-h-0 flex-1 flex-col"
+              @submit.prevent="submitCreateRole"
+            >
+              <div class="flex-1 overflow-y-auto px-6 py-5">
+                <!-- Role Name -->
+                <div>
+                  <label for="create-role-name" class="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Role Name <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="create-role-name"
+                    v-model="createRoleForm.name"
+                    type="text"
+                    placeholder="e.g. editor"
+                    autocomplete="off"
+                    :disabled="createRoleForm.processing"
+                    class="w-full rounded-xl border px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+                    :class="createRoleForm.errors.name
+                      ? 'border-red-400 focus:border-red-400 focus:ring-red-100'
+                      : 'border-slate-300 focus:border-blue-600 focus:ring-blue-100'"
+                  >
+                  <p v-if="createRoleForm.errors.name" class="mt-1.5 text-xs font-medium text-red-600">
+                    {{ createRoleForm.errors.name }}
+                  </p>
+                  <p class="mt-1.5 text-xs text-slate-400">
+                    Spaces are converted to underscores automatically, e.g. <code class="rounded bg-slate-100 px-1 py-0.5 font-mono">Super Editor</code> → <code class="rounded bg-slate-100 px-1 py-0.5 font-mono">super_editor</code>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Footer: shrink-0 keeps it always visible -->
+              <div class="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+                <button
+                  type="button"
+                  :disabled="createRoleForm.processing"
+                  class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  @click="closeCreateModal"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="create-role-form"
+                  :disabled="createRoleForm.processing || !createRoleForm.name.trim()"
+                  class="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <svg v-if="createRoleForm.processing" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  {{ createRoleForm.processing ? 'Creating...' : 'Create Role' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </DashboardLayout>
 </template>
->>>>>>> origin/dev
+
+<style scoped>
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+/* Animate the panel itself, not generic .relative elements */
+.modal-fade-enter-active .modal-panel,
+.modal-fade-leave-active .modal-panel {
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+.modal-fade-enter-from .modal-panel,
+.modal-fade-leave-to .modal-panel {
+  transform: scale(0.96) translateY(-8px);
+  opacity: 0;
+}
+</style>
+

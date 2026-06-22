@@ -2,9 +2,8 @@
 
 namespace App\Modules\User\Data;
 
-/**
- * Carries validated user creation input into UserService.
- */
+use Illuminate\Http\UploadedFile;
+
 readonly class StoreUserData
 {
     public function __construct(
@@ -12,19 +11,9 @@ readonly class StoreUserData
         public string $email,
         public string $password,
         public string $role,
+        public bool $status,
+        public ?UploadedFile $avatar,
+        public array $studentData,
+        public array $instructorData,
     ) {}
-
-    /**
-     * Returns only columns that belong on the users table.
-     *
-     * @return array{name: string, email: string, password: string}
-     */
-    public function userAttributes(): array
-    {
-        return [
-            'name' => $this->name,
-            'email' => $this->email,
-            'password' => $this->password,
-        ];
-    }
 }

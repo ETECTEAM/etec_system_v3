@@ -4,54 +4,25 @@ namespace App\Modules\User\Requests;
 
 use App\Modules\User\Data\UpdateUserData;
 use App\Modules\User\Services\UserService;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/**
- * Validates dashboard user updates and builds UpdateUserData.
- */
-class UpdateUserRequest extends FormRequest
+class UpdateUserRequest extends StoreUserRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user() !== null;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     public function rules(): array
     {
-        $service = app(UserService::class);
-        $roles = $this->user() ? $service->assignableRolesFor($this->user()) : [];
-        $targetUser = $this->route('user');
-
-        // Ignore the current user's email when checking uniqueness.
-        return [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
-                'string',
-                'email',
-                'max:255',
-                'regex:/^[a-zA-Z0-9._%+-]+@etec\.com$/',
-                Rule::unique('users', 'email')->ignore($targetUser?->id),
-            ],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', Rule::in($roles)],
-        ];
+        $target = $this->route('user');
+        $roles = $this->user() ? app(UserService::class)->assignableRolesFor($this->user()) : [];
+        $rules = $this->profileRules($roles);
+        $rules['email'] = ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($target?->id)];
+        $rules['password'] = ['nullable', 'string', 'min:8', 'confirmed'];
+        $rules['student_code'][4] = Rule::unique('student_data', 'student_code')->ignore($target?->studentData?->id);
+        $rules['instructor_code'][4] = Rule::unique('instructor_data', 'instructor_code')->ignore($target?->instructorData?->id);
+        return $rules;
     }
 
     public function toData(): UpdateUserData
     {
-        $validated = $this->validated();
-
-        // Password may be null when the admin edits profile fields only.
-        return new UpdateUserData(
-            name: $validated['name'],
-            email: $validated['email'],
-            password: $validated['password'] ?? null,
-            role: $validated['role'],
-        );
+        $data = $this->validated();
+        return new UpdateUserData($this->displayName($data), $data['email'], $data['password'] ?? null, $data['role'], (bool) $data['account_status'], $this->file('avatar'), $this->studentData($data), $this->instructorData($data));
     }
 }

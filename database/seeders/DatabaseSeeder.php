@@ -2,21 +2,17 @@
 
 namespace Database\Seeders;
 
+use Database\Seeders\Class\ClassTypeSeeder;
+use Database\Seeders\Core\CoreSeeder;
 use Illuminate\Database\Seeder;
-use Database\Seeders\Permission\PermissionSeeder;
-use Database\Seeders\Permission\RoleSeeder;
-use Database\Seeders\Permission\AssignPermissionSeeder;
-use Database\Seeders\Permission\UserSeeder;
 
 class DatabaseSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
         $this->call([
-            PermissionSeeder::class,
-            RoleSeeder::class,
-            AssignPermissionSeeder::class,
-            UserSeeder::class,
+            CoreSeeder::class,
+            ClassTypeSeeder::class,
         ]);
     }
 }
