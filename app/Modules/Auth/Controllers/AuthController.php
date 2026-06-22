@@ -4,11 +4,12 @@ namespace App\Modules\Auth\Controllers;
 
 use App\Modules\Auth\Events\PendingUserRegistered;
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Modules\Auth\Events\PendingUserRegistered;
 use App\Modules\Auth\Requests\LoginWebRequest;
 use App\Modules\Auth\Requests\RegisterWebRequest;
 use App\Modules\Auth\Requests\VerifyCodeRequest;
 use App\Modules\Auth\Responses\VerificationResponse;
-use App\Models\User;
 use App\Modules\Auth\Services\AuthAuditService;
 use App\Modules\Auth\Services\AuthService;
 use App\Modules\Auth\Services\OtpService;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Permission\Models\Role;
 
 /**
  * Coordinates web authentication, registration, OTP verification, and logout.
@@ -50,11 +52,11 @@ class AuthController extends Controller
                 'status' => false,
             ]);
 
-            $role = $this->authService->ensureDefaultRole();
+            // Create instructor role if not exists
+            Role::findOrCreate('instructor', 'web');
 
-            if (! $user->hasRole($role)) {
-                $user->assignRole($role);
-            }
+            // Assign Spatie role instructor
+            $user->syncRoles(['instructor']);
 
             if (! $otpVerificationEnabled) {
                 return [$user, null, null];
@@ -78,10 +80,10 @@ class AuthController extends Controller
 
         $request->session()->put('pending_verification_user_id', $user->id);
 
-        // Notify admins after the user and OTP exist.
         PendingUserRegistered::dispatch($user, $otp, $plainCode);
 
-        return redirect('/code-verify')->with('success', 'Registration received. Enter your verification code to activate your account.');
+        return redirect('/code-verify')
+            ->with('success', 'Registration received. Enter your verification code to activate your account.');
     }
 
     public function showVerifyCode(Request $request): Response|RedirectResponse
@@ -150,17 +152,16 @@ class AuthController extends Controller
     }
 
     public function loginWeb(LoginWebRequest $request): RedirectResponse
-    {
-        $data = $request->toData();
+{
+    $data = $request->toData();
 
-        // AuthService decides whether the login string is an email or username.
-        $user = $this->authService->findUserForLogin($data->login);
+    $user = $this->authService->findUserForLogin($data->login);
 
-        if (! $user || ! Hash::check($data->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'login' => ['The provided credentials are incorrect.'],
-            ]);
-        }
+    if (! $user) {
+        throw ValidationException::withMessages([
+            'login' => ['Email not found.'],
+        ]);
+    }
 
         if (! $user->status) {
             throw ValidationException::withMessages(['login' => ['Your account is inactive or pending verification.']]);
@@ -170,8 +171,9 @@ class AuthController extends Controller
         $user->forceFill(['last_login_at' => now()])->save();
         $request->session()->regenerate();
 
-        return redirect($this->redirectPathFor($user))->with('success', 'Logged in successfully.');
-    }
+    return redirect($this->redirectPathFor($user))
+        ->with('success', 'Logged in successfully.');
+}
 
     public function logoutWeb(Request $request): RedirectResponse
     {
@@ -184,8 +186,12 @@ class AuthController extends Controller
 
     private function redirectPathFor(User $user): string
     {
-        if ($user->hasRole('super_admin') || $user->hasRole('admin') || $user->hasRole('instructor')) {
+        if ($user->hasRole('admin')) {
             return '/dashboard';
+        }
+
+        if ($user->hasRole('instructor')) {
+            return '/dashboard/users';
         }
 
         return '/';

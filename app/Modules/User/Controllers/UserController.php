@@ -18,6 +18,15 @@ use Inertia\Response;
  */
 class UserController extends Controller
 {
+    private function canViewInstructors(User $user): bool
+{
+    return $user->hasRole('admin') || $user->hasRole('instructor');
+}
+
+private function canManageInstructors(User $user): bool
+{
+    return $user->hasRole('admin');
+}
     public function __construct(
         private readonly UserService $userService
     ) {
@@ -34,11 +43,16 @@ class UserController extends Controller
         ]);
     }
 
+    return Inertia::render('backend/users/Index', [
+        'canCreateUser' => false,
+    ]);
+}
     public function paginatedIndex(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', User::class);
+        if (! $this->canViewInstructors($request->user())) {
+            abort(403);
+        }
 
-        // Filters are passed to the service so query rules stay in one place.
         $users = $this->userService->paginateVisibleUsers($request->user(), [
             'search' => $request->string('search')->toString(),
             'role' => $request->string('role')->toString(),
@@ -75,10 +89,10 @@ class UserController extends Controller
         ]);
     }
 
-    public function edit(Request $request, User $user): Response
-    {
-        // Reuse the manage policy for edit access.
-        $this->authorize('manage', $user);
+    return Inertia::render('backend/users/Show', [
+        'user' => $this->userService->presentUser($user),
+    ]);
+}
 
         // Load the editable user plus the roles available to the current admin.
         return Inertia::render('backend/users/Edit', [
@@ -86,6 +100,12 @@ class UserController extends Controller
             'roleOptions' => $this->userService->roleOptions($request->user()),
         ]);
     }
+
+    return Inertia::render('backend/users/Edit', [
+        'user' => $this->userService->presentUser($user),
+        'roleOptions' => $this->userService->roleOptions($request->user()),
+    ]);
+}
 
     public function store(StoreUserRequest $request): RedirectResponse
     {
@@ -113,6 +133,14 @@ class UserController extends Controller
         return redirect('/dashboard/users')->with('success', 'User updated successfully.');
     }
 
+    $data = $request->toData();
+
+    $this->userService->ensureRoleIsAssignable($request->user(), $data->role);
+    $this->userService->update($user, $data);
+
+    return redirect('/dashboard/users')->with('success', 'Instructor updated successfully.');
+}
+
     public function destroy(Request $request, User $user): RedirectResponse
     {
         // Deletion uses the same management rule as viewing and editing.
@@ -123,4 +151,12 @@ class UserController extends Controller
 
         return redirect('/dashboard/users')->with('success', 'User deleted successfully.');
     }
+
+    $this->userService->delete($user);
+
+    return redirect('/dashboard/users')->with('success', 'Instructor deleted successfully.');
 }
+}
+ 
+
+
