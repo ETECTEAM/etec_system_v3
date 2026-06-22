@@ -2,7 +2,6 @@
 
 namespace App\Modules\Auth\Controllers;
 
-use App\Modules\Auth\Events\PendingUserRegistered;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Auth\Events\PendingUserRegistered;
