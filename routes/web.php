@@ -36,7 +36,7 @@ Route::middleware(['auth'])->group(function () {
  Route::get('/dashboard', function () {
     $user = Auth::user();
 
-    if ($user->hasRole('admin')) {
+    if ($user->hasAnyRole(['super_admin', 'admin'])) {
         return inertia('backend/Home');
     }
 
@@ -52,7 +52,7 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::middleware(['role:admin'])->group(function () {
+    Route::middleware(['role:super_admin|admin'])->group(function () {
         Route::get('/dashboard/users/roles', function () {
             return inertia('backend/users/Roles');
         })->name('dashboard.users.roles');
@@ -105,7 +105,7 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::middleware(['role:admin|instructor'])->group(function () {
+    Route::middleware(['role:super_admin|admin|instructor'])->group(function () {
         Route::get('/dashboard/users', [UserController::class, 'index'])
             ->name('dashboard.users.index');
 
@@ -119,4 +119,3 @@ Route::middleware(['auth'])->group(function () {
 | Frontend Routes
 |--------------------------------------------------------------------------
 */
-
