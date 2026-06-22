@@ -333,7 +333,7 @@ watch(currentPath, (path) => {
     <aside
       :class="[
         'relative h-screen border-r border-slate-200 bg-white transition-all duration-200 lg:sticky lg:top-0',
-        props.collapsed ? 'w-20' : 'w-64',
+        props.collapsed ? 'w-20' : 'w-80',
       ]"
     >
       <div
