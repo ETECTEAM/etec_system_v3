@@ -53,7 +53,7 @@ function submit() {
 
       <!-- TIME NAME -->
       <div>
-        <label class="text-sm font-medium text-gray-700">
+        <label class="text-sm  font-medium text-gray-700">
           Time Name
         </label>
 
