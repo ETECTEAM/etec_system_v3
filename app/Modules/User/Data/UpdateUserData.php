@@ -2,9 +2,8 @@
 
 namespace App\Modules\User\Data;
 
-/**
- * Carries validated user update input into UserService.
- */
+use Illuminate\Http\UploadedFile;
+
 readonly class UpdateUserData
 {
     public function __construct(
@@ -12,24 +11,9 @@ readonly class UpdateUserData
         public string $email,
         public ?string $password,
         public string $role,
+        public bool $status,
+        public ?UploadedFile $avatar,
+        public array $studentData,
+        public array $instructorData,
     ) {}
-
-    /**
-     * Returns users table columns, excluding blank passwords.
-     *
-     * @return array{name: string, email: string, password?: string}
-     */
-    public function userAttributes(): array
-    {
-        $attributes = [
-            'name' => $this->name,
-            'email' => $this->email,
-        ];
-
-        if ($this->password !== null && $this->password !== '') {
-            $attributes['password'] = $this->password;
-        }
-
-        return $attributes;
-    }
 }

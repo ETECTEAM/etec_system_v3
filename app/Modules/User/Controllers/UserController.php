@@ -42,6 +42,12 @@ class UserController extends Controller
         $users = $this->userService->paginateVisibleUsers($request->user(), [
             'search' => $request->string('search')->toString(),
             'role' => $request->string('role')->toString(),
+            'status' => $request->string('status')->toString(),
+            'student_class' => $request->string('student_class')->toString(),
+            'student_status' => $request->string('student_status')->toString(),
+            'employment_type' => $request->string('employment_type')->toString(),
+            'shift_preference' => $request->string('shift_preference')->toString(),
+            'available_for_class' => $request->string('available_for_class')->toString(),
         ], 5);
 
         return response()->json($users);
@@ -65,7 +71,7 @@ class UserController extends Controller
 
         // Present the user through the service so the frontend receives a stable shape.
         return Inertia::render('backend/users/Show', [
-            'user' => $this->userService->presentUser($user),
+            'user' => $this->userService->presentUser($user->load(['roles', 'studentData', 'instructorData'])),
         ]);
     }
 
@@ -76,7 +82,7 @@ class UserController extends Controller
 
         // Load the editable user plus the roles available to the current admin.
         return Inertia::render('backend/users/Edit', [
-            'user' => $this->userService->presentUser($user),
+            'user' => $this->userService->presentUser($user->load(['roles', 'studentData', 'instructorData'])),
             'roleOptions' => $this->userService->roleOptions($request->user()),
         ]);
     }

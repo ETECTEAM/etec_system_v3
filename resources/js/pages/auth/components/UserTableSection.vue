@@ -167,7 +167,7 @@ function handleAction(action, user) {
           <input
             :value="search"
             type="text"
-            placeholder="Search by name or email"
+            placeholder="Search email, profile name, code, or phone"
             class="mt-2 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
             @input="emit('update:search', $event.target.value)"
           >
@@ -193,9 +193,12 @@ function handleAction(action, user) {
         <TableHeader>
           <TableRow>
             <TableHead class="w-16">No</TableHead>
+            <TableHead>Avatar</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Roles</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Created</TableHead>
             <TableHead class="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -203,6 +206,7 @@ function handleAction(action, user) {
         <TableBody>
           <TableRow v-for="(user, index) in users" :key="user.id" class="transition-opacity duration-200">
             <TableCell class="text-slate-500">{{ rowNumber(index) }}</TableCell>
+            <TableCell><img :src="user.avatar ? `/storage/${user.avatar}` : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.name)" class="h-9 w-9 rounded-full object-cover" alt="Avatar"></TableCell>
             <TableCell class="font-medium text-slate-900">{{ user.name }}</TableCell>
             <TableCell class="text-slate-600">{{ user.email }}</TableCell>
             <TableCell>
@@ -219,6 +223,8 @@ function handleAction(action, user) {
                 </span>
               </div>
             </TableCell>
+            <TableCell><span :class="user.status ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'" class="rounded-full px-2.5 py-1 text-xs font-semibold">{{ user.status ? 'Active' : 'Inactive' }}</span></TableCell>
+            <TableCell class="text-sm text-slate-600">{{ user.created_at ?? '—' }}</TableCell>
             <TableCell class="text-right">
               <div class="flex justify-end">
                 <ActionMenu
@@ -230,7 +236,7 @@ function handleAction(action, user) {
           </TableRow>
 
           <TableRow v-if="hasLoaded && !isLoading && users.length === 0">
-            <TableCell colspan="5" class="py-10 text-center text-slate-500">
+            <TableCell colspan="8" class="py-10 text-center text-slate-500">
               {{ roles.length === 0 ? 'No roles available or roles could not be loaded.' : 'No users found.' }}
             </TableCell>
           </TableRow>

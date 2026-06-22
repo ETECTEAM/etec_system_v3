@@ -2,7 +2,6 @@
 
 namespace App\Modules\Auth\Controllers\Telegram;
 
-use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\OtpVerification;
 use App\Modules\Auth\Services\AuthAuditService;
@@ -60,7 +59,7 @@ class TelegramWebhookController extends Controller
 
         $user = $otp->user;
 
-        if ($user->status === UserStatus::Rejected) {
+        if (! $user->status) {
             Telegram::answerCallbackQuery([
                 'callback_query_id' => $callback['id'],
                 'text' => 'User already rejected.',

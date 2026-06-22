@@ -2,7 +2,6 @@
 
 namespace App\Modules\User\Services;
 
-use App\Enums\UserStatus;
 use App\Models\OtpVerification;
 use App\Models\User;
 use App\Modules\Auth\Services\AuthAuditService;
@@ -17,9 +16,7 @@ class UserApprovalService
     public function approve(User $user, ?int $actorId = null, string $source = 'manual'): User
     {
         $user->forceFill([
-            'status' => UserStatus::Active,
-            'is_active' => true,
-            'verified_at' => $user->verified_at ?? now(),
+            'status' => true,
             'email_verified_at' => $user->email_verified_at ?? now(),
         ])->save();
 
@@ -35,8 +32,7 @@ class UserApprovalService
     public function reject(User $user, ?int $actorId = null, string $source = 'manual'): User
     {
         $user->forceFill([
-            'status' => UserStatus::Rejected,
-            'is_active' => false,
+            'status' => false,
         ])->save();
 
         $this->auditService->log($user, 'user.rejected', request()->ip(), [

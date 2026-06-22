@@ -2,7 +2,6 @@
 
 namespace App\Modules\Auth\Controllers;
 
-use App\Enums\UserStatus;
 use App\Modules\Auth\Events\PendingUserRegistered;
 use App\Http\Controllers\Controller;
 use App\Modules\Auth\Requests\LoginWebRequest;
@@ -47,8 +46,8 @@ class AuthController extends Controller
                 'name' => $data->name,
                 'email' => $data->email,
                 'password' => $data->password,
-                'is_active' => false,
-                'status' => UserStatus::Pending,
+                'role' => 'instructor',
+                'status' => false,
             ]);
 
             $role = $this->authService->ensureDefaultRole();
@@ -91,7 +90,7 @@ class AuthController extends Controller
         $user = $pendingUserId ? User::query()->find($pendingUserId) : null;
 
         // If the session expired but the pending user is logged in, rebuild it.
-        if (! $user && $request->user() && $request->user()->status !== UserStatus::Active) {
+        if (! $user && $request->user() && ! $request->user()->status) {
             $user = $request->user();
             $request->session()->put('pending_verification_user_id', $user->id);
         }
@@ -100,11 +99,7 @@ class AuthController extends Controller
             return redirect('/register')->with('error', 'Please register first to request a verification code.');
         }
 
-        if ($user->status === UserStatus::Rejected) {
-            return redirect('/register')->with('error', 'Your registration was rejected. Please contact support.');
-        }
-
-        if ($user->status === UserStatus::Active) {
+        if ($user->status) {
             return redirect('/login')->with('success', 'Your account is already active.');
         }
 
@@ -123,7 +118,7 @@ class AuthController extends Controller
         $authenticatedUser = $request->user();
         $user = $pendingUserId ? User::query()->find($pendingUserId) : null;
 
-        if (! $user && $authenticatedUser && $authenticatedUser->status !== UserStatus::Active) {
+        if (! $user && $authenticatedUser && ! $authenticatedUser->status) {
             $user = $authenticatedUser;
             $pendingUserId = $authenticatedUser->id;
         }
@@ -139,13 +134,7 @@ class AuthController extends Controller
             ]);
         }
 
-        if ($user->status === UserStatus::Rejected) {
-            throw ValidationException::withMessages([
-                'code' => ['Your registration was rejected. Please contact support.'],
-            ]);
-        }
-
-        if ($user->status === UserStatus::Active) {
+        if ($user->status) {
             return VerificationResponse::alreadyActive($this->redirectPathFor($user));
         }
 
@@ -173,19 +162,12 @@ class AuthController extends Controller
             ]);
         }
 
-        if ($user->status === UserStatus::Rejected) {
-            throw ValidationException::withMessages([
-                'login' => ['Your account was rejected. Please contact support.'],
-            ]);
-        }
-
-        if ($user->status !== UserStatus::Active) {
-            throw ValidationException::withMessages([
-                'login' => ['Your account is pending verification. Please complete the 6-digit verification first.'],
-            ]);
+        if (! $user->status) {
+            throw ValidationException::withMessages(['login' => ['Your account is inactive or pending verification.']]);
         }
 
         Auth::login($user, $data->remember);
+        $user->forceFill(['last_login_at' => now()])->save();
         $request->session()->regenerate();
 
         return redirect($this->redirectPathFor($user))->with('success', 'Logged in successfully.');

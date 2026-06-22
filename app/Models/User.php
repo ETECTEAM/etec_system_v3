@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use App\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable
 {
@@ -28,9 +28,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'is_active',
+        'role',
         'status',
-        'verified_at',
+        'avatar',
+        'last_login_at',
     ];
 
     /**
@@ -52,9 +53,8 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'is_active' => 'boolean',
-            'status' => UserStatus::class,
-            'verified_at' => 'datetime',
+            'status' => 'boolean',
+            'last_login_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -72,5 +72,15 @@ class User extends Authenticatable
     public function authAuditLogs(): HasMany
     {
         return $this->hasMany(AuthAuditLog::class);
+    }
+
+    public function studentData(): HasOne
+    {
+        return $this->hasOne(StudentData::class);
+    }
+
+    public function instructorData(): HasOne
+    {
+        return $this->hasOne(InstructorData::class);
     }
 }

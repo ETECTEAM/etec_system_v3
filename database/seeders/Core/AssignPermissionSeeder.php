@@ -15,7 +15,6 @@ class AssignPermissionSeeder extends Seeder
         $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'sanctum']);
         $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'sanctum']);
         $instructor = Role::firstOrCreate(['name' => 'instructor', 'guard_name' => 'sanctum']);
-        $student = Role::firstOrCreate(['name' => 'student', 'guard_name' => 'sanctum']);
 
         // super_admin → ALL permissions
         $superAdmin->syncPermissions($allPermissions);
@@ -23,6 +22,5 @@ class AssignPermissionSeeder extends Seeder
         // Other roles start empty so permissions can be assigned later by super_admin.
         $admin->syncPermissions([]);
         $instructor->syncPermissions([]);
-        $student->syncPermissions([]);
     }
 }
