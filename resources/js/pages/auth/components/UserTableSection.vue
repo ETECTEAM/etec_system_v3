@@ -236,8 +236,8 @@ function handleAction(action, user) {
           </TableRow>
 
           <TableRow v-if="hasLoaded && !isLoading && users.length === 0">
-            <TableCell colspan="5" class="py-10 text-center text-slate-500">
-              {{ roles.length === 0 ? 'No roles available or roles could not be loaded.' : 'No instructors found.' }}
+            <TableCell colspan="8" class="py-10 text-center text-slate-500">
+              {{ roles.length === 0 ? 'No roles available or roles could not be loaded.' : 'No users found.' }}
             </TableCell>
           </TableRow>
         </TableBody>
