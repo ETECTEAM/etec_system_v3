@@ -76,7 +76,7 @@ class ClassListController extends Controller
         $validated = $request->validate([
             'teacher_id'    => ['nullable', 'exists:users,id'],
             'course_id'     => ['nullable', 'exists:courses,id'],
-            'lesson_id'     => ['nullable', 'exists:lessons,id'],
+            'lesson_id'     => ['nullable', 'integer'],
             'term_id'       => ['nullable', 'exists:terms,id'],
             'time_id'       => ['nullable', 'exists:times,id'],
             'building_id'   => ['nullable', 'exists:buildings,id'],
@@ -151,7 +151,7 @@ class ClassListController extends Controller
         $validated = $request->validate([
             'teacher_id'    => ['sometimes', 'nullable', 'exists:users,id'],
             'course_id'     => ['sometimes', 'nullable', 'exists:courses,id'],
-            'lesson_id'     => ['sometimes', 'nullable', 'exists:lessons,id'],
+            'lesson_id'     => ['sometimes', 'nullable', 'integer'],
             'term_id'       => ['sometimes', 'nullable', 'exists:terms,id'],
             'time_id'       => ['sometimes', 'nullable', 'exists:times,id'],
             'building_id'   => ['sometimes', 'nullable', 'exists:buildings,id'],

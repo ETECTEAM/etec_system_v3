@@ -20,8 +20,9 @@ return new class extends Migration
             $table->foreignId('course_id')->nullable()
                 ->constrained('courses')->nullOnDelete();
 
-            $table->foreignId('lesson_id')->nullable()
-                ->constrained('lessons')->nullOnDelete();
+            // The lessons module has not been migrated yet, so this remains an
+            // optional reference until its table is available.
+            $table->unsignedBigInteger('lesson_id')->nullable();
 
             $table->foreignId('term_id')->nullable()
                 ->constrained('terms')->nullOnDelete();
@@ -39,7 +40,7 @@ return new class extends Migration
                 ->constrained('rooms')->nullOnDelete();
 
             $table->foreignId('class_type_id')->nullable()
-                ->constrained('class_type')->nullOnDelete();
+                ->constrained('class_type', 'class_type_id')->nullOnDelete();
 
             $table->integer('student_count')->default(0);
             $table->string('status')->default('progress');

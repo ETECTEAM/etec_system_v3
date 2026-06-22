@@ -15,7 +15,7 @@ return new class extends Migration
         DB::table('users')->where('status', '!=', '1')->update(['status' => '0']);
 
         Schema::table('users', function (Blueprint $table): void {
-            $table->string('role', 30)->default('admin')->after('password');
+            $table->string('role', 30)->default('admin')->change();
             $table->boolean('status')->default(true)->change();
             $table->string('avatar')->nullable()->after('status');
             $table->timestamp('last_login_at')->nullable()->after('email_verified_at');
@@ -92,7 +92,7 @@ return new class extends Migration
             $table->index(['employment_type', 'shift_preference']);
             $table->index(['available_for_class', 'employment_type']);
             $table->index(['available_for_class', 'shift_preference']);
-            $table->index(['employment_type', 'shift_preference', 'available_for_class']);
+            $table->index(['employment_type', 'shift_preference', 'available_for_class'], 'instructor_emp_shift_availability_idx');
             $table->index(['instructor_code', 'employment_type']);
             $table->index(['full_name', 'phone']);
         });
@@ -108,7 +108,8 @@ return new class extends Migration
             $table->dropIndex(['status']);
             $table->dropIndex(['role', 'status']);
             $table->dropIndex(['role', 'status', 'created_at']);
-            $table->dropColumn(['role', 'avatar', 'last_login_at']);
+            $table->dropColumn(['avatar', 'last_login_at']);
+            $table->enum('role', ['admin', 'instructor'])->default('instructor')->change();
             $table->string('status', 20)->default('active')->change();
         });
     }
