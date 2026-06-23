@@ -13,7 +13,7 @@ readonly class StoreUserData
         public string $role,
         public bool $status,
         public ?UploadedFile $avatar,
-        public array $studentData,
+        public array $student,
         public array $instructorData,
     ) {}
 }

@@ -73,9 +73,9 @@ class User extends Authenticatable
         return $this->hasMany(AuthAuditLog::class);
     }
 
-    public function studentData(): HasOne
+    public function student(): HasOne
     {
-        return $this->hasOne(StudentData::class);
+        return $this->hasOne(Student::class);
     }
 
     public function instructorData(): HasOne

@@ -64,7 +64,7 @@ class UserController extends Controller
         $this->authorize('manage', $user);
 
         return Inertia::render('backend/users/Show', [
-            'user' => $this->userService->presentUser($user->load(['roles', 'studentData', 'instructorData'])),
+            'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData'])),
         ]);
     }
 
@@ -73,7 +73,7 @@ class UserController extends Controller
         $this->authorize('manage', $user);
 
         return Inertia::render('backend/users/Edit', [
-            'user' => $this->userService->presentUser($user->load(['roles', 'studentData', 'instructorData'])),
+            'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData'])),
             'roleOptions' => $this->userService->roleOptions($request->user()),
         ]);
     }

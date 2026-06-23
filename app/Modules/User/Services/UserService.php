@@ -38,7 +38,7 @@ class UserService
 
     public function queryVisibleUsers(User $authUser): Builder
     {
-        $query = User::query()->latest('id')->with(['studentData', 'instructorData']);
+        $query = User::query()->latest('id')->with(['student', 'instructorData']);
 
         // Visibility mirrors the same hierarchy as assignment permissions.
         if ($authUser->hasRole('super_admin')) {
@@ -78,7 +78,7 @@ class UserService
                 $builder
                     ->where('users.name', 'like', '%'.$search.'%')
                     ->orWhere('users.email', 'like', '%'.$search.'%')
-                    ->orWhereHas('studentData', fn (Builder $query) => $query->where('full_name', 'like', '%'.$search.'%')->orWhere('student_code', 'like', '%'.$search.'%')->orWhere('phone', 'like', '%'.$search.'%'))
+                    ->orWhereHas('student', fn (Builder $query) => $query->where('full_name', 'like', '%'.$search.'%')->orWhere('student_code', 'like', '%'.$search.'%')->orWhere('phone', 'like', '%'.$search.'%'))
                     ->orWhereHas('instructorData', fn (Builder $query) => $query->where('full_name', 'like', '%'.$search.'%')->orWhere('instructor_code', 'like', '%'.$search.'%')->orWhere('phone', 'like', '%'.$search.'%'));
             });
         }
@@ -95,11 +95,11 @@ class UserService
         }
 
         if (($filters['student_class'] ?? '') !== '') {
-            $query->whereHas('studentData', fn (Builder $query) => $query->where('class_id', $filters['student_class']));
+            $query->whereHas('student', fn (Builder $query) => $query->where('class_id', $filters['student_class']));
         }
 
         if (($filters['student_status'] ?? '') !== '') {
-            $query->whereHas('studentData', fn (Builder $query) => $query->where('status', filter_var($filters['student_status'], FILTER_VALIDATE_BOOLEAN)));
+            $query->whereHas('student', fn (Builder $query) => $query->where('status', filter_var($filters['student_status'], FILTER_VALIDATE_BOOLEAN)));
         }
 
         foreach (['employment_type', 'shift_preference', 'available_for_class'] as $filter) {
@@ -131,14 +131,14 @@ class UserService
     {
         return [
             'id' => $user->id,
-            'name' => $user->role === 'student' ? ($user->studentData?->full_name ?? $user->name) : ($user->role === 'instructor' ? ($user->instructorData?->full_name ?? $user->name) : $user->name),
+            'name' => $user->role === 'student' ? ($user->student?->full_name ?? $user->name) : ($user->role === 'instructor' ? ($user->instructorData?->full_name ?? $user->name) : $user->name),
             'email' => $user->email,
             'role' => $user->role,
             'status' => $user->status,
             'avatar' => $user->avatar,
             'created_at' => $user->created_at?->toDateString(),
             'roles' => $user->getRoleNames()->values(),
-            'student_data' => $user->studentData,
+            'student' => $user->student,
             'instructor_data' => $user->instructorData,
         ];
     }
@@ -151,8 +151,8 @@ class UserService
                 'role' => $data->role, 'status' => $data->status, 'avatar' => $this->storeAvatar($data->avatar),
             ]);
             $user->syncRoles([$data->role]);
-            $this->syncProfile($user, $data->role, $data->studentData, $data->instructorData);
-            return $user->fresh(['roles', 'studentData', 'instructorData']);
+            $this->syncProfile($user, $data->role, $data->student, $data->instructorData);
+            return $user->fresh(['roles', 'student', 'instructorData']);
         });
     }
 
@@ -167,8 +167,8 @@ class UserService
             }
             $user->update($attributes);
             $user->syncRoles([$data->role]);
-            $this->syncProfile($user, $data->role, $data->studentData, $data->instructorData);
-            return $user->fresh(['roles', 'studentData', 'instructorData']);
+            $this->syncProfile($user, $data->role, $data->student, $data->instructorData);
+            return $user->fresh(['roles', 'student', 'instructorData']);
         });
     }
 
@@ -187,19 +187,19 @@ class UserService
         }
     }
 
-    private function syncProfile(User $user, string $role, array $studentData, array $instructorData): void
+    private function syncProfile(User $user, string $role, array $student, array $instructorData): void
     {
         if ($role === 'student') {
             $user->instructorData()->delete();
-            $user->studentData()->updateOrCreate(['user_id' => $user->id], $studentData);
+            $user->student()->updateOrCreate(['user_id' => $user->id], $student);
             return;
         }
         if ($role === 'instructor') {
-            $user->studentData()->delete();
+            $user->student()->delete();
             $user->instructorData()->updateOrCreate(['user_id' => $user->id], $instructorData);
             return;
         }
-        $user->studentData()->delete();
+        $user->student()->delete();
         $user->instructorData()->delete();
     }
 
