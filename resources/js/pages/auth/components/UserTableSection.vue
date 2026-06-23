@@ -159,9 +159,9 @@ function handleAction(action, user) {
     <div class="border-b border-slate-200 px-6 py-5">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Instructor Directory</p>
-          <h2 class="mt-1 text-xl font-semibold text-slate-900">Instructors</h2>
-          <p class="mt-1 text-sm text-slate-500">Manage registered instructors and their access.</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">User Directory</p>
+          <h2 class="mt-1 text-xl font-semibold text-slate-900">Users</h2>
+          <p class="mt-1 text-sm text-slate-500">Manage registered users and their access.</p>
         </div>
 
         
@@ -255,7 +255,7 @@ function handleAction(action, user) {
       >
         <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
           <div class="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
-          <span class="text-sm text-slate-600">Loading instructors...</span>
+          <span class="text-sm text-slate-600">Loading Users...</span>
         </div>
       </div>
     </div>

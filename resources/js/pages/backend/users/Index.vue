@@ -105,7 +105,7 @@ watch(selectedRole, () => {
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Instructor Management" title="Instructors" description="View existing users and manage account roles." />
+      <PageHero eyebrow="Users Management" title="Users" description="View existing users and manage account roles." />
 
       <UserTableSection
         :users="users"

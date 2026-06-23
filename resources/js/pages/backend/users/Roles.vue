@@ -1,6 +1,4 @@
 <script setup>
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
-import { computed, ref, watch } from 'vue'
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { computed, nextTick, ref, watch } from 'vue'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
