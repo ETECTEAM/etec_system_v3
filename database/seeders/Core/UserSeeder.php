@@ -5,11 +5,24 @@ namespace Database\Seeders\Core;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
+        // Clear Spatie permission cache
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        // Make sure roles exist
+        foreach (['super_admin', 'admin', 'instructor', 'student'] as $role) {
+            Role::updateOrCreate([
+                'name' => $role,
+                'guard_name' => 'web',
+            ]);
+        }
+
         $fixedUsers = [
             [
                 'name' => 'Super Admin',
@@ -29,21 +42,20 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($fixedUsers as $fixedUser) {
-            $user = User::firstOrCreate(
+            $user = User::updateOrCreate(
                 ['email' => $fixedUser['email']],
                 [
                     'name' => $fixedUser['name'],
-                    'password' => Hash::make('  '),
+                    'password' => Hash::make('password'),
+                    'role' => $fixedUser['role'],
+                    'status' => true,
                 ]
             );
 
-            $user->forceFill([
-                'name' => $fixedUser['name'],
-                'password' => Hash::make('password'),
-            ])->save();
-
+            // Also update Spatie role table: model_has_roles
             $user->syncRoles([$fixedUser['role']]);
         }
 
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
