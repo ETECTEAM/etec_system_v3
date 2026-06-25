@@ -4,26 +4,43 @@ namespace Database\Seeders\Core;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\PermissionRegistrar;
 
 class CoreSeeder extends Seeder
 {
     public function run(): void
     {
-        // Truncate all tables to avoid duplicate entries
-        DB::statement('TRUNCATE TABLE model_has_permissions RESTART IDENTITY CASCADE');
-        DB::statement('TRUNCATE TABLE model_has_roles RESTART IDENTITY CASCADE');
-        DB::statement('TRUNCATE TABLE role_has_permissions RESTART IDENTITY CASCADE');
+        // Clear Spatie permission cache before reset.
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        DB::statement('TRUNCATE TABLE permissions RESTART IDENTITY CASCADE');
-        DB::statement('TRUNCATE TABLE roles RESTART IDENTITY CASCADE');
-        DB::statement('TRUNCATE TABLE users RESTART IDENTITY CASCADE');
+        // Disable foreign key checks for MySQL.
+        // This allows truncating tables that are linked by foreign keys.
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
-        // Seed the database with initial data
+        // Truncate pivot tables first.
+        // These tables connect users, roles, and permissions.
+        DB::table('model_has_permissions')->truncate();
+        DB::table('model_has_roles')->truncate();
+        DB::table('role_has_permissions')->truncate();
+
+        // Truncate main tables.
+        // MySQL TRUNCATE automatically resets auto increment IDs.
+        DB::table('permissions')->truncate();
+        DB::table('roles')->truncate();
+        DB::table('users')->truncate();
+
+        // Enable foreign key checks again.
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+        // Run core seeders again.
         $this->call([
-            PermissionSeeder::class, // Seed permissions first
-            RoleSeeder::class, // Seed roles next
-            AssignPermissionSeeder::class, // Assign permissions to roles
-            UserSeeder::class, // Seed users last
+            PermissionSeeder::class,
+            RoleSeeder::class,
+            AssignPermissionSeeder::class,
+            UserSeeder::class,
         ]);
+
+        // Clear Spatie permission cache after seeding.
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
 }
