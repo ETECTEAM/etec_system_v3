@@ -5,8 +5,8 @@ import { formatRole, roleBadgeClass } from '@/lib/roleBadge.js'
 import { Pagination } from '@/components/ui/pagination'
 import { Card } from '@/components/ui/card'
 import { ActionMenu } from '@/components/ui/menu'
-import { SelectSearch } from '../../../components/ui/select-search'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table'
+import { SelectSearch } from '@/components/ui/select-search'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const props = defineProps({
   users: {
