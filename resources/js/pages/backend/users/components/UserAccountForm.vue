@@ -44,4 +44,8 @@ const instructor = computed(() => props.form.role === 'instructor')
   </form>
 </template>
 
-<style scoped>.input { @apply mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm; } label > span { @apply mb-2 block text-sm font-semibold text-slate-700; }</style>
+<style scoped>
+@reference "../../../../../css/app.css";
+.input { @apply mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm; }
+label > span { @apply mb-2 block text-sm font-semibold text-slate-700; }
+</style>
