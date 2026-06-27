@@ -12,7 +12,7 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use App\Modules\User\Requests\StoreUserRequest;
 use App\Modules\User\Services\UserService;
-use Spatie\Permission\Models\Permission;
+// use Spatie\Permission\Models\Permission;
 
 /**
  * Renders user role and permission management pages.
@@ -43,7 +43,7 @@ class UserManagementController extends Controller
         ]);
     }
 
-    // Show the form to create a new user. 
+    // Show the form to create a new user.
     public function create(Request $request): Response
     {
         // Only super admins can access user management pages.

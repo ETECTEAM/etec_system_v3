@@ -71,12 +71,26 @@ function isScheduleRoute(path) {
   );
 }
 
+function isCourseRoute(path) {
+  const p = path.split("?")[0];
+  return (
+    p.startsWith("/dashboard/course") ||  // This will catch all /dashboard/course/*
+    p.startsWith("/dashboard/categories") ||
+    p.startsWith("/dashboard/subcategories") ||
+    p.startsWith("/dashboard/tracks") ||
+    p.startsWith("/dashboard/courses") ||
+    p.startsWith("/dashboard/lessons")
+  );
+}
+
 const openMenus = ref({
   building_management: isBuildingRoute(currentPath.value),
   user: isUserManagementRoute(currentPath.value),
   classes: isClassManagementRoute(currentPath.value),
   schdule: isScheduleRoute(currentPath.value),
   student: isStudentRoute(currentPath.value),
+  course: isCourseRoute(currentPath.value),
+ 
 });
 
 const menuItems = computed(() => {
@@ -109,7 +123,7 @@ const page = usePage()
     });
   }
 
-  // Class Management (បញ្ចូលលីង Class Type និង Class List ឱ្យត្រូវតាមម៉ឺនុយរួម)
+  // Class Management
   base.push({
     label: "Class Management",
     key: "classes",
@@ -130,7 +144,51 @@ const page = usePage()
         exact: false,
         isActive: (path) => path.startsWith("/dashboard/class-list"),
       },
-     
+    ],
+  });
+
+  // Course Management
+  base.push({
+    label: "Course Management",
+    key: "course",
+    match: ["/dashboard/course"],
+    icon: "course",
+    children: [
+      {
+        label: "Categories",
+        href: "/dashboard/course/categories",
+        match: ["/dashboard/course/categories"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/course/categories"),
+      },
+      {
+        label: "Sub Categories",
+        href: "/dashboard/course/subcategories",
+        match: ["/dashboard/course/subcategories"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/course/subcategories"),
+      },
+      {
+        label: "Tracks",
+        href: "/dashboard/course/tracks",
+        match: ["/dashboard/course/tracks"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/course/tracks"),
+      },
+      {
+        label: "Courses",
+        href: "/dashboard/course/courses",
+        match: ["/dashboard/course/courses"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/course/courses"),
+      },
+      {
+        label: "Lessons",
+        href: "/dashboard/course/lessons",
+        match: ["/dashboard/course/lessons"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/course/lessons"),
+      },
     ],
   });
 
@@ -248,10 +306,32 @@ function toggleMenu(key) {
 }
 
 watch(currentPath, (path) => {
+<<<<<<< Updated upstream
     if (isUserManagementRoute(path)) {
         openMenus.value.user = true
     }
 })
+=======
+  if (isUserManagementRoute(path)) {
+    openMenus.value.user = true;
+  }
+  if (isBuildingRoute(path)) {
+    openMenus.value.building_management = true;
+  }
+  if (isClassManagementRoute(path)) {
+    openMenus.value.classes = true;
+  }
+  if (isScheduleRoute(path)) {
+    openMenus.value.schdule = true;
+  }
+  if (isStudentRoute(path)) {
+    openMenus.value.student = true;
+  }
+  if (isCourseRoute(path)) {
+    openMenus.value.course = true;
+  }
+});
+>>>>>>> Stashed changes
 </script>
 
 <template>
@@ -301,7 +381,7 @@ watch(currentPath, (path) => {
           </p>
           <ul class="space-y-1.5">
             <li v-for="item in menuItems" :key="item.href ?? item.key">
-              
+
               <template v-if="item.children">
                 <button
                   type="button"
@@ -314,7 +394,15 @@ watch(currentPath, (path) => {
                   @click="toggleMenu(item.key)"
                 >
                   <span class="flex flex-1 items-center gap-2 text-left">
-                    <svg v-if="item.icon === 'classes'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Course Icon -->
+                    <svg v-if="item.icon === 'course'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                      <path d="M8 7h8" />
+                      <path d="M8 11h6" />
+                      <path d="M8 15h4" />
+                    </svg>
+
+                    <svg v-else-if="item.icon === 'classes'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
                       <path d="M6 6h10M6 10h10" />
                     </svg>
@@ -332,6 +420,20 @@ watch(currentPath, (path) => {
                       <line x1="15" y1="22" x2="15" y2="16"></line>
                     </svg>
 
+                    <svg v-else-if="item.icon === 'schdule'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+
+                    <svg v-else-if="item.icon === 'student'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+
                     <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                       <line x1="9" y1="3" x2="9" y2="21"></line>
@@ -339,27 +441,27 @@ watch(currentPath, (path) => {
 
                     <span v-if="!props.collapsed">{{ item.label }}</span>
                   </span>
-                  
+
                   <svg v-if="!props.collapsed" class="h-4 w-4 text-slate-400 transition" :class="openMenus[item.key] ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
                   </svg>
                 </button>
 
-                                <ul v-if="openMenus[item.key] && !props.collapsed" class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3">
-                                    <li v-for="child in item.children" :key="child.href ?? child.key">
-                                        <Link
-                                            :href="child.href"
-                                            class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
-                                            :class="isActive(child)
-                                                ? 'bg-blue-50 text-blue-700'
-                                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-                                            @click="emit('close')"
-                                        >
-                                            <span>{{ child.label }}</span>
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </template>
+                <ul v-if="openMenus[item.key] && !props.collapsed" class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3">
+                  <li v-for="child in item.children" :key="child.href ?? child.key">
+                    <Link
+                      :href="child.href"
+                      class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
+                      :class="isActive(child)
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                      @click="emit('close')"
+                    >
+                      <span>{{ child.label }}</span>
+                    </Link>
+                  </li>
+                </ul>
+              </template>
 
               <Link
                 v-else
