@@ -70,6 +70,15 @@ function deleteRoom(room) {
 watch(search, () => {
   fetchRooms(1)
 })
+
+function statusClass(status) {
+  if (status === 'occupied')
+    return 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
+  if (status === 'maintenance')
+    return 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'
+
+  return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+}
 </script>
 
 <template>
@@ -91,7 +100,7 @@ watch(search, () => {
 
           <Link
             href="/dashboard/rooms/create"
-            class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800"
+            class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 whitespace-nowrap"
           >
             Create Room
           </Link>
@@ -124,7 +133,7 @@ watch(search, () => {
                 <td class="px-4 py-3 font-semibold text-slate-900">{{ room.room_number }}</td>
                 <td class="px-4 py-3 text-slate-600">{{ room.capacity ?? '-' }}</td>
                 <td class="px-4 py-3">
-                  <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold capitalize text-slate-700">
+                  <span :class="['rounded-full px-3 py-1 text-xs font-semibold capitalize', statusClass(room.status)]">
                     {{ room.status }}
                   </span>
                 </td>
@@ -132,14 +141,14 @@ watch(search, () => {
                   <div class="flex justify-end gap-2">
                     <button
                       type="button"
-                      class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                      class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
                       @click="editRoom(room)"
                     >
                       Update
                     </button>
                     <button
                       type="button"
-                      class="rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+                      class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
                       @click="deleteRoom(room)"
                     >
                       Delete

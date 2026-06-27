@@ -9,7 +9,6 @@ const building = page.props.building ?? {}
 const form = useForm({
   name: building.name ?? '',
   code: building.code ?? '',
-  address: building.address ?? '',
   description: building.description ?? '',
 })
 
@@ -37,12 +36,6 @@ function submit() {
             <span class="mb-2 block text-sm font-semibold text-slate-700">Code</span>
             <input v-model="form.code" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100">
             <span v-if="form.errors.code" class="mt-1 block text-xs text-red-600">{{ form.errors.code }}</span>
-          </label>
-
-          <label class="block sm:col-span-2">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Address</span>
-            <input v-model="form.address" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100">
-            <span v-if="form.errors.address" class="mt-1 block text-xs text-red-600">{{ form.errors.address }}</span>
           </label>
 
           <label class="block sm:col-span-2">

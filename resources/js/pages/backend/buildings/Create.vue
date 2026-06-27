@@ -27,7 +27,6 @@ watch(() => props.initialStep, (newVal) => {
 const form = useForm({
   name: props.building?.name ?? '',
   code: props.building?.code ?? '',
-  address: props.building?.address ?? '',
   description: props.building?.description ?? '',
   redirect_to: 'wizard',
 })
@@ -36,7 +35,6 @@ watch(() => props.building, (newBuilding) => {
   if (newBuilding) {
     form.name = newBuilding.name ?? ''
     form.code = newBuilding.code ?? ''
-    form.address = newBuilding.address ?? ''
     form.description = newBuilding.description ?? ''
   }
 }, { deep: true })
@@ -60,7 +58,6 @@ function submitBuilding() {
 // Step 2: Floor forms & actions
 const floorForm = useForm({
   name: '',
-  code: '',
   level: '',
 })
 
@@ -368,7 +365,6 @@ function goToStep(targetStep) {
               <thead>
                 <tr class="border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <th class="py-3 px-4">Floor Name</th>
-                  <th class="py-3 px-4">Code</th>
                   <th class="py-3 px-4">Level</th>
                   <th class="py-3 px-4 text-right">Actions</th>
                 </tr>
@@ -376,7 +372,6 @@ function goToStep(targetStep) {
               <tbody class="divide-y divide-slate-100 text-sm">
                 <tr v-for="floor in props.building?.floors" :key="floor.id" class="hover:bg-slate-50 transition">
                   <td class="py-3 px-4 font-semibold text-slate-900">{{ floor.name }}</td>
-                  <td class="py-3 px-4 text-slate-500">{{ floor.code || '-' }}</td>
                   <td class="py-3 px-4">
                     <span class="rounded bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                       Lvl {{ floor.level !== null ? floor.level : '-' }}
@@ -432,12 +427,6 @@ function goToStep(targetStep) {
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Floor Name</span>
                 <input v-model="floorForm.name" type="text" placeholder="e.g. Ground Floor" required class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500">
                 <span v-if="floorForm.errors.name" class="mt-1 block text-xs text-red-600">{{ floorForm.errors.name }}</span>
-              </label>
-
-              <label class="block">
-                <span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Code</span>
-                <input v-model="floorForm.code" type="text" placeholder="e.g. GF" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500">
-                <span v-if="floorForm.errors.code" class="mt-1 block text-xs text-red-600">{{ floorForm.errors.code }}</span>
               </label>
 
               <label class="block">
@@ -584,7 +573,7 @@ function goToStep(targetStep) {
 
               <label class="block">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Capacity</span>
-                <input v-model="roomForm.capacity" type="number" placeholder="Optional" min="1" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500">
+                <input v-model="roomForm.capacity" type="number" placeholder="Optional" min="1" @keydown="['-', 'e', 'E', '+'].includes($event.key) && $event.preventDefault()" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500">
                 <span v-if="roomForm.errors.capacity" class="mt-1 block text-xs text-red-600">{{ roomForm.errors.capacity }}</span>
               </label>
 
@@ -619,7 +608,7 @@ function goToStep(targetStep) {
 
               <label class="block">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Capacity</span>
-                <input v-model="autoRoomForm.capacity" type="number" placeholder="Optional" min="1" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500">
+                <input v-model="autoRoomForm.capacity" type="number" placeholder="Optional" min="1" @keydown="['-', 'e', 'E', '+'].includes($event.key) && $event.preventDefault()" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500">
                 <span v-if="autoRoomForm.errors.capacity" class="mt-1 block text-xs text-red-600">{{ autoRoomForm.errors.capacity }}</span>
               </label>
 

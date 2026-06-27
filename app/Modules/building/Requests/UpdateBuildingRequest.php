@@ -24,7 +24,6 @@ class UpdateBuildingRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255', Rule::unique('buildings', 'name')->ignore($building?->id)],
             'code' => ['nullable', 'string', 'max:255', Rule::unique('buildings', 'code')->ignore($building?->id)],
-            'address' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
         ];
     }
@@ -36,7 +35,6 @@ class UpdateBuildingRequest extends FormRequest
         return new BuildingData(
             name: $validated['name'],
             code: $validated['code'] ?? null,
-            address: $validated['address'] ?? null,
             description: $validated['description'] ?? null,
         );
     }

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { Head, Link, router, useForm, usePage } from "@inertiajs/vue3";
 import { Card } from "../../../components/ui/card";
 import { PageHero } from "../../../components/ui/page-hero";
@@ -17,10 +17,76 @@ const summary = computed(
         },
 );
 
+const selectedBuildingId = ref("");
+const selectedFloorId = ref("");
+const selectedRoomId = ref("");
+
+// Computed list of floors based on selected building
+const filterFloors = computed(() => {
+    if (!selectedBuildingId.value) return [];
+    const b = buildings.value.find(x => x.id === Number(selectedBuildingId.value));
+    return b ? b.floors : [];
+});
+
+// Computed list of rooms based on selected floor
+const filterRooms = computed(() => {
+    if (!selectedFloorId.value) return [];
+    const f = filterFloors.value.find(x => x.id === Number(selectedFloorId.value));
+    return f ? f.rooms : [];
+});
+
+function resetFilters() {
+    selectedBuildingId.value = "";
+    selectedFloorId.value = "";
+    selectedRoomId.value = "";
+}
+
+// Watchers to reset nested levels when parent selection changes
+watch(selectedBuildingId, () => {
+    selectedFloorId.value = "";
+    selectedRoomId.value = "";
+});
+watch(selectedFloorId, () => {
+    selectedRoomId.value = "";
+});
+
+// Reactive filtering logic
+const filteredBuildings = computed(() => {
+    let list = buildings.value;
+
+    if (selectedBuildingId.value) {
+        list = list.filter(b => b.id === Number(selectedBuildingId.value));
+    }
+
+    if (selectedFloorId.value) {
+        list = list.map(b => {
+            return {
+                ...b,
+                floors: b.floors.filter(f => f.id === Number(selectedFloorId.value))
+            };
+        }).filter(b => b.floors.length > 0);
+    }
+
+    if (selectedRoomId.value) {
+        list = list.map(b => {
+            return {
+                ...b,
+                floors: b.floors.map(f => {
+                    return {
+                        ...f,
+                        rooms: f.rooms.filter(r => r.id === Number(selectedRoomId.value))
+                    };
+                }).filter(f => f.rooms.length > 0)
+            };
+        }).filter(b => b.floors.length > 0);
+    }
+
+    return list;
+});
+
 const floorForm = useForm({
     building_id: "",
     name: "",
-    code: "",
     level: "",
 });
 
@@ -79,7 +145,6 @@ function openFloorCreate(building) {
     };
     floorForm.building_id = building.id;
     floorForm.name = "";
-    floorForm.code = "";
     floorForm.level = "";
     floorForm.clearErrors();
 }
@@ -104,7 +169,6 @@ function openFloorEdit(building, floor) {
     };
     floorForm.building_id = building.id;
     floorForm.name = floor.name ?? "";
-    floorForm.code = floor.code ?? "";
     floorForm.level = floor.level ?? "";
     floorForm.clearErrors();
 }
@@ -392,7 +456,7 @@ function statusClass(status) {
 
     <DashboardLayout>
         <section class="space-y-6">
-            <div class="grid gap-4 md:grid-cols-4">
+            <div class="grid gap-6 md:grid-cols-3">
                 <Card
                     v-for="item in [
                         {
@@ -424,45 +488,135 @@ function statusClass(status) {
                     </div>
                 </Card>
             </div>
-            <div
-                class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
-            >
-               <div>
-                
-               </div>
+            <!-- Filter & Action Section -->
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    
+                    <!-- Filters Grid -->
+                    <div class="grid w-full gap-4 grid-cols-1 sm:grid-cols-3 max-w-4xl">
+                        <!-- Building Dropdown -->
+                        <div class="space-y-1.5 text-left">
+                            <label for="building-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                                Building
+                            </label>
+                            <div class="relative">
+                                <select
+                                    id="building-filter"
+                                    v-model="selectedBuildingId"
+                                    class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                >
+                                    <option value="">All Buildings</option>
+                                    <option
+                                        v-for="b in buildings"
+                                        :key="b.id"
+                                        :value="b.id"
+                                    >
+                                        {{ b.name }}
+                                    </option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
 
-                <div class="flex gap-2">
-                    <Link
-                        href="/dashboard/buildings/filter"
-                        class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-                    >
-                        Filter Building
-                    </Link>
+                        <!-- Floor Dropdown -->
+                        <div class="space-y-1.5 text-left">
+                            <label for="floor-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                                Floor
+                            </label>
+                            <div class="relative">
+                                <select
+                                    id="floor-filter"
+                                    v-model="selectedFloorId"
+                                    :disabled="!selectedBuildingId"
+                                    class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                                >
+                                    <option value="">All Floors</option>
+                                    <option
+                                        v-for="f in filterFloors"
+                                        :key="f.id"
+                                        :value="f.id"
+                                    >
+                                        {{ f.name }} (Lvl {{ f.level ?? 'N/A' }})
+                                    </option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
 
-                    <Link
-                        href="/dashboard/buildings/create"
-                        class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-                    >
-                        Add Building
-                    </Link>
-                </div>
+                        <!-- Room Dropdown -->
+                        <div class="space-y-1.5 text-left">
+                            <label for="room-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                                Room
+                            </label>
+                            <div class="relative">
+                                <select
+                                    id="room-filter"
+                                    v-model="selectedRoomId"
+                                    :disabled="!selectedFloorId"
+                                    class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                                >
+                                    <option value="">All Rooms</option>
+                                    <option
+                                        v-for="r in filterRooms"
+                                        :key="r.id"
+                                        :value="r.id"
+                                    >
+                                        Room {{ r.room_number }}
+                                    </option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reset & Add Buttons -->
+                    <div class="flex gap-2 w-full lg:w-auto justify-end">
+                        <button
+                            v-if="selectedBuildingId"
+                            type="button"
+                            @click="resetFilters"
+                            class="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                            Reset
+                        </button>
+
+                        <Link
+                            href="/dashboard/buildings/create"
+                            class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 whitespace-nowrap"
+                        >
+                            Add Building
+                        </Link>
+                    </div>
+
             </div>
+        </div>
 
-            <div class="space-y-5">
-                <Card v-if="buildings.length === 0" card-class="border-dashed">
+        <div class="space-y-5">
+            <Card v-if="filteredBuildings.length === 0" card-class="border-dashed">
                     <div class="rounded-2xl bg-slate-50 p-10 text-center">
                         <h3 class="text-lg font-semibold text-slate-900">
-                            No buildings yet
+                            {{ summary.buildings === 0 ? "No buildings yet" : "No matching buildings" }}
                         </h3>
                         <p class="mt-2 text-sm text-slate-500">
-                            Use the Add Building button to create the first
-                            building.
+                            {{ summary.buildings === 0 ? "Use the Add Building button to create the first building." : "Try adjusting or resetting your filter selections." }}
                         </p>
                     </div>
                 </Card>
 
                 <Card
-                    v-for="building in buildings"
+                    v-for="building in filteredBuildings"
                     :key="building.id"
                     padding="p-0"
                     card-class="overflow-hidden"
@@ -488,12 +642,6 @@ function statusClass(status) {
                                     </span>
                                 </div>
 
-                                <p class="mt-2 text-sm text-slate-600">
-                                    {{
-                                        building.address ||
-                                        "No address provided."
-                                    }}
-                                </p>
                                 <p
                                     v-if="building.description"
                                     class="mt-3 max-w-3xl text-sm leading-6 text-slate-500"
@@ -572,7 +720,7 @@ function statusClass(status) {
                             </div>
 
                             <form
-                                class="mt-4 grid gap-4 md:grid-cols-3"
+                                class="mt-4 grid gap-4 md:grid-cols-2"
                                 @submit.prevent="submitFloor"
                             >
                                 <div>
@@ -597,25 +745,6 @@ function statusClass(status) {
                                 <div>
                                     <label
                                         class="mb-1.5 block text-sm font-medium text-slate-700"
-                                        >Code</label
-                                    >
-                                    <input
-                                        v-model="floorForm.code"
-                                        type="text"
-                                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                        placeholder="GF"
-                                    />
-                                    <p
-                                        v-if="floorForm.errors.code"
-                                        class="mt-1 text-xs text-red-600"
-                                    >
-                                        {{ floorForm.errors.code }}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label
-                                        class="mb-1.5 block text-sm font-medium text-slate-700"
                                         >Level</label
                                     >
                                     <input
@@ -632,7 +761,7 @@ function statusClass(status) {
                                     </p>
                                 </div>
 
-                                <div class="md:col-span-3">
+                                <div class="md:col-span-2">
                                     <button
                                         type="submit"
                                         class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
@@ -829,12 +958,6 @@ function statusClass(status) {
                                                 {{ floor.name }}
                                             </h3>
                                             <span
-                                                v-if="floor.code"
-                                                class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600"
-                                            >
-                                                {{ floor.code }}
-                                            </span>
-                                            <span
                                                 class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
                                             >
                                                 Level {{ floor.level ?? "N/A" }}
@@ -915,7 +1038,7 @@ function statusClass(status) {
                                     </div>
 
                                     <form
-                                        class="mt-4 grid gap-4 md:grid-cols-3"
+                                        class="mt-4 grid gap-4 md:grid-cols-2"
                                         @submit.prevent="submitFloor"
                                     >
                                         <div>
@@ -933,24 +1056,6 @@ function statusClass(status) {
                                                 class="mt-1 text-xs text-red-600"
                                             >
                                                 {{ floorForm.errors.name }}
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <label
-                                                class="mb-1.5 block text-sm font-medium text-slate-700"
-                                                >Code</label
-                                            >
-                                            <input
-                                                v-model="floorForm.code"
-                                                type="text"
-                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                            />
-                                            <p
-                                                v-if="floorForm.errors.code"
-                                                class="mt-1 text-xs text-red-600"
-                                            >
-                                                {{ floorForm.errors.code }}
                                             </p>
                                         </div>
 
@@ -1051,6 +1156,7 @@ function statusClass(status) {
                                                 v-model="roomForm.capacity"
                                                 type="number"
                                                 min="1"
+                                                @keydown="['-', 'e', 'E', '+'].includes($event.key) && $event.preventDefault()"
                                                 class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                                 placeholder="30"
                                             />
@@ -1199,6 +1305,7 @@ function statusClass(status) {
                                                 v-model="autoRoomForm.capacity"
                                                 type="number"
                                                 min="1"
+                                                @keydown="['-', 'e', 'E', '+'].includes($event.key) && $event.preventDefault()"
                                                 class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                                 placeholder="30"
                                             />
@@ -1455,6 +1562,7 @@ function statusClass(status) {
                                                     v-model="roomForm.capacity"
                                                     type="number"
                                                     min="1"
+                                                    @keydown="['-', 'e', 'E', '+'].includes($event.key) && $event.preventDefault()"
                                                     class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                                 />
                                                 <p

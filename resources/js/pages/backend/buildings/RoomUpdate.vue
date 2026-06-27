@@ -64,6 +64,7 @@ function submit() {
               v-model="form.capacity"
               type="number"
               min="1"
+              @keydown="['-', 'e', 'E', '+'].includes($event.key) && $event.preventDefault()"
               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
               placeholder="Optional"
             >

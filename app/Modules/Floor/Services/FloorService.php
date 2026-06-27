@@ -18,7 +18,6 @@ class FloorService
             $query->where(function (Builder $builder) use ($search): void {
                 $builder
                     ->where('name', 'like', '%'.$search.'%')
-                    ->orWhere('code', 'like', '%'.$search.'%')
                     ->orWhere('level', $search);
             });
         }
@@ -46,14 +45,13 @@ class FloorService
     }
 
     /**
-     * @return array{id: int, name: string, code: string|null, level: int|null, created_at: string|null, updated_at: string|null}
+     * @return array{id: int, name: string, level: int|null, created_at: string|null, updated_at: string|null}
      */
     public function present(Floor $floor): array
     {
         return [
             'id' => $floor->id,
             'name' => $floor->name,
-            'code' => $floor->code,
             'level' => $floor->level,
             'created_at' => $floor->created_at?->toISOString(),
             'updated_at' => $floor->updated_at?->toISOString(),
