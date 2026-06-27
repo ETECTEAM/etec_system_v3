@@ -25,7 +25,7 @@ class StoreUserRequest extends FormRequest
 
         return [
             'name' => [Rule::requiredIf(! $student && ! $instructor), 'nullable', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
+            'email' => ['required', 'string', 'email', 'max:255', 'regex:/^[a-zA-Z0-9._%+-]+@etec\.com$/', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in($roles)],
             'account_status' => ['required', 'boolean'],
@@ -35,7 +35,7 @@ class StoreUserRequest extends FormRequest
             'student_first_name' => ['nullable', 'string', 'max:255'], 'student_last_name' => ['nullable', 'string', 'max:255'],
             'student_full_name_kh' => ['nullable', 'string', 'max:255'], 'student_gender' => ['nullable', 'string', 'max:20'],
             'student_date_of_birth' => ['nullable', 'date'], 'student_phone' => ['nullable', 'string', 'max:30'],
-            'student_email' => ['nullable', 'email', 'max:255'], 'student_class_id' => ['nullable', 'integer'],
+            'student_email' => ['nullable', 'email', 'max:255', 'regex:/^[a-zA-Z0-9._%+-]+@gmail\.com$/'], 'student_class_id' => ['nullable', 'integer'],
             'parent_name' => ['nullable', 'string', 'max:255'], 'parent_phone' => ['nullable', 'string', 'max:30'],
             'student_address' => ['nullable', 'string'], 'student_status' => ['nullable', 'boolean'],
             'instructor_code' => [Rule::requiredIf($instructor), 'nullable', 'string', 'max:255', Rule::unique('instructor_data', 'instructor_code')],
@@ -43,7 +43,7 @@ class StoreUserRequest extends FormRequest
             'instructor_first_name' => ['nullable', 'string', 'max:255'], 'instructor_last_name' => ['nullable', 'string', 'max:255'],
             'instructor_full_name_kh' => ['nullable', 'string', 'max:255'], 'instructor_gender' => ['nullable', 'string', 'max:20'],
             'instructor_date_of_birth' => ['nullable', 'date'], 'instructor_phone' => ['nullable', 'string', 'max:30'],
-            'instructor_email' => ['nullable', 'email', 'max:255'], 'specialization' => ['nullable', 'string', 'max:255'],
+            'instructor_email' => ['nullable', 'email', 'max:255', 'regex:/^[a-zA-Z0-9._%+-]+@gmail\.com$/'], 'specialization' => ['nullable', 'string', 'max:255'],
             'employment_type' => [Rule::requiredIf($instructor), 'nullable', Rule::in(['full_time', 'part_time'])],
             'shift_preference' => [Rule::requiredIf($instructor), 'nullable', Rule::in(['morning_evening', 'afternoon_evening', 'morning_afternoon'])],
             'available_for_class' => ['nullable', 'boolean'], 'hire_date' => ['nullable', 'date'],

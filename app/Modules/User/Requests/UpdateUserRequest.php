@@ -13,7 +13,7 @@ class UpdateUserRequest extends StoreUserRequest
         $target = $this->route('user');
         $roles = $this->user() ? app(UserService::class)->assignableRolesFor($this->user()) : [];
         $rules = $this->profileRules($roles);
-        $rules['email'] = ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($target?->id)];
+        $rules['email'] = ['required', 'string', 'email', 'max:255', 'regex:/^[a-zA-Z0-9._%+-]+@etec\.com$/', Rule::unique('users', 'email')->ignore($target?->id)];
         $rules['password'] = ['nullable', 'string', 'min:8', 'confirmed'];
         $rules['student_code'][4] = Rule::unique('students', 'student_code')->ignore($target?->student?->id);
         $rules['instructor_code'][4] = Rule::unique('instructor_data', 'instructor_code')->ignore($target?->instructorData?->id);
