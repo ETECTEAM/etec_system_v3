@@ -1,12 +1,13 @@
 <script setup>
 import { computed } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
+import { Search } from '@lucide/vue'
 import { formatRole, roleBadgeClass } from '@/lib/roleBadge.js'
 import { Pagination } from '@/components/ui/pagination'
 import { Card } from '@/components/ui/card'
 import { ActionMenu } from '@/components/ui/menu'
-import { SelectSearch } from '../../../components/ui/select-search'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table'
+import { SelectSearch } from '@/components/ui/select-search'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const props = defineProps({
   users: {
@@ -45,6 +46,10 @@ const props = defineProps({
   selectedRole: {
     type: String,
     default: '',
+  },
+  canCreateUser: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -158,31 +163,25 @@ function handleAction(action, user) {
   <Card padding="p-0">
     <div class="border-b border-slate-200 px-6 py-5">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Instructor Directory</p>
-          <h2 class="mt-1 text-xl font-semibold text-slate-900">Instructors</h2>
-          <p class="mt-1 text-sm text-slate-500">Manage registered instructors and their access.</p>
+        <div class="min-w-0 shrink-0">
+          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">User Directory</p>
+          <!-- <h2 class="mt-1 text-xl font-semibold text-slate-900">Users</h2> -->
+          <p class="mt-1 text-sm text-slate-500">Manage registered users and their access.</p>
         </div>
 
-        
-      </div>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+          <div class="relative">
+            <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              :value="search"
+              type="text"
+              placeholder="Search..."
+              class="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:w-56"
+              @input="emit('update:search', $event.target.value)"
+            >
+          </div>
 
-      <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div class="md:col-span-2">
-          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Search</label>
-          <input
-            :value="search"
-            type="text"
-            placeholder="Search by name or email"
-            class="mt-2 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-            @input="emit('update:search', $event.target.value)"
-          >
-          <p v-if="searchError" class="mt-1 text-xs text-red-500">{{ searchError }}</p>
-        </div>
-
-        <div>
-          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Role</label>
-          <div class="mt-2">
+          <div class="sm:w-40">
             <SelectSearch
               :model-value="selectedRole"
               :options="roleOptions"
@@ -190,8 +189,19 @@ function handleAction(action, user) {
               @update:model-value="emit('update:selectedRole', $event)"
             />
           </div>
+
+          <Link
+            v-if="canCreateUser"
+            href="/dashboard/users/create"
+            class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            Create User
+          </Link>
         </div>
       </div>
+
+      <p v-if="searchError && search" class="mt-2 text-xs text-red-500">{{ searchError }}</p>
     </div>
 
     <div class="relative">
@@ -249,7 +259,7 @@ function handleAction(action, user) {
       >
         <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
           <div class="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
-          <span class="text-sm text-slate-600">Loading instructors...</span>
+          <span class="text-sm text-slate-600">Loading Users...</span>
         </div>
       </div>
     </div>

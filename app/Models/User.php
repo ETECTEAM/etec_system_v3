@@ -4,11 +4,12 @@ namespace App\Models;
 
 use App\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -17,8 +18,7 @@ class User extends Authenticatable
     use HasRoles;
     use Notifiable;
 
-   protected string $guard_name = 'web';
-
+    protected string $guard_name = 'web';
 
     /**
      * The attributes that are mass assignable.
@@ -65,12 +65,24 @@ class User extends Authenticatable
     {
         return $this->hasMany(VerificationCode::class);
     }
+
     public function otpVerifications(): HasMany
     {
         return $this->hasMany(OtpVerification::class);
     }
+
     public function authAuditLogs(): HasMany
     {
         return $this->hasMany(AuthAuditLog::class);
+    }
+
+    public function student(): HasOne
+    {
+        return $this->hasOne(Student::class, 'user_id', 'id');
+    }
+
+    public function instructorData(): HasOne
+    {
+        return $this->hasOne(InstructorData::class, 'user_id', 'id');
     }
 }

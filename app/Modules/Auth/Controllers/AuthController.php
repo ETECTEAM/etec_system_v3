@@ -2,7 +2,6 @@
 
 namespace App\Modules\Auth\Controllers;
 
-use App\Modules\Auth\Events\PendingUserRegistered;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Auth\Events\PendingUserRegistered;
@@ -196,7 +195,7 @@ class AuthController extends Controller
 
     private function redirectPathFor(User $user): string
     {
-        if ($user->hasRole('admin')) {
+        if ($user->hasAnyRole(['super_admin', 'admin'])) {
             return '/dashboard';
         }
 
@@ -204,6 +203,10 @@ class AuthController extends Controller
             return '/dashboard/users';
         }
 
-        return '/';
+        if ($user->hasRole('student')) {
+            return '/dashboard';
+        }
+
+        return '/login';
     }
 }

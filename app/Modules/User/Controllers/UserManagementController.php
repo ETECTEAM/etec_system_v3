@@ -12,7 +12,6 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use App\Modules\User\Requests\StoreUserRequest;
 use App\Modules\User\Services\UserService;
-// use Spatie\Permission\Models\Permission;
 
 /**
  * Renders user role and permission management pages.
@@ -77,7 +76,7 @@ class UserManagementController extends Controller
                     ];
                 }),
             'permissions' => Permission::query()
-                ->where('guard_name', 'sanctum')
+                ->where('guard_name', 'web')
                 ->orderBy('name')
                 ->pluck('name')
                 ->values(),
@@ -157,7 +156,7 @@ class UserManagementController extends Controller
                     ];
                 }),
             'permissions' => Permission::query()
-                ->where('guard_name', 'sanctum')
+                ->where('guard_name', 'web')
                 ->orderBy('name')
                 ->pluck('name')
                 ->values(),

@@ -80,7 +80,7 @@ function changePage(page) {
       class="rounded-xl px-3 py-1.5 text-sm font-medium transition-all duration-200"
       :class="[
         page === props.currentPage
-          ? 'border border-blue-600 bg-blue-600 text-white shadow-sm'
+          ? 'border border-blue-900 bg-blue-900 text-white shadow-sm'
           : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
         page === '...' ? 'cursor-default border-transparent bg-transparent hover:border-transparent hover:bg-transparent' : '',
       ]"
