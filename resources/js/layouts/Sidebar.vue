@@ -19,21 +19,11 @@ const page = usePage();
 
 const currentPath = computed(() => page.url ?? "/");
 const roles = computed(() => page.props.auth?.roles ?? []);
+
 const isSuperAdmin = computed(() => roles.value.includes("super_admin"));
+
 const canAccessNotifications = computed(
   () => roles.value.includes("super_admin") || roles.value.includes("admin")
-);
-const canAccessFloors = computed(
-  () =>
-    roles.value.includes("super_admin") ||
-    roles.value.includes("admin") ||
-    roles.value.includes("instructor")
-);
-const canAccessRegisters = computed(
-  () =>
-    roles.value.includes("super_admin") ||
-    roles.value.includes("admin") ||
-    roles.value.includes("instructor")
 );
 
 function isStudentRoute(path) {
@@ -42,6 +32,7 @@ function isStudentRoute(path) {
 
 function isClassManagementRoute(path) {
   const p = path.split("?")[0];
+
   return (
     p.startsWith("/class-types") ||
     p.startsWith("/dashboard/class-types") ||
@@ -55,6 +46,7 @@ function isUserManagementRoute(path) {
 
 function isBuildingRoute(path) {
   const p = path.split("?")[0];
+
   return (
     p.startsWith("/dashboard/buildings") ||
     p.startsWith("/dashboard/floors") ||
@@ -64,6 +56,7 @@ function isBuildingRoute(path) {
 
 function isScheduleRoute(path) {
   const p = path.split("?")[0];
+
   return (
     p.startsWith("/dashboard/terms") ||
     p.startsWith("/dashboard/times") ||
@@ -73,8 +66,9 @@ function isScheduleRoute(path) {
 
 function isCourseRoute(path) {
   const p = path.split("?")[0];
+
   return (
-    p.startsWith("/dashboard/course") ||  // This will catch all /dashboard/course/*
+    p.startsWith("/dashboard/course") ||
     p.startsWith("/dashboard/categories") ||
     p.startsWith("/dashboard/subcategories") ||
     p.startsWith("/dashboard/tracks") ||
@@ -90,7 +84,6 @@ const openMenus = ref({
   schdule: isScheduleRoute(currentPath.value),
   student: isStudentRoute(currentPath.value),
   course: isCourseRoute(currentPath.value),
- 
 });
 
 const menuItems = computed(() => {
@@ -102,15 +95,7 @@ const menuItems = computed(() => {
       exact: true,
       icon: "home",
     },
-    collapsed: {
-        type: Boolean,
-        default: false,
-    },
-})
-
-const emit = defineEmits(["close"]);
-
-const page = usePage();
+  ];
 
   if (canAccessNotifications.value) {
     base.push({
@@ -123,11 +108,10 @@ const page = usePage();
     });
   }
 
-  // Class Management
   base.push({
     label: "Class Management",
     key: "classes",
-    match: ["/class-types",  "/dashboard/class-types", "/dashboard/class-list"],
+    match: ["/class-types", "/dashboard/class-types", "/dashboard/class-list"],
     icon: "classes",
     children: [
       {
@@ -135,7 +119,9 @@ const page = usePage();
         href: "/dashboard/class-types",
         match: ["/dashboard/class-types", "/class-types"],
         exact: false,
-        isActive: (path) => path.startsWith("/dashboard/class-types") || path.startsWith("/class-types"),
+        isActive: (path) =>
+          path.startsWith("/dashboard/class-types") ||
+          path.startsWith("/class-types"),
       },
       {
         label: "Class List",
@@ -147,7 +133,6 @@ const page = usePage();
     ],
   });
 
-  // Course Management
   base.push({
     label: "Course Management",
     key: "course",
@@ -301,9 +286,11 @@ function isChildActive(children = []) {
     if (isActive(child)) {
       return true;
     }
+
     if (child.children) {
       return isChildActive(child.children);
     }
+
     return false;
   });
 }
@@ -312,43 +299,35 @@ function toggleMenu(key) {
   if (props.collapsed) {
     return;
   }
+
   openMenus.value[key] = !openMenus.value[key];
 }
 
 watch(currentPath, (path) => {
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-    if (isUserManagementRoute(path)) {
-        openMenus.value.user = true
-    }
-})
-=======
->>>>>>> dev
   if (isUserManagementRoute(path)) {
     openMenus.value.user = true;
   }
+
   if (isBuildingRoute(path)) {
     openMenus.value.building_management = true;
   }
+
   if (isClassManagementRoute(path)) {
     openMenus.value.classes = true;
   }
+
   if (isScheduleRoute(path)) {
     openMenus.value.schdule = true;
   }
+
   if (isStudentRoute(path)) {
     openMenus.value.student = true;
   }
-<<<<<<< HEAD
-});
-=======
+
   if (isCourseRoute(path)) {
     openMenus.value.course = true;
   }
 });
->>>>>>> Stashed changes
->>>>>>> dev
 </script>
 
 <template>
@@ -371,13 +350,8 @@ watch(currentPath, (path) => {
     >
       <div
         :class="[
-<<<<<<< HEAD
           'flex h-full flex-col py-6',
           props.collapsed ? 'px-3' : 'px-4',
-=======
-            'fixed inset-0 z-40 lg:static lg:inset-auto lg:z-auto',
-            props.open ? 'block' : 'hidden lg:block',
->>>>>>> dev
         ]"
       >
         <div
@@ -392,186 +366,191 @@ watch(currentPath, (path) => {
             </p>
             <p class="text-base font-semibold text-slate-900">Control Center</p>
           </div>
+
           <button
             type="button"
             class="rounded-lg border border-slate-200 p-1 text-slate-500 transition hover:bg-slate-50 lg:hidden"
             @click="emit('close')"
           >
-            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M4.22 4.22a.75.75 0 0 1 1.06 0L10 8.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L11.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L8.94 10 4.22 5.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/>
+            <svg
+              class="h-4 w-4"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M4.22 4.22a.75.75 0 0 1 1.06 0L10 8.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L11.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L8.94 10 4.22 5.28a.75.75 0 0 1 0-1.06Z"
+                clip-rule="evenodd"
+              />
             </svg>
           </button>
         </div>
 
         <nav class="mt-6 flex-1 overflow-y-auto">
-          <p v-if="!props.collapsed" class="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+          <p
+            v-if="!props.collapsed"
+            class="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400"
+          >
             Navigation
           </p>
+
           <ul class="space-y-1.5">
             <li v-for="item in menuItems" :key="item.href ?? item.key">
-<<<<<<< HEAD
-              
               <template v-if="item.children">
                 <button
                   type="button"
                   :title="props.collapsed ? item.label : ''"
                   :class="[
                     'flex w-full items-center rounded-xl text-sm font-semibold transition',
-                    props.collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2',
-                    isChildActive(item.children) ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                    props.collapsed
+                      ? 'justify-center px-2 py-3'
+                      : 'justify-between px-3 py-2',
+                    isChildActive(item.children)
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
                   ]"
                   @click="toggleMenu(item.key)"
                 >
                   <span class="flex flex-1 items-center gap-2 text-left">
-                    <svg v-if="item.icon === 'classes'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
-                      <path d="M6 6h10M6 10h10" />
-                    </svg>
-
-                    <svg v-else-if="item.icon === 'user'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M16 19a4 4 0 0 0-8 0" />
-                      <circle cx="12" cy="7" r="3" />
-                      <path d="M20 8v6" />
-                      <path d="M23 11h-6" />
-                    </svg>
-
-                    <svg v-else-if="item.icon === 'building_management'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-                      <line x1="9" y1="22" x2="9" y2="16"></line>
-                      <line x1="15" y1="22" x2="15" y2="16"></line>
-                    </svg>
-
-                    <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="9" y1="3" x2="9" y2="21"></line>
-                    </svg>
-
-                    <span v-if="!props.collapsed">{{ item.label }}</span>
-                  </span>
-                  
-                  <svg v-if="!props.collapsed" class="h-4 w-4 text-slate-400 transition" :class="openMenus[item.key] ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
-                  </svg>
-                </button>
-
-                                <ul v-if="openMenus[item.key] && !props.collapsed" class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3">
-                                    <li v-for="child in item.children" :key="child.href ?? child.key">
-                                        <Link
-                                            :href="child.href"
-                                            class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
-                                            :class="isActive(child)
-                                                ? 'bg-blue-50 text-blue-700'
-                                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-                                            @click="emit('close')"
-                                        >
-                                            <span>{{ child.label }}</span>
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </template>
-
-              <Link
-                v-else
-                :href="item.href"
-                :title="props.collapsed ? item.label : ''"
-                :class="[
-                  'flex items-center rounded-xl text-sm font-semibold transition',
-                  props.collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2',
-                  isActive(item) ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
-                ]"
-                @click="emit('close')"
-              >
-                <span class="flex items-center gap-2">
-                  <svg v-if="item.icon === 'notification'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                  </svg>
-                  <svg v-else-if="item.icon === 'home'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                    <polyline points="9 22 9 12 15 12 15 22" />
-                  </svg>
-                  <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                  </svg>
-                  <span v-if="!props.collapsed">{{ item.label }}</span>
-                </span>
-              </Link>
-
-=======
-
-              <template v-if="item.children">
-                <button
-                  type="button"
-                  :title="props.collapsed ? item.label : ''"
-                  :class="[
-                    'flex w-full items-center rounded-xl text-sm font-semibold transition',
-                    props.collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2',
-                    isChildActive(item.children) ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
-                  ]"
-                  @click="toggleMenu(item.key)"
-                >
-                  <span class="flex flex-1 items-center gap-2 text-left">
-                    <!-- Course Icon -->
-                    <svg v-if="item.icon === 'course'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg
+                      v-if="item.icon === 'course'"
+                      class="h-4 w-4 text-slate-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
                       <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
                       <path d="M8 7h8" />
                       <path d="M8 11h6" />
                       <path d="M8 15h4" />
                     </svg>
 
-                    <svg v-else-if="item.icon === 'classes'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg
+                      v-else-if="item.icon === 'classes'"
+                      class="h-4 w-4 text-slate-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
                       <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
                       <path d="M6 6h10M6 10h10" />
                     </svg>
 
-                    <svg v-else-if="item.icon === 'user'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg
+                      v-else-if="item.icon === 'user'"
+                      class="h-4 w-4 text-slate-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
                       <path d="M16 19a4 4 0 0 0-8 0" />
                       <circle cx="12" cy="7" r="3" />
                       <path d="M20 8v6" />
                       <path d="M23 11h-6" />
                     </svg>
 
-                    <svg v-else-if="item.icon === 'building_management'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-                      <line x1="9" y1="22" x2="9" y2="16"></line>
-                      <line x1="15" y1="22" x2="15" y2="16"></line>
+                    <svg
+                      v-else-if="item.icon === 'building_management'"
+                      class="h-4 w-4 text-slate-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+                      <line x1="9" y1="22" x2="9" y2="16" />
+                      <line x1="15" y1="22" x2="15" y2="16" />
                     </svg>
 
-                    <svg v-else-if="item.icon === 'schdule'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="16" y1="2" x2="16" y2="6"></line>
-                      <line x1="8" y1="2" x2="8" y2="6"></line>
-                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    <svg
+                      v-else-if="item.icon === 'schdule'"
+                      class="h-4 w-4 text-slate-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
                     </svg>
 
-                    <svg v-else-if="item.icon === 'student'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg
+                      v-else-if="item.icon === 'student'"
+                      class="h-4 w-4 text-slate-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                       <circle cx="9" cy="7" r="4" />
                       <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
 
-                    <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="9" y1="3" x2="9" y2="21"></line>
+                    <svg
+                      v-else
+                      class="h-4 w-4 text-slate-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                      <line x1="9" y1="3" x2="9" y2="21" />
                     </svg>
 
                     <span v-if="!props.collapsed">{{ item.label }}</span>
                   </span>
 
-                  <svg v-if="!props.collapsed" class="h-4 w-4 text-slate-400 transition" :class="openMenus[item.key] ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
+                  <svg
+                    v-if="!props.collapsed"
+                    class="h-4 w-4 text-slate-400 transition"
+                    :class="openMenus[item.key] ? 'rotate-180' : ''"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z"
+                      clip-rule="evenodd"
+                    />
                   </svg>
                 </button>
 
-                <ul v-if="openMenus[item.key] && !props.collapsed" class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3">
+                <ul
+                  v-if="openMenus[item.key] && !props.collapsed"
+                  class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3"
+                >
                   <li v-for="child in item.children" :key="child.href ?? child.key">
                     <Link
                       :href="child.href"
                       class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
-                      :class="isActive(child)
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                      :class="
+                        isActive(child)
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      "
                       @click="emit('close')"
                     >
                       <span>{{ child.label }}</span>
@@ -586,28 +565,60 @@ watch(currentPath, (path) => {
                 :title="props.collapsed ? item.label : ''"
                 :class="[
                   'flex items-center rounded-xl text-sm font-semibold transition',
-                  props.collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2',
-                  isActive(item) ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                  props.collapsed
+                    ? 'justify-center px-2 py-3'
+                    : 'justify-between px-3 py-2',
+                  isActive(item)
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
                 ]"
                 @click="emit('close')"
               >
                 <span class="flex items-center gap-2">
-                  <svg v-if="item.icon === 'notification'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <svg
+                    v-if="item.icon === 'notification'"
+                    class="h-4 w-4 text-slate-400"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                   </svg>
-                  <svg v-else-if="item.icon === 'home'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+
+                  <svg
+                    v-else-if="item.icon === 'home'"
+                    class="h-4 w-4 text-slate-400"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
                     <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                     <polyline points="9 22 9 12 15 12 15 22" />
                   </svg>
-                  <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+
+                  <svg
+                    v-else
+                    class="h-4 w-4 text-slate-400"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                   </svg>
+
                   <span v-if="!props.collapsed">{{ item.label }}</span>
                 </span>
               </Link>
-
->>>>>>> dev
             </li>
           </ul>
         </nav>
@@ -630,8 +641,4 @@ watch(currentPath, (path) => {
       </div>
     </aside>
   </div>
-<<<<<<< HEAD
 </template>
-=======
-</template>
->>>>>>> dev
