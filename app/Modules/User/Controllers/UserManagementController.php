@@ -44,7 +44,7 @@ class UserManagementController extends Controller
         ]);
     }
 
-    // Show the form to create a new user. 
+    // Show the form to create a new user.
     public function create(Request $request): Response
     {
         // Only super admins can access user management pages.
@@ -78,7 +78,7 @@ class UserManagementController extends Controller
                     ];
                 }),
             'permissions' => Permission::query()
-                ->where('guard_name', 'sanctum')
+                ->where('guard_name', 'web')
                 ->orderBy('name')
                 ->pluck('name')
                 ->values(),
@@ -189,7 +189,7 @@ class UserManagementController extends Controller
                     ];
                 }),
             'permissions' => Permission::query()
-                ->where('guard_name', 'sanctum')
+                ->where('guard_name', 'web')
                 ->orderBy('name')
                 ->pluck('name')
                 ->values(),

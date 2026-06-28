@@ -6,6 +6,7 @@ import { PageHero } from '../../../components/ui/page-hero'
 import { Pagination } from '../../../components/ui/pagination'
 import { formatRole, roleBadgeClass } from '../../../lib/roleBadge'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import axios from 'axios'
 
 const page = usePage()
 const roles = computed(() => page.props.roles ?? [])

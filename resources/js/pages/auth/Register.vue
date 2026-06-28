@@ -19,10 +19,15 @@ const showPassword = ref(false)
 const showPasswordConfirmation = ref(false)
 
 function submit() {
-  form.post('/register')
+  form
+    .transform((data) => ({
+      ...data,
+      name: data.name.trim(),
+      email: data.email.trim().toLowerCase(),
+    }))
+    .post('/register')
 }
 </script>
-
 <template>
   <AuthCard>
     <div class="mb-8">
@@ -132,7 +137,7 @@ function submit() {
 
     <p class="mt-6 text-center text-sm text-slate-600">
       Already have an account?
-      <Link href="/login" class="font-semibold text-blue-900 hover:text-blue-950">Sign in</Link>
+      <Link href="/auth/login" class="font-semibold text-blue-900 hover:text-blue-950">Sign in</Link>
     </p>
   </AuthCard>
 </template>

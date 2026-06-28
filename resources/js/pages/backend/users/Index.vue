@@ -4,7 +4,7 @@ import { onMounted, ref, watch } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
-import UserTableSection from '../../auth/components/UserTableSection.vue'
+import UserTableSection from './components/UserTableSection.vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
 const page = usePage()
@@ -105,7 +105,7 @@ watch(selectedRole, () => {
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="User Management" title="User" description="View existing users and manage account roles." />
+      <PageHero eyebrow="Users Management" title="Users" description="View existing users and manage account roles." />
 
       <UserTableSection
         :users="users"
