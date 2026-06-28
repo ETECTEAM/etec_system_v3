@@ -1,25 +1,26 @@
 <?php
 
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Backend Dashboard Routes
+| Dashboard Routes
 |--------------------------------------------------------------------------
-|
-| These routes handle the web-based dashboard functionality for the backend
-| interface, including displaying the main dashboard view and related operations.
-| Authenticated users can access these routes.
-|
 */
 
-// Import necessary classes for route definitions and controller handling.
-use Illuminate\Support\Facades\Route;
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', function () {
+        $user = Auth::user();
 
-// Import Inertia for rendering frontend views in the dashboard.
-use Inertia\Inertia;
+        if ($user->hasAnyRole(['super_admin', 'admin'])) {
+            return inertia('backend/Home');
+        }
 
-// Display the main dashboard view for authenticated users.
-Route::middleware('auth')->get('/dashboard', function () {
-    // Render the 'backend/Home' view using Inertia for the dashboard page.
-    return Inertia::render('backend/Home');
-})->name('dashboard');
+        if ($user->hasRole('instructor')) {
+            return redirect()->route('dashboard.users.index');
+        }
+
+        abort(403);
+    })->name('dashboard');
+});

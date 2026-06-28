@@ -5,8 +5,6 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -44,7 +42,7 @@ class UserManagementController extends Controller
         ]);
     }
 
-    // Show the form to create a new user. 
+    // Show the form to create a new user.
     public function create(Request $request): Response
     {
         // Only super admins can access user management pages.
@@ -78,7 +76,7 @@ class UserManagementController extends Controller
                     ];
                 }),
             'permissions' => Permission::query()
-                ->where('guard_name', 'sanctum')
+                ->where('guard_name', 'web')
                 ->orderBy('name')
                 ->pluck('name')
                 ->values(),
@@ -111,37 +109,6 @@ class UserManagementController extends Controller
         $role->syncPermissions($validated['permissions'] ?? []);
 
         return back()->with('success', 'Role permissions updated successfully.');
-    }
-
-    // Create a new role from the role management page.
-    public function storeRole(Request $request): RedirectResponse
-    {
-        // Only super admins can create new roles.
-        abort_unless($request->user()?->hasRole('super_admin'), 403);
-
-        // Normalise to snake_case BEFORE validation so the unique rule checks
-        // the actual stored value. "Super Admin" → "super_admin" correctly
-        // collides with the existing role rather than passing through.
-        $request->merge([
-            'name' => Str::snake(Str::lower(trim((string) $request->input('name', '')))),
-        ]);
-
-        $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-                // Unique check scoped to the sanctum guard (name + guard_name must be unique).
-                Rule::unique('roles', 'name')->where('guard_name', 'sanctum'),
-            ],
-        ], [
-            'name.required' => 'Role name is required.',
-            'name.unique'   => 'A role with this name already exists.',
-        ]);
-
-        $role = Role::findOrCreate($request->input('name'), 'sanctum');
-
-        return redirect('/dashboard/users/roles')->with('success', "Role '{$role->name}' created successfully.");
     }
 
     // Assign the selected users to a role from the role management page.
@@ -189,7 +156,7 @@ class UserManagementController extends Controller
                     ];
                 }),
             'permissions' => Permission::query()
-                ->where('guard_name', 'sanctum')
+                ->where('guard_name', 'web')
                 ->orderBy('name')
                 ->pluck('name')
                 ->values(),

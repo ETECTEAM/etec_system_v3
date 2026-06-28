@@ -5,6 +5,9 @@ namespace App\Modules\Auth\Requests;
 use App\Modules\Auth\Data\RegisterUserData;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates public registration before creating a pending instructor account.
+ */
 class RegisterWebRequest extends FormRequest
 {
     public function authorize(): bool
@@ -12,6 +15,9 @@ class RegisterWebRequest extends FormRequest
         return true;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -25,6 +31,7 @@ class RegisterWebRequest extends FormRequest
     {
         $validated = $this->validated();
 
+        // Convert validated input into a typed DTO for the registration flow.
         return new RegisterUserData(
             name: $validated['name'],
             email: $validated['email'],

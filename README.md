@@ -197,7 +197,7 @@ docker compose exec app php artisan migrate
 Start Laravel:
 
 ```bash
-php artisan serve --port=8001
+php artisan serve --host=127.0.0.1 --port=8001
 ```
 
 Start Vite:

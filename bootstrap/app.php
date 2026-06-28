@@ -28,9 +28,6 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // បន្ថែមបន្ទាត់នេះ ដើម្បីឱ្យ Laravel ឈប់ខ្វល់រឿងជម្លោះ HTTPS/SSL ចាស់
-        $middleware->trustProxies(at: '*');
-
         $middleware->web(append: [
             HandleInertiaRequests::class,
         ]);

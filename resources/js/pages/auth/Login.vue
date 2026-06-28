@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import AuthCard from './components/AuthCard.vue'
 import AuthLayout from '../../layouts/AuthLayout.vue'
 import { Link, useForm } from '@inertiajs/vue3'
-
 defineOptions({
   layout: AuthLayout,
 })
@@ -18,10 +17,7 @@ const showPassword = ref(false)
 const formValid = computed(() => form.login.trim().length > 0 && form.password.length > 0)
 
 function submit() {
-  if (!formValid.value) {
-    return
-  }
-
+  if (!formValid.value) return
   form.post('/login')
 }
 </script>
@@ -92,7 +88,7 @@ function submit() {
 
     <p class="mt-6 text-center text-sm text-slate-600">
       New here?
-      <Link href="/register" class="font-semibold text-blue-900 hover:text-blue-950">Create account</Link>
+      <Link href="/auth/register" class="font-semibold text-blue-900 hover:text-blue-950">Create account</Link>
     </p>
   </AuthCard>
 </template>
