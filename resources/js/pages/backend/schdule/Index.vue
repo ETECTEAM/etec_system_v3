@@ -85,7 +85,7 @@ const breadcrumbItems = [
                 v-model="filters.search"
                 type="text"
                 placeholder="Search schedules..."
-                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm w-[30%]"
+                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm w-[25%]"
               />
 
               <!-- CLASS TYPE -->
