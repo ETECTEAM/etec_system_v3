@@ -10,17 +10,14 @@ class AssignPermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        $allPermissions = Permission::pluck('name')->toArray();
+        $allPermissions = Permission::where('guard_name', 'web')->pluck('name')->toArray();
 
-        $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'sanctum']);
-        $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'sanctum']);
-        $instructor = Role::firstOrCreate(['name' => 'instructor', 'guard_name' => 'sanctum']);
-        $student = Role::firstOrCreate(['name' => 'student', 'guard_name' => 'sanctum']);
+        $superAdmin = Role::where('name', 'super_admin')->where('guard_name', 'web')->first();
+        $admin = Role::where('name', 'admin')->where('guard_name', 'web')->first();
+        $instructor = Role::where('name', 'instructor')->where('guard_name', 'web')->first();
+        $student = Role::where('name', 'student')->where('guard_name', 'web')->first();
 
-        // super_admin → ALL permissions
         $superAdmin->syncPermissions($allPermissions);
-
-        // Other roles start empty so permissions can be assigned later by super_admin.
         $admin->syncPermissions([]);
         $instructor->syncPermissions([]);
         $student->syncPermissions([]);
