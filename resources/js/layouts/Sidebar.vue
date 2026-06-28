@@ -22,6 +22,8 @@ const roles = computed(() => page.props.auth?.roles ?? []);
 
 const isSuperAdmin = computed(() => roles.value.includes("super_admin"));
 
+const isInstructor = computed(() => roles.value.includes("instructor"));
+
 const canAccessNotifications = computed(
   () => roles.value.includes("super_admin") || roles.value.includes("admin")
 );
@@ -105,6 +107,16 @@ const menuItems = computed(() => {
       exact: false,
       icon: "notification",
       isActive: (path) => path.startsWith("/dashboard/notifications"),
+    });
+  }
+
+  if (isInstructor.value) {
+    base.push({
+      label: "My Instructor Profile",
+      href: "/dashboard/instructor/profile",
+      match: ["/dashboard/instructor/profile"],
+      exact: true,
+      icon: "user",
     });
   }
 

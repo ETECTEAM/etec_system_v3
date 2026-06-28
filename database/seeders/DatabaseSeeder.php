@@ -30,6 +30,9 @@ use Database\Seeders\Term\TermSeeder;
 use Database\Seeders\Time\TimeSeeder;
 use Database\Seeders\Schedule\ScheduleSeeder;
 
+// Instructor seeders
+use Database\Seeders\Instructor\InstructorAvailabilitySeeder;
+
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
@@ -58,6 +61,9 @@ class DatabaseSeeder extends Seeder
             ClassSeeder::class,
             ScheduleSeeder::class,
             ClassListSeeder::class,
+
+            // 5. Instructor data
+            InstructorAvailabilitySeeder::class,
         ]);
     }
 }
