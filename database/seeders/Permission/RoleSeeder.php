@@ -9,11 +9,12 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        $roles = ['super_admin', 'admin', 'instructor', 'student'];
 
-        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'sanctum']);
-        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'sanctum']);
-        Role::firstOrCreate(['name' => 'instructor', 'guard_name' => 'sanctum']);
-        Role::firstOrCreate(['name' => 'student', 'guard_name' => 'sanctum']);
+        foreach ($roles as $role) {
+            // បង្កើត Role សម្រាប់ទាំង web និង sanctum guard ដូចគ្នា
+            Role::findOrCreate($role, 'web');
+            Role::findOrCreate($role, 'sanctum');
+        }
     }
 }
