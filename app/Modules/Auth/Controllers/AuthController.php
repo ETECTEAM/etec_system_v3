@@ -195,15 +195,7 @@ class AuthController extends Controller
 
     private function redirectPathFor(User $user): string
     {
-        if ($user->hasAnyRole(['super_admin', 'admin'])) {
-            return '/dashboard';
-        }
-
-        if ($user->hasRole('instructor')) {
-            return '/dashboard/users';
-        }
-
-        if ($user->hasRole('student')) {
+        if ($user->can('dashboard.view')) {
             return '/dashboard';
         }
 

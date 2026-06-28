@@ -60,7 +60,7 @@ class UpdateUserRequest extends FormRequest
             'instructor_date_of_birth' => ['nullable', 'date'], 'instructor_phone' => ['nullable', 'string', 'max:30'],
             'instructor_email' => ['nullable', 'email', 'max:255'], 'specialization' => ['nullable', 'string', 'max:255'],
             'employment_type' => ['nullable', Rule::in(['full_time', 'part_time'])],
-            'shift_preference' => ['nullable', Rule::in(['morning_evening', 'afternoon_evening', 'morning_afternoon'])],
+            'shift_preference' => ['nullable', Rule::in(['morning_afternoon', 'morning_evening', 'afternoon_evening_11', 'afternoon_evening_1230'])],
             'available_for_class' => ['nullable', 'boolean'], 'hire_date' => ['nullable', 'date'],
             'instructor_address' => ['nullable', 'string'], 'instructor_status' => ['nullable', 'boolean'],
         ];
@@ -68,5 +68,5 @@ class UpdateUserRequest extends FormRequest
 
     protected function displayName(array $data): string { return $data['role'] === 'student' ? $data['student_full_name'] : ($data['role'] === 'instructor' ? $data['instructor_full_name'] : $data['name']); }
     protected function student(array $data): array { return ['student_code' => $data['student_code'] ?? null, 'first_name' => $data['student_first_name'] ?? null, 'last_name' => $data['student_last_name'] ?? null, 'full_name' => $data['student_full_name'] ?? null, 'full_name_kh' => $data['student_full_name_kh'] ?? null, 'gender' => $data['student_gender'] ?? null, 'date_of_birth' => $data['student_date_of_birth'] ?? null, 'phone' => $data['student_phone'] ?? null, 'email' => $data['student_email'] ?? null, 'class_id' => $data['student_class_id'] ?? null, 'parent_name' => $data['parent_name'] ?? null, 'parent_phone' => $data['parent_phone'] ?? null, 'address' => $data['student_address'] ?? null, 'status' => $data['student_status'] ?? true]; }
-    protected function instructorData(array $data): array { return ['instructor_code' => $data['instructor_code'] ?? null, 'full_name' => $data['instructor_full_name'] ?? null, 'phone' => $data['instructor_phone'] ?? null, 'employment_type' => $data['employment_type'] ?? null, 'shift_group' => $data['shift_group'] ?? null, 'available_for_class' => $data['available_for_class'] ?? true, 'status' => $data['instructor_status'] ?? true]; }
+    protected function instructorData(array $data): array { return ['instructor_code' => $data['instructor_code'] ?? null, 'full_name' => $data['instructor_full_name'] ?? null, 'phone' => $data['instructor_phone'] ?? null, 'employment_type' => $data['employment_type'] ?? null, 'shift_group' => $data['shift_preference'] ?? null, 'available_for_class' => $data['available_for_class'] ?? true, 'status' => $data['instructor_status'] ?? true]; }
 }

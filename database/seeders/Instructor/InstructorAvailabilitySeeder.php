@@ -63,17 +63,33 @@ class InstructorAvailabilitySeeder extends Seeder
                 'full_name' => 'Instructor C',
                 'instructor_code' => 'INS003',
                 'phone' => '012345680',
-                'employment_type' => 'part_time',
-                'shift_group' => 'weekend_morning',
+                'employment_type' => 'full_time',
+                'shift_group' => 'afternoon_evening_11',
                 'user_index' => min(2, $instructors->count() - 1),
             ],
             [
                 'full_name' => 'Instructor D',
                 'instructor_code' => 'INS004',
                 'phone' => '012345681',
+                'employment_type' => 'full_time',
+                'shift_group' => 'afternoon_evening_1230',
+                'user_index' => min(3, $instructors->count() - 1),
+            ],
+            [
+                'full_name' => 'Instructor E',
+                'instructor_code' => 'INS005',
+                'phone' => '012345682',
+                'employment_type' => 'part_time',
+                'shift_group' => 'weekend_morning',
+                'user_index' => min(4, $instructors->count() - 1),
+            ],
+            [
+                'full_name' => 'Instructor F',
+                'instructor_code' => 'INS006',
+                'phone' => '012345683',
                 'employment_type' => 'part_time',
                 'shift_group' => 'weekend_afternoon',
-                'user_index' => min(3, $instructors->count() - 1),
+                'user_index' => min(5, $instructors->count() - 1),
             ],
         ];
 
@@ -89,6 +105,18 @@ class InstructorAvailabilitySeeder extends Seeder
                 'slots' => [
                     ['period' => 'morning', 'start' => '08:00', 'end' => '12:00'],
                     ['period' => 'evening', 'start' => '17:00', 'end' => '20:30'],
+                ],
+            ],
+            'afternoon_evening_11' => [
+                'days' => [1, 2, 3, 4, 5],
+                'slots' => [
+                    ['period' => 'afternoon_evening', 'start' => '11:00', 'end' => '20:30'],
+                ],
+            ],
+            'afternoon_evening_1230' => [
+                'days' => [1, 2, 3, 4, 5],
+                'slots' => [
+                    ['period' => 'afternoon_evening', 'start' => '12:30', 'end' => '20:30'],
                 ],
             ],
             'weekend_morning' => [

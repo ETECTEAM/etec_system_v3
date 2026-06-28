@@ -26,7 +26,8 @@ class InstructorProfileRequest extends FormRequest
             ],
             'phone' => ['nullable', 'string', 'max:30'],
             'employment_type' => ['required', Rule::in(['full_time', 'part_time'])],
-            'shift_group' => ['required', Rule::in(['morning_afternoon', 'morning_evening', 'weekend_morning', 'weekend_afternoon', 'custom'])],
+            'shift_group' => ['nullable', Rule::in(['morning_afternoon', 'morning_evening', 'afternoon_evening_11', 'afternoon_evening_1230', 'weekend_morning', 'weekend_afternoon', 'custom'])],
+            'shift_template_id' => ['nullable', 'integer', 'exists:shift_templates,id'],
             'available_for_class' => ['boolean'],
         ];
     }

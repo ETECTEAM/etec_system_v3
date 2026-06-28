@@ -19,14 +19,16 @@ const page = usePage();
 
 const currentPath = computed(() => page.url ?? "/");
 const roles = computed(() => page.props.auth?.roles ?? []);
+const permissions = computed(() => page.props.auth?.permissions ?? []);
 
 const isSuperAdmin = computed(() => roles.value.includes("super_admin"));
-
+const isAdmin = computed(() => roles.value.includes("admin"));
 const isInstructor = computed(() => roles.value.includes("instructor"));
 
 const canAccessNotifications = computed(
   () => roles.value.includes("super_admin") || roles.value.includes("admin")
 );
+const canAccessDashboard = computed(() => permissions.value.includes("dashboard.view"));
 
 function isStudentRoute(path) {
   return path.startsWith("/dashboard/students") || path.startsWith("/qr");
@@ -189,7 +191,7 @@ const menuItems = computed(() => {
     ],
   });
 
-  if (isSuperAdmin.value) {
+  if (isSuperAdmin.value || isAdmin.value) {
     base.push(
       {
         label: "User Management",
@@ -223,6 +225,14 @@ const menuItems = computed(() => {
             isActive: (path) => path.startsWith("/dashboard/users/permissions"),
           },
         ],
+      },
+      {
+        label: "Shift Templates",
+        href: "/dashboard/shift-templates",
+        match: ["/dashboard/shift-templates"],
+        exact: false,
+        icon: "schdule",
+        isActive: (path) => path.startsWith("/dashboard/shift-templates"),
       },
       {
         label: "Schedule Management",

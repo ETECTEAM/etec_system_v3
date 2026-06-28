@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
@@ -7,6 +8,7 @@ import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
 const page = usePage()
 const instructorData = page.props.instructorData ?? null
+const shiftTemplates = computed(() => page.props.shiftTemplates ?? [])
 
 const employmentTypeOptions = [
   { label: 'Full Time', value: 'full_time' },
@@ -16,10 +18,16 @@ const employmentTypeOptions = [
 const shiftGroupOptions = [
   { label: 'Morning & Afternoon (Mon-Fri)', value: 'morning_afternoon' },
   { label: 'Morning & Evening (Mon-Fri)', value: 'morning_evening' },
+  { label: 'Afternoon & Evening 11:00-20:30 (Mon-Fri)', value: 'afternoon_evening_11' },
+  { label: 'Afternoon & Evening 12:30-20:30 (Mon-Fri)', value: 'afternoon_evening_1230' },
   { label: 'Weekend Morning', value: 'weekend_morning' },
   { label: 'Weekend Afternoon', value: 'weekend_afternoon' },
   { label: 'Custom', value: 'custom' },
 ]
+
+const shiftTemplateOptions = computed(() =>
+  shiftTemplates.value.map((t) => ({ label: t.name, value: String(t.id) }))
+)
 
 const form = useForm({
   full_name: instructorData?.full_name ?? '',
@@ -27,6 +35,7 @@ const form = useForm({
   phone: instructorData?.phone ?? '',
   employment_type: instructorData?.employment_type ?? '',
   shift_group: instructorData?.shift_group ?? '',
+  shift_template_id: instructorData?.shift_template_id ? String(instructorData.shift_template_id) : '',
   available_for_class: instructorData?.available_for_class ?? true,
 })
 
@@ -98,13 +107,24 @@ function submit() {
           </label>
 
           <label class="block sm:col-span-2">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Shift Group <span class="text-red-500">*</span></span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700">Shift Template</span>
+            <SelectSearch
+              v-model="form.shift_template_id"
+              :options="shiftTemplateOptions"
+              placeholder="Select a shift template"
+            />
+            <p class="mt-1.5 text-xs text-slate-400">Availabilities will be auto-generated from the selected template. Leave empty to use the legacy shift group below.</p>
+            <span v-if="form.errors.shift_template_id" class="mt-1 block text-xs text-red-600">{{ form.errors.shift_template_id }}</span>
+          </label>
+
+          <label class="block sm:col-span-2">
+            <span class="mb-2 block text-sm font-semibold text-slate-700">Legacy Shift Group</span>
             <SelectSearch
               v-model="form.shift_group"
               :options="shiftGroupOptions"
               placeholder="Select shift group"
             />
-            <p class="mt-1.5 text-xs text-slate-400">Availabilities will be auto-generated based on the selected shift group. Choose "Custom" to manage manually.</p>
+            <p class="mt-1.5 text-xs text-slate-400">Used only when no shift template is selected. Choose "Custom" to manage availabilities manually.</p>
             <span v-if="form.errors.shift_group" class="mt-1 block text-xs text-red-600">{{ form.errors.shift_group }}</span>
           </label>
 

@@ -4,6 +4,7 @@ namespace App\Modules\Instructor\Services;
 
 use App\Models\InstructorAvailability;
 use App\Models\InstructorData;
+use App\Models\ShiftTemplate;
 use Illuminate\Support\Facades\DB;
 
 class InstructorProfileService
@@ -18,7 +19,8 @@ class InstructorProfileService
                     'instructor_code' => $data['instructor_code'],
                     'phone' => $data['phone'],
                     'employment_type' => $data['employment_type'],
-                    'shift_group' => $data['shift_group'],
+                    'shift_group' => $data['shift_group'] ?? null,
+                    'shift_template_id' => $data['shift_template_id'] ?? null,
                     'available_for_class' => $data['available_for_class'] ?? true,
                     'status' => $data['status'] ?? true,
                 ],
@@ -32,12 +34,38 @@ class InstructorProfileService
 
     public function generateInstructorAvailabilities(InstructorData $instructor): void
     {
+        InstructorAvailability::where('instructor_id', $instructor->id)->delete();
+
+        if ($instructor->shift_template_id) {
+            $template = ShiftTemplate::with('blocks')->find($instructor->shift_template_id);
+
+            if ($template && $template->blocks->isNotEmpty()) {
+                $availabilities = [];
+
+                foreach ($template->blocks as $block) {
+                    $availabilities[] = [
+                        'instructor_id' => $instructor->id,
+                        'day_of_week' => $block->day_of_week,
+                        'employment_type' => $template->employment_type ?? $instructor->employment_type,
+                        'shift_group' => $template->code,
+                        'period' => $block->period,
+                        'start_time' => $block->start_time,
+                        'end_time' => $block->end_time,
+                        'is_active' => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+
+                InstructorAvailability::insert($availabilities);
+                return;
+            }
+        }
+
         $shiftGroup = $instructor->shift_group;
         $employmentType = $instructor->employment_type;
 
-        InstructorAvailability::where('instructor_id', $instructor->id)->delete();
-
-        if ($shiftGroup === 'custom') {
+        if ($shiftGroup === 'custom' || $shiftGroup === null) {
             return;
         }
 
@@ -53,6 +81,18 @@ class InstructorProfileService
                 'slots' => [
                     ['period' => 'morning', 'start' => '08:00', 'end' => '12:00'],
                     ['period' => 'evening', 'start' => '17:00', 'end' => '20:30'],
+                ],
+            ],
+            'afternoon_evening_11' => [
+                'days' => [1, 2, 3, 4, 5],
+                'slots' => [
+                    ['period' => 'afternoon_evening', 'start' => '11:00', 'end' => '20:30'],
+                ],
+            ],
+            'afternoon_evening_1230' => [
+                'days' => [1, 2, 3, 4, 5],
+                'slots' => [
+                    ['period' => 'afternoon_evening', 'start' => '12:30', 'end' => '20:30'],
                 ],
             ],
             'weekend_morning' => [

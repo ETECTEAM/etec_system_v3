@@ -33,6 +33,9 @@ use Database\Seeders\Schedule\ScheduleSeeder;
 // Instructor seeders
 use Database\Seeders\Instructor\InstructorAvailabilitySeeder;
 
+// Shift template seeders
+use Database\Seeders\ShiftTemplateSeeder;
+
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
@@ -64,6 +67,9 @@ class DatabaseSeeder extends Seeder
 
             // 5. Instructor data
             InstructorAvailabilitySeeder::class,
+
+            // 6. Shift templates
+            ShiftTemplateSeeder::class,
         ]);
     }
 }

@@ -172,9 +172,10 @@ const instructor = computed(() => props.form.role === 'instructor')
         <span>Shift Preference</span>
         <select v-model="form.shift_preference" class="input">
           <option value="" disabled>Select shift</option>
-          <option value="morning_evening">Morning-Evening</option>
-          <option value="afternoon_evening">Afternoon-Evening</option>
-          <option value="morning_afternoon">Morning-Afternoon</option>
+          <option value="morning_afternoon">Morning & Afternoon (Mon-Fri)</option>
+          <option value="morning_evening">Morning & Evening (Mon-Fri)</option>
+          <option value="afternoon_evening_11">Afternoon & Evening 11:00-20:30 (Mon-Fri)</option>
+          <option value="afternoon_evening_1230">Afternoon & Evening 12:30-20:30 (Mon-Fri)</option>
         </select>
       </label>
       <label class="block">

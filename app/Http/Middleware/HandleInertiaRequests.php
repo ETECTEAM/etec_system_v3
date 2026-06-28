@@ -33,6 +33,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => fn () => Auth::user()?->only('id', 'name', 'email', 'role'),
                 'roles' => fn () => Auth::check() ? Auth::user()->getRoleNames()->values()->all() : [],
+                'permissions' => fn () => Auth::check() ? Auth::user()->getAllPermissions()->pluck('name')->values()->all() : [],
             ],
         ];
     }

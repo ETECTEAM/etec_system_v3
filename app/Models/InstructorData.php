@@ -15,6 +15,7 @@ class InstructorData extends Model
         'phone',
         'employment_type',
         'shift_group',
+        'shift_template_id',
         'available_for_class',
         'status',
     ];
@@ -22,6 +23,11 @@ class InstructorData extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function shiftTemplate(): BelongsTo
+    {
+        return $this->belongsTo(ShiftTemplate::class);
     }
 
     public function availabilities(): HasMany
