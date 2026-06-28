@@ -40,15 +40,15 @@ class ClassList extends Model
         return $this->belongsTo(User::class, 'teacher_id');
     }
 
-    // public function course()
-    // {
-    //     return $this->belongsTo(Course::class);
-    // }
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
 
-    // public function lesson()
-    // {
-    //     return $this->belongsTo(Lesson::class);
-    // }
+    public function lesson()
+    {
+        return $this->belongsTo(CourseLesson::class);
+    }
 
     public function term()
     {
@@ -60,10 +60,10 @@ class ClassList extends Model
         return $this->belongsTo(Time::class);
     }
 
-    // public function building()
-    // {
-    //     return $this->belongsTo(Building::class);
-    // }
+    public function building()
+    {
+        return $this->belongsTo(Building::class);
+    }
 
     public function floor()
     {
