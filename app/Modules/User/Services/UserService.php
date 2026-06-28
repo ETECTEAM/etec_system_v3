@@ -36,7 +36,7 @@ class UserService
 
     public function queryVisibleUsers(User $authUser): Builder
     {
-        $query = User::query()->latest('id')->with(['student', 'instructorData']);
+        $query = User::query()->latest('id')->with('student');
 
         // Visibility mirrors the same hierarchy as assignment permissions.
         if ($authUser->hasRole('super_admin')) {
@@ -76,16 +76,13 @@ class UserService
                 $builder
                     ->where('users.name', 'like', '%'.$search.'%')
                     ->orWhere('users.email', 'like', '%'.$search.'%')
-                    ->orWhereHas('student', fn (Builder $query) => $query->where('full_name', 'like', '%'.$search.'%')->orWhere('student_code', 'like', '%'.$search.'%')->orWhere('phone', 'like', '%'.$search.'%'))
-                    ->orWhereHas('instructorData', fn (Builder $query) => $query->where('full_name', 'like', '%'.$search.'%')->orWhere('instructor_code', 'like', '%'.$search.'%')->orWhere('phone', 'like', '%'.$search.'%'));
+                    ->orWhereHas('student', fn (Builder $query) => $query->where('full_name', 'like', '%'.$search.'%')->orWhere('student_code', 'like', '%'.$search.'%')->orWhere('phone', 'like', '%'.$search.'%'));
             });
         }
 
         $role = trim((string) ($filters['role'] ?? ''));
         if ($role !== '') {
-            $query->whereHas('roles', function (Builder $builder) use ($role): void {
-                $builder->where('name', $role);
-            });
+            $query->role($role, 'web');
         }
 
         if (($filters['status'] ?? '') !== '') {
@@ -98,13 +95,6 @@ class UserService
 
         if (($filters['student_status'] ?? '') !== '') {
             $query->whereHas('student', fn (Builder $query) => $query->where('status', filter_var($filters['student_status'], FILTER_VALIDATE_BOOLEAN)));
-        }
-
-        foreach (['employment_type', 'shift_preference', 'available_for_class'] as $filter) {
-            if (($filters[$filter] ?? '') !== '') {
-                $value = $filter === 'available_for_class' ? filter_var($filters[$filter], FILTER_VALIDATE_BOOLEAN) : $filters[$filter];
-                $query->whereHas('instructorData', fn (Builder $query) => $query->where($filter, $value));
-            }
         }
 
         return $query
@@ -129,11 +119,11 @@ class UserService
     {
         return [
             'id' => $user->id,
-            'name' => $user->role === 'student' ? ($user->student?->full_name ?? $user->name) : ($user->role === 'instructor' ? ($user->instructorData?->full_name ?? $user->name) : $user->name),
+            'name' => $user->hasRole('student') ? ($user->student?->full_name ?? $user->name) : $user->name,
             'email' => $user->email,
             'roles' => $user->getRoleNames()->values(),
             'student' => $user->student,
-            'instructor_data' => $user->instructorData,
+            'instructor_data' => null,
         ];
     }
 

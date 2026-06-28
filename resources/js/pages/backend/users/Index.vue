@@ -50,14 +50,11 @@ async function fetchUsers(pageNumber = 1) {
   isLoadingUsers.value = true
 
   try {
-    const response = await axios.get('/dashboard/users/data', {
-      params: {
-        page: pageNumber,
-        per_page: 5,
-        search: search.value,
-        role: selectedRole.value,
-      },
-    })
+    const params = { page: pageNumber, per_page: 5 }
+    if (search.value) params.search = search.value
+    if (selectedRole.value) params.role = selectedRole.value
+
+    const response = await axios.get('/dashboard/users/data', { params })
 
     users.value = response.data.data ?? []
     pagination.value = {

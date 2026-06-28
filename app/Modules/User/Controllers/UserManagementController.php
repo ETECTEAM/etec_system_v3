@@ -63,25 +63,33 @@ class UserManagementController extends Controller
         abort_unless($request->user()?->hasRole('super_admin'), 403);
 
         // Fetch roles with permission and user counts for the management matrix.
+        $allPermissions = Permission::query()
+            ->where('guard_name', 'web')
+            ->orderBy('name')
+            ->pluck('name')
+            ->values();
+
         return Inertia::render('backend/users/Roles', [
             'roles' => Role::query()
                 ->with('permissions')
                 ->withCount('users')
                 ->orderBy('id')
                 ->get()
-                ->map(function (Role $role): array {
+                ->map(function (Role $role) use ($allPermissions): array {
+                    // Super Admin implicitly has all permissions via Spatie gate,
+                    // so we show the full list rather than an empty set.
+                    $permissions = $role->name === 'super_admin'
+                        ? $allPermissions
+                        : $role->permissions->pluck('name')->values();
+
                     return [
                         'id' => $role->id,
                         'name' => $role->name,
                         'users_count' => $role->users_count,
-                        'permissions' => $role->permissions->pluck('name')->values(),
+                        'permissions' => $permissions,
                     ];
                 }),
-            'permissions' => Permission::query()
-                ->where('guard_name', 'web')
-                ->orderBy('name')
-                ->pluck('name')
-                ->values(),
+            'permissions' => $allPermissions,
             'users' => User::query()
                 ->with('roles')
                 ->orderBy('name')
@@ -92,6 +100,9 @@ class UserManagementController extends Controller
                         'name' => $user->name,
                         'email' => $user->email,
                         'roles' => $user->getRoleNames()->values(),
+                        'role_permissions_count' => $user->getPermissionsViaRoles()->count(),
+                        'direct_permissions_count' => $user->getDirectPermissions()->count(),
+                        'total_permissions_count' => $user->getAllPermissions()->count(),
                     ];
                 }),
         ]);
@@ -186,6 +197,9 @@ class UserManagementController extends Controller
                         'direct_permissions' => $user->getDirectPermissions()->pluck('name')->values(),
                         'role_permissions' => $user->getPermissionsViaRoles()->pluck('name')->values(),
                         'all_permissions' => $user->getAllPermissions()->pluck('name')->values(),
+                        'role_permissions_count' => $user->getPermissionsViaRoles()->count(),
+                        'direct_permissions_count' => $user->getDirectPermissions()->count(),
+                        'total_permissions_count' => $user->getAllPermissions()->count(),
                     ];
                 }),
             'permissions' => Permission::query()

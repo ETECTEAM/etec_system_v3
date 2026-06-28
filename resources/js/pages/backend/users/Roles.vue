@@ -448,11 +448,11 @@ watch(permissionSearch, () => {
             <table class="min-w-full divide-y divide-slate-200 text-sm">
               <thead class="bg-slate-50">
                 <tr>
-                  <th class="sticky left-0 z-10 bg-slate-50 px-5 py-4 text-left font-semibold text-slate-700">Module</th>
+                  <th class="sticky left-0 z-10 whitespace-nowrap bg-slate-50 px-5 py-4 text-left font-semibold text-slate-700 min-w-[240px] w-[260px]">Module</th>
                   <th
                     v-for="action in actions"
                     :key="action"
-                    class="px-4 py-4 text-center font-semibold capitalize text-slate-700"
+                    class="w-24 px-4 py-4 text-center font-semibold capitalize text-slate-700"
                   >
                     {{ action }}
                   </th>
@@ -460,7 +460,7 @@ watch(permissionSearch, () => {
               </thead>
               <tbody class="divide-y divide-slate-100 bg-white">
                 <tr v-for="resource in paginatedResources" :key="resource" class="hover:bg-slate-50">
-                  <td class="sticky left-0 z-10 bg-white px-5 py-4 font-semibold capitalize text-slate-800">
+                  <td class="sticky left-0 z-10 whitespace-nowrap bg-white px-5 py-4 font-semibold capitalize text-slate-800 min-w-[240px] w-[260px]">
                     <div class="flex items-center gap-3">
                       <button
                         type="button"
@@ -480,7 +480,7 @@ watch(permissionSearch, () => {
                   <td
                     v-for="action in actions"
                     :key="`${resource}-${action}`"
-                    class="px-4 py-4 text-center"
+                    class="w-24 px-4 py-4 text-center"
                   >
                     <button
                       v-if="permissionName(resource, action)"
@@ -563,9 +563,10 @@ watch(permissionSearch, () => {
                 <span class="block truncate text-xs text-slate-500">{{ user.email }}</span>
               </span>
 
-              <span class="shrink-0 text-xs font-semibold text-blue-700">
-                {{ formatRole(user.roles?.[0] ?? 'No Role') }}
-              </span>
+                  <div class="shrink-0 text-right">
+                    <span class="block text-xs font-semibold text-blue-700">{{ formatRole(user.roles?.[0] ?? 'No Role') }}</span>
+                    <span class="block text-[11px] text-slate-400">{{ user.total_permissions_count }} permissions</span>
+                  </div>
             </label>
 
             <div v-if="filteredUsers.length === 0" class="px-5 py-10 text-center text-sm text-slate-500">
