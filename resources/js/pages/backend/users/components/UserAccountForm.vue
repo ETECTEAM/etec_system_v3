@@ -7,6 +7,10 @@ import { formatRole } from '../../../../lib/roleBadge'
 const props = defineProps({ form: Object, roleOptions: Array, submitLabel: String, edit: Boolean })
 const emit = defineEmits(['submit'])
 const roles = computed(() => (props.roleOptions ?? []).map((role) => ({ label: formatRole(role), value: role })))
+const statusOptions = [
+  { label: 'Active', value: 'active' },
+  { label: 'Inactive', value: 'inactive' },
+]
 const student = computed(() => props.form.role === 'student')
 const instructor = computed(() => props.form.role === 'instructor')
 </script>
@@ -36,19 +40,17 @@ const instructor = computed(() => props.form.role === 'instructor')
       <span class="mb-2 block text-sm font-semibold text-slate-700">Confirm Password</span>
       <input v-model="form.password_confirmation" type="password" placeholder="Repeat password" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
     </label>
-    <label class="block">
-      <span class="mb-2 block text-sm font-semibold text-slate-700">Role</span>
-      <SelectSearch v-model="form.role" :options="roles" />
-      <span v-if="form.errors.role" class="text-xs text-red-600">{{ form.errors.role }}</span>
-    </label>
-    <label class="block">
-      <span class="mb-2 block text-sm font-semibold text-slate-700">Login Status</span>
-      <select v-model="form.account_status" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none">
-        <option value="" disabled>Select status</option>
-        <option :value="true">Active</option>
-        <option :value="false">Inactive</option>
-      </select>
-    </label>
+    <div class="grid gap-4 md:grid-cols-2 sm:col-span-2">
+      <label class="block">
+        <span class="mb-2 block text-sm font-semibold text-slate-700">Role</span>
+        <SelectSearch v-model="form.role" :options="roles" />
+        <span v-if="form.errors.role" class="text-xs text-red-600">{{ form.errors.role }}</span>
+      </label>
+      <label class="block">
+        <span class="mb-2 block text-sm font-semibold text-slate-700">Login Status</span>
+        <SelectSearch v-model="form.account_status" :options="statusOptions" placeholder="Select status" />
+      </label>
+    </div>
 
     <template v-if="student">
       <div class="sm:col-span-2 border-t pt-4 text-base font-semibold text-slate-900">Student Profile</div>

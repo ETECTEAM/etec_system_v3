@@ -31,7 +31,7 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', 'regex:/^[a-zA-Z0-9._%+-]+@etec\.com$/', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in($roles)],
-            'account_status' => ['required', 'boolean'],
+            'account_status' => ['required', 'string', Rule::in(['active', 'inactive'])],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'student_code' => ['nullable', 'string', 'max:255', Rule::unique('students', 'student_code')],
             'student_full_name' => ['nullable', 'string', 'max:255'],
@@ -57,7 +57,7 @@ class StoreUserRequest extends FormRequest
     public function toData(): StoreUserData
     {
         $data = $this->validated();
-        return new StoreUserData($this->displayName($data), $data['email'], $data['password'], $data['role'], (bool) $data['account_status'], $this->file('avatar'), $this->student($data), $this->instructorData($data));
+        return new StoreUserData($this->displayName($data), $data['email'], $data['password'], $data['role'], $data['account_status'], $this->file('avatar'), $this->student($data), $this->instructorData($data));
     }
 
     protected function displayName(array $data): string { return $data['role'] === 'student' ? $data['student_full_name'] : ($data['role'] === 'instructor' ? $data['instructor_full_name'] : $data['name']); }

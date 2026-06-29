@@ -134,15 +134,23 @@ watch(() => props.users, () => {
   closeContextMenu()
 })
 
+function viewUser(id) {
+  router.visit(`/dashboard/users/${id}`)
+}
+
+function editUser(id) {
+  router.visit(`/dashboard/users/edit/${id}`)
+}
+
+function deleteUser(id) {
+  emit('delete-user', id)
+}
+
 function handleContextMenuSelect(actionKey) {
   if (!contextMenu.row) return
-  if (actionKey === 'view') {
-    router.visit(`/dashboard/users/${contextMenu.row.id}`)
-  } else if (actionKey === 'edit') {
-    router.visit(`/dashboard/users/${contextMenu.row.id}/edit`)
-  } else if (actionKey === 'delete') {
-    emit('delete-user', contextMenu.row.id)
-  }
+  if (actionKey === 'view') viewUser(contextMenu.row.id)
+  else if (actionKey === 'edit') editUser(contextMenu.row.id)
+  else if (actionKey === 'delete') deleteUser(contextMenu.row.id)
 }
 
 const contextMenuActions = [
@@ -184,19 +192,9 @@ const actions = [
 ]
 
 function handleAction(action, user) {
-  if (action.key === 'view') {
-    router.visit(`/dashboard/users/${user.id}`)
-    return
-  }
-
-  if (action.key === 'edit') {
-    router.visit(`/dashboard/users/${user.id}/edit`)
-    return
-  }
-
-  if (action.key === 'delete') {
-    emit('delete-user', user.id)
-  }
+  if (action.key === 'view') viewUser(user.id)
+  else if (action.key === 'edit') editUser(user.id)
+  else if (action.key === 'delete') deleteUser(user.id)
 }
 </script>
 
@@ -253,6 +251,7 @@ function handleAction(action, user) {
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Roles</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead class="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -276,6 +275,11 @@ function handleAction(action, user) {
                 </span>
               </div>
             </TableCell>
+            <TableCell>
+              <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="user.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'">
+                {{ user.status === 'active' ? 'Active' : 'Inactive' }}
+              </span>
+            </TableCell>
             <TableCell class="text-right">
               <div class="flex justify-end">
                 <ActionMenu
@@ -287,7 +291,7 @@ function handleAction(action, user) {
           </TableRow>
 
           <TableRow v-if="hasLoaded && !isLoading && users.length === 0">
-            <TableCell colspan="8" class="py-10 text-center text-slate-500">
+            <TableCell colspan="9" class="py-10 text-center text-slate-500">
               {{ roles.length === 0 ? 'No roles available or roles could not be loaded.' : 'No users found.' }}
             </TableCell>
           </TableRow>

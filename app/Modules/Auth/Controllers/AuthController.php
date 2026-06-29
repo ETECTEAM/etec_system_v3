@@ -2,6 +2,7 @@
 
 namespace App\Modules\Auth\Controllers;
 
+use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Auth\Events\PendingUserRegistered;
@@ -48,7 +49,7 @@ class AuthController extends Controller
                 'email' => $data->email,
                 'password' => $data->password,
                 'role' => 'instructor',
-                'status' => false,
+                'status' => 'pending',
             ]);
 
             // Create instructor role if not exists
@@ -172,8 +173,8 @@ class AuthController extends Controller
         ]);
     }
 
-        if (! $user->status) {
-            throw ValidationException::withMessages(['login' => ['Your account is inactive or pending verification.']]);
+        if ($user->status === UserStatus::Inactive) {
+            throw ValidationException::withMessages(['login' => ['Your account is inactive. Please contact administrator.']]);
         }
 
         Auth::login($user, $data->remember);

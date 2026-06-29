@@ -8,7 +8,24 @@ import { formatRole } from '../../../lib/roleBadge'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import UserAccountForm from './components/UserAccountForm.vue'
 const page = usePage(), user = page.props.user, roleOptions = page.props.roleOptions ?? [], s = user.student ?? {}, i = user.instructor_data ?? {}
-const form = useForm({ name: user.name ?? '', email: user.email ?? '', password: '', password_confirmation: '', role: user.role ?? 'admin', account_status: Boolean(user.status), avatar: null, student_code: s.student_code ?? '', student_full_name: s.full_name ?? '', student_first_name: s.first_name ?? '', student_last_name: s.last_name ?? '', student_full_name_kh: s.full_name_kh ?? '', student_gender: s.gender ?? '', student_date_of_birth: s.date_of_birth ?? '', student_phone: s.phone ?? '', student_email: s.email ?? '', student_class_id: s.class_id ?? '', parent_name: s.parent_name ?? '', parent_phone: s.parent_phone ?? '', student_address: s.address ?? '', student_status: s.status ?? true, instructor_code: i.instructor_code ?? '', instructor_full_name: i.full_name ?? '', instructor_first_name: i.first_name ?? '', instructor_last_name: i.last_name ?? '', instructor_full_name_kh: i.full_name_kh ?? '', instructor_gender: i.gender ?? '', instructor_date_of_birth: i.date_of_birth ?? '', instructor_phone: i.phone ?? '', instructor_email: i.email ?? '', specialization: i.specialization ?? '', employment_type: i.employment_type ?? 'full_time', shift_preference: i.shift_preference ?? 'morning_evening', available_for_class: i.available_for_class ?? true, hire_date: i.hire_date ?? '', instructor_address: i.address ?? '', instructor_status: i.status ?? true })
+const form = useForm({ name: user.name ?? '', email: user.email ?? '', password: '', password_confirmation: '', role: user.role ?? (roleOptions[0] ?? 'admin'), account_status: user.status ?? 'active', avatar: null, student_code: s.student_code ?? '', student_full_name: s.full_name ?? '', student_first_name: s.first_name ?? '', student_last_name: s.last_name ?? '', student_full_name_kh: s.full_name_kh ?? '', student_gender: s.gender ?? '', student_date_of_birth: s.date_of_birth ?? '', student_phone: s.phone ?? '', student_email: s.email ?? '', student_class_id: s.class_id ?? '', parent_name: s.parent_name ?? '', parent_phone: s.parent_phone ?? '', student_address: s.address ?? '', student_status: s.status ?? true, instructor_code: i.instructor_code ?? '', instructor_full_name: i.full_name ?? '', instructor_first_name: i.first_name ?? '', instructor_last_name: i.last_name ?? '', instructor_full_name_kh: i.full_name_kh ?? '', instructor_gender: i.gender ?? '', instructor_date_of_birth: i.date_of_birth ?? '', instructor_phone: i.phone ?? '', instructor_email: i.email ?? '', specialization: i.specialization ?? '', employment_type: i.employment_type ?? 'full_time', shift_preference: i.shift_preference ?? 'morning_evening', available_for_class: i.available_for_class ?? true, hire_date: i.hire_date ?? '', instructor_address: i.address ?? '', instructor_status: i.status ?? true })
+
+const roleSelectOptions = computed(() => roleOptions.map((role) => ({ label: formatRole(role), value: role })))
+
+const statusSelectOptions = [
+  { label: 'Active', value: 'active' },
+  { label: 'Inactive', value: 'inactive' },
+]
+
+const breadcrumbItems = [
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Users', href: '/dashboard/users' },
+  { label: 'Edit', current: true },
+]
+
+function submit() {
+  form.put(`/dashboard/users/edit/${user.id}`)
+}
 </script>
 
 <template>
@@ -72,15 +89,27 @@ const form = useForm({ name: user.name ?? '', email: user.email ?? '', password:
             >
           </label>
 
-          <label class="block sm:col-span-2">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Role</span>
-            <SelectSearch
-              v-model="form.role"
-              :options="roleSelectOptions"
-              placeholder="Select role"
-            />
-            <span v-if="form.errors.role" class="mt-1 block text-xs text-red-600">{{ form.errors.role }}</span>
-          </label>
+          <div class="grid gap-4 sm:col-span-2 sm:grid-cols-2">
+            <label class="block">
+              <span class="mb-2 block text-sm font-semibold text-slate-700">Role</span>
+              <SelectSearch
+                v-model="form.role"
+                :options="roleSelectOptions"
+                placeholder="Select role"
+              />
+              <span v-if="form.errors.role" class="mt-1 block text-xs text-red-600">{{ form.errors.role }}</span>
+            </label>
+
+            <label class="block">
+              <span class="mb-2 block text-sm font-semibold text-slate-700">Status</span>
+              <SelectSearch
+                v-model="form.account_status"
+                :options="statusSelectOptions"
+                placeholder="Select status"
+              />
+              <span v-if="form.errors.account_status" class="mt-1 block text-xs text-red-600">{{ form.errors.account_status }}</span>
+            </label>
+          </div>
 
           <div class="flex justify-end gap-3 sm:col-span-2">
             <Link

@@ -117,6 +117,7 @@ class UserService
         $roles = $this->assignableRolesFor($authUser);
 
         return Role::query()
+            ->where('guard_name', 'web')
             ->whereIn('name', $roles)
             ->orderBy('id')
             ->pluck('name')
@@ -129,6 +130,8 @@ class UserService
             'id' => $user->id,
             'name' => $user->role === 'student' ? ($user->student?->full_name ?? $user->name) : ($user->role === 'instructor' ? ($user->instructorData?->full_name ?? $user->name) : $user->name),
             'email' => $user->email,
+            'role' => $user->getRoleNames()->first(),
+            'status' => $user->status,
             'roles' => $user->getRoleNames()->values(),
             'student' => $user->student,
             'instructor_data' => $user->instructorData,

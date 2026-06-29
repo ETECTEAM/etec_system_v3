@@ -35,7 +35,7 @@ class UpdateUserRequest extends FormRequest
     public function toData(): UpdateUserData
     {
         $data = $this->validated();
-        return new UpdateUserData($this->displayName($data), $data['email'], $data['password'] ?? null, $data['role'], (bool) $data['account_status'], $this->file('avatar'), $this->student($data), $this->instructorData($data));
+        return new UpdateUserData($this->displayName($data), $data['email'], $data['password'] ?? null, $data['role'], $data['account_status'], $this->file('avatar'), $this->student($data), $this->instructorData($data));
     }
 
     protected function profileRules(array $roles): array
@@ -43,7 +43,7 @@ class UpdateUserRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'role' => ['required', 'string', Rule::in($roles)],
-            'account_status' => ['required', 'boolean'],
+            'account_status' => ['required', 'string', Rule::in(['active', 'inactive'])],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'student_code' => ['nullable', 'string', 'max:255'],
             'student_full_name' => ['nullable', 'string', 'max:255'],
