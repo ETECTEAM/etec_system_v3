@@ -1,11 +1,12 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import { Search } from '@lucide/vue'
 import { formatRole, roleBadgeClass } from '@/lib/roleBadge.js'
 import { Pagination } from '@/components/ui/pagination'
 import { Card } from '@/components/ui/card'
 import { ActionMenu } from '@/components/ui/menu'
+import RightClick from '@/components/ui/rightclick/RightClick.vue'
 import { SelectSearch } from '@/components/ui/select-search'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
@@ -109,6 +110,46 @@ const searchError = computed(() => {
 
   return props.search.length < 2 ? 'Type at least 2 characters to search.' : ''
 })
+
+const contextMenu = reactive({
+  show: false,
+  x: 0,
+  y: 0,
+  row: null,
+})
+
+function openRowContextMenu(event, user) {
+  contextMenu.show = true
+  contextMenu.x = event.clientX
+  contextMenu.y = event.clientY
+  contextMenu.row = user
+}
+
+function closeContextMenu() {
+  contextMenu.show = false
+  contextMenu.row = null
+}
+
+watch(() => props.users, () => {
+  closeContextMenu()
+})
+
+function handleContextMenuSelect(actionKey) {
+  if (!contextMenu.row) return
+  if (actionKey === 'view') {
+    router.visit(`/dashboard/users/${contextMenu.row.id}`)
+  } else if (actionKey === 'edit') {
+    router.visit(`/dashboard/users/${contextMenu.row.id}/edit`)
+  } else if (actionKey === 'delete') {
+    emit('delete-user', contextMenu.row.id)
+  }
+}
+
+const contextMenuActions = [
+  { key: 'view', label: 'View' },
+  { key: 'edit', label: 'Edit' },
+  { key: 'delete', label: 'Delete', danger: true },
+]
 
 function actionItemsFor(user) {
   return [
@@ -217,7 +258,7 @@ function handleAction(action, user) {
         </TableHeader>
 
         <TableBody>
-          <TableRow v-for="(user, index) in users" :key="user.id" class="transition-opacity duration-200">
+          <TableRow v-for="(user, index) in users" :key="user.id" class="transition-opacity duration-200" @contextmenu.prevent="openRowContextMenu($event, user)">
             <TableCell class="text-slate-500">{{ rowNumber(index) }}</TableCell>
             <TableCell class="font-medium text-slate-900">{{ user.name }}</TableCell>
             <TableCell class="text-slate-600">{{ user.email }}</TableCell>
@@ -276,5 +317,14 @@ function handleAction(action, user) {
         @page-change="emit('page-change', $event)"
       />
     </div>
+
+    <RightClick
+      :show="contextMenu.show"
+      :x="contextMenu.x"
+      :y="contextMenu.y"
+      :actions="contextMenuActions"
+      @select="handleContextMenuSelect"
+      @close="closeContextMenu"
+    />
   </Card>
 </template>
