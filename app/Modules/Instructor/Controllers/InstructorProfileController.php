@@ -8,6 +8,7 @@ use App\Modules\Instructor\Services\InstructorProfileService;
 use App\Models\ShiftTemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,10 +25,11 @@ class InstructorProfileController extends Controller
         $instructorData = $request->user()?->instructorData;
 
         return Inertia::render('backend/instructors/Profile', [
+            'user' => $request->user(),
             'instructorData' => $instructorData,
             'shiftTemplates' => ShiftTemplate::where('is_active', true)
                 ->orderBy('name')
-                ->get(['id', 'name', 'code']),
+                ->get(['id', 'name', 'code', 'employment_type']),
         ]);
     }
 
@@ -35,10 +37,15 @@ class InstructorProfileController extends Controller
     {
         abort_unless($request->user()?->can('instructor_profile.update'), 403);
 
-        $this->profileService->saveProfile(
-            $request->user()->id,
-            $request->validated(),
-        );
+        $data = $request->validated();
+
+        $user = $request->user();
+
+        $this->profileService->saveProfile($user->id, $data);
+
+        if (!empty($data['password'])) {
+            $user->update(['password' => Hash::make($data['password'])]);
+        }
 
         return redirect()->back()->with('success', 'Profile updated successfully.');
     }

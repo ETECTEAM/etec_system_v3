@@ -112,16 +112,6 @@ const menuItems = computed(() => {
     });
   }
 
-  if (isInstructor.value) {
-    base.push({
-      label: "My Instructor Profile",
-      href: "/dashboard/instructor/profile",
-      match: ["/dashboard/instructor/profile"],
-      exact: true,
-      icon: "user",
-    });
-  }
-
   base.push({
     label: "Class Management",
     key: "classes",

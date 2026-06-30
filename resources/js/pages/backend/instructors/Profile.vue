@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
@@ -7,6 +7,7 @@ import { SelectSearch } from '../../../components/ui/select-search'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
 const page = usePage()
+const user = page.props.user ?? {}
 const instructorData = page.props.instructorData ?? null
 const shiftTemplates = computed(() => page.props.shiftTemplates ?? [])
 
@@ -15,28 +16,25 @@ const employmentTypeOptions = [
   { label: 'Part Time', value: 'part_time' },
 ]
 
-const shiftGroupOptions = [
-  { label: 'Morning & Afternoon (Mon-Fri)', value: 'morning_afternoon' },
-  { label: 'Morning & Evening (Mon-Fri)', value: 'morning_evening' },
-  { label: 'Afternoon & Evening 11:00-20:30 (Mon-Fri)', value: 'afternoon_evening_11' },
-  { label: 'Afternoon & Evening 12:30-20:30 (Mon-Fri)', value: 'afternoon_evening_1230' },
-  { label: 'Weekend Morning', value: 'weekend_morning' },
-  { label: 'Weekend Afternoon', value: 'weekend_afternoon' },
-  { label: 'Custom', value: 'custom' },
-]
-
-const shiftTemplateOptions = computed(() =>
-  shiftTemplates.value.map((t) => ({ label: t.name, value: String(t.id) }))
+const filteredShiftTemplateOptions = computed(() =>
+  shiftTemplates.value
+    .filter((t) => !form.employment_type || t.employment_type === form.employment_type)
+    .map((t) => ({ label: t.name, value: String(t.id) }))
 )
 
 const form = useForm({
-  full_name: instructorData?.full_name ?? '',
+  email: user?.email ?? '',
+  full_name: instructorData?.full_name ?? user?.name ?? '',
   instructor_code: instructorData?.instructor_code ?? '',
   phone: instructorData?.phone ?? '',
   employment_type: instructorData?.employment_type ?? '',
-  shift_group: instructorData?.shift_group ?? '',
   shift_template_id: instructorData?.shift_template_id ? String(instructorData.shift_template_id) : '',
-  available_for_class: instructorData?.available_for_class ?? true,
+  password: '',
+  password_confirmation: '',
+})
+
+watch(() => form.employment_type, () => {
+  form.shift_template_id = ''
 })
 
 const breadcrumbItems = [
@@ -62,86 +60,111 @@ function submit() {
       </div>
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submit">
-          <label class="block sm:col-span-1">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Full Name <span class="text-red-500">*</span></span>
-            <input
-              v-model="form.full_name"
-              type="text"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
-              placeholder="Your full name"
-            >
-            <span v-if="form.errors.full_name" class="mt-1 block text-xs text-red-600">{{ form.errors.full_name }}</span>
+        <form class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2" @submit.prevent="submit">
+          <div class="grid grid-cols-1 gap-x-6 md:col-span-2 md:grid-cols-3">
+            <label class="block">
+              <span class="mb-1.5 block text-sm font-semibold text-slate-700">Email</span>
+              <input
+                :value="form.email"
+                type="email"
+                readonly
+                class="w-full h-11 rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm text-slate-500 outline-none cursor-not-allowed"
+              >
+            </label>
+
+            <label class="block">
+              <span class="mb-1.5 block text-sm font-semibold text-slate-700">Full Name <span class="text-red-500">*</span></span>
+              <input
+                v-model="form.full_name"
+                type="text"
+                class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                placeholder="Your full name"
+              >
+              <span v-if="form.errors.full_name" class="mt-1 block text-xs text-red-600">{{ form.errors.full_name }}</span>
+            </label>
+
+            <label class="block">
+              <span class="mb-1.5 block text-sm font-semibold text-slate-700">Instructor Code <span class="text-red-500">*</span></span>
+              <input
+                v-model="form.instructor_code"
+                type="text"
+                class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                placeholder="e.g. INS001"
+              >
+              <span v-if="form.errors.instructor_code" class="mt-1 block text-xs text-red-600">{{ form.errors.instructor_code }}</span>
+            </label>
+          </div>
+
+          <label class="block">
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Employment Type <span class="text-red-500">*</span></span>
+            <SelectSearch
+              v-model="form.employment_type"
+              :options="employmentTypeOptions"
+              placeholder="Select employment type"
+              button-class="flex w-full h-11 items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+            />
+            <span v-if="form.errors.employment_type" class="mt-1 block text-xs text-red-600">{{ form.errors.employment_type }}</span>
           </label>
 
-          <label class="block sm:col-span-1">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Instructor Code <span class="text-red-500">*</span></span>
-            <input
-              v-model="form.instructor_code"
-              type="text"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
-              placeholder="e.g. INS001"
-            >
-            <span v-if="form.errors.instructor_code" class="mt-1 block text-xs text-red-600">{{ form.errors.instructor_code }}</span>
-          </label>
-
-          <label class="block sm:col-span-1">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Phone</span>
+          <label class="block">
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Phone</span>
             <input
               v-model="form.phone"
               type="text"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
               placeholder="Phone number"
             >
             <span v-if="form.errors.phone" class="mt-1 block text-xs text-red-600">{{ form.errors.phone }}</span>
           </label>
 
-          <label class="block sm:col-span-1">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Employment Type <span class="text-red-500">*</span></span>
-            <SelectSearch
-              v-model="form.employment_type"
-              :options="employmentTypeOptions"
-              placeholder="Select employment type"
-            />
-            <span v-if="form.errors.employment_type" class="mt-1 block text-xs text-red-600">{{ form.errors.employment_type }}</span>
-          </label>
-
-          <label class="block sm:col-span-2">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Shift Template</span>
+          <label class="block">
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Shift Template</span>
             <SelectSearch
               v-model="form.shift_template_id"
-              :options="shiftTemplateOptions"
+              :options="filteredShiftTemplateOptions"
               placeholder="Select a shift template"
+              button-class="flex w-full h-11 items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
             />
-            <p class="mt-1.5 text-xs text-slate-400">Availabilities will be auto-generated from the selected template. Leave empty to use the legacy shift group below.</p>
+            <p class="mt-1 text-xs text-slate-400">Availabilities will be auto-generated from the selected template.</p>
             <span v-if="form.errors.shift_template_id" class="mt-1 block text-xs text-red-600">{{ form.errors.shift_template_id }}</span>
           </label>
 
-          <label class="block sm:col-span-2">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Legacy Shift Group</span>
-            <SelectSearch
-              v-model="form.shift_group"
-              :options="shiftGroupOptions"
-              placeholder="Select shift group"
-            />
-            <p class="mt-1.5 text-xs text-slate-400">Used only when no shift template is selected. Choose "Custom" to manage availabilities manually.</p>
-            <span v-if="form.errors.shift_group" class="mt-1 block text-xs text-red-600">{{ form.errors.shift_group }}</span>
-          </label>
+          <div class="border-t border-slate-200 md:col-span-2" />
 
-          <label class="flex items-center gap-3 sm:col-span-2">
+          <div class="md:col-span-2">
+            <h3 class="text-sm font-semibold text-slate-700">Change Password</h3>
+            <p class="mt-1 text-xs text-slate-400">Leave blank to keep your current password.</p>
+          </div>
+
+          <label class="block">
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">New Password</span>
             <input
-              v-model="form.available_for_class"
-              type="checkbox"
-              class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-200"
+              v-model="form.password"
+              type="password"
+              class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              placeholder="New password"
+              autocomplete="new-password"
             >
-            <span class="text-sm text-slate-700">Available for class</span>
+            <span v-if="form.errors.password" class="mt-1 block text-xs text-red-600">{{ form.errors.password }}</span>
           </label>
 
-          <div class="flex justify-end gap-3 sm:col-span-2">
+          <label class="block">
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Confirm New Password</span>
+            <input
+              v-model="form.password_confirmation"
+              type="password"
+              class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              placeholder="Confirm new password"
+              autocomplete="new-password"
+            >
+            <span v-if="form.errors.password_confirmation" class="mt-1 block text-xs text-red-600">{{ form.errors.password_confirmation }}</span>
+          </label>
+
+          <div class="flex justify-end md:col-span-2">
             <button
               type="submit"
               :disabled="form.processing"
-              class="rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+              class="h-11 rounded-lg bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {{ form.processing ? 'Saving...' : 'Save Profile' }}
             </button>
