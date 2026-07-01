@@ -31,7 +31,7 @@ use Database\Seeders\Time\TimeSeeder;
 use Database\Seeders\Schedule\ScheduleSeeder;
 
 // Shift template seeders
-use Database\Seeders\ShiftTemplateSeeder;
+use Database\Seeders\Schedule\ShiftTemplateSeeder;
 
 class DatabaseSeeder extends Seeder
 {

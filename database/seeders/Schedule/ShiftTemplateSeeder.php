@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Schedule;
 
 use App\Models\ShiftTemplate;
 use Illuminate\Database\Seeder;
