@@ -1,11 +1,13 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, watch, ref } from 'vue'
 import { Head, useForm, usePage } from '@inertiajs/vue3'
+import { useToast } from 'vue-toastification'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { SelectSearch } from '../../../components/ui/select-search'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
+const toast = useToast()
 const page = usePage()
 const user = page.props.user ?? {}
 const instructorData = page.props.instructorData ?? null
@@ -22,6 +24,14 @@ const filteredShiftTemplateOptions = computed(() =>
     .map((t) => ({ label: t.name, value: String(t.id) }))
 )
 
+const initialValues = {
+  email: user?.email ?? '',
+  full_name: instructorData?.full_name ?? user?.name ?? '',
+  phone: instructorData?.phone ?? '',
+  employment_type: instructorData?.employment_type ?? '',
+  shift_template_id: instructorData?.shift_template_id ? String(instructorData.shift_template_id) : '',
+}
+
 const form = useForm({
   email: user?.email ?? '',
   full_name: instructorData?.full_name ?? user?.name ?? '',
@@ -33,9 +43,31 @@ const form = useForm({
   password_confirmation: '',
 })
 
+const isDirty = computed(() => {
+  if (form.email !== initialValues.email) return true
+  if (form.full_name !== initialValues.full_name) return true
+  if (form.phone !== initialValues.phone) return true
+  if (form.employment_type !== initialValues.employment_type) return true
+  if (form.shift_template_id !== initialValues.shift_template_id) return true
+  if (form.password !== '' || form.password_confirmation !== '') return true
+  return false
+})
+
 watch(() => form.employment_type, () => {
   form.shift_template_id = ''
 })
+
+watch(() => page.props.flash, (flash) => {
+  if (flash?.success) {
+    toast.success(flash.success)
+  } else if (flash?.error) {
+    toast.error(flash.error)
+  } else if (flash?.warning) {
+    toast.warning(flash.warning)
+  } else if (flash?.info) {
+    toast.info(flash.info)
+  }
+}, { deep: true })
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -43,7 +75,27 @@ const breadcrumbItems = [
 ]
 
 function submit() {
-  form.put('/dashboard/instructor/profile')
+  if (!isDirty.value || form.processing) return
+
+  form.put('/dashboard/instructor/profile', {
+    onSuccess: () => {
+      initialValues.email = form.email
+      initialValues.full_name = form.full_name
+      initialValues.phone = form.phone
+      initialValues.employment_type = form.employment_type
+      initialValues.shift_template_id = form.shift_template_id
+      form.password = ''
+      form.password_confirmation = ''
+    },
+    onError: (errors) => {
+      const firstError = Object.values(errors)[0]
+      if (firstError) {
+        toast.error(firstError)
+      } else {
+        toast.error('Failed to update profile.')
+      }
+    },
+  })
 }
 </script>
 
@@ -52,12 +104,8 @@ function submit() {
 
   <DashboardLayout>
     <section class="space-y-6">
-      <Breadcrumbs :items="breadcrumbItems" />
+      <Breadcrumbs :breadcrumbItems="breadcrumbItems" />
       <PageHero eyebrow="Instructor" title="My Instructor Profile" description="Complete or update your instructor profile information." />
-
-      <div v-if="$page.props.flash?.success" class="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-800">
-        {{ $page.props.flash.success }}
-      </div>
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <form class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2" @submit.prevent="submit">
@@ -165,7 +213,7 @@ function submit() {
           <div class="flex justify-end md:col-span-2">
             <button
               type="submit"
-              :disabled="form.processing"
+              :disabled="!isDirty || form.processing"
               class="h-11 rounded-lg bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {{ form.processing ? 'Saving...' : 'Save Profile' }}

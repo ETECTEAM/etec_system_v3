@@ -38,8 +38,20 @@ class InstructorProfileController extends Controller
         abort_unless($request->user()?->can('instructor_profile.update'), 403);
 
         $data = $request->validated();
-
         $user = $request->user();
+        $instructorData = $user->instructorData;
+
+        $hasChanges = $data['email'] !== $user->email
+            || !$instructorData
+            || $data['full_name'] !== $instructorData->full_name
+            || $data['phone'] !== $instructorData->phone
+            || $data['employment_type'] !== $instructorData->employment_type
+            || $data['shift_template_id'] != $instructorData->shift_template_id
+            || !empty($data['password']);
+
+        if (!$hasChanges) {
+            return redirect()->back()->with('info', 'No changes to save.');
+        }
 
         $user->update(['email' => $data['email']]);
 
