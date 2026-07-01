@@ -64,12 +64,13 @@ function submit() {
           <div class="grid grid-cols-1 gap-x-6 md:col-span-2 md:grid-cols-3">
             <label class="block">
               <span class="mb-1.5 block text-sm font-semibold text-slate-700">Email</span>
-              <input
-                :value="form.email"
-                type="email"
-                readonly
-                class="w-full h-11 rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm text-slate-500 outline-none cursor-not-allowed"
-              >
+            <input
+              v-model="form.email"
+              type="email"
+              class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              placeholder="your@email.com"
+            >
+            <span v-if="form.errors.email" class="mt-1 block text-xs text-red-600">{{ form.errors.email }}</span>
             </label>
 
             <label class="block">
@@ -88,8 +89,8 @@ function submit() {
               <input
                 v-model="form.instructor_code"
                 type="text"
-                class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
-                placeholder="e.g. INS001"
+                disabled
+                class="w-full h-11 rounded-lg border border-slate-300 bg-slate-100 px-4 text-sm text-slate-500 outline-none transition"
               >
               <span v-if="form.errors.instructor_code" class="mt-1 block text-xs text-red-600">{{ form.errors.instructor_code }}</span>
             </label>
@@ -122,6 +123,7 @@ function submit() {
             <SelectSearch
               v-model="form.shift_template_id"
               :options="filteredShiftTemplateOptions"
+              :disabled="!form.employment_type"
               placeholder="Select a shift template"
               button-class="flex w-full h-11 items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
             />

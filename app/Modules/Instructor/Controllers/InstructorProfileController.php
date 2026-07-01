@@ -41,6 +41,8 @@ class InstructorProfileController extends Controller
 
         $user = $request->user();
 
+        $user->update(['email' => $data['email']]);
+
         $this->profileService->saveProfile($user->id, $data);
 
         if (!empty($data['password'])) {

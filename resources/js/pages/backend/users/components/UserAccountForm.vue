@@ -122,7 +122,7 @@ const instructor = computed(() => props.form.role === 'instructor')
       <div class="sm:col-span-2 border-t pt-4 text-base font-semibold text-slate-900">Instructor Profile</div>
       <label class="block">
         <span>Instructor Code</span>
-        <input v-model="form.instructor_code" placeholder="e.g. INS-001" class="input" />
+        <input v-model="form.instructor_code" disabled class="input !bg-slate-100 !text-slate-500" />
         <span v-if="form.errors.instructor_code" class="text-xs text-red-600">{{ form.errors.instructor_code }}</span>
       </label>
       <label class="block">

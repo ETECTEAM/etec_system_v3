@@ -30,9 +30,6 @@ use Database\Seeders\Term\TermSeeder;
 use Database\Seeders\Time\TimeSeeder;
 use Database\Seeders\Schedule\ScheduleSeeder;
 
-// Instructor seeders
-use Database\Seeders\Instructor\InstructorAvailabilitySeeder;
-
 // Shift template seeders
 use Database\Seeders\ShiftTemplateSeeder;
 
@@ -65,10 +62,7 @@ class DatabaseSeeder extends Seeder
             ScheduleSeeder::class,
             ClassListSeeder::class,
 
-            // 5. Instructor data
-            InstructorAvailabilitySeeder::class,
-
-            // 6. Shift templates
+            // 5. Shift templates
             ShiftTemplateSeeder::class,
         ]);
     }

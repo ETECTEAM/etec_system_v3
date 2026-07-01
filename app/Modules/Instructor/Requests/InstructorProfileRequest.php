@@ -17,6 +17,13 @@ class InstructorProfileRequest extends FormRequest
         $instructorData = $this->user()?->instructorData;
 
         return [
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($this->user()?->id),
+            ],
             'full_name' => ['required', 'string', 'max:255'],
             'instructor_code' => [
                 'required',

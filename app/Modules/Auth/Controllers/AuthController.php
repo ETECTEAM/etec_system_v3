@@ -4,8 +4,11 @@ namespace App\Modules\Auth\Controllers;
 
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
+use App\Models\InstructorData;
 use App\Models\User;
 use App\Modules\Auth\Events\PendingUserRegistered;
+use App\Modules\Instructor\Services\InstructorService;
+use App\Modules\User\Services\UserService;
 use App\Modules\Auth\Requests\LoginWebRequest;
 use App\Modules\Auth\Requests\RegisterWebRequest;
 use App\Modules\Auth\Requests\VerifyCodeRequest;
@@ -57,6 +60,12 @@ class AuthController extends Controller
 
             // Assign Spatie role instructor
             $user->syncRoles(['instructor']);
+
+            InstructorData::create([
+                'user_id' => $user->id,
+                'full_name' => $data->name,
+                'instructor_code' => InstructorService::generateInstructorCode(),
+            ]);
 
             if (! $otpVerificationEnabled) {
                 return [$user, null, null];
