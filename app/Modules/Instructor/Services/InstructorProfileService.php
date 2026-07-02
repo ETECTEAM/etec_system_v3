@@ -2,10 +2,13 @@
 
 namespace App\Modules\Instructor\Services;
 
+use App\Models\InstructorAttachment;
 use App\Models\InstructorAvailability;
 use App\Models\InstructorData;
 use App\Models\ShiftTemplate;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class InstructorProfileService
 {
@@ -23,6 +26,15 @@ class InstructorProfileService
                     'shift_template_id' => $data['shift_template_id'] ?? null,
                     'available_for_class' => $data['available_for_class'] ?? true,
                     'status' => $data['status'] ?? true,
+                    'headline' => $data['headline'] ?? null,
+                    'bio' => $data['bio'] ?? null,
+                    'date_of_birth' => $data['date_of_birth'] ?? null,
+                    'gender' => $data['gender'] ?? null,
+                    'address' => $data['address'] ?? null,
+                    'telegram' => $data['telegram'] ?? null,
+                    'linkedin' => $data['linkedin'] ?? null,
+                    'github' => $data['github'] ?? null,
+                    'portfolio_url' => $data['portfolio_url'] ?? null,
                 ],
             );
 
@@ -135,5 +147,36 @@ class InstructorProfileService
         }
 
         InstructorAvailability::insert($availabilities);
+    }
+
+    public function saveAttachment(int $instructorId, UploadedFile $file, string $type, ?string $title = null, bool $isPrimary = false): InstructorAttachment
+    {
+        $path = $file->store("instructors/{$instructorId}", 'public');
+
+        return InstructorAttachment::create([
+            'instructor_id' => $instructorId,
+            'type' => $type,
+            'title' => $title,
+            'file_name' => $file->getClientOriginalName(),
+            'file_path' => $path,
+            'file_mime' => $file->getMimeType(),
+            'file_size' => $file->getSize(),
+            'is_primary' => $isPrimary,
+        ]);
+    }
+
+    public function replaceAttachment(int $instructorId, UploadedFile $file, string $type, ?string $title = null): InstructorAttachment
+    {
+        $old = InstructorAttachment::where('instructor_id', $instructorId)
+            ->where('type', $type)
+            ->where('is_primary', true)
+            ->first();
+
+        if ($old) {
+            Storage::disk('public')->delete($old->file_path);
+            $old->delete();
+        }
+
+        return $this->saveAttachment($instructorId, $file, $type, $title, true);
     }
 }

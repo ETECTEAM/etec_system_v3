@@ -169,17 +169,10 @@ function handleEscape(event) {
             </div>
             <div class="border-t border-slate-200">
               <Link
-                v-if="roles.includes('instructor')"
-                href="/dashboard/instructor/profile"
-                class="block w-full px-4 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                My Instructor Profile
-              </Link>
-              <Link
                 href="/logout"
                 method="post"
                 as="button"
-                class="w-full px-4 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                class="w-full cursor-pointer px-4 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Sign out
               </Link>
