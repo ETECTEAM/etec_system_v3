@@ -1,9 +1,35 @@
 <script setup>
 import { Head, Link, usePage } from '@inertiajs/vue3'
 import DashboardLayout from '../../layouts/DashboardLayout.vue'
+import Card from '../../components/ui/card/Card.vue'
 
 const page = usePage()
 const instructorData = page.props.instructorData ?? null
+
+const classes = [
+  {
+    name: 'Java + Spring Boot',
+    classId: 393,
+    lessons: 'No lesson',
+    building: 'Building B',
+    floorRoom: 'Floor-2 - Room: (ETEC B206)',
+    status: 'Scholarship Class',
+    term: 'Sat & Sun',
+    time: '02:00 pm - 05:00 pm',
+    totalStu: 18,
+  },
+  {
+    name: 'Vue.js + Laravel',
+    classId: 401,
+    lessons: '3 lessons',
+    building: 'Building A',
+    floorRoom: 'Floor-1 - Room: (ETEC A102)',
+    status: 'Regular Class',
+    term: 'Mon & Wed',
+    time: '06:00 pm - 08:30 pm',
+    totalStu: 24,
+  },
+]
 </script>
 
 <template>
@@ -97,6 +123,53 @@ const instructorData = page.props.instructorData ?? null
             </div>
           </div>
           <p class="mt-2 text-xs text-slate-400">Next 7 days</p>
+        </div>
+      </div>
+
+      <!-- My Classes -->
+      <div v-if="instructorData">
+        <h2 class="text-lg font-bold text-slate-900">My Classes</h2>
+
+        <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Card v-for="cls in classes" :key="cls.classId" padding="p-5">
+            <div class="flex items-start justify-between">
+              <h3 class="text-base font-bold text-slate-900">{{ cls.name }}</h3>
+              <span class="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                {{ cls.status }}
+              </span>
+            </div>
+
+            <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+              <div>
+                <dt class="text-xs font-medium text-slate-500">Class id</dt>
+                <dd class="mt-0.5 font-semibold text-slate-900">{{ cls.classId }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-slate-500">Class Lessons</dt>
+                <dd class="mt-0.5 font-semibold text-slate-900">{{ cls.lessons }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-slate-500">Building</dt>
+                <dd class="mt-0.5 font-semibold text-slate-900">{{ cls.building }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-slate-500">Floor &amp; Room</dt>
+                <dd class="mt-0.5 font-semibold text-slate-900">{{ cls.floorRoom }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-slate-500">Term</dt>
+                <dd class="mt-0.5 font-semibold text-slate-900">{{ cls.term }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-slate-500">Time</dt>
+                <dd class="mt-0.5 font-semibold text-slate-900">{{ cls.time }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-slate-500">Total Stu</dt>
+                <dd class="mt-0.5 font-semibold text-slate-900">{{ cls.totalStu }}</dd>
+              </div>
+            </dl>
+          </Card>
         </div>
       </div>
     </section>
