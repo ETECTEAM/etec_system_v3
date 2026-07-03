@@ -81,6 +81,10 @@ function isCourseRoute(path) {
   );
 }
 
+function isProfileRoute(path) {
+  return path.split("?")[0].startsWith("/dashboard/instructor");
+}
+
 const openMenus = ref({
   building_management: isBuildingRoute(currentPath.value),
   user: isUserManagementRoute(currentPath.value),
@@ -88,6 +92,7 @@ const openMenus = ref({
   schdule: isScheduleRoute(currentPath.value),
   student: isStudentRoute(currentPath.value),
   course: isCourseRoute(currentPath.value),
+  profile: isProfileRoute(currentPath.value),
 });
 
 const menuItems = computed(() => {
@@ -179,6 +184,15 @@ const menuItems = computed(() => {
         isActive: (path) => path.startsWith("/dashboard/course/lessons"),
       },
     ],
+  });
+
+  base.push({
+    label: "My Profile",
+    href: "/dashboard/instructor",
+    match: ["/dashboard/instructor"],
+    exact: false,
+    icon: "profile",
+    isActive: (path) => path.startsWith("/dashboard/instructor"),
   });
 
   if (isSuperAdmin.value || isAdmin.value) {
@@ -338,6 +352,10 @@ watch(currentPath, (path) => {
 
   if (isCourseRoute(path)) {
     openMenus.value.course = true;
+  }
+
+  if (isProfileRoute(path)) {
+    openMenus.value.profile = true;
   }
 });
 </script>
@@ -613,6 +631,20 @@ watch(currentPath, (path) => {
                   >
                     <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                     <polyline points="9 22 9 12 15 12 15 22" />
+                  </svg>
+
+                  <svg
+                    v-else-if="item.icon === 'profile'"
+                    class="h-4 w-4 text-slate-400"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
                   </svg>
 
                   <svg
