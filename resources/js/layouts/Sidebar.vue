@@ -28,10 +28,19 @@ const isInstructor = computed(() => roles.value.includes("instructor"));
 const canAccessNotifications = computed(
   () => roles.value.includes("super_admin") || roles.value.includes("admin")
 );
-const canAccessDashboard = computed(() => permissions.value.includes("dashboard.view"));
+const canAccessDashboard = computed(() =>
+  permissions.value.includes("dashboard.view")
+);
 
 function isStudentRoute(path) {
-  return path.startsWith("/dashboard/students") || path.startsWith("/qr");
+  const p = path.split("?")[0];
+
+  return (
+    p.startsWith("/dashboard/students") ||
+    p.startsWith("/dashboard/students/form") ||
+    p.startsWith("/dashboard/students/class-list") ||
+    p.startsWith("/qr")
+  );
 }
 
 function isClassManagementRoute(path) {
@@ -132,10 +141,22 @@ const menuItems = computed(() => {
         href: "/dashboard/class-list",
         match: ["/dashboard/class-list"],
         exact: false,
-        isActive: (path) => path.startsWith("/dashboard/class-list"),
+        isActive: (path) => path.startsWith("/dashboard/classes-list"),
       },
     ],
   });
+
+  if (canAccessNotifications.value) {
+    base.push({
+      label: "EnRoll Management",
+      key: "enroll",
+      icon: "student",
+      href: "/dashboard/students",
+      match: ["/dashboard/students"],
+      exact: false,
+      isActive: (path) => path.startsWith("/dashboard/students"),
+    });
+  }
 
   base.push({
     label: "Course Management",
@@ -279,6 +300,11 @@ function isActive(item) {
     return item.isActive(pathOnly);
   }
 
+  if (!Array.isArray(item.match)) {
+    console.warn("Menu item missing match:", item);
+    return false;
+  }
+
   return item.match.some((targetPath) => {
     const normalizedTarget = targetPath.replace(/\/+$/, "") || "/";
 
@@ -373,7 +399,9 @@ watch(currentPath, (path) => {
           ]"
         >
           <div v-if="!props.collapsed">
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+            <p
+              class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400"
+            >
               ETEC
             </p>
             <p class="text-base font-semibold text-slate-900">Control Center</p>
@@ -435,7 +463,9 @@ watch(currentPath, (path) => {
                       stroke-linecap="round"
                       stroke-linejoin="round"
                     >
-                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                      <path
+                        d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"
+                      />
                       <path d="M8 7h8" />
                       <path d="M8 11h6" />
                       <path d="M8 15h4" />
@@ -451,7 +481,9 @@ watch(currentPath, (path) => {
                       stroke-linecap="round"
                       stroke-linejoin="round"
                     >
-                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                      <path
+                        d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"
+                      />
                       <path d="M6 6h10M6 10h10" />
                     </svg>
 
@@ -554,7 +586,10 @@ watch(currentPath, (path) => {
                   v-if="openMenus[item.key] && !props.collapsed"
                   class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3"
                 >
-                  <li v-for="child in item.children" :key="child.href ?? child.key">
+                  <li
+                    v-for="child in item.children"
+                    :key="child.href ?? child.key"
+                  >
                     <Link
                       :href="child.href"
                       class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
