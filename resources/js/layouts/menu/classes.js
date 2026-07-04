@@ -1,0 +1,37 @@
+export const key = "classes";
+
+export function isRoute(path) {
+  const p = path.split("?")[0];
+  return (
+    p.startsWith("/class-types") ||
+    p.startsWith("/dashboard/class-types") ||
+    p.startsWith("/dashboard/class-list")
+  );
+}
+
+export function build() {
+  return {
+    label: "Class Management",
+    key,
+    match: ["/class-types", "/dashboard/class-types", "/dashboard/class-list"],
+    icon: "classes",
+    children: [
+      {
+        label: "Class Type",
+        href: "/dashboard/class-types",
+        match: ["/dashboard/class-types", "/class-types"],
+        exact: false,
+        isActive: (path) =>
+          path.startsWith("/dashboard/class-types") ||
+          path.startsWith("/class-types"),
+      },
+      {
+        label: "Class List",
+        href: "/dashboard/class-list",
+        match: ["/dashboard/class-list"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/class-list"),
+      },
+    ],
+  };
+}

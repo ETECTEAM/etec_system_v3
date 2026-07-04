@@ -1,6 +1,6 @@
 <script setup>
 import { useForm, router } from "@inertiajs/vue3";
-import { GraduationCap,ArrowLeft, Save,} from "@lucide/vue";
+import { GraduationCap, ArrowLeft, Save } from "@lucide/vue";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
 import PageHero from "../../../components/ui/page-hero/PageHero.vue";
@@ -34,28 +34,28 @@ function submit() {
 </script>
 <template>
     <DashboardLayout>
-        <div class="space-y-3">
+    <div class="w-full">
+        <div class="space-y-4 sm:space-y-5">
          <Breadcrumbs :items="breadcrumbItems" />
           <PageHero/>
             <!-- Header -->
-            <div class="flex justify-between items-center mb-8">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <div class="flex items-center gap-4">
-                    <div class="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center">
-                        <GraduationCap class="w-8 h-8 text-indigo-600"/>
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-100 flex items-center justify-center shrink-0">
+                        <GraduationCap class="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600"/>
                     </div>
                     <div>
-                        <h1
-                            class="text-2xl font-bold text-slate-900">
+                        <h1 class="text-xl sm:text-2xl font-bold text-slate-900">
                             Create New Class
                         </h1>
-                        <p class="text-slate-500">
+                        <p class="text-sm sm:text-base text-slate-500">
                             Create and manage class information.
                         </p>
                     </div>
                 </div>
                 <button
                     @click="back"
-                    class="flex items-center gap-2 border border-slate-300 rounded-xl px-3 py-2 hover:bg-slate-100">
+                    class="flex items-center gap-2 border border-slate-300 rounded-xl px-4 sm:px-5 py-2.5 sm:py-3 hover:bg-slate-100 self-start sm:self-auto text-sm sm:text-base whitespace-nowrap">
                     <ArrowLeft class="w-4 h-4"/>
                     Back
                 </button>
@@ -64,9 +64,9 @@ function submit() {
             <!-- Card -->
 
             <div
-                class="bg-white rounded-3xl shadow-xl border border-slate-200 p-8">
+                class="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-slate-200 p-4 sm:p-6 lg:p-8">
                 <div
-                    class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
 
                     <!-- Title -->
                     <div>
@@ -183,11 +183,11 @@ function submit() {
                 </div>
                 <!-- Footer -->
 
-                <div class="flex justify-end gap-4 mt-10">
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-4 mt-6 sm:mt-8 lg:mt-10">
 
                     <button
                         @click="back"
-                        class="px-3 py-2 rounded-xl border border-slate-300 hover:bg-slate-100">
+                        class="w-full sm:w-auto px-6 py-3 rounded-xl border border-slate-300 hover:bg-slate-100 text-sm sm:text-base">
 
                         Cancel
 
@@ -195,7 +195,7 @@ function submit() {
 
                     <button
                         @click="submit"
-                        class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2">
+                        class="w-full sm:w-auto px-6 sm:px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center gap-2 text-sm sm:text-base">
 
                         <Save class="w-4 h-4"/>
 
@@ -206,6 +206,8 @@ function submit() {
                 </div>
 
             </div>
+
+        </div>
 
         </div>
 
