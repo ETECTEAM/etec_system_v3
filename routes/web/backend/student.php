@@ -3,6 +3,7 @@
 use App\Models\Time;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+// middleware('auth')
 
 // Route::middleware('auth')->prefix('/dashboard/students')->group(function(){  
 
