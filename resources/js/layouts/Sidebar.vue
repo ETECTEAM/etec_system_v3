@@ -23,6 +23,7 @@ const isSuperAdmin = computed(() => roles.value.includes("super_admin"));
 const canAccessNotifications = computed(
   () => roles.value.includes("super_admin") || roles.value.includes("admin")
 );
+<<<<<<< HEAD
 const canAccessFloors = computed(
   () =>
     roles.value.includes("super_admin") ||
@@ -34,10 +35,21 @@ const canAccessRegisters = computed(
     roles.value.includes("super_admin") ||
     roles.value.includes("admin") ||
     roles.value.includes("instructor")
+=======
+const canAccessDashboard = computed(() =>
+  permissions.value.includes("dashboard.view")
+>>>>>>> 50ba0a8 (Update feature register class chang to enroll student)
 );
 
 function isStudentRoute(path) {
-  return path.startsWith("/dashboard/students") || path.startsWith("/qr");
+  const p = path.split("?")[0];
+
+  return (
+    p.startsWith("/dashboard/students") ||
+    p.startsWith("/dashboard/students/form") ||
+    p.startsWith("/dashboard/students/class-list") ||
+    p.startsWith("/qr")
+  );
 }
 
 function isClassManagementRoute(path) {
@@ -190,13 +202,73 @@ const menuItems = computed(() => {
         href: "/dashboard/class-list",
         match: ["/dashboard/class-list"],
         exact: false,
-        isActive: (path) => path.startsWith("/dashboard/class-list"),
+        isActive: (path) => path.startsWith("/dashboard/classes-list"),
       },
      
     ],
   });
 
+<<<<<<< HEAD
   if (isSuperAdmin.value) {
+=======
+  if (canAccessNotifications.value) {
+    base.push({
+      label: "EnRoll Management",
+      key: "enroll",
+      icon: "student",
+      href: "/dashboard/students",
+      match: ["/dashboard/students"],
+      exact: false,
+      isActive: (path) => path.startsWith("/dashboard/students"),
+    });
+  }
+
+  base.push({
+    label: "Course Management",
+    key: "course",
+    match: ["/dashboard/course"],
+    icon: "course",
+    children: [
+      {
+        label: "Categories",
+        href: "/dashboard/course/categories",
+        match: ["/dashboard/course/categories"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/course/categories"),
+      },
+      {
+        label: "Sub Categories",
+        href: "/dashboard/course/subcategories",
+        match: ["/dashboard/course/subcategories"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/course/subcategories"),
+      },
+      {
+        label: "Tracks",
+        href: "/dashboard/course/tracks",
+        match: ["/dashboard/course/tracks"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/course/tracks"),
+      },
+      {
+        label: "Courses",
+        href: "/dashboard/course/courses",
+        match: ["/dashboard/course/courses"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/course/courses"),
+      },
+      {
+        label: "Lessons",
+        href: "/dashboard/course/lessons",
+        match: ["/dashboard/course/lessons"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/course/lessons"),
+      },
+    ],
+  });
+
+  if (isSuperAdmin.value || isAdmin.value) {
+>>>>>>> 50ba0a8 (Update feature register class chang to enroll student)
     base.push(
       {
         label: "User Management",
@@ -286,6 +358,11 @@ function isActive(item) {
     return item.isActive(pathOnly);
   }
 
+  if (!Array.isArray(item.match)) {
+    console.warn("Menu item missing match:", item);
+    return false;
+  }
+
   return item.match.some((targetPath) => {
     const normalizedTarget = targetPath.replace(/\/+$/, "") || "/";
 
@@ -369,7 +446,9 @@ watch(currentPath, (path) => {
           ]"
         >
           <div v-if="!props.collapsed">
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+            <p
+              class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400"
+            >
               ETEC
             </p>
             <p class="text-base font-semibold text-slate-900">Control Center</p>
@@ -404,8 +483,42 @@ watch(currentPath, (path) => {
                   @click="toggleMenu(item.key)"
                 >
                   <span class="flex flex-1 items-center gap-2 text-left">
+<<<<<<< HEAD
                     <svg v-if="item.icon === 'classes'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+=======
+                    <svg
+                      v-if="item.icon === 'course'"
+                      class="h-4 w-4 text-slate-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"
+                      />
+                      <path d="M8 7h8" />
+                      <path d="M8 11h6" />
+                      <path d="M8 15h4" />
+                    </svg>
+
+                    <svg
+                      v-else-if="item.icon === 'classes'"
+                      class="h-4 w-4 text-slate-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"
+                      />
+>>>>>>> 50ba0a8 (Update feature register class chang to enroll student)
                       <path d="M6 6h10M6 10h10" />
                     </svg>
 
@@ -435,8 +548,19 @@ watch(currentPath, (path) => {
                   </svg>
                 </button>
 
+<<<<<<< HEAD
                 <ul v-if="openMenus[item.key] && !props.collapsed" class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3">
                   <li v-for="child in item.children" :key="child.href">
+=======
+                <ul
+                  v-if="openMenus[item.key] && !props.collapsed"
+                  class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3"
+                >
+                  <li
+                    v-for="child in item.children"
+                    :key="child.href ?? child.key"
+                  >
+>>>>>>> 50ba0a8 (Update feature register class chang to enroll student)
                     <Link
                       :href="child.href"
                       class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
