@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
+import { menuDomains } from "./menu";
 
 const props = defineProps({
   open: {
@@ -29,80 +30,22 @@ const canAccessFloors = computed(
   () => isSuperAdmin.value || isAdmin.value || roles.value.includes("instructor"),
 );
 
-const canAccessRegisters = computed(
-  () => isSuperAdmin.value || isAdmin.value || roles.value.includes("instructor"),
+const menuContext = computed(() => ({
+  isSuperAdmin: isSuperAdmin.value,
+  isAdmin: isAdmin.value,
+  roles: roles.value,
+  permissions: permissions.value,
+  canAccessNotifications: canAccessNotifications.value,
+  canAccessFloors: canAccessFloors.value,
+}));
+
+const openMenus = ref(
+  Object.fromEntries(
+    menuDomains
+      .filter((domain) => domain.key)
+      .map((domain) => [domain.key, domain.isRoute?.(currentPath.value) ?? false]),
+  ),
 );
-
-function isStudentRoute(path) {
-  const p = path.split("?")[0];
-  return (
-    p.startsWith("/dashboard/students") ||
-    p.startsWith("/dashboard/students/form") ||
-    p.startsWith("/dashboard/students/class-list") ||
-    p.startsWith("/qr")
-  );
-}
-
-function isClassManagementRoute(path) {
-  const p = path.split("?")[0];
-
-  return (
-    p.startsWith("/class-types") ||
-    p.startsWith("/dashboard/class-types") ||
-    p.startsWith("/dashboard/class-list")
-  );
-}
-
-function isUserManagementRoute(path) {
-  return path.split("?")[0].startsWith("/dashboard/users");
-}
-
-function isBuildingRoute(path) {
-  const p = path.split("?")[0];
-
-  return (
-    p.startsWith("/dashboard/buildings") ||
-    p.startsWith("/dashboard/floors") ||
-    p.startsWith("/dashboard/rooms")
-  );
-}
-
-function isScheduleRoute(path) {
-  const p = path.split("?")[0];
-
-  return (
-    p.startsWith("/dashboard/terms") ||
-    p.startsWith("/dashboard/times") ||
-    p.startsWith("/dashboard/schdule")
-  );
-}
-
-function isCourseRoute(path) {
-  const p = path.split("?")[0];
-
-  return (
-    p.startsWith("/dashboard/course") ||
-    p.startsWith("/dashboard/categories") ||
-    p.startsWith("/dashboard/subcategories") ||
-    p.startsWith("/dashboard/tracks") ||
-    p.startsWith("/dashboard/courses") ||
-    p.startsWith("/dashboard/lessons")
-  );
-}
-
-function isProfileRoute(path) {
-  return path.split("?")[0].startsWith("/dashboard/instructor");
-}
-
-const openMenus = ref({
-  building_management: isBuildingRoute(currentPath.value),
-  user: isUserManagementRoute(currentPath.value),
-  classes: isClassManagementRoute(currentPath.value),
-  schdule: isScheduleRoute(currentPath.value),
-  student: isStudentRoute(currentPath.value),
-  course: isCourseRoute(currentPath.value),
-  profile: isProfileRoute(currentPath.value),
-});
 
 const menuItems = computed(() => {
   const base = [
@@ -115,224 +58,9 @@ const menuItems = computed(() => {
     },
   ];
 
-
-  if (canAccessFloors.value) {
-    base.push({
-      label: "Building Management",
-      key: "building_management",
-      match: ["/dashboard/buildings", "/dashboard/floors", "/dashboard/rooms"],
-      icon: "building_management",
-      children: [
-        {
-          label: "Buildings",
-          href: "/dashboard/buildings",
-          match: ["/dashboard/buildings"],
-          exact: false,
-        },
-        {
-          label: "Floors",
-          href: "/dashboard/floors",
-          match: ["/dashboard/floors"],
-          exact: false,
-        },
-        {
-          label: "Rooms",
-          href: "/dashboard/rooms",
-          match: ["/dashboard/rooms"],
-          exact: false,
-        },
-      ],
-    });
-  }
-
-  if (canAccessNotifications.value) {
-    base.push({
-      label: "Notifications",
-      href: "/dashboard/notifications",
-      match: ["/dashboard/notifications"],
-      exact: false,
-      icon: "notification",
-      isActive: (path) => path.startsWith("/dashboard/notifications"),
-    });
-  }
-
-  base.push({
-    label: "Class Management",
-    key: "classes",
-    match: ["/class-types", "/dashboard/class-types", "/dashboard/class-list"],
-    icon: "classes",
-    children: [
-      {
-        label: "Class Type",
-        href: "/dashboard/class-types",
-        match: ["/dashboard/class-types", "/class-types"],
-        exact: false,
-        isActive: (path) =>
-          path.startsWith("/dashboard/class-types") ||
-          path.startsWith("/class-types"),
-      },
-      {
-        label: "Class List",
-        href: "/dashboard/class-list",
-        match: ["/dashboard/class-list"],
-        exact: false,
-        isActive: (path) => path.startsWith("/dashboard/class-list"),
-      },
-    ],
-  });
-
-  if (isSuperAdmin.value) {
-    if (canAccessNotifications.value) {
-      base.push({
-        label: "EnRoll Management",
-        key: "enroll",
-        icon: "student",
-        href: "/dashboard/students",
-        match: ["/dashboard/students"],
-        exact: false,
-        isActive: (path) => path.startsWith("/dashboard/students"),
-      });
-    }
-
-    base.push({
-      label: "Course Management",
-      key: "course",
-      match: ["/dashboard/course"],
-      icon: "course",
-      children: [
-        {
-          label: "Categories",
-          href: "/dashboard/course/categories",
-          match: ["/dashboard/course/categories"],
-          exact: false,
-          isActive: (path) => path.startsWith("/dashboard/course/categories"),
-        },
-        {
-          label: "Sub Categories",
-          href: "/dashboard/course/subcategories",
-          match: ["/dashboard/course/subcategories"],
-          exact: false,
-          isActive: (path) => path.startsWith("/dashboard/course/subcategories"),
-        },
-        {
-          label: "Tracks",
-          href: "/dashboard/course/tracks",
-          match: ["/dashboard/course/tracks"],
-          exact: false,
-          isActive: (path) => path.startsWith("/dashboard/course/tracks"),
-        },
-        {
-          label: "Courses",
-          href: "/dashboard/course/courses",
-          match: ["/dashboard/course/courses"],
-          exact: false,
-          isActive: (path) => path.startsWith("/dashboard/course/courses"),
-        },
-        {
-          label: "Lessons",
-          href: "/dashboard/course/lessons",
-          match: ["/dashboard/course/lessons"],
-          exact: false,
-          isActive: (path) => path.startsWith("/dashboard/course/lessons"),
-        },
-      ],
-    });
-  }
-
-  if (!isSuperAdmin.value && !isAdmin.value) {
-    base.push({
-      label: "My Profile",
-      href: "/dashboard/instructor",
-      match: ["/dashboard/instructor"],
-      exact: false,
-      icon: "profile",
-      isActive: (path) => path.startsWith("/dashboard/instructor"),
-    });
-  }
-
-  if (isSuperAdmin.value || isAdmin.value) {
-    base.push(
-      {
-        label: "User Management",
-        key: "user",
-        match: ["/dashboard/users"],
-        icon: "user",
-        children: [
-          {
-            label: "User",
-            href: "/dashboard/users",
-            match: ["/dashboard/users"],
-            exact: false,
-            isActive: (path) =>
-              path === "/dashboard/users" ||
-              path.startsWith("/dashboard/users/create") ||
-              path.startsWith("/dashboard/users/edit") ||
-              /^\/dashboard\/users\/\d+$/.test(path),
-          },
-          {
-            label: "Role & Permission",
-            href: "/dashboard/users/roles",
-            match: ["/dashboard/users/roles"],
-            exact: false,
-            isActive: (path) => path.startsWith("/dashboard/users/roles"),
-          },
-          {
-            label: "Permission",
-            href: "/dashboard/users/permissions",
-            match: ["/dashboard/users/permissions"],
-            exact: false,
-            isActive: (path) => path.startsWith("/dashboard/users/permissions"),
-          },
-        ],
-      },
-      {
-        label: "Shift Templates",
-        href: "/dashboard/shift-templates",
-        match: ["/dashboard/shift-templates"],
-        exact: false,
-        icon: "schdule",
-        isActive: (path) => path.startsWith("/dashboard/shift-templates"),
-      },
-      {
-        label: "Schedule Management",
-        key: "schdule",
-        match: ["/dashboard/terms", "/dashboard/times", "/dashboard/schdule"],
-        icon: "schdule",
-        children: [
-          {
-            label: "Terms",
-            href: "/dashboard/terms",
-            match: ["/dashboard/terms"],
-            exact: false,
-            isActive: (path) =>
-              path === "/dashboard/terms" ||
-              path.startsWith("/dashboard/terms/create") ||
-              path.startsWith("/dashboard/terms/edit"),
-          },
-          {
-            label: "Times",
-            href: "/dashboard/times",
-            match: ["/dashboard/times"],
-            exact: false,
-            isActive: (path) =>
-              path === "/dashboard/times" ||
-              path.startsWith("/dashboard/times/create") ||
-              path.startsWith("/dashboard/times/edit") ||
-              /^\/dashboard\/times\/\d+$/.test(path),
-          },
-          {
-            label: "Schedules",
-            href: "/dashboard/schdule",
-            match: ["/dashboard/schdule"],
-            exact: false,
-            isActive: (path) =>
-              path === "/dashboard/schdule" ||
-              path.startsWith("/dashboard/schdule/create") ||
-              path.startsWith("/dashboard/schdule/edit"),
-          },
-        ],
-      },
-    );
+  for (const domain of menuDomains) {
+    const item = domain.build(menuContext.value);
+    if (item) base.push(item);
   }
 
   const singleItems = base.filter((item) => !item.children);
@@ -377,11 +105,11 @@ function toggleMenu(key) {
 }
 
 watch(currentPath, (path) => {
-  if (isUserManagementRoute(path)) openMenus.value.user = true;
-  if (isBuildingRoute(path)) openMenus.value.building_management = true;
-  if (isClassManagementRoute(path)) openMenus.value.classes = true;
-  if (isScheduleRoute(path)) openMenus.value.schdule = true;
-  if (isStudentRoute(path)) openMenus.value.student = true;
+  for (const domain of menuDomains) {
+    if (domain.key && domain.isRoute?.(path)) {
+      openMenus.value[domain.key] = true;
+    }
+  }
 });
 </script>
 
