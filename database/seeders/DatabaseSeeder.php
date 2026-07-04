@@ -30,6 +30,9 @@ use Database\Seeders\Term\TermSeeder;
 use Database\Seeders\Time\TimeSeeder;
 use Database\Seeders\Schedule\ScheduleSeeder;
 
+// Shift template seeders
+use Database\Seeders\Schedule\ShiftTemplateSeeder;
+
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
@@ -58,6 +61,9 @@ class DatabaseSeeder extends Seeder
             ClassSeeder::class,
             ScheduleSeeder::class,
             ClassListSeeder::class,
+
+            // 5. Shift templates
+            ShiftTemplateSeeder::class,
         ]);
     }
 }

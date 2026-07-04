@@ -17,12 +17,18 @@ const form = useForm({
   password: '',
   password_confirmation: '',
   role: roleOptions[0] ?? 'admin',
+  account_status: 'active',
 })
 
 const roleSelectOptions = computed(() => roleOptions.map((role) => ({
   label: formatRole(role),
   value: role,
 })))
+
+const statusSelectOptions = [
+  { label: 'Active', value: 'active' },
+  { label: 'Inactive', value: 'inactive' },
+]
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -92,15 +98,27 @@ function submit() {
             >
           </label>
 
-          <label class="block sm:col-span-2">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Role</span>
-            <SelectSearch
-              v-model="form.role"
-              :options="roleSelectOptions"
-              placeholder="Select role"
-            />
-            <span v-if="form.errors.role" class="mt-1 block text-xs text-red-600">{{ form.errors.role }}</span>
-          </label>
+          <div class="grid gap-4 sm:col-span-2 sm:grid-cols-2">
+            <label class="block">
+              <span class="mb-2 block text-sm font-semibold text-slate-700">Role</span>
+              <SelectSearch
+                v-model="form.role"
+                :options="roleSelectOptions"
+                placeholder="Select role"
+              />
+              <span v-if="form.errors.role" class="mt-1 block text-xs text-red-600">{{ form.errors.role }}</span>
+            </label>
+
+            <label class="block">
+              <span class="mb-2 block text-sm font-semibold text-slate-700">Status</span>
+              <SelectSearch
+                v-model="form.account_status"
+                :options="statusSelectOptions"
+                placeholder="Select status"
+              />
+              <span v-if="form.errors.account_status" class="mt-1 block text-xs text-red-600">{{ form.errors.account_status }}</span>
+            </label>
+          </div>
 
           <div class="flex justify-end gap-3 sm:col-span-2">
             <Link

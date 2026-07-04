@@ -3,11 +3,14 @@
 namespace App\Modules\User\Services;
 
 use App\Models\User;
+use App\Modules\Instructor\Services\InstructorService;
 use App\Modules\User\Data\StoreUserData;
 use App\Modules\User\Data\UpdateUserData;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 
@@ -16,6 +19,9 @@ use Spatie\Permission\Models\Role;
  */
 class UserService
 {
+    public function __construct(
+        private readonly InstructorService $instructorService,
+    ) {}
     /**
      * @return array<int, string>
      */
@@ -83,9 +89,7 @@ class UserService
 
         $role = trim((string) ($filters['role'] ?? ''));
         if ($role !== '') {
-            $query->whereHas('roles', function (Builder $builder) use ($role): void {
-                $builder->where('name', $role);
-            });
+            $query->role($role, 'web');
         }
 
         if (($filters['status'] ?? '') !== '') {
@@ -119,6 +123,7 @@ class UserService
         $roles = $this->assignableRolesFor($authUser);
 
         return Role::query()
+            ->where('guard_name', 'web')
             ->whereIn('name', $roles)
             ->orderBy('id')
             ->pluck('name')
@@ -131,6 +136,8 @@ class UserService
             'id' => $user->id,
             'name' => $user->role === 'student' ? ($user->student?->full_name ?? $user->name) : ($user->role === 'instructor' ? ($user->instructorData?->full_name ?? $user->name) : $user->name),
             'email' => $user->email,
+            'role' => $user->getRoleNames()->first(),
+            'status' => $user->status,
             'roles' => $user->getRoleNames()->values(),
             'student' => $user->student,
             'instructor_data' => $user->instructorData,
@@ -145,7 +152,7 @@ class UserService
                 'role' => $data->role, 'status' => $data->status, 'avatar' => $this->storeAvatar($data->avatar),
             ]);
             $user->syncRoles([$data->role]);
-            $this->syncProfile($user, $data->role, $data->student, $data->instructorData);
+            $this->instructorService->syncProfile($user, $data->role, $data->student, $data->instructorData);
             return $user->fresh(['roles', 'student', 'instructorData']);
         });
     }
@@ -161,7 +168,7 @@ class UserService
             }
             $user->update($attributes);
             $user->syncRoles([$data->role]);
-            $this->syncProfile($user, $data->role, $data->student, $data->instructorData);
+            $this->instructorService->syncProfile($user, $data->role, $data->student, $data->instructorData);
             return $user->fresh(['roles', 'student', 'instructorData']);
         });
     }
@@ -178,22 +185,6 @@ class UserService
                 'role' => 'You are not allowed to assign this role.',
             ]);
         }
-    }
-
-    private function syncProfile(User $user, string $role, array $student, array $instructorData): void
-    {
-        if ($role === 'student') {
-            $user->instructorData()->delete();
-            $user->student()->updateOrCreate(['user_id' => $user->id], $student);
-            return;
-        }
-        if ($role === 'instructor') {
-            $user->student()->delete();
-            $user->instructorData()->updateOrCreate(['user_id' => $user->id], $instructorData);
-            return;
-        }
-        $user->student()->delete();
-        $user->instructorData()->delete();
     }
 
     private function storeAvatar(?\Illuminate\Http\UploadedFile $avatar): ?string

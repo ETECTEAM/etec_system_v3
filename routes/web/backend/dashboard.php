@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -9,18 +8,26 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'permission:dashboard.view'])->group(function () {
     Route::get('/dashboard', function () {
-        $user = Auth::user();
-
-        if ($user->hasAnyRole(['super_admin', 'admin'])) {
-            return inertia('backend/Home');
-        }
+        $user = request()->user();
 
         if ($user->hasRole('instructor')) {
-            return redirect()->route('dashboard.users.index');
+            $instructorData = $user->instructorData()
+                ->with(['profilePhoto', 'cvFile', 'attachments', 'shiftTemplate'])
+                ->first();
+
+            return inertia('backend/InstructorDashboard', [
+                'instructorData' => $instructorData,
+                'profilePhoto' => $instructorData?->profilePhoto,
+                'cvFile' => $instructorData?->cvFile,
+                'otherAttachments' => $instructorData?->attachments
+                    ->whereNotIn('type', ['profile_photo', 'cv'])
+                    ->values(),
+                'shiftTemplate' => $instructorData?->shiftTemplate,
+            ]);
         }
 
-        abort(403);
+        return inertia('backend/Home');
     })->name('dashboard');
 });

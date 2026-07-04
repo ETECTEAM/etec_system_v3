@@ -18,8 +18,8 @@ class AssignPermissionSeeder extends Seeder
         $student = Role::where('name', 'student')->where('guard_name', 'web')->first();
 
         $superAdmin->syncPermissions($allPermissions);
-        $admin->syncPermissions([]);
-        $instructor->syncPermissions([]);
-        $student->syncPermissions([]);
+        $admin->syncPermissions(['dashboard.view']);
+        $instructor->syncPermissions(['dashboard.view', 'instructor_profile.view', 'instructor_profile.update']);
+        $student->syncPermissions(['dashboard.view']);
     }
 }

@@ -1,11 +1,12 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import { Search } from '@lucide/vue'
 import { formatRole, roleBadgeClass } from '@/lib/roleBadge.js'
 import { Pagination } from '@/components/ui/pagination'
 import { Card } from '@/components/ui/card'
 import { ActionMenu } from '@/components/ui/menu'
+import RightClick from '@/components/ui/rightclick/RightClick.vue'
 import { SelectSearch } from '@/components/ui/select-search'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
@@ -110,6 +111,54 @@ const searchError = computed(() => {
   return props.search.length < 2 ? 'Type at least 2 characters to search.' : ''
 })
 
+const contextMenu = reactive({
+  show: false,
+  x: 0,
+  y: 0,
+  row: null,
+})
+
+function openRowContextMenu(event, user) {
+  contextMenu.show = true
+  contextMenu.x = event.clientX
+  contextMenu.y = event.clientY
+  contextMenu.row = user
+}
+
+function closeContextMenu() {
+  contextMenu.show = false
+  contextMenu.row = null
+}
+
+watch(() => props.users, () => {
+  closeContextMenu()
+})
+
+function viewUser(id) {
+  router.visit(`/dashboard/users/${id}`)
+}
+
+function editUser(id) {
+  router.visit(`/dashboard/users/edit/${id}`)
+}
+
+function deleteUser(id) {
+  emit('delete-user', id)
+}
+
+function handleContextMenuSelect(actionKey) {
+  if (!contextMenu.row) return
+  if (actionKey === 'view') viewUser(contextMenu.row.id)
+  else if (actionKey === 'edit') editUser(contextMenu.row.id)
+  else if (actionKey === 'delete') deleteUser(contextMenu.row.id)
+}
+
+const contextMenuActions = [
+  { key: 'view', label: 'View' },
+  { key: 'edit', label: 'Edit' },
+  { key: 'delete', label: 'Delete', danger: true },
+]
+
 function actionItemsFor(user) {
   return [
     {
@@ -143,19 +192,9 @@ const actions = [
 ]
 
 function handleAction(action, user) {
-  if (action.key === 'view') {
-    router.visit(`/dashboard/users/${user.id}`)
-    return
-  }
-
-  if (action.key === 'edit') {
-    router.visit(`/dashboard/users/${user.id}/edit`)
-    return
-  }
-
-  if (action.key === 'delete') {
-    emit('delete-user', user.id)
-  }
+  if (action.key === 'view') viewUser(user.id)
+  else if (action.key === 'edit') editUser(user.id)
+  else if (action.key === 'delete') deleteUser(user.id)
 }
 </script>
 
@@ -212,12 +251,13 @@ function handleAction(action, user) {
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Roles</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead class="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
 
         <TableBody>
-          <TableRow v-for="(user, index) in users" :key="user.id" class="transition-opacity duration-200">
+          <TableRow v-for="(user, index) in users" :key="user.id" class="transition-opacity duration-200" @contextmenu.prevent="openRowContextMenu($event, user)">
             <TableCell class="text-slate-500">{{ rowNumber(index) }}</TableCell>
             <TableCell class="font-medium text-slate-900">{{ user.name }}</TableCell>
             <TableCell class="text-slate-600">{{ user.email }}</TableCell>
@@ -235,6 +275,11 @@ function handleAction(action, user) {
                 </span>
               </div>
             </TableCell>
+            <TableCell>
+              <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="user.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'">
+                {{ user.status === 'active' ? 'Active' : 'Inactive' }}
+              </span>
+            </TableCell>
             <TableCell class="text-right">
               <div class="flex justify-end">
                 <ActionMenu
@@ -246,7 +291,7 @@ function handleAction(action, user) {
           </TableRow>
 
           <TableRow v-if="hasLoaded && !isLoading && users.length === 0">
-            <TableCell colspan="8" class="py-10 text-center text-slate-500">
+            <TableCell colspan="9" class="py-10 text-center text-slate-500">
               {{ roles.length === 0 ? 'No roles available or roles could not be loaded.' : 'No users found.' }}
             </TableCell>
           </TableRow>
@@ -276,5 +321,14 @@ function handleAction(action, user) {
         @page-change="emit('page-change', $event)"
       />
     </div>
+
+    <RightClick
+      :show="contextMenu.show"
+      :x="contextMenu.x"
+      :y="contextMenu.y"
+      :actions="contextMenuActions"
+      @select="handleContextMenuSelect"
+      @close="closeContextMenu"
+    />
   </Card>
 </template>

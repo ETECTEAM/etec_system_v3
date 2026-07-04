@@ -2,9 +2,13 @@
 
 namespace App\Modules\Auth\Controllers;
 
+use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
+use App\Models\InstructorData;
 use App\Models\User;
 use App\Modules\Auth\Events\PendingUserRegistered;
+use App\Modules\Instructor\Services\InstructorService;
+use App\Modules\User\Services\UserService;
 use App\Modules\Auth\Requests\LoginWebRequest;
 use App\Modules\Auth\Requests\RegisterWebRequest;
 use App\Modules\Auth\Requests\VerifyCodeRequest;
@@ -48,7 +52,7 @@ class AuthController extends Controller
                 'email' => $data->email,
                 'password' => $data->password,
                 'role' => 'instructor',
-                'status' => false,
+                'status' => 'pending',
             ]);
 
             // Create instructor role if not exists
@@ -56,6 +60,12 @@ class AuthController extends Controller
 
             // Assign Spatie role instructor
             $user->syncRoles(['instructor']);
+
+            InstructorData::create([
+                'user_id' => $user->id,
+                'full_name' => $data->name,
+                'instructor_code' => InstructorService::generateInstructorCode(),
+            ]);
 
             if (! $otpVerificationEnabled) {
                 return [$user, null, null];
@@ -172,8 +182,8 @@ class AuthController extends Controller
         ]);
     }
 
-        if (! $user->status) {
-            throw ValidationException::withMessages(['login' => ['Your account is inactive or pending verification.']]);
+        if ($user->status === UserStatus::Inactive) {
+            throw ValidationException::withMessages(['login' => ['Your account is inactive. Please contact administrator.']]);
         }
 
         Auth::login($user, $data->remember);
@@ -195,15 +205,7 @@ class AuthController extends Controller
 
     private function redirectPathFor(User $user): string
     {
-        if ($user->hasAnyRole(['super_admin', 'admin'])) {
-            return '/dashboard';
-        }
-
-        if ($user->hasRole('instructor')) {
-            return '/dashboard/users';
-        }
-
-        if ($user->hasRole('student')) {
+        if ($user->can('dashboard.view')) {
             return '/dashboard';
         }
 
