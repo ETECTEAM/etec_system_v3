@@ -1,6 +1,9 @@
 <script setup>
 import { useForm, router } from "@inertiajs/vue3";
 import { GraduationCap,ArrowLeft, Save,} from "@lucide/vue";
+import DashboardLayout from "../../../layouts/DashboardLayout.vue";
+import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
+import PageHero from "../../../components/ui/page-hero/PageHero.vue";
 
 const form = useForm({
     title: "",
@@ -15,6 +18,15 @@ const form = useForm({
     description: "",
 });
 
+<<<<<<< HEAD
+=======
+const breadcrumbItems = [
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Class List', href: '/dashboard/students' },
+  { label: 'Add Class', current: true },
+]
+
+>>>>>>> 7d3428291dcda5ed8ebf63a87eeb352419e726b1
 function back() {
     router.get("/dashboard/students");
 }
@@ -25,7 +37,13 @@ function submit() {
 </script>
 <template>
     <DashboardLayout>
+<<<<<<< HEAD
         <div class="max-w-6xl mx-auto py-8 px-4">
+=======
+        <div class="space-y-3">
+         <Breadcrumbs :items="breadcrumbItems" />
+          <PageHero/>
+>>>>>>> 7d3428291dcda5ed8ebf63a87eeb352419e726b1
             <!-- Header -->
             <div class="flex justify-between items-center mb-8">
                 <div class="flex items-center gap-4">
@@ -34,7 +52,11 @@ function submit() {
                     </div>
                     <div>
                         <h1
+<<<<<<< HEAD
                             class="text-3xl font-bold text-slate-900">
+=======
+                            class="text-2xl font-bold text-slate-900">
+>>>>>>> 7d3428291dcda5ed8ebf63a87eeb352419e726b1
                             Create New Class
                         </h1>
                         <p class="text-slate-500">
@@ -44,7 +66,11 @@ function submit() {
                 </div>
                 <button
                     @click="back"
+<<<<<<< HEAD
                     class="flex items-center gap-2 border border-slate-300 rounded-xl px-5 py-3 hover:bg-slate-100">
+=======
+                    class="flex items-center gap-2 border border-slate-300 rounded-xl px-3 py-2 hover:bg-slate-100">
+>>>>>>> 7d3428291dcda5ed8ebf63a87eeb352419e726b1
                     <ArrowLeft class="w-4 h-4"/>
                     Back
                 </button>
@@ -176,7 +202,11 @@ function submit() {
 
                     <button
                         @click="back"
+<<<<<<< HEAD
                         class="px-6 py-3 rounded-xl border border-slate-300 hover:bg-slate-100">
+=======
+                        class="px-3 py-2 rounded-xl border border-slate-300 hover:bg-slate-100">
+>>>>>>> 7d3428291dcda5ed8ebf63a87eeb352419e726b1
 
                         Cancel
 
@@ -184,7 +214,11 @@ function submit() {
 
                     <button
                         @click="submit"
+<<<<<<< HEAD
                         class="px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2">
+=======
+                        class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2">
+>>>>>>> 7d3428291dcda5ed8ebf63a87eeb352419e726b1
 
                         <Save class="w-4 h-4"/>
 

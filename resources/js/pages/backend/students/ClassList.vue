@@ -1,12 +1,15 @@
 <script setup>
 import { ref, computed } from "vue";
 import { router } from "@inertiajs/vue3";
+import { Head, router } from "@inertiajs/vue3";
 
 import { Search, RotateCcw, Plus, LayoutGrid, Table2 } from "@lucide/vue";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
 import ClassTable from "./components/ClassTable.vue";
+import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
+import PageHero from "../../../components/ui/page-hero/PageHero.vue";
 
 const search = ref("");
 const viewMode = ref("card");
@@ -37,6 +40,11 @@ const filteredClasses = computed(() => {
   );
 });
 
+const breadcrumbItems = [
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Class List', current: true },
+]
+
 function refresh() {
   search.value = "";
 }
@@ -51,6 +59,11 @@ function goCreateClass() {
       <div class="flex justify-between items-center mb-6">
         <div>
           <h1 class="text-3xl font-bold">My Classes</h1>
+          <Breadcrumbs :items="breadcrumbItems" />
+          <PageHero
+            eyebrow="EnRoll Management"
+            title="Class List"
+          />
 
           <p class="text-gray-500">Manage all classes</p>
         </div>

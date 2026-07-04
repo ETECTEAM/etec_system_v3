@@ -18,6 +18,25 @@ class InstructorProfileController extends Controller
         private readonly InstructorProfileService $profileService,
     ) {}
 
+    public function show(Request $request): Response
+    {
+        abort_unless($request->user()?->can('instructor_profile.view'), 403);
+
+        $instructorData = $request->user()?->instructorData()
+            ->with(['profilePhoto', 'cvFile', 'attachments', 'shiftTemplate'])
+            ->first();
+
+        return Inertia::render('backend/instructors/ShowProfile', [
+            'instructorData' => $instructorData,
+            'profilePhoto' => $instructorData?->profilePhoto,
+            'cvFile' => $instructorData?->cvFile,
+            'otherAttachments' => $instructorData?->attachments
+                ->whereNotIn('type', ['profile_photo', 'cv'])
+                ->values(),
+            'shiftTemplate' => $instructorData?->shiftTemplate,
+        ]);
+    }
+
     public function edit(Request $request): Response
     {
         abort_unless($request->user()?->can('instructor_profile.view'), 403);

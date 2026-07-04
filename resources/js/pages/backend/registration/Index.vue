@@ -3,6 +3,8 @@ import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
+defineOptions({ layout: DashboardLayout })
+
 const props = defineProps({
   enrollments: Array,
   classes: Array,
@@ -40,7 +42,6 @@ const filteredEnrollments = computed(() => {
 
 <template>
   <Head title="Registration Management" />
-  <DashboardLayout>
   <div class="p-8">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold text-gray-800">Registration Management</h1>
@@ -217,6 +218,5 @@ const filteredEnrollments = computed(() => {
       </div>
     </div>
   </div>
-  </DashboardLayout>
 </template>
 
