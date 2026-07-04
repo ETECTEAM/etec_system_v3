@@ -267,7 +267,7 @@ watch(currentPath, (path) => {
             </li>
           </ul>
         </nav>
-
+<!-- 
         <div class="mt-4 border-t border-slate-200 pt-4">
           <Link
             href="/logout"
@@ -282,7 +282,7 @@ watch(currentPath, (path) => {
             <span v-if="props.collapsed">↩</span>
             <span v-else>Logout</span>
           </Link>
-        </div>
+        </div> -->
       </div>
     </aside>
   </div>
