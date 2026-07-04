@@ -4,7 +4,7 @@ import { onMounted, ref, watch } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
-import UserTableSection from '../../auth/components/UserTableSection.vue'
+import UserTableSection from './components/UserTableSection.vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
 const page = usePage()
@@ -50,14 +50,11 @@ async function fetchUsers(pageNumber = 1) {
   isLoadingUsers.value = true
 
   try {
-    const response = await axios.get('/dashboard/users/data', {
-      params: {
-        page: pageNumber,
-        per_page: 5,
-        search: search.value,
-        role: selectedRole.value,
-      },
-    })
+    const params = { page: pageNumber, per_page: 5 }
+    if (search.value) params.search = search.value
+    if (selectedRole.value) params.role = selectedRole.value
+
+    const response = await axios.get('/dashboard/users/data', { params })
 
     users.value = response.data.data ?? []
     pagination.value = {
@@ -105,7 +102,7 @@ watch(selectedRole, () => {
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="User Management" title="User" description="View existing users and manage account roles." />
+      <PageHero eyebrow="Users Management" title="Users" description="View existing users and manage account roles." />
 
       <UserTableSection
         :users="users"

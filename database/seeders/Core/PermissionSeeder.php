@@ -142,12 +142,26 @@ class PermissionSeeder extends Seeder
 
             // Student-facing actions
             'contact_school.create',
+
+            // Dashboard / access
+            'dashboard.view',
+
+            // Shift template management
+            'shift_template.view',
+            'shift_template.create',
+            'shift_template.update',
+            'shift_template.delete',
+            'shift_template.manage',
+
+            // Instructor profile
+            'instructor_profile.view',
+            'instructor_profile.update',
         ];
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate([
                 'name' => $permission,
-                'guard_name' => 'sanctum',
+                'guard_name' => 'web',
             ]);
         }
     }

@@ -3,40 +3,67 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Database\Seeders\Core\CoreSeeder;
+
+// Permission seeders
 use Database\Seeders\Permission\PermissionSeeder;
 use Database\Seeders\Permission\RoleSeeder;
 use Database\Seeders\Permission\AssignPermissionSeeder;
 use Database\Seeders\Permission\UserSeeder;
+
+// Core / base seeders
+use Database\Seeders\Core\CoreSeeder;
+
+// Course seeders
+use Database\Seeders\Course\CategorySeeder;
+use Database\Seeders\Course\SubCategorySeeder;
+use Database\Seeders\Course\CourseTrackSeeder;
+use Database\Seeders\Course\CourseSeeder;
+use Database\Seeders\Course\CourseLessonSeeder;
+
+// Class seeders
 use Database\Seeders\Class\ClassTypeSeeder;
 use Database\Seeders\Class\ClassSeeder;
+use Database\Seeders\Class\ClassListSeeder;
+
+// Other base seeders
 use Database\Seeders\Term\TermSeeder;
 use Database\Seeders\Time\TimeSeeder;
 use Database\Seeders\Schedule\ScheduleSeeder;
-use Database\Seeders\Class\ClassListSeeder;
+
+// Shift template seeders
+use Database\Seeders\Schedule\ShiftTemplateSeeder;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
         $this->call([
-            // ១. បង្កើតរចនាសម្ព័ន្ធសិទ្ធិ និងគណនីមុនគេ (លំដាប់ត្រឹមត្រូវ)
+            // 1. Permission + user first
             PermissionSeeder::class,
             RoleSeeder::class,
             AssignPermissionSeeder::class,
             UserSeeder::class,
 
-            // ២. បង្កើតទិន្នន័យគ្រឹះ (Core & Base Data)
+            // 2. Core/base data
             CoreSeeder::class,
             ClassTypeSeeder::class,
-            
             TermSeeder::class,
             TimeSeeder::class,
 
-            // ៣. បង្កើតទិន្នន័យចងភ្ជាប់លម្អិត (Relation Data) ដែលត្រូវការទិន្នន័យខាងលើមកប្រើ
+            // 3. Course data
+            CategorySeeder::class,
+            SubCategorySeeder::class,
+            CourseTrackSeeder::class,
+            CourseSeeder::class,
+            CourseLessonSeeder::class,
+
+            // 4. Class relation data
             ClassSeeder::class,
             ScheduleSeeder::class,
-            ClassListSeeder::class, // បន្ថែមក្បៀសនៅចុងបន្ទាត់ខាងលើ រួចរៀបមកនៅខាងក្រោមគេវិញ
+            ClassListSeeder::class,
+
+            // 5. Shift templates
+            ShiftTemplateSeeder::class,
         ]);
     }
 }

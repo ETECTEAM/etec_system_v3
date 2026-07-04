@@ -12,6 +12,10 @@ readonly class UpdateUserData
         public string $email,
         public ?string $password,
         public string $role,
+        public string $status,
+        public ?UploadedFile $avatar,
+        public array $student,
+        public array $instructorData,
     ) {}
 
     /**

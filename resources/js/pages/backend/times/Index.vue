@@ -125,7 +125,7 @@ const breadcrumbItems = [
 
             <button
               @click="openCreateModal"
-              class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-950"
+              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-650"
             >
               Create Time
             </button>
@@ -167,14 +167,14 @@ const breadcrumbItems = [
 
                   <button
                     @click="openEditModal(time)"
-                    class="px-5 py-2 text-sm rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition"
+                    class="px-5 py-2 text-sm rounded-lg  border border-blue-200 bg-blue-50 font-semibold text-blue-700  transition hover:bg-blue-100"
                   >
                     Edit
                   </button>
 
                   <button
                     @click="deleteTime(time.id)"
-                    class="px-5 py-2 text-sm rounded-lg bg-red-700 text-white hover:bg-red-800 transition"
+                    class="px-5 py-2 text-sm rounded-lg border border-rose-200 bg-rose-50 font-semibold text-rose-700 transition hover:bg-rose-100"
                   >
                     Delete
                   </button>

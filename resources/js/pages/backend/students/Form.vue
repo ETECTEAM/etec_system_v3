@@ -23,7 +23,7 @@ const locationArea = {
   name: "ETEC Center",
   lat: 11.562203,
   lng: 104.8905442,
-  radius: 3000,
+  radius: 50,
 };
 
 function calculateDistance(lat1, lon1, lat2, lon2) {

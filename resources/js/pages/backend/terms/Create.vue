@@ -55,12 +55,12 @@ function submit() {
       <div class="flex justify-end gap-3">
 
         <button type="button" @click="$emit('close')"
-          class="rounded-xl border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 active:bg-orange-300 cursor-pointer">
+          class="rounded-xl border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
           Cancel
         </button>
 
         <button type="submit" :disabled="form.processing"
-          class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+          class="rounded-xl cursor-pointer bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
           {{ form.processing ? 'Creating...' : 'Create Term' }}
         </button>
 

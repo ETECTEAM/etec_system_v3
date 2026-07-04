@@ -4,63 +4,42 @@ namespace Database\Seeders\Core;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $fixedUsers = [
-            [
-                'name' => 'Super Admin',
-                'email' => 'superadmin@etec.com',
-                'role' => 'super_admin',
-            ],
-            [
-                'name' => 'Admin User',
-                'email' => 'admin@etec.com',
-                'role' => 'admin',
-            ],
-            [
-                'name' => 'Instructor User',
-                'email' => 'instructor@etec.com',
-                'role' => 'instructor',
-            ],
-            [
-                'name' => 'Student User',
-                'email' => 'student@etec.com',
-                'role' => 'student',
-            ],
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        User::truncate();
+        DB::table('model_has_roles')->truncate();
+        DB::table('model_has_permissions')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+        $users = [
+            ['name' => 'Super Admin',    'email' => 'superadmin@etec.com', 'role' => 'super_admin'],
+            ['name' => 'Admin User',     'email' => 'admin@etec.com',      'role' => 'admin'],
+            ['name' => 'Instructor User','email' => 'instructor@etec.com', 'role' => 'instructor'],
+            ['name' => 'Student User',   'email' => 'student@etec.com',    'role' => 'student'],
+            ['name' => 'Test Student',   'email' => 'teststudent@etec.com','role' => 'student'],
         ];
 
-        foreach ($fixedUsers as $fixedUser) {
-            $user = User::firstOrCreate(
-                ['email' => $fixedUser['email']],
-                [
-                    'name' => $fixedUser['name'],
-                    'password' => Hash::make('  '),
-                ]
-            );
-
-            $user->forceFill([
-                'name' => $fixedUser['name'],
+        foreach ($users as $data) {
+            $user = User::create([
+                'name'     => $data['name'],
+                'email'    => $data['email'],
                 'password' => Hash::make('password'),
-            ])->save();
+                'role'     => $data['role'],
+                'status'   => 'active',
+            ]);
 
-            $user->syncRoles([$fixedUser['role']]);
+            $user->syncRoles([$data['role']]);
         }
 
-        $roles = Role::query()
-            ->where('guard_name', 'sanctum')
-            ->whereIn('name', ['admin', 'instructor', 'student'])
-            ->pluck('name')
-            ->all();
-
-        User::factory(20)
-            ->create()
-            ->each(function (User $user) use ($roles): void {
-                $user->syncRoles([$roles[array_rand($roles)]]);
-            });
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
 }

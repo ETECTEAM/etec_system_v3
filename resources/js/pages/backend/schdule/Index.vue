@@ -2,9 +2,6 @@
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import { Link, router } from '@inertiajs/vue3'
 import { ref, watch } from 'vue'
-
-import Create from './Create.vue'
-import Edit from './Edit.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
 
@@ -23,6 +20,7 @@ const filters = ref({
   class_type_id: props.filters.class_type_id ?? '',
   term_id: props.filters.term_id ?? '',
   time_id: props.filters.time_id ?? '',
+  per_page: props.filters.per_page ?? 7,
 })
 
 let timeout = null
@@ -38,6 +36,7 @@ watch(filters, (value) => {
         class_type_id: value.class_type_id,
         term_id: value.term_id,
         time_id: value.time_id,
+        per_page: value.per_page,
         page: 1,
       },
       {
@@ -48,31 +47,6 @@ watch(filters, (value) => {
     )
   }, 400)
 }, { deep: true })
-
-// CREATE MODAL
-const showCreateModal = ref(false)
-
-function openCreateModal() {
-  showCreateModal.value = true
-}
-
-function closeCreateModal() {
-  showCreateModal.value = false
-}
-
-// EDIT MODAL
-const showEditModal = ref(false)
-const selectedSchedule = ref(null)
-
-function openEditModal(schdule) {
-  selectedSchedule.value = schdule
-  showEditModal.value = true
-}
-
-function closeEditModal() {
-  showEditModal.value = false
-  selectedSchedule.value = null
-}
 
 // DELETE
 function deleteSchedule(id) {
@@ -111,7 +85,7 @@ const breadcrumbItems = [
                 v-model="filters.search"
                 type="text"
                 placeholder="Search schedules..."
-                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm w-[30%]"
+                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm w-[25%]"
               />
 
               <!-- CLASS TYPE -->
@@ -122,8 +96,8 @@ const breadcrumbItems = [
                 <option value="">All Class Types</option>
                 <option
                   v-for="ct in classTypes"
-                  :key="ct.id"
-                  :value="ct.id"
+                  :key="ct.class_type_id"
+                  :value="ct.class_type_id"
                 >
                   {{ ct.type_name }}
                 </option>
@@ -159,14 +133,26 @@ const breadcrumbItems = [
                 </option>
               </select>
 
+              <!-- PER PAGE -->
+              <select
+                v-model="filters.per_page"
+                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+              >
+                <option :value="5">Show 5</option>
+                <option :value="7">Show 7</option>
+                <option :value="10">Show 10</option>
+                <option :value="20">Show 20</option>
+                <option :value="50">Show 50</option>
+              </select>
+
             </div>
 
-            <button
-              @click="openCreateModal"
-              class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-950"
+            <Link
+              href="/dashboard/schdule/create"
+              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-650"
             >
               Create Schedule
-            </button>
+            </Link>
           </div>
 
         </div>
@@ -219,16 +205,16 @@ const breadcrumbItems = [
 
                 <td class="px-6 py-4 text-right space-x-2">
 
-                  <button
-                    @click="openEditModal(schdule)"
-                    class="px-5 py-2 text-sm rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition"
+                  <Link
+                    :href="`/dashboard/schdule/${schdule.id}/edit`"
+                    class="px-5 py-2 text-sm rounded-lg border border-blue-200 bg-blue-50 font-semibold text-blue-700  transition hover:bg-blue-100 inline-block"
                   >
                     Edit
-                  </button>
+                  </Link>
 
                   <button
                     @click="deleteSchedule(schdule.id)"
-                    class="px-5 py-2 text-sm rounded-lg bg-red-700 text-white hover:bg-red-800 transition"
+                    class="px-5 py-2 text-sm rounded-lg border border-rose-200 bg-rose-50 font-semibold text-rose-700 transition hover:bg-rose-100"
                   >
                     Delete
                   </button>
@@ -238,7 +224,7 @@ const breadcrumbItems = [
 
               <tr v-if="!schedules?.data?.length">
                 <td colspan="5" class="py-10 text-center text-slate-500">
-                  {{ search ? `No results for "${search}"` : 'No schedules found.' }}
+                  {{ filters.search ? `No results for "${filters.search}"` : 'No schedules found.' }}
                 </td>
               </tr>
 
@@ -274,52 +260,6 @@ const breadcrumbItems = [
       </div>
 
     </section>
-
-    <!-- CREATE MODAL -->
-    <transition name="fade">
-      <div
-        v-if="showCreateModal"
-        class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
-        @click.self="closeCreateModal"
-      >
-        <div class="bg-white rounded-xl w-full max-w-lg p-6 shadow-lg relative">
-          <button @click="closeCreateModal" class="absolute top-3 right-3 text-gray-400 hover:text-black">
-            ✖
-          </button>
-
-          <Create
-            :classTypes="classTypes"
-            :terms="terms"
-            :times="times"
-            @close="closeCreateModal"
-          />
-        </div>
-      </div>
-    </transition>
-
-    <!-- EDIT MODAL -->
-    <transition name="fade">
-      <div
-        v-if="showEditModal"
-        class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
-        @click.self="closeEditModal"
-      >
-        <div class="bg-white rounded-xl w-full max-w-lg p-6 shadow-lg relative">
-          <button @click="closeEditModal" class="absolute top-3 right-3 text-gray-400 hover:text-black">
-            ✖
-          </button>
-
-          <Edit
-            v-if="selectedSchedule"
-            :schdule="selectedSchedule"
-            :classTypes="classTypes"
-            :terms="terms"
-            :times="times"
-            @close="closeEditModal"
-          />
-        </div>
-      </div>
-    </transition>
 
   </DashboardLayout>
 </template>
