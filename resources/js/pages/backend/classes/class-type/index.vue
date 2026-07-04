@@ -1,54 +1,67 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import { Breadcrumbs } from '@/components/ui/breadcrumbs';
-import { PageHero } from '@/components/ui/page-hero';
-import { Card } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { ActionMenu } from '@/components/ui/menu';
-import { Pagination } from '@/components/ui/pagination';
+import { ref, computed } from "vue";
+import { Head, Link, router } from "@inertiajs/vue3";
+import DashboardLayout from "@/layouts/DashboardLayout.vue";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { PageHero } from "@/components/ui/page-hero";
+import { Card } from "@/components/ui/card";
+import {
+    Table,
+    TableHeader,
+    TableBody,
+    TableRow,
+    TableHead,
+    TableCell,
+} from "@/components/ui/table";
+import { ActionMenu } from "@/components/ui/menu";
+import { Pagination } from "@/components/ui/pagination";
 
 const props = defineProps({
-    classTypes: Object 
+    classTypes: Object,
 });
 
-const search = ref('');
-const statusFilter = ref('all');
+const search = ref("");
+const statusFilter = ref("all");
 
 const filteredData = computed(() => {
     const data = (props.classTypes?.data || []).slice().sort((a, b) => {
         return Number(a.class_type_id || 0) - Number(b.class_type_id || 0);
     });
 
-    return data.filter(item => {
-        const matchesSearch = item.type_name.toLowerCase().includes(search.value.toLowerCase());
-        const matchesStatus = statusFilter.value === 'all' 
-            ? true 
-            : (statusFilter.value === 'active' ? item.is_active : !item.is_active);
-            
+    return data.filter((item) => {
+        const matchesSearch = item.type_name
+            .toLowerCase()
+            .includes(search.value.toLowerCase());
+        const matchesStatus =
+            statusFilter.value === "all"
+                ? true
+                : statusFilter.value === "active"
+                  ? item.is_active
+                  : !item.is_active;
+
         return matchesSearch && matchesStatus;
     });
 });
 
 const handleAction = (action, item) => {
     switch (action) {
-        case 'view':
+        case "view":
             router.visit(`/dashboard/class-types/${item.class_type_id}`);
             break;
-        case 'edit':
+        case "edit":
             router.visit(`/dashboard/class-types/${item.class_type_id}/edit`);
             break;
-        case 'delete':
-            if (confirm('Are you sure you want to delete this class type?')) {
+        case "delete":
+            if (confirm("Are you sure you want to delete this class type?")) {
                 router.delete(`/dashboard/class-types/${item.class_type_id}`, {
                     preserveScroll: true,
-                    onSuccess: () => {
-                    },
+                    onSuccess: () => {},
                     onError: (errors) => {
                         console.error("Delete failed", errors);
-                        alert("Could not delete the class type. It may be in use.");
-                    }
+                        alert(
+                            "Could not delete the class type. It may be in use.",
+                        );
+                    },
                 });
             }
             break;
@@ -56,8 +69,8 @@ const handleAction = (action, item) => {
 };
 
 const breadcrumbItems = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Class Types', current: true },
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Class Types", current: true },
 ];
 
 const handlePageChange = (page) => {
@@ -73,21 +86,36 @@ const handlePageChange = (page) => {
     <DashboardLayout>
         <section class="space-y-6">
             <Breadcrumbs :items="breadcrumbItems" />
-            
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-    <PageHero eyebrow="Management" title="Class Types" description="Manage your class categories." />
-    
-    <Link 
-        href="/dashboard/class-types/create"
-        class="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
-    >
-        + Add New Class Type
-    </Link>
-</div>
 
-            <div class="flex gap-4 items-center bg-white p-4 rounded-lg border border-slate-200">
-                <input v-model="search" placeholder="Search by name..." class="border rounded-lg px-3 py-2 text-sm w-full max-w-sm" />
-                <select v-model="statusFilter" class="border rounded-lg px-3 py-2 text-sm">
+            <div
+                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+                <PageHero
+                    eyebrow="Management"
+                    title="Class Types"
+                    description="Manage your class categories."
+                />
+
+                <Link
+                    href="/dashboard/class-types/create"
+                    class="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
+                >
+                    + Add New Class Type
+                </Link>
+            </div>
+
+            <div
+                class="flex gap-4 items-center bg-white p-4 rounded-lg border border-slate-200"
+            >
+                <input
+                    v-model="search"
+                    placeholder="Search by name..."
+                    class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                />
+                <select
+                    v-model="statusFilter"
+                    class="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                >
                     <option value="all">All Status</option>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -105,29 +133,58 @@ const handlePageChange = (page) => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow v-for="item in filteredData" :key="item.class_type_id">
+                        <TableRow
+                            v-for="item in filteredData"
+                            :key="item.class_type_id"
+                        >
                             <TableCell>#{{ item.class_type_id }}</TableCell>
-                            <TableCell class="font-semibold">{{ item.type_name }}</TableCell>
+                            <TableCell class="font-semibold">{{
+                                item.type_name
+                            }}</TableCell>
                             <TableCell>
-                                <span :class="item.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'" 
-                                      class="px-2 py-0.5 rounded text-xs font-semibold">
-                                    {{ item.is_active ? 'Active' : 'Inactive' }}
+                                <span
+                                    :class="
+                                        item.is_active
+                                            ? 'bg-emerald-50 text-emerald-700'
+                                            : 'bg-slate-100 text-slate-600'
+                                    "
+                                    class="px-2 py-0.5 rounded text-xs font-semibold"
+                                >
+                                    {{ item.is_active ? "Active" : "Inactive" }}
                                 </span>
                             </TableCell>
                             <TableCell class="text-right">
-                                <ActionMenu :items="[{key: 'view', label: 'View'}, {key: 'edit', label: 'Edit'}, {key: 'delete', label: 'Delete'}]" 
-                                            @select="(action) => handleAction(action.key, item)" />
+                                <ActionMenu
+                                    :items="[
+                                        { key: 'view', label: 'View' },
+                                        { key: 'edit', label: 'Edit' },
+                                        { key: 'delete', label: 'Delete' },
+                                    ]"
+                                    @select="
+                                        (action) =>
+                                            handleAction(action.key, item)
+                                    "
+                                />
                             </TableCell>
                         </TableRow>
                         <TableRow v-if="filteredData.length === 0">
-                            <TableCell colspan="4" class="text-center py-8 text-slate-400">No class types found.</TableCell>
+                            <TableCell
+                                colspan="4"
+                                class="text-center py-8 text-slate-400"
+                                >No class types found.</TableCell
+                            >
                         </TableRow>
                     </TableBody>
                 </Table>
 
-                <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div
+                    class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+                >
                     <p class="text-sm text-slate-500">
-                        Showing {{ classTypes.from ?? 0 }}–{{ classTypes.to ?? 0 }} of {{ classTypes.total ?? 0 }} entries
+                        Showing {{ classTypes.from ?? 0 }}–{{
+                            classTypes.to ?? 0
+                        }}
+                        of {{ classTypes.total ?? 0 }} entries
                     </p>
 
                     <Pagination

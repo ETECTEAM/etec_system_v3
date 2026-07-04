@@ -38,7 +38,7 @@ const breadcrumbItems = [
 ];
 
 const optionLabel = (item) => {
-  return item?.name || item?.teacher_name || item?.course_name || item?.lesson_name || item?.term_name || item?.time_name || item?.room_number || item?.type_name || 'Unknown';
+  return item?.name || item?.title || item?.teacher_name || item?.course_name || item?.lesson_name || item?.term_name || item?.time_name || item?.room_number || item?.type_name || 'Unknown';
 };
 
 const submit = () => {

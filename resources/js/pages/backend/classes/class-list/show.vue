@@ -10,10 +10,21 @@ const props = defineProps({
 });
 
 const classList = computed(() => props.classList ?? {});
-const classListId = computed(() => classList.value.id ?? classList.value.class_list_id ?? 'Unknown');
-const classListLabel = computed(() => `#${classListId.value}`);
+const classListId = computed(() => classList.value?.id || classList.value?.class_list_id || 'Unknown');
+const classListLabel = computed(() => (classListId.value === 'Unknown' ? 'Unknown' : `#${classListId.value}`));
 const classListEditHref = computed(() => (classListId.value !== 'Unknown' ? `/dashboard/class-list/${classListId.value}/edit` : '/dashboard/class-list'));
 const classListDeleteHref = computed(() => (classListId.value !== 'Unknown' ? `/dashboard/class-list/${classListId.value}` : null));
+
+const courseTitle = computed(() => classList.value?.course?.title || `Class ${classListLabel.value}`);
+const lessonTitle = computed(() => classList.value?.lesson?.title || 'No lesson assigned');
+const instructorName = computed(() => classList.value?.teacher?.name || classList.value?.teacher?.teacher_name || 'No instructor');
+const classTypeName = computed(() => classList.value?.class_type?.type_name || 'Unspecified');
+const termName = computed(() => classList.value?.term?.term_name || 'Not set');
+const timeName = computed(() => classList.value?.time?.time_name || 'Not scheduled');
+const roomNumber = computed(() => classList.value?.room?.room_number || 'Not assigned');
+const buildingName = computed(() => classList.value?.building?.name || 'Unknown');
+const floorName = computed(() => classList.value?.floor?.name || 'Unknown');
+const teacherLabel = computed(() => instructorName.value);
 
 const statusLabel = computed(() => {
   const status = classList.value.status ?? 'Unknown';
@@ -65,7 +76,7 @@ const deleteItem = () => {
 
       <PageHero
         eyebrow="Management"
-        :title="`Class ${classListLabel.value}`"
+        :title="courseTitle"
         description="Review the full schedule, instructor, and location details for this class."
       />
 
@@ -74,8 +85,8 @@ const deleteItem = () => {
           <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Class summary</p>
-              <h2 class="mt-3 text-2xl font-semibold text-slate-900">{{ classList.course?.course_name || 'Untitled class' }}</h2>
-              <p class="mt-2 text-sm text-slate-600">{{ classList.lesson?.lesson_name || 'No lesson assigned' }}</p>
+              <h2 class="mt-3 text-2xl font-semibold text-slate-900">{{ courseTitle || 'Untitled class' }}</h2>
+              <p class="mt-2 text-sm text-slate-600">{{ lessonTitle }}</p>
             </div>
             <div class="space-y-2 text-right">
               <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
@@ -92,7 +103,7 @@ const deleteItem = () => {
           <div class="mt-8 grid gap-6 sm:grid-cols-2">
             <div class="rounded-3xl bg-slate-50 p-5">
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Instructor</p>
-              <p class="mt-3 text-base font-semibold text-slate-900">{{ classList.teacher?.name || classList.teacher?.teacher_name || 'No instructor' }}</p>
+              <p class="mt-3 text-base font-semibold text-slate-900">{{ teacherLabel }}</p>
             </div>
             <div class="rounded-3xl bg-slate-50 p-5">
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Students</p>
@@ -100,11 +111,11 @@ const deleteItem = () => {
             </div>
             <div class="rounded-3xl bg-slate-50 p-5">
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Class type</p>
-              <p class="mt-3 text-base font-semibold text-slate-900">{{ classList.class_type?.type_name || 'Unspecified' }}</p>
+              <p class="mt-3 text-base font-semibold text-slate-900">{{ classTypeName }}</p>
             </div>
             <div class="rounded-3xl bg-slate-50 p-5">
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Term</p>
-              <p class="mt-3 text-base font-semibold text-slate-900">{{ classList.term?.term_name || 'Not set' }}</p>
+              <p class="mt-3 text-base font-semibold text-slate-900">{{ termName }}</p>
             </div>
           </div>
 
@@ -112,21 +123,21 @@ const deleteItem = () => {
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <p class="text-xs uppercase text-slate-400">Time</p>
-                <p class="mt-2 text-base text-slate-900">{{ classList.time?.time_name || 'Not scheduled' }}</p>
+                <p class="mt-2 text-base text-slate-900">{{ timeName }}</p>
               </div>
               <div>
                 <p class="text-xs uppercase text-slate-400">Room</p>
-                <p class="mt-2 text-base text-slate-900">{{ classList.room?.room_number || 'Not assigned' }}</p>
+                <p class="mt-2 text-base text-slate-900">{{ roomNumber }}</p>
               </div>
             </div>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <p class="text-xs uppercase text-slate-400">Building</p>
-                <p class="mt-2 text-base text-slate-900">{{ classList.building?.name || 'Unknown' }}</p>
+                <p class="mt-2 text-base text-slate-900">{{ buildingName }}</p>
               </div>
               <div>
                 <p class="text-xs uppercase text-slate-400">Floor</p>
-                <p class="mt-2 text-base text-slate-900">{{ classList.floor?.name || 'Unknown' }}</p>
+                <p class="mt-2 text-base text-slate-900">{{ floorName }}</p>
               </div>
             </div>
           </div>
@@ -138,11 +149,11 @@ const deleteItem = () => {
             <div class="mt-6 space-y-4 text-sm text-slate-600">
               <div class="flex items-start justify-between gap-4">
                 <span class="text-slate-400">Course</span>
-                <span class="font-medium text-slate-900">{{ classList.course?.course_name || '—' }}</span>
+                <span class="font-medium text-slate-900">{{ classList.course?.title || '—' }}</span>
               </div>
               <div class="flex items-start justify-between gap-4">
                 <span class="text-slate-400">Lesson</span>
-                <span class="font-medium text-slate-900">{{ classList.lesson?.lesson_name || '—' }}</span>
+                <span class="font-medium text-slate-900">{{ classList.lesson?.title || '—' }}</span>
               </div>
               <div class="flex items-start justify-between gap-4">
                 <span class="text-slate-400">Teacher</span>
@@ -164,14 +175,14 @@ const deleteItem = () => {
             <div class="mt-5 flex flex-col gap-3">
               <Link
                 :href="classListEditHref"
-                class="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                class="inline-flex w-full items-center justify-center rounded-xl bg-blue-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
               >
                 Edit class
               </Link>
               <button
                 type="button"
                 @click="deleteItem"
-                class="inline-flex w-full items-center justify-center rounded-xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-600"
+                class="inline-flex w-full items-center justify-center rounded-xl bg-rose-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-600"
               >
                 Delete class
               </button>

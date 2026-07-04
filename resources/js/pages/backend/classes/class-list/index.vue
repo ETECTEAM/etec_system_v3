@@ -227,8 +227,8 @@ const handlePageChange = (page) => {
                   </div>
                 </td>
                 <td class="px-4 py-4">
-                  <div class="font-semibold text-slate-900">{{ item.course?.course_name || 'No course' }}</div>
-                  <div class="mt-1 text-xs text-slate-500">Lesson: <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{{ item.lesson?.lesson_name || 'No lesson' }}</span></div>
+                  <div class="font-semibold text-slate-900">{{ item.course?.title || 'No course' }}</div>
+                  <div class="mt-1 text-xs text-slate-500">Lesson: <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{{ item.lesson?.title || 'No lesson' }}</span></div>
                   <div class="mt-1 text-xs font-semibold text-emerald-700">Type: {{ item.class_type?.type_name || 'Unknown' }}</div>
                 </td>
                 <td class="px-4 py-4">

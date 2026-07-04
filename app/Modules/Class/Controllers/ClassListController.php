@@ -5,10 +5,14 @@ namespace App\Modules\Class\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\ClassList;
 use App\Models\ClassType;
+use App\Models\Course;
+use App\Models\CourseLesson;
 use App\Models\Floor;
+use App\Models\Building;
 use App\Models\Room;
 use App\Models\Term;
 use App\Models\Time;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -21,7 +25,7 @@ class ClassListController extends Controller
     public function index(Request $request)
     {
         $classLists = ClassList::with([
-            'teacher', 'term', 'time', 'floor', 'room', 'classType',
+            'teacher', 'course', 'lesson', 'term', 'time', 'building', 'floor', 'room', 'classType',
         ]);
 
         if ($request->filled('search')) {
@@ -76,7 +80,7 @@ class ClassListController extends Controller
         $validated = $request->validate([
             'teacher_id'    => ['nullable', 'exists:users,id'],
             'course_id'     => ['nullable', 'exists:courses,id'],
-            'lesson_id'     => ['nullable', 'exists:lessons,id'],
+            'lesson_id'     => ['nullable', 'exists:course_lessons,id'],
             'term_id'       => ['nullable', 'exists:terms,id'],
             'time_id'       => ['nullable', 'exists:times,id'],
             'building_id'   => ['nullable', 'exists:buildings,id'],
@@ -98,12 +102,12 @@ class ClassListController extends Controller
     public function create()
     {
         return Inertia::render('backend/classes/class-list/create', [
-            'teachers' => [],
-            'courses' => [],
-            'lessons' => [],
+            'teachers' => User::select('id', 'name')->get(),
+            'courses' => Course::select('id', 'title')->get(),
+            'lessons' => CourseLesson::select('id', 'title')->get(),
             'terms' => Term::select('id', 'term_name')->get(),
             'times' => Time::select('id', 'time_name')->get(),
-            'buildings' => [],
+            'buildings' => Building::select('id', 'name')->get(),
             'floors' => Floor::select('id', 'name')->get(),
             'rooms' => Room::select('id', 'room_number')->get(),
             'classTypes' => ClassType::select('class_type_id', 'type_name')->get(),
@@ -116,7 +120,7 @@ class ClassListController extends Controller
     public function show(ClassList $classList)
     {
         $classList->load([
-            'teacher', 'term', 'time', 'floor', 'room', 'classType',
+            'teacher', 'course', 'lesson', 'term', 'time', 'building', 'floor', 'room', 'classType',
         ]);
 
         return Inertia::render('backend/classes/class-list/show', [
@@ -130,13 +134,13 @@ class ClassListController extends Controller
     public function edit(ClassList $classList)
     {
         return Inertia::render('backend/classes/class-list/edit', [
-            'classList' => $classList->load(['term', 'time', 'floor', 'room', 'classType']),
-            'teachers' => [],
-            'courses' => [],
-            'lessons' => [],
+            'classList' => $classList->load(['course', 'lesson', 'term', 'time', 'building', 'floor', 'room', 'classType']),
+            'teachers' => User::select('id', 'name')->get(),
+            'courses' => Course::select('id', 'title')->get(),
+            'lessons' => CourseLesson::select('id', 'title')->get(),
             'terms' => Term::select('id', 'term_name')->get(),
             'times' => Time::select('id', 'time_name')->get(),
-            'buildings' => [],
+            'buildings' => Building::select('id', 'name')->get(),
             'floors' => Floor::select('id', 'name')->get(),
             'rooms' => Room::select('id', 'room_number')->get(),
             'classTypes' => ClassType::select('class_type_id', 'type_name')->get(),
@@ -151,7 +155,7 @@ class ClassListController extends Controller
         $validated = $request->validate([
             'teacher_id'    => ['sometimes', 'nullable', 'exists:users,id'],
             'course_id'     => ['sometimes', 'nullable', 'exists:courses,id'],
-            'lesson_id'     => ['sometimes', 'nullable', 'exists:lessons,id'],
+            'lesson_id'     => ['sometimes', 'nullable', 'exists:course_lessons,id'],
             'term_id'       => ['sometimes', 'nullable', 'exists:terms,id'],
             'time_id'       => ['sometimes', 'nullable', 'exists:times,id'],
             'building_id'   => ['sometimes', 'nullable', 'exists:buildings,id'],
