@@ -20,7 +20,7 @@ const form = useForm({
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Class List', href: '/dashboard/index' },
+  { label: 'Class List', href: '/dashboard/students' },
   { label: 'Add Class', current: true },
 ]
 
