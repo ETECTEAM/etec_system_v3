@@ -1,7 +1,9 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
+import { Pen } from "@lucide/vue";
 import { menuDomains } from "./menu";
+import BugAnnotationOverlay from "../components/BugAnnotationOverlay.vue";
 
 const props = defineProps({
   open: {
@@ -111,6 +113,12 @@ watch(currentPath, (path) => {
     }
   }
 });
+
+const isDrawing = ref(false);
+
+function toggleDrawing() {
+  isDrawing.value = !isDrawing.value;
+}
 </script>
 
 <template>
@@ -267,23 +275,27 @@ watch(currentPath, (path) => {
             </li>
           </ul>
         </nav>
-<!-- 
+
         <div class="mt-4 border-t border-slate-200 pt-4">
-          <Link
-            href="/logout"
-            method="post"
-            as="button"
-            :title="props.collapsed ? 'Logout' : ''"
+          <button
+            type="button"
+            :title="props.collapsed ? 'Draw on page' : ''"
             :class="[
-              'w-full rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50',
-              props.collapsed ? 'px-2 py-3' : 'px-3 py-2',
+              'flex w-full items-center gap-2 rounded-xl border text-sm font-semibold transition',
+              props.collapsed ? 'justify-center px-2 py-3' : 'px-3 py-2',
+              isDrawing
+                ? 'border-blue-200 bg-blue-50 text-blue-700'
+                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
             ]"
+            @click="toggleDrawing"
           >
-            <span v-if="props.collapsed">↩</span>
-            <span v-else>Logout</span>
-          </Link>
-        </div> -->
+            <Pen class="h-4 w-4" />
+            <span v-if="!props.collapsed">{{ isDrawing ? "Stop Drawing" : "Draw on Page" }}</span>
+          </button>
+        </div>
       </div>
     </aside>
+
+    <BugAnnotationOverlay v-if="isDrawing" @close="isDrawing = false" />
   </div>
 </template>
