@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed } from "vue";
-import { router } from "@inertiajs/vue3";
 import { Head, router } from "@inertiajs/vue3";
 
 import { Search, RotateCcw, Plus, LayoutGrid, Table2 } from "@lucide/vue";
@@ -58,7 +57,6 @@ function goCreateClass() {
     <div class="max-w-7xl mx-auto py-6">
       <div class="flex justify-between items-center mb-6">
         <div>
-          <h1 class="text-3xl font-bold">My Classes</h1>
           <Breadcrumbs :items="breadcrumbItems" />
           <PageHero
             eyebrow="EnRoll Management"
