@@ -239,14 +239,16 @@ const menuItems = computed(() => {
     });
   }
 
-  base.push({
-    label: "My Profile",
-    href: "/dashboard/instructor",
-    match: ["/dashboard/instructor"],
-    exact: false,
-    icon: "profile",
-    isActive: (path) => path.startsWith("/dashboard/instructor"),
-  });
+  if (!isSuperAdmin.value && !isAdmin.value) {
+    base.push({
+      label: "My Profile",
+      href: "/dashboard/instructor",
+      match: ["/dashboard/instructor"],
+      exact: false,
+      icon: "profile",
+      isActive: (path) => path.startsWith("/dashboard/instructor"),
+    });
+  }
 
   if (isSuperAdmin.value || isAdmin.value) {
     base.push(
