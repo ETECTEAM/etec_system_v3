@@ -19,31 +19,22 @@ const page = usePage();
 
 const currentPath = computed(() => page.url ?? "/");
 const roles = computed(() => page.props.auth?.roles ?? []);
+const permissions = computed(() => page.props.auth?.permissions ?? []);
 const isSuperAdmin = computed(() => roles.value.includes("super_admin"));
-const canAccessNotifications = computed(
-  () => roles.value.includes("super_admin") || roles.value.includes("admin")
-);
-<<<<<<< HEAD
+const isAdmin = computed(() => roles.value.includes("admin"));
+
+const canAccessNotifications = computed(() => isSuperAdmin.value || isAdmin.value);
+
 const canAccessFloors = computed(
-  () =>
-    roles.value.includes("super_admin") ||
-    roles.value.includes("admin") ||
-    roles.value.includes("instructor")
+  () => isSuperAdmin.value || isAdmin.value || roles.value.includes("instructor"),
 );
+
 const canAccessRegisters = computed(
-  () =>
-    roles.value.includes("super_admin") ||
-    roles.value.includes("admin") ||
-    roles.value.includes("instructor")
-=======
-const canAccessDashboard = computed(() =>
-  permissions.value.includes("dashboard.view")
->>>>>>> 50ba0a8 (Update feature register class chang to enroll student)
+  () => isSuperAdmin.value || isAdmin.value || roles.value.includes("instructor"),
 );
 
 function isStudentRoute(path) {
   const p = path.split("?")[0];
-
   return (
     p.startsWith("/dashboard/students") ||
     p.startsWith("/dashboard/students/form") ||
@@ -102,46 +93,6 @@ const menuItems = computed(() => {
     },
   ];
 
-  if (canAccessRegisters.value) {
-    base.push({
-      label: "Student Management",
-      key: "student",
-      match: ["/dashboard/students","/dashboard/admin/registrations","/dashboard/admin/classes" ],
-      icon: "student",
-      children: [
-        {
-          label: "Students",
-          href: "/dashboard/students",
-          match: ["/dashboard/students"],
-          exact: false,
-          isActive: (path) =>
-            path === "/dashboard/students" ||
-            path.startsWith("/dashboard/students/create") ||
-            path.startsWith("/dashboard/students/edit"),
-        },
-        {
-           label: "registrations",
-          href: "/dashboard/admin/registrations",
-          match: ["/dashboard/admin/registrations"],
-          exact: false,
-           isActive: (path) =>
-            path === "/dashboard/admin/registrations" ||
-            path.startsWith("/dashboard/admin/registrations") ||
-            path.startsWith("/dashboard/admin/registrations"),
-        },
-        {
-          label: "Class registrations",
-          href: "/dashboard/admin/classes",
-          match: ["/dashboard/admin/classes"],
-          exact: false,
-          isActive: (path) =>
-            path === "/dashboard/admin/classes" ||
-            path.startsWith("/dashboard/admin/classes") ||
-            path.startsWith("/dashboard/admin/classes"),
-        }
-      ],
-    });
-  }
 
   if (canAccessFloors.value) {
     base.push({
@@ -183,11 +134,10 @@ const menuItems = computed(() => {
     });
   }
 
-  // Class Management (បញ្ចូលលីង Class Type និង Class List ឱ្យត្រូវតាមម៉ឺនុយរួម)
   base.push({
     label: "Class Management",
     key: "classes",
-    match: ["/class-types",  "/dashboard/class-types", "/dashboard/class-list"],
+    match: ["/class-types", "/dashboard/class-types", "/dashboard/class-list"],
     icon: "classes",
     children: [
       {
@@ -202,73 +152,70 @@ const menuItems = computed(() => {
         href: "/dashboard/class-list",
         match: ["/dashboard/class-list"],
         exact: false,
-        isActive: (path) => path.startsWith("/dashboard/classes-list"),
+        isActive: (path) => path.startsWith("/dashboard/class-list"),
       },
-     
     ],
   });
 
-<<<<<<< HEAD
   if (isSuperAdmin.value) {
-=======
-  if (canAccessNotifications.value) {
+    if (canAccessNotifications.value) {
+      base.push({
+        label: "EnRoll Management",
+        key: "enroll",
+        icon: "student",
+        href: "/dashboard/students",
+        match: ["/dashboard/students"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/students"),
+      });
+    }
+
     base.push({
-      label: "EnRoll Management",
-      key: "enroll",
-      icon: "student",
-      href: "/dashboard/students",
-      match: ["/dashboard/students"],
-      exact: false,
-      isActive: (path) => path.startsWith("/dashboard/students"),
+      label: "Course Management",
+      key: "course",
+      match: ["/dashboard/course"],
+      icon: "course",
+      children: [
+        {
+          label: "Categories",
+          href: "/dashboard/course/categories",
+          match: ["/dashboard/course/categories"],
+          exact: false,
+          isActive: (path) => path.startsWith("/dashboard/course/categories"),
+        },
+        {
+          label: "Sub Categories",
+          href: "/dashboard/course/subcategories",
+          match: ["/dashboard/course/subcategories"],
+          exact: false,
+          isActive: (path) => path.startsWith("/dashboard/course/subcategories"),
+        },
+        {
+          label: "Tracks",
+          href: "/dashboard/course/tracks",
+          match: ["/dashboard/course/tracks"],
+          exact: false,
+          isActive: (path) => path.startsWith("/dashboard/course/tracks"),
+        },
+        {
+          label: "Courses",
+          href: "/dashboard/course/courses",
+          match: ["/dashboard/course/courses"],
+          exact: false,
+          isActive: (path) => path.startsWith("/dashboard/course/courses"),
+        },
+        {
+          label: "Lessons",
+          href: "/dashboard/course/lessons",
+          match: ["/dashboard/course/lessons"],
+          exact: false,
+          isActive: (path) => path.startsWith("/dashboard/course/lessons"),
+        },
+      ],
     });
   }
 
-  base.push({
-    label: "Course Management",
-    key: "course",
-    match: ["/dashboard/course"],
-    icon: "course",
-    children: [
-      {
-        label: "Categories",
-        href: "/dashboard/course/categories",
-        match: ["/dashboard/course/categories"],
-        exact: false,
-        isActive: (path) => path.startsWith("/dashboard/course/categories"),
-      },
-      {
-        label: "Sub Categories",
-        href: "/dashboard/course/subcategories",
-        match: ["/dashboard/course/subcategories"],
-        exact: false,
-        isActive: (path) => path.startsWith("/dashboard/course/subcategories"),
-      },
-      {
-        label: "Tracks",
-        href: "/dashboard/course/tracks",
-        match: ["/dashboard/course/tracks"],
-        exact: false,
-        isActive: (path) => path.startsWith("/dashboard/course/tracks"),
-      },
-      {
-        label: "Courses",
-        href: "/dashboard/course/courses",
-        match: ["/dashboard/course/courses"],
-        exact: false,
-        isActive: (path) => path.startsWith("/dashboard/course/courses"),
-      },
-      {
-        label: "Lessons",
-        href: "/dashboard/course/lessons",
-        match: ["/dashboard/course/lessons"],
-        exact: false,
-        isActive: (path) => path.startsWith("/dashboard/course/lessons"),
-      },
-    ],
-  });
-
   if (isSuperAdmin.value || isAdmin.value) {
->>>>>>> 50ba0a8 (Update feature register class chang to enroll student)
     base.push(
       {
         label: "User Management",
@@ -341,7 +288,7 @@ const menuItems = computed(() => {
               path.startsWith("/dashboard/schdule/edit"),
           },
         ],
-      }
+      },
     );
   }
 
@@ -359,7 +306,6 @@ function isActive(item) {
   }
 
   if (!Array.isArray(item.match)) {
-    console.warn("Menu item missing match:", item);
     return false;
   }
 
@@ -370,48 +316,29 @@ function isActive(item) {
       return pathOnly === normalizedTarget;
     }
 
-    return (
-      pathOnly === normalizedTarget ||
-      pathOnly.startsWith(`${normalizedTarget}/`)
-    );
+    return pathOnly === normalizedTarget || pathOnly.startsWith(`${normalizedTarget}/`);
   });
 }
 
 function isChildActive(children = []) {
   return children.some((child) => {
-    if (isActive(child)) {
-      return true;
-    }
-    if (child.children) {
-      return isChildActive(child.children);
-    }
+    if (isActive(child)) return true;
+    if (child.children) return isChildActive(child.children);
     return false;
   });
 }
 
 function toggleMenu(key) {
-  if (props.collapsed) {
-    return;
-  }
+  if (props.collapsed) return;
   openMenus.value[key] = !openMenus.value[key];
 }
 
 watch(currentPath, (path) => {
-  if (isUserManagementRoute(path)) {
-    openMenus.value.user = true;
-  }
-  if (isBuildingRoute(path)) {
-    openMenus.value.building_management = true;
-  }
-  if (isClassManagementRoute(path)) {
-    openMenus.value.classes = true;
-  }
-  if (isScheduleRoute(path)) {
-    openMenus.value.schdule = true;
-  }
-  if (isStudentRoute(path)) {
-    openMenus.value.student = true;
-  }
+  if (isUserManagementRoute(path)) openMenus.value.user = true;
+  if (isBuildingRoute(path)) openMenus.value.building_management = true;
+  if (isClassManagementRoute(path)) openMenus.value.classes = true;
+  if (isScheduleRoute(path)) openMenus.value.schdule = true;
+  if (isStudentRoute(path)) openMenus.value.student = true;
 });
 </script>
 
@@ -446,9 +373,7 @@ watch(currentPath, (path) => {
           ]"
         >
           <div v-if="!props.collapsed">
-            <p
-              class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400"
-            >
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
               ETEC
             </p>
             <p class="text-base font-semibold text-slate-900">Control Center</p>
@@ -459,7 +384,7 @@ watch(currentPath, (path) => {
             @click="emit('close')"
           >
             <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M4.22 4.22a.75.75 0 0 1 1.06 0L10 8.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L11.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L8.94 10 4.22 5.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/>
+              <path fill-rule="evenodd" d="M4.22 4.22a.75.75 0 0 1 1.06 0L10 8.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L11.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L10 11.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L8.94 10 4.22 5.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
             </svg>
           </button>
         </div>
@@ -470,7 +395,6 @@ watch(currentPath, (path) => {
           </p>
           <ul class="space-y-1.5">
             <li v-for="item in menuItems" :key="item.href ?? item.key">
-              
               <template v-if="item.children">
                 <button
                   type="button"
@@ -483,42 +407,18 @@ watch(currentPath, (path) => {
                   @click="toggleMenu(item.key)"
                 >
                   <span class="flex flex-1 items-center gap-2 text-left">
-<<<<<<< HEAD
-                    <svg v-if="item.icon === 'classes'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg v-if="item.icon === 'course'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
-=======
-                    <svg
-                      v-if="item.icon === 'course'"
-                      class="h-4 w-4 text-slate-400"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path
-                        d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"
-                      />
                       <path d="M8 7h8" />
                       <path d="M8 11h6" />
                       <path d="M8 15h4" />
                     </svg>
 
-                    <svg
-                      v-else-if="item.icon === 'classes'"
-                      class="h-4 w-4 text-slate-400"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path
-                        d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"
-                      />
->>>>>>> 50ba0a8 (Update feature register class chang to enroll student)
+                    <svg v-else-if="item.icon === 'classes'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                      <path d="M8 7h8" />
+                      <path d="M8 11h6" />
+                      <path d="M8 15h4" />
                       <path d="M6 6h10M6 10h10" />
                     </svg>
 
@@ -530,37 +430,29 @@ watch(currentPath, (path) => {
                     </svg>
 
                     <svg v-else-if="item.icon === 'building_management'" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-                      <line x1="9" y1="22" x2="9" y2="16"></line>
-                      <line x1="15" y1="22" x2="15" y2="16"></line>
+                      <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+                      <line x1="9" y1="22" x2="9" y2="16" />
+                      <line x1="15" y1="22" x2="15" y2="16" />
                     </svg>
 
                     <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="9" y1="3" x2="9" y2="21"></line>
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                      <line x1="9" y1="3" x2="9" y2="21" />
                     </svg>
 
                     <span v-if="!props.collapsed">{{ item.label }}</span>
                   </span>
-                  
+
                   <svg v-if="!props.collapsed" class="h-4 w-4 text-slate-400 transition" :class="openMenus[item.key] ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
                   </svg>
                 </button>
 
-<<<<<<< HEAD
-                <ul v-if="openMenus[item.key] && !props.collapsed" class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3">
-                  <li v-for="child in item.children" :key="child.href">
-=======
                 <ul
                   v-if="openMenus[item.key] && !props.collapsed"
                   class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3"
                 >
-                  <li
-                    v-for="child in item.children"
-                    :key="child.href ?? child.key"
-                  >
->>>>>>> 50ba0a8 (Update feature register class chang to enroll student)
+                  <li v-for="child in item.children" :key="child.href ?? child.key">
                     <Link
                       :href="child.href"
                       class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
@@ -595,13 +487,12 @@ watch(currentPath, (path) => {
                     <polyline points="9 22 9 12 15 12 15 22" />
                   </svg>
                   <svg v-else class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                   </svg>
                   <span v-if="!props.collapsed">{{ item.label }}</span>
                 </span>
                 <span v-if="!props.collapsed" class="text-xs text-slate-400">›</span>
               </Link>
-
             </li>
           </ul>
         </nav>
