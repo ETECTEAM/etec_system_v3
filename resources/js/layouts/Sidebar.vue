@@ -3,7 +3,7 @@ import { computed, ref, watch } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
 import { Pen } from "@lucide/vue";
 import { menuDomains } from "./menu";
-import BugAnnotationOverlay from "../components/BugAnnotationOverlay.vue";
+import BugAnnotationOverlay from "../components/ui/bug-annotation/BugAnnotationOverlay.vue";
 
 const props = defineProps({
   open: {
@@ -116,7 +116,8 @@ watch(currentPath, (path) => {
 
 const isDrawing = ref(false);
 
-function toggleDrawing() {
+function toggleDrawing(event) {
+  event?.stopPropagation();
   isDrawing.value = !isDrawing.value;
 }
 </script>
