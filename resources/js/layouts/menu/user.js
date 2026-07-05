@@ -32,7 +32,7 @@ export function build(ctx) {
         isActive: (path) => path.startsWith("/dashboard/users/roles"),
       },
       {
-        label: "Permission",
+        label: "User & Permission",
         href: "/dashboard/users/permissions",
         match: ["/dashboard/users/permissions"],
         exact: false,

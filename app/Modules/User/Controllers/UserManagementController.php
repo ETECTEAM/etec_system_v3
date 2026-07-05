@@ -176,6 +176,27 @@ class UserManagementController extends Controller
         return back()->with('success', 'Users assigned to role successfully.');
     }
 
+    // Delete a role from the roles management page. Only super admins can do this.
+    public function destroyRole(Request $request, Role $role): RedirectResponse
+    {
+        // Only super admins can delete roles.
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
+
+        // The super_admin role must always exist so admin access can never be locked out.
+        if ($role->name === 'super_admin') {
+            return back()->with('error', 'The Super Admin role cannot be deleted.');
+        }
+
+        // Refuse to delete a role that still has users assigned to it.
+        if ($role->users()->exists()) {
+            return back()->with('error', 'Reassign users before deleting this role.');
+        }
+
+        $role->delete();
+
+        return redirect('/dashboard/users/roles')->with('success', "Role '{$role->name}' deleted successfully.");
+    }
+
     // Show the list of permissions. Only accessible to super admins.
     public function permissions(Request $request): Response
     {

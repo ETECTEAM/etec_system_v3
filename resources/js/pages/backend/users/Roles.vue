@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { computed, nextTick, ref, watch } from 'vue'
+import { useToast } from 'vue-toastification'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { Pagination } from '../../../components/ui/pagination'
@@ -9,6 +10,16 @@ import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import axios from 'axios'
 
 const page = usePage()
+const toast = useToast()
+
+watch(() => page.props.flash, (flash) => {
+  if (flash?.success) {
+    toast.success(flash.success)
+  } else if (flash?.error) {
+    toast.error(flash.error)
+  }
+}, { deep: true })
+const isSuperAdmin = computed(() => (page.props.auth?.roles ?? []).includes('super_admin'))
 const roles = computed(() => page.props.roles ?? [])
 const permissions = computed(() => page.props.permissions ?? [])
 const users = computed(() => page.props.users ?? [])
@@ -55,6 +66,44 @@ function submitCreateRole() {
           selectedRoleId.value = String(last.id)
         }
       })
+    },
+  })
+}
+
+// The Super Admin role can't be removed so nobody can lock out admin access.
+const undeletableRoleNames = ['super_admin']
+
+function isRoleDeletable(role) {
+  return isSuperAdmin.value && !undeletableRoleNames.includes(role.name) && Number(role.users_count ?? 0) === 0
+}
+
+function deleteDisabledReason(role) {
+  if (isRoleDeletable(role)) {
+    return 'Delete role'
+  }
+
+  if (!isSuperAdmin.value) {
+    return 'Only Super Admin can delete roles'
+  }
+
+  if (role.name === 'super_admin') {
+    return 'The Super Admin role cannot be deleted'
+  }
+
+  return 'Reassign users before deleting'
+}
+
+function deleteRole(role) {
+  if (!isRoleDeletable(role) || !window.confirm(`Delete the "${formatRole(role.name)}" role? This cannot be undone.`)) {
+    return
+  }
+
+  router.delete(`/dashboard/users/roles/${role.id}`, {
+    preserveScroll: true,
+    onSuccess: () => {
+      if (selectedRoleId.value === String(role.id)) {
+        selectedRoleId.value = roles.value[0]?.id ? String(roles.value[0].id) : ''
+      }
     },
   })
 }
@@ -131,6 +180,7 @@ const matrixEnd = computed(() => {
 const roleSummaries = computed(() => roles.value.map((role) => ({
   ...role,
   selected: String(role.id) === selectedRoleId.value,
+  deletable: isRoleDeletable(role),
 })))
 
 // Narrow the user list by name, email, or assigned role.
@@ -363,27 +413,48 @@ watch(permissionSearch, () => {
           </div>
 
           <div class="space-y-2">
-            <button
+            <div
               v-for="role in roleSummaries"
               :key="role.id"
-              type="button"
-              class="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition"
+              class="group flex w-full items-center gap-2 rounded-xl px-4 py-3 transition"
               :class="role.selected ? 'bg-blue-50 text-blue-900' : 'text-slate-700 hover:bg-slate-50'"
-              @click="selectedRoleId = String(role.id)"
             >
-              <span>
-                <span
-                  :class="[
-                    'inline-flex rounded-full px-3 py-1 text-xs font-semibold',
-                    roleBadgeClass(role.name),
-                  ]"
-                >
-                  {{ formatRole(role.name) }}
+              <button
+                type="button"
+                class="flex flex-1 items-center justify-between text-left"
+                @click="selectedRoleId = String(role.id)"
+              >
+                <span>
+                  <span
+                    :class="[
+                      'inline-flex rounded-full px-3 py-1 text-xs font-semibold',
+                      roleBadgeClass(role.name),
+                    ]"
+                  >
+                    {{ formatRole(role.name) }}
+                  </span>
+                  <span class="mt-2 block text-xs text-slate-500">{{ role.users_count }} users</span>
                 </span>
-                <span class="mt-2 block text-xs text-slate-500">{{ role.users_count }} users</span>
-              </span>
-              <span class="text-sm font-semibold text-slate-400">{{ role.permissions.length }}</span>
-            </button>
+                <span class="text-sm font-semibold text-slate-400">{{ role.permissions.length }}</span>
+              </button>
+              <button
+                type="button"
+                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition"
+                :class="role.deletable ? 'text-slate-400 hover:bg-red-50 hover:text-red-600' : 'cursor-not-allowed text-slate-200'"
+                :disabled="!role.deletable"
+                :title="deleteDisabledReason(role)"
+                :aria-label="`Delete ${formatRole(role.name)} role`"
+                @click="deleteRole(role)"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4h8v2" />
+                  <path d="M19 6l-1 14H6L5 6" />
+                  <path d="M10 11v5" />
+                  <path d="M14 11v5" />
+                </svg>
+              </button>
+            </div>
           </div>
         </aside>
 
