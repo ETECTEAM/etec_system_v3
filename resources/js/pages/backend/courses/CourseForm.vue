@@ -1,10 +1,28 @@
 <template>
     <DashboardLayout>
+
+        <nav class="flex items-center gap-1.5 text-sm text-slate-400 mb-4">
+            <span>Dashboard</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span>Course</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="text-slate-400 font-medium">Courses</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="text-slate-600 font-medium">{{ course ? 'Edit' : 'Create' }}</span>
+        </nav>
+
         <div class="p-6 max-w-3xl mx-auto">
             <div class="flex items-center gap-4 mb-6">
                 <Link href="/dashboard/course/courses" class="text-slate-500 hover:text-slate-700 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                 </Link>
                 <h1 class="text-2xl font-bold text-slate-900">
@@ -12,44 +30,38 @@
                 </h1>
             </div>
 
-            <form @submit.prevent="submit" class="bg-white rounded-lg border border-slate-200 p-6" enctype="multipart/form-data">
+            <form @submit.prevent="submit" class="bg-white rounded-lg border border-slate-200 p-6"
+                enctype="multipart/form-data">
                 <div class="space-y-4">
                     <!-- Image Upload -->
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Thumbnail Image</label>
                         <div class="flex items-center gap-4">
-                            <div v-if="imagePreview || form.thumbnail" class="relative w-32 h-32 rounded-lg border border-slate-200 overflow-hidden">
-                                <img 
-                                    :src="imagePreview || `/storage/${form.thumbnail}`" 
-                                    alt="Course thumbnail"
-                                    class="w-full h-full object-cover"
-                                />
-                                <button
-                                    v-if="imagePreview || form.thumbnail"
-                                    type="button"
-                                    @click="removeImage"
-                                    class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
-                                >
+                            <div v-if="imagePreview || form.thumbnail"
+                                class="relative w-32 h-32 rounded-lg border border-slate-200 overflow-hidden">
+                                <img :src="imagePreview || `/storage/${form.thumbnail}`" alt="Course thumbnail"
+                                    class="w-full h-full object-cover" />
+                                <button v-if="imagePreview || form.thumbnail" type="button" @click="removeImage"
+                                    class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
                             <div class="flex-1">
                                 <label class="cursor-pointer">
-                                    <div class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-blue-500 transition">
-                                        <svg class="w-8 h-8 mx-auto text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    <div
+                                        class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-blue-500 transition">
+                                        <svg class="w-8 h-8 mx-auto text-slate-400" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                         </svg>
                                         <p class="text-sm text-slate-600">Click to upload image</p>
                                         <p class="text-xs text-slate-400">PNG, JPG, JPEG up to 2MB</p>
                                     </div>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        @change="handleImageUpload"
-                                        class="hidden"
-                                    />
+                                    <input type="file" accept="image/*" @change="handleImageUpload" class="hidden" />
                                 </label>
                             </div>
                         </div>
@@ -59,13 +71,9 @@
                     <!-- Title -->
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Title *</label>
-                        <input
-                            v-model="form.title"
-                            type="text"
+                        <input v-model="form.title" type="text"
                             class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Enter course title"
-                            required
-                        />
+                            placeholder="Enter course title" required />
                         <p v-if="errors.title" class="mt-1 text-sm text-red-600">{{ errors.title }}</p>
                     </div>
 
@@ -73,10 +81,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                            <select
-                                v-model="form.category_id"
-                                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
+                            <select v-model="form.category_id"
+                                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="">Select Category</option>
                                 <option v-for="cat in categories" :key="cat.id" :value="cat.id">
                                     {{ cat.name }}
@@ -85,50 +91,46 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">Sub Category</label>
-                            <select
-                                v-model="form.sub_category_id"
-                                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="">Select Sub Category</option>
-                                <option v-for="sub in subCategories" :key="sub.id" :value="sub.id">
+                            <select v-model="form.sub_category_id" :disabled="!form.category_id"
+                                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400">
+                                <option value="">
+                                    {{ form.category_id ? 'Select Sub Category' : 'Select a category first' }}
+                                </option>
+                                <option v-for="sub in filteredSubCategories" :key="sub.id" :value="sub.id">
                                     {{ sub.name }}
                                 </option>
                             </select>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">Track *</label>
-                            <select
-                                v-model="form.course_track_id"
-                                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="">Select Track</option>
-                                <option v-for="track in tracks" :key="track.id" :value="track.id">
+                            <select v-model="form.course_track_id" :disabled="!form.sub_category_id"
+                                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400">
+                                <option value="">
+                                    {{ form.sub_category_id ? 'Select Track' : 'Select a sub category first' }}
+                                </option>
+                                <option v-for="track in filteredTracks" :key="track.id" :value="track.id">
                                     {{ track.name }}
                                 </option>
                             </select>
-                            <p v-if="errors.course_track_id" class="mt-1 text-sm text-red-600">{{ errors.course_track_id }}</p>
+                            <p v-if="errors.course_track_id" class="mt-1 text-sm text-red-600">{{ errors.course_track_id
+                                }}</p>
                         </div>
                     </div>
 
                     <!-- Description -->
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                        <textarea
-                            v-model="form.description"
-                            rows="4"
+                        <textarea v-model="form.description" rows="4"
                             class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Enter course description"
-                        />
+                            placeholder="Enter course description" />
                     </div>
 
                     <!-- Level, Duration, Price -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">Level</label>
-                            <select
-                                v-model="form.level"
-                                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
+                            <select v-model="form.level"
+                                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="beginner">Beginner</option>
                                 <option value="intermediate">Intermediate</option>
                                 <option value="advanced">Advanced</option>
@@ -136,22 +138,13 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">Duration (hours)</label>
-                            <input
-                                v-model.number="form.duration"
-                                type="number"
-                                min="0"
-                                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
+                            <input v-model.number="form.duration" type="number" min="0"
+                                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">Price ($)</label>
-                            <input
-                                v-model.number="form.price"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
+                            <input v-model.number="form.price" type="number" min="0" step="0.01"
+                                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                         </div>
                     </div>
 
@@ -159,45 +152,33 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">Language</label>
-                            <input
-                                v-model="form.language"
-                                type="text"
+                            <input v-model="form.language" type="text"
                                 class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="e.g., English, Khmer"
-                            />
+                                placeholder="e.g., English, Khmer" />
                         </div>
                         <div class="flex items-center gap-2 pt-6">
-                            <input
-                                v-model="form.certificate_available"
-                                type="checkbox"
-                                class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                            />
+                            <input v-model="form.certificate_available" type="checkbox"
+                                class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                             <label class="text-sm text-slate-700">Certificate Available</label>
                         </div>
                     </div>
 
                     <!-- Status -->
                     <div class="flex items-center gap-2">
-                        <input
-                            v-model="form.status"
-                            type="checkbox"
-                            class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                            true-value="active"
-                            false-value="inactive"
-                        />
+                        <input v-model="form.status" type="checkbox"
+                            class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" true-value="active"
+                            false-value="inactive" />
                         <label class="text-sm text-slate-700">Active</label>
                     </div>
                 </div>
 
                 <div class="mt-6 flex items-center justify-end gap-3 border-t border-slate-200 pt-6">
-                    <Link href="/dashboard/course/courses" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition">
+                    <Link href="/dashboard/course/courses"
+                        class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition">
                         Cancel
                     </Link>
-                    <button
-                        type="submit"
-                        :disabled="form.processing"
-                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition disabled:opacity-50"
-                    >
+                    <button type="submit" :disabled="form.processing"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition disabled:opacity-50">
                         {{ form.processing ? 'Saving...' : 'Save Course' }}
                     </button>
                 </div>
@@ -207,7 +188,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 
@@ -251,6 +232,48 @@ const form = useForm({
     thumbnail: null
 });
 
+// Sub categories filtered to the selected category
+const filteredSubCategories = computed(() => {
+    if (!form.category_id) return [];
+    return props.subCategories.filter(sub =>
+        sub.category_id === parseInt(form.category_id)
+    );
+});
+
+// Tracks filtered to the selected sub category
+const filteredTracks = computed(() => {
+    if (!form.sub_category_id) return [];
+    return props.tracks.filter(track =>
+        track.sub_category_id === parseInt(form.sub_category_id)
+    );
+});
+
+// When editing an existing course, keep the pre-selected sub category / track
+// even before the user touches the dropdowns (guards against the watchers below
+// wiping them out on initial load).
+let initializing = true;
+
+// Reset sub category + track whenever category changes
+watch(() => form.category_id, (newVal, oldVal) => {
+    if (initializing) return;
+    if (newVal !== oldVal) {
+        form.sub_category_id = '';
+        form.course_track_id = '';
+    }
+});
+
+// Reset track whenever sub category changes
+watch(() => form.sub_category_id, (newVal, oldVal) => {
+    if (initializing) return;
+    if (newVal !== oldVal) {
+        form.course_track_id = '';
+    }
+});
+
+// Allow the initial values (from an existing course) to settle before
+// the watchers start clearing dependent fields on user interaction.
+setTimeout(() => { initializing = false; }, 0);
+
 const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -292,7 +315,7 @@ watch(() => props.course, (newCourse) => {
 
 const submit = () => {
     const formData = new FormData();
-    
+
     Object.keys(form.data()).forEach(key => {
         if (key === 'thumbnail' && form.thumbnail instanceof File) {
             formData.append('thumbnail', form.thumbnail);
@@ -305,7 +328,7 @@ const submit = () => {
 
     if (props.course) {
         formData.append('_method', 'PUT');
-        
+
         router.post(`/dashboard/course/courses/${props.course.id}`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
