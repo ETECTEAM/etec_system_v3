@@ -38,7 +38,7 @@ onMounted(async () => {
 
 async function fetchRoles() {
   try {
-    const response = await axios.get('/api/roles')
+    const response = await axios.get('/roles')
     roles.value = Array.isArray(response.data) ? response.data : []
   } catch (error) {
     console.error('Failed to fetch roles', error)
