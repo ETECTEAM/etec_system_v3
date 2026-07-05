@@ -24,15 +24,10 @@ const breadcrumbItems = [
 
       <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-          <div class="grid gap-5 sm:grid-cols-3">
+          <div class="grid gap-5 sm:grid-cols-2">
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Floor Name</p>
               <p class="mt-2 text-base font-semibold text-slate-900">{{ floor.name }}</p>
-            </div>
-
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Code</p>
-              <p class="mt-2 text-base text-slate-800">{{ floor.code || '-' }}</p>
             </div>
 
             <div>

@@ -10,7 +10,6 @@ class Building extends Model
     protected $fillable = [
         'name',
         'code',
-        'address',
         'description',
     ];
 

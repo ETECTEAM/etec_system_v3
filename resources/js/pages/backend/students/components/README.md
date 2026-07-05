@@ -1,78 +1,236 @@
-# ClassTable
+# View Class – Page & Components
 
 ## Purpose
 
-A tabular data view for the Class List page. Renders an array of class objects in a structured HTML table with action buttons (view, edit, delete). Replaces the card grid view when the user toggles to table mode.
+The View Class page (`ViewClass.vue`) is a dedicated page for viewing a single class record and managing its enrolled student deposits. It is **not** a re-use of the Class List table — it focuses on class details, deposit tracking, and student management.
 
-## Features
+---
 
-- Column display: ID, Class title + term, Lesson, Building, Room, Status badge, Students / Capacity, Time, Actions
-- Three action buttons per row (view, edit, delete) with colour-coded icon buttons
-- Status rendered as an indigo pill badge
-- Student occupancy shown as `{students}/{capacity}`
-- Empty state message when the items array is empty
-- Responsive wrapper with overflow handling
-- Reuses generic Table / TableHeader / TableBody / TableRow / TableCell components
+## Page: `ViewClass.vue`
 
-## Props
+**Path:** `resources/js/pages/backend/students/ViewClass.vue`
 
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `items` | `Array` | No (default `[]`) | Array of class objects to render. Each object should contain `id`, `title`, `term`, `lesson`, `building`, `floor`, `room`, `status`, `students`, `capacity`, `time` |
+### Route
 
-## Emits
+| Method | URI | Name |
+|--------|-----|------|
+| GET | `/dashboard/students/view/{id}` | `students.show` |
 
-No Emits.
+### Props (from Laravel/Inertia)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `classData` | `Object` | `null` | Single class record |
+| `students` | `Array` | `[]` | Enrolled students with deposit info |
+| `depositSummary` | `Object` | `null` | Aggregated deposit statistics |
+
+### Layout Sections
+
+1. **Breadcrumbs** – Dashboard > Class List > View Class
+2. **PageHero** – eyebrow "Enroll Management", title "View Class"
+3. **Back Button + Quick Actions** – responsive row
+4. **ClassInformationCard** – full class detail card with progress bar
+5. **DepositSummaryCard** – four stat cards
+6. **DepositTable** – searchable student deposit table
+
+### Defensive Handling
+
+- If `classData` is `null`, a centered loading fallback is shown.
+- All child components use optional chaining (`?.`) and fallback values.
+
+---
+
+## Components
+
+### 1. `ClassInformationCard.vue`
+
+**Path:** `resources/js/pages/backend/students/components/ClassInformationCard.vue`
+
+Displays a single class record in a card with icon-labeled fields and an enrollment progress bar.
+
+#### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `classData` | `Object` | `null` | The class record |
+
+#### Fields Displayed
+
+- Class Name, Lesson, Teacher, Building, Floor, Room, Study Day, Study Time, Status (pill badge), Capacity, Current Students
+- Enrollment Progress Bar (gradient, animated width)
+
+#### Icons Used
+
+`GraduationCap`, `BookOpen`, `Presentation`, `User`, `Building2`, `Layers`, `DoorOpen`, `Calendar`, `Clock`, `BadgeCheck`, `Users`
+
+---
+
+### 2. `DepositTable.vue`
+
+**Path:** `resources/js/pages/backend/students/components/DepositTable.vue`
+
+Searchable table of enrolled students with deposit and payment details.
+
+#### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `students` | `Array` | `[]` | Array of student deposit objects |
+
+#### Expected Student Object Shape
+
+```json
+{
+  "id": 1,
+  "name": "Sok Dara",
+  "gender": "Male",
+  "phone": "012 345 678",
+  "deposit_amount": 150.00,
+  "payment_date": "2025-01-15",
+  "payment_status": "Paid",
+  "remaining_balance": 0.00
+}
+```
+
+#### Columns
+
+| Column | Detail |
+|--------|--------|
+| Student ID | `#` prefixed |
+| Student Name | Bold, nowrap |
+| Gender | — |
+| Phone Number | — |
+| Deposit Amount | Currency formatted |
+| Payment Date | — |
+| Payment Status | Colored pill badge |
+| Remaining Balance | Currency formatted |
+| Action | 3 icon buttons |
+
+#### Payment Status Badges
+
+| Status | Color |
+|--------|-------|
+| Paid | `bg-emerald-100 text-emerald-700` |
+| Partial | `bg-amber-100 text-amber-700` |
+| Unpaid | `bg-red-100 text-red-700` |
+
+#### Action Buttons
+
+| Button | Color | Icon |
+|--------|-------|------|
+| View Payment | Blue | `Eye` |
+| Edit Deposit | Amber | `Pencil` |
+| Print Receipt | Slate | `Printer` |
+
+#### Features
+
+- Client-side search filter (by name, ID, phone)
+- Empty state with contextual message (search vs no data)
+
+---
+
+### 3. `DepositSummaryCard.vue`
+
+**Path:** `resources/js/pages/backend/students/components/DepositSummaryCard.vue`
+
+Four responsive stat cards showing deposit overview.
+
+#### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `depositSummary` | `Object` | `null` | Aggregated deposit statistics |
+
+#### Expected Object Shape
+
+```json
+{
+  "total_students": 5,
+  "paid_students": 2,
+  "partial_students": 2,
+  "unpaid_students": 1,
+  "total_deposit_collected": 425.00
+}
+```
+
+#### Cards
+
+| Card | Icon | Icon Background |
+|------|------|-----------------|
+| Total Students | `Users` | Indigo |
+| Paid Students | `CheckCircle2` | Emerald |
+| Unpaid Students (partial + unpaid) | `XCircle` | Red |
+| Total Deposit Collected | `DollarSign` | Amber |
+
+---
+
+### 4. `QuickActions.vue`
+
+**Path:** `resources/js/pages/backend/students/components/QuickActions.vue`
+
+Row of action buttons for common tasks.
+
+#### Props
+
+None.
+
+#### Buttons
+
+| Button | Style | Icon |
+|--------|-------|------|
+| Add Student | Solid indigo | `UserPlus` |
+| Record Deposit | White border | `Banknote` |
+| Export Deposit Report | White border | `Download` |
+| Print Student List | White border | `Printer` |
+
+---
+
+## Routing
+
+**File:** `routes/web/backend/student.php`
+
+```php
+Route::prefix('/dashboard/students')->group(function () {
+    Route::get('/', ...)                    // ClassList
+    Route::get('/create', ...)              // CreateClass
+    Route::get('/view/{id}', ...)           // ViewClass (students.show)
+});
+```
+
+The `/view/{id}` route returns three props to Inertia:
+
+- `classData` – single class object
+- `students` – array of enrolled students
+- `depositSummary` – aggregated stats
+
+---
 
 ## Dependencies
 
-- `@lucide/vue` — Eye, Pencil, Trash2
-- `Table` — `../../../../components/ui/table/Table.vue`
-- `TableHeader` — `../../../../components/ui/table/TableHeader.vue`
-- `TableHead` — `../../../../components/ui/table/TableHead.vue`
-- `TableBody` — `../../../../components/ui/table/TableBody.vue`
-- `TableRow` — `../../../../components/ui/table/TableRow.vue`
-- `TableCell` — `../../../../components/ui/table/TableCell.vue`
+- `@lucide/vue` – all icons
+- `@inertiajs/vue3` – `router` for navigation
+- `Table` / `TableHeader` / `TableHead` / `TableBody` / `TableRow` / `TableCell` – reusable table components from `components/ui/table/`
+- `DashboardLayout` – main layout wrapper
+- `Breadcrumbs` – breadcrumb navigation
+- `PageHero` – page title/eyebrow component
 
-## Methods
-
-No methods defined.
-
-## Reactive State
-
-No reactive state (stateless component driven entirely by props).
-
-## UI Description
-
-- **Table Container** — white background, rounded shadow, overflow hidden.
-- **Header Row** — column labels: ID, Class, Lesson, Building, Room, Status, Students, Time, Action (centered).
-- **Data Rows** — one per `items` entry. Room column combines floor + room. Class column stacks title + term. Status uses an indigo pill badge. Action group centred with three icon buttons:
-  - Blue (`Eye`) — view
-  - Yellow (`Pencil`) — edit
-  - Red (`Trash2`) — delete
-- **Empty State** — a single row spanning all 9 columns displays "No classes found." centred with muted text.
-
-## Navigation
-
-No internal navigation. Action buttons are presentational (no handlers wired).
-
-## Future Improvements
-
-- Wire view / edit / delete buttons to routes
-  - View: `/dashboard/students/{id}`
-  - Edit: `/dashboard/students/{id}/edit`
-  - Delete: confirmation modal + DELETE request
-- Emit row-click event
-- Sortable columns (click header to sort)
-- Checkbox column for batch selection
-- Pagination footer
-- Column visibility toggle
-- Responsive card fallback on mobile
-- Loading skeleton rows
-- Row hover highlight
+---
 
 ## Example Usage
 
 ```vue
-<ClassTable :items="classList" />
+<!-- Inertia renders this automatically from the route -->
+<ViewClass
+  :classData="classData"
+  :students="students"
+  :depositSummary="depositSummary"
+/>
+```
+
+```vue
+<!-- Standalone component usage -->
+<ClassInformationCard :classData="classData" />
+<DepositSummaryCard :depositSummary="depositSummary" />
+<DepositTable :students="students" />
+<QuickActions />
 ```

@@ -9,6 +9,7 @@ import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
 import ClassTable from "./components/ClassTable.vue";
 import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
 import PageHero from "../../../components/ui/page-hero/PageHero.vue";
+import DepositSummaryCard from "./components/DepositSummaryCard.vue";
 
 const search = ref("");
 const viewMode = ref("card");
@@ -71,6 +72,21 @@ const classes = ref([
   },
 ]);
 
+defineProps({
+  classData: {
+    type: Object,
+    default: null,
+  },
+  students: {
+    type: Array,
+    default: () => [],
+  },
+  depositSummary: {
+    type: Object,
+    default: null,
+  },
+});
+
 const filteredClasses = computed(() => {
   if (!search.value) return classes.value;
 
@@ -82,9 +98,9 @@ const filteredClasses = computed(() => {
 });
 
 const breadcrumbItems = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Class List', current: true },
-]
+  { label: "Dashboard", href: "/dashboard" },
+  { label: "Class List", current: true },
+];
 
 function refresh() {
   search.value = "";
@@ -97,61 +113,85 @@ function goCreateClass() {
 <template>
   <DashboardLayout>
     <div class="w-full">
-      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+      <div
+        class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6"
+      >
         <div>
-          <Breadcrumbs :items="breadcrumbItems" />
-          <PageHero
-            eyebrow="EnRoll Management"
-            title="Class List"
-          />
-
-          <p class="text-gray-500">Manage all classes</p>
+          <Breadcrumbs :items="breadcrumbItems" class="mb-4" />
+          <PageHero title="Class List" />
         </div>
 
         <button
           @click="goCreateClass"
-          class="bg-indigo-600 text-white px-5 py-3 rounded-lg flex items-center gap-2 cursor-pointer self-start sm:self-auto whitespace-nowrap"
+          class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          <Plus class="w-4 h-4" /> Add Class
+          <Plus class="w-4 h-4" /> Add EnRoll
         </button>
       </div>
 
-      <div class="bg-white rounded-xl shadow p-3 sm:p-4 flex flex-col sm:flex-row gap-3 mb-6">
-        <div class="relative flex-1 w-full">
-          <input
-            v-model="search"
-            class="w-full border rounded-lg py-3 pl-4 pr-12"
-            placeholder="Search classes..."
-          />
-          <Search class="absolute right-4 top-1/2 -translate-y-1/2 w-5" />
+      <!-- depositSummary  -->
+      <div class="mt-6">
+        <DepositSummaryCard :depositSummary="depositSummary" />
+      </div>
+
+      <div
+        class="flex flex-col gap-4 border-b border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <!-- Title -->
+        <div>
+          <h1 class="text-xl font-bold text-slate-800">All Class</h1>
         </div>
 
-        <div class="flex gap-2 sm:gap-3">
+        <!-- Actions -->
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Search -->
+          <div class="relative w-full sm:w-64">
+            <Search
+              class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              v-model="search"
+              type="text"
+              placeholder="Search student..."
+              class="w-full rounded-xl border border-slate-300 py-2 pl-10 pr-4 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+
+          <!-- Reset -->
           <button
             @click="refresh"
-            class="bg-gray-700 text-white px-4 sm:px-5 rounded-lg flex items-center gap-2 whitespace-nowrap"
+            class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800"
           >
-            <RotateCcw class="w-4 h-4" /> Reset
+            <RotateCcw class="h-4 w-4" />
+            Reset
           </button>
 
+          <!-- Card -->
           <button
             @click="viewMode = 'card'"
             :class="[
-              'px-3 sm:px-4 py-3 rounded-lg border flex items-center gap-2 whitespace-nowrap',
-              viewMode === 'card' ? 'bg-indigo-600 text-white' : 'bg-white',
+              'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition',
+              viewMode === 'card'
+                ? 'border-blue-900 bg-blue-800 text-white'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100',
             ]"
           >
-            <LayoutGrid class="w-4 h-4" /> Card
+            <LayoutGrid class="h-4 w-4" />
+            Card
           </button>
 
+          <!-- Table -->
           <button
             @click="viewMode = 'table'"
             :class="[
-              'px-3 sm:px-4 py-3 rounded-lg border flex items-center gap-2 whitespace-nowrap',
-              viewMode === 'table' ? 'bg-indigo-600 text-white' : 'bg-white',
+              'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition',
+              viewMode === 'table'
+                ? 'border-blue-900 bg-blue-800 text-white'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100',
             ]"
           >
-            <Table2 class="w-4 h-4" /> Table
+            <Table2 class="h-4 w-4" />
+            Table
           </button>
         </div>
       </div>

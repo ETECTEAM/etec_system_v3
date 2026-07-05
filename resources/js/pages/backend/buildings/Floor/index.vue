@@ -138,7 +138,7 @@ watch(perPage, () => fetchFloors(1))
             <input
               v-model="search"
               type="text"
-              placeholder="Search by name, code, or level..."
+              placeholder="Search by name or level..."
               class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
             >
 
@@ -160,7 +160,6 @@ watch(perPage, () => fetchFloors(1))
               <TableRow>
                 <TableHead class="w-16">No</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Code</TableHead>
                 <TableHead>Level</TableHead>
                 <TableHead class="text-right">Actions</TableHead>
               </TableRow>
@@ -170,7 +169,6 @@ watch(perPage, () => fetchFloors(1))
               <TableRow v-for="(floor, index) in floors" :key="floor.id">
                 <TableCell class="text-slate-500">{{ rowNumber(index) }}</TableCell>
                 <TableCell class="font-medium text-slate-900">{{ floor.name }}</TableCell>
-                <TableCell class="text-slate-600">{{ floor.code || '-' }}</TableCell>
                 <TableCell class="text-slate-600">{{ floor.level ?? '-' }}</TableCell>
                 <TableCell class="text-right">
                   <ActionMenu :items="actionItems()" @select="handleAction($event, floor)" />

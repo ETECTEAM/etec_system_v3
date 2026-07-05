@@ -14,6 +14,7 @@ import { ref, computed } from "vue";
 import NotificationBadge from "../notification-badge/NotificationBadge.vue";
 import ClassActionMenu from "./ClassActionMenu.vue";
 import BarClass from "../../../pages/backend/students/components/BarClass.vue";
+import { router } from "@inertiajs/vue3";
 
 const props = defineProps({
     classData: Object,
@@ -29,8 +30,8 @@ const emit = defineEmits([
     "qr",
     "switch-teacher",
     "view",
-    "attendance",
-    "export",
+    // "attendance",
+    // "export",
     "pre-end",
     "end",
 ]);
@@ -46,6 +47,10 @@ const online = computed(() => {
 });
 
 const showBarDialog = ref(false);
+
+function showViewClass () { 
+   router.get(`/dashboard/students/view/${props.classData.id}`);
+}
 </script>
 
 <template>
@@ -183,7 +188,7 @@ const showBarDialog = ref(false);
                 @click="showBarDialog = true"
             >
                 <div
-                    class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700 ease-out"
+                    class="h-full rounded-full bg-gradient-to-r from-blue-900 to-blue-900 transition-all duration-700 ease-out"
                     :style="{ width: Math.min(fill, 100) + '%' }"
                 ></div>
             </div>
@@ -201,8 +206,8 @@ const showBarDialog = ref(false);
         <!-- ─── Footer ─── -->
         <button
             type="button"
-            @click="emit('view')"
-            class="mt-4 sm:mt-5 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 active:bg-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 transition-all"
+            @click="showViewClass"
+            class="mt-4 sm:mt-5 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-blue-800 active:bg-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 transition-all"
         >
             View Class
         </button>

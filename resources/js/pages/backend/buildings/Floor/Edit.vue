@@ -9,7 +9,6 @@ const floor = page.props.floor ?? {}
 
 const form = useForm({
   name: floor.name ?? '',
-  code: floor.code ?? '',
   level: floor.level ?? '',
 })
 
@@ -44,15 +43,7 @@ function submit() {
             <span v-if="form.errors.name" class="mt-1 block text-xs text-red-600">{{ form.errors.name }}</span>
           </label>
 
-          <label class="block sm:col-span-1">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Code</span>
-            <input
-              v-model="form.code"
-              type="text"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
-            >
-            <span v-if="form.errors.code" class="mt-1 block text-xs text-red-600">{{ form.errors.code }}</span>
-          </label>
+
 
           <label class="block sm:col-span-2">
             <span class="mb-2 block text-sm font-semibold text-slate-700">Level</span>
