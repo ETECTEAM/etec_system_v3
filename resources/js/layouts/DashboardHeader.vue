@@ -172,7 +172,7 @@ function handleEscape(event) {
                 href="/logout"
                 method="post"
                 as="button"
-                class="w-full px-4 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                class="w-full cursor-pointer px-4 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Sign out
               </Link>

@@ -21,7 +21,11 @@ class LoginWebRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'login' => ['nullable', 'string', 'required_without:email'],
+            'login' => ['nullable', 'string', 'required_without:email', function ($attribute, $value, $fail) {
+                if ($value !== null && $value !== '' && filter_var($value, FILTER_VALIDATE_EMAIL) && ! preg_match('/^[a-zA-Z0-9._%+-]+@etec\.com$/', $value)) {
+                    $fail('Only @etec.com email addresses are allowed to log in.');
+                }
+            }],
             'email' => ['nullable', 'string', 'required_without:login'],
             'password' => ['required', 'string'],
         ];

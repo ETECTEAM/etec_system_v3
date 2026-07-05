@@ -12,7 +12,9 @@
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^2.10.1",
-        "spatie/laravel-permission": "^6.25"
+        "nwidart/laravel-modules": "^13.0",
+        "spatie/laravel-permission": "^6.25",
+        "tightenco/ziggy": "^2.6"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -55,6 +57,13 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "seed": "php artisan db:seed",
+        "seed-permission": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Core\\\\CoreSeeder\"",
+        "seed-core": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Core\\\\CoreSeeder\"",
+        "seed-class": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Class\\\\ClassSeeder\"",
+        "seed-report": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Feature\\\\Report\\\\ReportSeeder\"",
+        "seed-landrent": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Feature\\\\Report\\\\LandRentReportSeeder\"",
+        "seed-invoice-test": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Feature\\\\Invoice\\\\InvoiceTestSeeder\"",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
@@ -89,7 +98,8 @@
         "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true,
-            "php-http/discovery": true
+            "php-http/discovery": true,
+            "wikimedia/composer-merge-plugin": true
         }
     },
     "minimum-stability": "stable",

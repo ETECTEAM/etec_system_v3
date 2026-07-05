@@ -139,14 +139,9 @@ watch(resources, () => {
 
   <DashboardLayout>
     <section class="space-y-6">
-<<<<<<< HEAD
       <Breadcrumbs :items="breadcrumbItems" />
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <PageHero eyebrow="User Management" title="User & Permission" description="Give selected users extra permissions without changing their role." />
-=======
-      <Breadcrumbs :items="breadcrumbItems"/>
-      <PageHero eyebrow="User Management" title="Permission" description="Configure access rules and permission mapping for each role." />
->>>>>>> 614892dc5d6c1829f122fdebb7f43b88424d43c4
 
         <div class="flex gap-3">
           <Link
@@ -222,7 +217,7 @@ watch(resources, () => {
                 </span>
               </span>
               <span class="shrink-0 rounded-full bg-white px-2 py-1 text-xs font-bold text-blue-700">
-                {{ user.direct_permissions.length }}
+                {{ user.total_permissions_count }}
               </span>
             </button>
           </div>
@@ -250,11 +245,11 @@ watch(resources, () => {
             <table class="min-w-full divide-y divide-slate-200 text-sm">
               <thead class="bg-slate-50">
                 <tr>
-                  <th class="sticky left-0 z-10 bg-slate-50 px-5 py-4 text-left font-semibold text-slate-700">Module</th>
+                  <th class="sticky left-0 z-10 whitespace-nowrap bg-slate-50 px-5 py-4 text-left font-semibold text-slate-700 min-w-[240px] w-[260px]">Module</th>
                   <th
                     v-for="action in actions"
                     :key="action"
-                    class="px-4 py-4 text-center font-semibold capitalize text-slate-700"
+                    class="w-24 px-4 py-4 text-center font-semibold capitalize text-slate-700"
                   >
                     {{ action }}
                   </th>
@@ -262,13 +257,13 @@ watch(resources, () => {
               </thead>
               <tbody class="divide-y divide-slate-100 bg-white">
                 <tr v-for="resource in paginatedResources" :key="resource" class="hover:bg-slate-50">
-                  <td class="sticky left-0 z-10 bg-white px-5 py-4 font-semibold capitalize text-slate-800">
+                  <td class="sticky left-0 z-10 whitespace-nowrap bg-white px-5 py-4 font-semibold capitalize text-slate-800 min-w-[240px] w-[260px]">
                     {{ resource.replaceAll('_', ' ') }}
                   </td>
                   <td
                     v-for="action in actions"
                     :key="`${resource}-${action}`"
-                    class="px-4 py-4 text-center"
+                    class="w-24 px-4 py-4 text-center"
                   >
                     <button
                       v-if="permissionName(resource, action)"
