@@ -182,6 +182,12 @@ class AuthController extends Controller
         ]);
     }
 
+        if (! Hash::check($data->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'login' => ['These credentials do not match our records.'],
+            ]);
+        }
+
         if ($user->status === UserStatus::Inactive) {
             throw ValidationException::withMessages(['login' => ['Your account is inactive. Please contact administrator.']]);
         }

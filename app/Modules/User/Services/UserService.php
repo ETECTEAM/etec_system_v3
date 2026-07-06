@@ -149,11 +149,12 @@ class UserService
         return DB::transaction(function () use ($data): User {
             $user = User::create([
                 'name' => $data->name, 'email' => $data->email, 'password' => $data->password,
-                'role' => $data->role, 'status' => $data->status, 'avatar' => $this->storeAvatar($data->avatar),
+                'role' => $data->role, 'status' => $data->status,
             ]);
             $user->syncRoles([$data->role]);
+            $this->syncPhoto($user, $data->avatar);
             $this->instructorService->syncProfile($user, $data->role, $data->student, $data->instructorData);
-            return $user->fresh(['roles', 'student', 'instructorData']);
+            return $user->fresh(['roles', 'student', 'instructorData', 'photo']);
         });
     }
 
@@ -162,14 +163,11 @@ class UserService
         return DB::transaction(function () use ($user, $data): User {
             $attributes = ['name' => $data->name, 'email' => $data->email, 'role' => $data->role, 'status' => $data->status];
             if ($data->password !== null && $data->password !== '') { $attributes['password'] = $data->password; }
-            if ($data->avatar !== null) {
-                $this->deleteAvatar($user->avatar);
-                $attributes['avatar'] = $this->storeAvatar($data->avatar);
-            }
             $user->update($attributes);
+            $this->syncPhoto($user, $data->avatar);
             $user->syncRoles([$data->role]);
             $this->instructorService->syncProfile($user, $data->role, $data->student, $data->instructorData);
-            return $user->fresh(['roles', 'student', 'instructorData']);
+            return $user->fresh(['roles', 'student', 'instructorData', 'photo']);
         });
     }
 
@@ -187,13 +185,23 @@ class UserService
         }
     }
 
-    private function storeAvatar(?\Illuminate\Http\UploadedFile $avatar): ?string
+    private function syncPhoto(User $user, ?\Illuminate\Http\UploadedFile $avatar): void
     {
-        return $avatar?->store('avatars', 'public');
-    }
+        if ($avatar === null) {
+            return;
+        }
 
-    private function deleteAvatar(?string $path): void
-    {
-        if ($path !== null && $path !== '') { Storage::disk('public')->delete($path); }
+        $previousPath = $user->photo?->file_path;
+
+        $user->photo()->updateOrCreate(['user_id' => $user->id], [
+            'file_path' => $avatar->store('avatars', 'public'),
+            'file_name' => $avatar->getClientOriginalName(),
+            'file_mime' => $avatar->getClientMimeType(),
+            'file_size' => $avatar->getSize(),
+        ]);
+
+        if ($previousPath !== null && $previousPath !== '') {
+            Storage::disk('public')->delete($previousPath);
+        }
     }
 }

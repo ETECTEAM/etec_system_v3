@@ -31,7 +31,6 @@ class User extends Authenticatable
         'password',
         'role',
         'status',
-        'avatar',
         'last_login_at',
     ];
 
@@ -84,5 +83,10 @@ class User extends Authenticatable
     public function instructorData(): HasOne
     {
         return $this->hasOne(InstructorData::class, 'user_id', 'id');
+    }
+
+    public function photo(): HasOne
+    {
+        return $this->hasOne(Photo::class);
     }
 }
