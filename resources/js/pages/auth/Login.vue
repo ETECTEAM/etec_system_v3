@@ -88,7 +88,7 @@ function submit() {
 
     <p class="mt-6 text-center text-sm text-slate-600">
       New here?
-      <Link href="/auth/register" class="font-semibold text-blue-900 hover:text-blue-950">Create account</Link>
+      <Link href="/instructor-register" class="font-semibold text-blue-900 hover:text-blue-950">Create account</Link>
     </p>
   </AuthCard>
 </template>

@@ -25,7 +25,7 @@ function submit() {
       name: data.name.trim(),
       email: data.email.trim().toLowerCase(),
     }))
-    .post('/register')
+    .post('/instructor-register')
 }
 </script>
 <template>

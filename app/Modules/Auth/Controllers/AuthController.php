@@ -107,11 +107,11 @@ class AuthController extends Controller
         }
 
         if (! $user) {
-            return redirect('/register')->with('error', 'Please register first to request a verification code.');
+            return redirect('/instructor-register')->with('error', 'Please register first to request a verification code.');
         }
 
         if ($user->status === UserStatus::Rejected) {
-            return redirect('/register')->with('error', 'Your registration was rejected. Please contact support.');
+            return redirect('/instructor-register')->with('error', 'Your registration was rejected. Please contact support.');
         }
 
         if ($user->status === UserStatus::Active) {
