@@ -2,11 +2,13 @@
 import axios from 'axios'
 import { onMounted, ref, watch } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
+import { useToast } from 'vue-toastification'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import UserTableSection from './components/UserTableSection.vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
+const toast = useToast()
 const page = usePage()
 const canCreateUser = page.props.canCreateUser ?? false
 const currentUserRole = page.props.auth?.roles?.[0] ?? null
@@ -94,6 +96,18 @@ watch(search, () => {
 watch(selectedRole, () => {
   fetchUsers(1)
 })
+
+watch(() => page.props.flash, (flash) => {
+  if (flash?.success) {
+    toast.success(flash.success)
+  } else if (flash?.error) {
+    toast.error(flash.error)
+  } else if (flash?.warning) {
+    toast.warning(flash.warning)
+  } else if (flash?.info) {
+    toast.info(flash.info)
+  }
+}, { deep: true })
 </script>
 
 <template>

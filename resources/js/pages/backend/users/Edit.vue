@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { SelectSearch } from '../../../components/ui/select-search'
@@ -11,6 +11,14 @@ const page = usePage(), user = page.props.user, roleOptions = page.props.roleOpt
 const form = useForm({ name: user.name ?? '', email: user.email ?? '', password: '', password_confirmation: '', role: user.role ?? (roleOptions[0] ?? 'admin'), account_status: user.status ?? 'active', avatar: null, student_code: s.student_code ?? '', student_full_name: s.full_name ?? '', student_first_name: s.first_name ?? '', student_last_name: s.last_name ?? '', student_full_name_kh: s.full_name_kh ?? '', student_gender: s.gender ?? '', student_date_of_birth: s.date_of_birth ?? '', student_phone: s.phone ?? '', student_email: s.email ?? '', student_class_id: s.class_id ?? '', parent_name: s.parent_name ?? '', parent_phone: s.parent_phone ?? '', student_address: s.address ?? '', student_status: s.status ?? true, instructor_code: i.instructor_code ?? '', instructor_full_name: i.full_name ?? '', instructor_first_name: i.first_name ?? '', instructor_last_name: i.last_name ?? '', instructor_full_name_kh: i.full_name_kh ?? '', instructor_gender: i.gender ?? '', instructor_date_of_birth: i.date_of_birth ?? '', instructor_phone: i.phone ?? '', instructor_email: i.email ?? '', specialization: i.specialization ?? '', employment_type: i.employment_type ?? 'full_time', shift_preference: i.shift_preference ?? 'morning_evening', available_for_class: i.available_for_class ?? true, hire_date: i.hire_date ?? '', instructor_address: i.address ?? '', instructor_status: i.status ?? true })
 
 const roleSelectOptions = computed(() => roleOptions.map((role) => ({ label: formatRole(role), value: role })))
+
+const nameLocked = computed(() => form.role === 'instructor' || form.role === 'student')
+
+watch(() => form.role, (role) => {
+  if (role === 'instructor' || role === 'student') {
+    form.name = ''
+  }
+})
 
 const statusSelectOptions = [
   { label: 'Active', value: 'active' },
@@ -48,9 +56,11 @@ function submit() {
               v-model="form.name"
               type="text"
               autocomplete="name"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
-              placeholder="User full name"
+              :disabled="nameLocked"
+              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+              :placeholder="nameLocked ? 'Set by the instructor/student in their own profile' : 'User full name'"
             >
+            <span v-if="nameLocked" class="mt-1 block text-xs text-slate-500">Instructors and students set their name themselves after logging in.</span>
             <span v-if="form.errors.name" class="mt-1 block text-xs text-red-600">{{ form.errors.name }}</span>
           </label>
 

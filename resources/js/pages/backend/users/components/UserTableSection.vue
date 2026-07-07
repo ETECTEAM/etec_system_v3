@@ -259,7 +259,10 @@ function handleAction(action, user) {
         <TableBody>
           <TableRow v-for="(user, index) in users" :key="user.id" class="transition-opacity duration-200" @contextmenu.prevent="openRowContextMenu($event, user)">
             <TableCell class="text-slate-500">{{ rowNumber(index) }}</TableCell>
-            <TableCell class="font-medium text-slate-900">{{ user.name }}</TableCell>
+            <TableCell class="font-medium text-slate-900">
+              <span v-if="user.name">{{ user.name }}</span>
+              <span v-else class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">No Name</span>
+            </TableCell>
             <TableCell class="text-slate-600">{{ user.email }}</TableCell>
             <TableCell>
               <div class="flex flex-wrap gap-2">

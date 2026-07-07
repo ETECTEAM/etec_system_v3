@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { Eye, EyeOff } from '@lucide/vue'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { SelectSearch } from '../../../components/ui/select-search'
@@ -20,6 +21,9 @@ const form = useForm({
   account_status: 'active',
 })
 
+const showPassword = ref(false)
+const showPasswordConfirmation = ref(false)
+
 const roleSelectOptions = computed(() => roleOptions.map((role) => ({
   label: formatRole(role),
   value: role,
@@ -29,6 +33,14 @@ const statusSelectOptions = [
   { label: 'Active', value: 'active' },
   { label: 'Inactive', value: 'inactive' },
 ]
+
+const nameLocked = computed(() => form.role === 'instructor' || form.role === 'student')
+
+watch(() => form.role, (role) => {
+  if (role === 'instructor' || role === 'student') {
+    form.name = ''
+  }
+})
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -53,7 +65,15 @@ function submit() {
         <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submit">
           <label class="block sm:col-span-1">
             <span class="mb-2 block text-sm font-semibold text-slate-700">Full Name</span>
-            <input v-model="form.name" type="text" autocomplete="name" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100" placeholder="User full name">
+            <input
+              v-model="form.name"
+              type="text"
+              autocomplete="name"
+              :disabled="nameLocked"
+              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+              :placeholder="nameLocked ? 'Set by the instructor/student in their own profile' : 'User full name'"
+            >
+            <span v-if="nameLocked" class="mt-1 block text-xs text-slate-500">Instructors and students set their name themselves after logging in.</span>
             <span v-if="form.errors.name" class="mt-1 block text-xs text-red-600">{{ form.errors.name }}</span>
           </label>
 
@@ -65,13 +85,25 @@ function submit() {
 
           <label class="block sm:col-span-1">
             <span class="mb-2 block text-sm font-semibold text-slate-700">Password</span>
-            <input v-model="form.password" type="password" autocomplete="new-password" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100" placeholder="Minimum 8 characters">
+            <div class="relative">
+              <input v-model="form.password" :type="showPassword ? 'text' : 'password'" autocomplete="new-password" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-11 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100" placeholder="Minimum 8 characters">
+              <button type="button" tabindex="-1" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600" @click="showPassword = !showPassword">
+                <EyeOff v-if="showPassword" class="h-4 w-4" />
+                <Eye v-else class="h-4 w-4" />
+              </button>
+            </div>
             <span v-if="form.errors.password" class="mt-1 block text-xs text-red-600">{{ form.errors.password }}</span>
           </label>
 
           <label class="block sm:col-span-1">
             <span class="mb-2 block text-sm font-semibold text-slate-700">Confirm Password</span>
-            <input v-model="form.password_confirmation" type="password" autocomplete="new-password" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100" placeholder="Repeat password">
+            <div class="relative">
+              <input v-model="form.password_confirmation" :type="showPasswordConfirmation ? 'text' : 'password'" autocomplete="new-password" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-11 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100" placeholder="Repeat password">
+              <button type="button" tabindex="-1" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600" @click="showPasswordConfirmation = !showPasswordConfirmation">
+                <EyeOff v-if="showPasswordConfirmation" class="h-4 w-4" />
+                <Eye v-else class="h-4 w-4" />
+              </button>
+            </div>
           </label>
 
           <div class="grid gap-4 sm:col-span-2 sm:grid-cols-2">
