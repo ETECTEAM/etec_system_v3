@@ -122,7 +122,7 @@ const breadcrumbItems = [
       <!-- Constrain both stepper and form card to max-w-3xl and center them -->
       <div class=" mx-auto space-y-6">
         <!-- Step Indicator Card -->
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div class="flex items-center justify-between mx-auto">
             <!-- Step 1 -->
             <button
@@ -133,18 +133,18 @@ const breadcrumbItems = [
               <div
                 :class="[
                   'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 transition',
-                  currentStep === 1 ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100' : 'bg-white border-slate-200 text-slate-400 group-hover:border-slate-300'
+                  currentStep === 1 ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100 dark:shadow-none' : 'bg-white border-slate-200 text-slate-400 group-hover:border-slate-300 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:group-hover:border-gray-600'
                 ]"
               >
                 <span>1</span>
               </div>
-              <div :class="['text-sm font-bold transition', currentStep === 1 ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-500']">
+              <div :class="['text-sm font-bold transition', currentStep === 1 ? 'text-slate-900 dark:text-gray-100' : 'text-slate-400 group-hover:text-slate-500 dark:text-gray-500 dark:group-hover:text-gray-400']">
                 Class Type
               </div>
             </button>
 
             <!-- Line 1-2 -->
-            <div class="flex-1 h-0.5 mx-4 bg-slate-200"></div>
+            <div class="flex-1 h-0.5 mx-4 bg-slate-200 dark:bg-gray-800"></div>
 
             <!-- Step 2 -->
             <button
@@ -155,18 +155,18 @@ const breadcrumbItems = [
               <div
                 :class="[
                   'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 transition',
-                  currentStep === 2 ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100' : 'bg-white border-slate-200 text-slate-400 group-hover:border-slate-300'
+                  currentStep === 2 ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100 dark:shadow-none' : 'bg-white border-slate-200 text-slate-400 group-hover:border-slate-300 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:group-hover:border-gray-600'
                 ]"
               >
                 <span>2</span>
               </div>
-              <div :class="['text-sm font-bold transition', currentStep === 2 ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-500']">
+              <div :class="['text-sm font-bold transition', currentStep === 2 ? 'text-slate-900 dark:text-gray-100' : 'text-slate-400 group-hover:text-slate-500 dark:text-gray-500 dark:group-hover:text-gray-400']">
                 Term
               </div>
             </button>
 
             <!-- Line 2-3 -->
-            <div class="flex-1 h-0.5 mx-4 bg-slate-200"></div>
+            <div class="flex-1 h-0.5 mx-4 bg-slate-200 dark:bg-gray-800"></div>
 
             <!-- Step 3 -->
             <button
@@ -177,12 +177,12 @@ const breadcrumbItems = [
               <div
                 :class="[
                   'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 transition',
-                  currentStep === 3 ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100' : 'bg-white border-slate-200 text-slate-400 group-hover:border-slate-300'
+                  currentStep === 3 ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100 dark:shadow-none' : 'bg-white border-slate-200 text-slate-400 group-hover:border-slate-300 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:group-hover:border-gray-600'
                 ]"
               >
                 <span>3</span>
               </div>
-              <div :class="['text-sm font-bold transition', currentStep === 3 ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-500']">
+              <div :class="['text-sm font-bold transition', currentStep === 3 ? 'text-slate-900 dark:text-gray-100' : 'text-slate-400 group-hover:text-slate-500 dark:text-gray-500 dark:group-hover:text-gray-400']">
                 Time Slots
               </div>
             </button>
@@ -190,19 +190,19 @@ const breadcrumbItems = [
         </div>
 
         <!-- Form Card -->
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
           <form @submit.prevent="submit" class="space-y-6">
 
             <!-- Global Step Error Message -->
-            <div v-if="stepError" class="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 flex items-center gap-2">
+            <div v-if="stepError" class="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 flex items-center gap-2 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400">
               <span>⚠️</span> {{ stepError }}
             </div>
 
             <!-- STEP 1: CLASS TYPE -->
             <div v-if="currentStep === 1" class="space-y-4">
               <div>
-                <h3 class="text-base font-semibold text-slate-900">Select Class Type</h3>
-                <p class="text-sm text-slate-500">Choose the class type for this schedule.</p>
+                <h3 class="text-base font-semibold text-slate-900 dark:text-gray-100">Select Class Type</h3>
+                <p class="text-sm text-slate-500 dark:text-gray-400">Choose the class type for this schedule.</p>
               </div>
 
               <div class="grid gap-3 sm:grid-cols-2">
@@ -213,24 +213,24 @@ const breadcrumbItems = [
                   @click="form.class_type_id = ct.class_type_id"
                   :class="[
                     'p-4 rounded-xl border text-left transition relative flex items-center space-x-3 cursor-pointer focus:outline-none',
-                    form.class_type_id == ct.class_type_id ? 'border-blue-600 bg-blue-50/20 ring-2 ring-blue-100' : 'border-slate-200 hover:border-slate-300'
+                    form.class_type_id == ct.class_type_id ? 'border-blue-600 bg-blue-50/20 ring-2 ring-blue-100 dark:bg-blue-500/10 dark:ring-blue-500/20' : 'border-slate-200 hover:border-slate-300 dark:border-gray-700 dark:hover:border-gray-600'
                   ]"
                 >
-                  <div :class="['w-5 h-5 rounded-full border-2 flex items-center justify-center transition', form.class_type_id == ct.class_type_id ? 'border-blue-600' : 'border-slate-300']">
+                  <div :class="['w-5 h-5 rounded-full border-2 flex items-center justify-center transition', form.class_type_id == ct.class_type_id ? 'border-blue-600' : 'border-slate-300 dark:border-gray-600']">
                     <div v-if="form.class_type_id == ct.class_type_id" class="w-2.5 h-2.5 rounded-full bg-blue-600"></div>
                   </div>
-                  <span class="text-sm font-semibold text-slate-800">{{ ct.type_name }}</span>
+                  <span class="text-sm font-semibold text-slate-800 dark:text-gray-200">{{ ct.type_name }}</span>
                 </button>
               </div>
 
-              <span v-if="form.errors.class_type_id" class="mt-1 block text-xs text-red-600">{{ form.errors.class_type_id }}</span>
+              <span v-if="form.errors.class_type_id" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.class_type_id }}</span>
             </div>
 
             <!-- STEP 2: TERM -->
             <div v-if="currentStep === 2" class="space-y-4">
               <div>
-                <h3 class="text-base font-semibold text-slate-900">Select Term</h3>
-                <p class="text-sm text-slate-500">Choose the academic term for this schedule.</p>
+                <h3 class="text-base font-semibold text-slate-900 dark:text-gray-100">Select Term</h3>
+                <p class="text-sm text-slate-500 dark:text-gray-400">Choose the academic term for this schedule.</p>
               </div>
 
               <div class="grid gap-3 sm:grid-cols-2">
@@ -241,64 +241,64 @@ const breadcrumbItems = [
                   @click="form.term_id = term.id; handleTermChange()"
                   :class="[
                     'p-4 rounded-xl border text-left transition relative flex items-center space-x-3 cursor-pointer focus:outline-none',
-                    form.term_id == term.id ? 'border-blue-600 bg-blue-50/20 ring-2 ring-blue-100' : 'border-slate-200 hover:border-slate-300'
+                    form.term_id == term.id ? 'border-blue-600 bg-blue-50/20 ring-2 ring-blue-100 dark:bg-blue-500/10 dark:ring-blue-500/20' : 'border-slate-200 hover:border-slate-300 dark:border-gray-700 dark:hover:border-gray-600'
                   ]"
                 >
-                  <div :class="['w-5 h-5 rounded-full border-2 flex items-center justify-center transition', form.term_id == term.id ? 'border-blue-600' : 'border-slate-300']">
+                  <div :class="['w-5 h-5 rounded-full border-2 flex items-center justify-center transition', form.term_id == term.id ? 'border-blue-600' : 'border-slate-300 dark:border-gray-600']">
                     <div v-if="form.term_id == term.id" class="w-2.5 h-2.5 rounded-full bg-blue-600"></div>
                   </div>
-                  <span class="text-sm font-semibold text-slate-800">{{ term.term_name }}</span>
+                  <span class="text-sm font-semibold text-slate-800 dark:text-gray-200">{{ term.term_name }}</span>
                 </button>
               </div>
 
-              <span v-if="form.errors.term_id" class="mt-1 block text-xs text-red-600">{{ form.errors.term_id }}</span>
+              <span v-if="form.errors.term_id" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.term_id }}</span>
             </div>
 
             <!-- STEP 3: TIME SLOTS -->
             <div v-if="currentStep === 3" class="space-y-4">
               <div>
-                <h3 class="text-base font-semibold text-slate-900">Select Time Slots</h3>
-                <p class="text-sm text-slate-500">Pick the slots matching the selected term.</p>
+                <h3 class="text-base font-semibold text-slate-900 dark:text-gray-100">Select Time Slots</h3>
+                <p class="text-sm text-slate-500 dark:text-gray-400">Pick the slots matching the selected term.</p>
               </div>
 
-              <div v-if="filteredTimes.length === 0" class="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-500">
+              <div v-if="filteredTimes.length === 0" class="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">
                 No time slots found for this term.
               </div>
 
-              <div v-else class="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-80 overflow-y-auto bg-slate-50 shadow-inner">
+              <div v-else class="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-80 overflow-y-auto bg-slate-50 shadow-inner dark:border-gray-700 dark:divide-gray-800 dark:bg-gray-800">
                 <label
                   v-for="time in filteredTimes"
                   :key="time.id"
-                  class="flex items-center justify-between px-4 py-3 hover:bg-white transition cursor-pointer"
+                  class="flex items-center justify-between px-4 py-3 hover:bg-white transition cursor-pointer dark:hover:bg-gray-900"
                 >
-                  <span class="text-sm text-slate-700 font-medium select-none">{{ time.time_name }}</span>
+                  <span class="text-sm text-slate-700 font-medium select-none dark:text-gray-300">{{ time.time_name }}</span>
                   <input
                     type="checkbox"
                     :value="time.id"
                     v-model="form.time_ids"
-                    class="h-4.5 w-4.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    class="h-4.5 w-4.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer dark:border-gray-600 dark:bg-gray-900"
                   />
                 </label>
               </div>
 
-              <span v-if="form.errors.time_ids" class="mt-1 block text-xs text-red-600">{{ form.errors.time_ids }}</span>
+              <span v-if="form.errors.time_ids" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.time_ids }}</span>
             </div>
 
             <!-- BUTTON FLOW -->
-            <div class="flex justify-between items-center pt-4 border-t border-slate-100">
+            <div class="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-gray-800">
               <div>
                 <button
                   v-if="currentStep > 1"
                   type="button"
                   @click="prevStep"
-                  class="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 cursor-pointer"
+                  class="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 cursor-pointer dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
                   Back
                 </button>
                 <Link
                   v-else
                   href="/dashboard/schdule"
-                  class="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 inline-block align-middle"
+                  class="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 inline-block align-middle dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
                   Cancel
                 </Link>
@@ -309,7 +309,7 @@ const breadcrumbItems = [
                   v-if="currentStep < 3"
                   type="button"
                   @click="nextStep"
-                  class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 cursor-pointer"
+                  class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 cursor-pointer dark:bg-blue-600 dark:hover:bg-blue-500"
                 >
                   Next
                 </button>
@@ -317,7 +317,7 @@ const breadcrumbItems = [
                   v-else
                   type="submit"
                   :disabled="form.processing"
-                  class="rounded-xl bg-yellow-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-yellow-600 disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
+                  class="rounded-xl bg-yellow-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-yellow-600 disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer dark:bg-yellow-600 dark:hover:bg-yellow-500"
                 >
                   {{ form.processing ? 'Updating...' : 'Update Schedule' }}
                 </button>

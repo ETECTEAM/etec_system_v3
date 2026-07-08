@@ -25,44 +25,44 @@ const submit = () => {
   <DashboardLayout>
   <div class="p-8">
     <div class="flex items-center mb-6 space-x-4">
-      <Link href="/dashboard/admin/registrations" class="text-blue-600 hover:underline">&larr; Back to Registrations</Link>
-      <h1 class="text-2xl font-bold">Register Student Manually</h1>
+      <Link href="/dashboard/admin/registrations" class="text-blue-600 hover:underline dark:text-blue-400">&larr; Back to Registrations</Link>
+      <h1 class="text-2xl font-bold dark:text-gray-100">Register Student Manually</h1>
     </div>
 
-    <div class="bg-white p-2 rounded-lg shadow-md max-w-2xl">
+    <div class="bg-white p-2 rounded-lg shadow-md max-w-2xl dark:bg-gray-900">
       <form @submit.prevent="submit" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Full Name</label>
-          <input v-model="form.full_name" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" required>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
+          <input v-model="form.full_name" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" required>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700">Gender</label>
-            <select v-model="form.gender" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Gender</label>
+            <select v-model="form.gender" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
               <option value="male">Male</option>
               <option value="female">Female</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700">Date of Birth</label>
-            <input v-model="form.date_of_birth" type="date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date of Birth</label>
+            <input v-model="form.date_of_birth" type="date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
           </div>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">Phone</label>
-          <input v-model="form.phone" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" required>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
+          <input v-model="form.phone" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" required>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">Address</label>
-          <textarea v-model="form.address" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2"></textarea>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Address</label>
+          <textarea v-model="form.address" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"></textarea>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">Select Class & Time</label>
-          <select v-model="form.class_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" required>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Select Class & Time</label>
+          <select v-model="form.class_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" required>
             <option value="" disabled>Choose a class...</option>
             <option v-for="cls in classes" :key="cls.id" :value="cls.id">
               {{ cls.class_name }} - {{ cls.time?.time_name }} ({{ cls.registered_count }}/{{ cls.capacity }})

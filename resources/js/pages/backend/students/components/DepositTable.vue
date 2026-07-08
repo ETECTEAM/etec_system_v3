@@ -32,28 +32,28 @@ const filtered = computed(() => {
 function statusBadge(status) {
   switch (status) {
     case "Paid":
-      return "bg-emerald-100 text-emerald-700";
+      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400";
     case "Partial":
-      return "bg-amber-100 text-amber-700";
+      return "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400";
     case "Unpaid":
-      return "bg-red-100 text-red-700";
+      return "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400";
     default:
-      return "bg-slate-100 text-slate-600";
+      return "bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300";
   }
 }
 </script>
 
 <template>
   <div
-    class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"
+    class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:border-gray-800 dark:bg-gray-900"
   >
     <!-- Header -->
     <div
-      class="flex flex-col gap-3 border-b border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+      class="flex flex-col gap-3 border-b border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800"
     >
-      <h3 class="text-lg font-semibold text-slate-900">
+      <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">
         Student Deposits
-        <span class="ml-1.5 text-sm font-normal text-slate-400">
+        <span class="ml-1.5 text-sm font-normal text-slate-400 dark:text-gray-500">
           ({{ filtered.length }})
         </span>
       </h3>
@@ -66,18 +66,18 @@ function statusBadge(status) {
             v-model="search"
             type="text"
             placeholder="Search student..."
-            class="w-full rounded-xl border border-slate-300 px-4 py-2 pl-10 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            class="w-full rounded-xl border border-slate-300 px-4 py-2 pl-10 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
           />
 
           <Search
-            class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+            class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-gray-500"
           />
         </div>
 
         <!-- Reset Button -->
         <button
           @click="refresh"
-          class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800"
+          class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
         >
           <RotateCcw class="w-4 h-4" />
           Reset
@@ -104,10 +104,10 @@ function statusBadge(status) {
 
         <TableBody>
           <TableRow v-for="student in filtered" :key="student.id">
-            <TableCell class="font-medium text-slate-900">
+            <TableCell class="font-medium text-slate-900 dark:text-gray-100">
               #{{ student.id }}
             </TableCell>
-            <TableCell class="whitespace-nowrap font-medium text-slate-900">
+            <TableCell class="whitespace-nowrap font-medium text-slate-900 dark:text-gray-100">
               {{ student.name }}
             </TableCell>
             <TableCell>{{ student.gender }}</TableCell>
@@ -134,19 +134,19 @@ function statusBadge(status) {
             <TableCell>
               <div class="flex justify-center gap-1.5">
                 <button
-                  class="rounded-lg bg-blue-50 p-2 text-blue-600 transition-colors hover:bg-blue-100"
+                  class="rounded-lg bg-blue-50 p-2 text-blue-600 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
                   title="View Payment"
                 >
                   <Eye class="h-4 w-4" />
                 </button>
                 <button
-                  class="rounded-lg bg-amber-50 p-2 text-amber-600 transition-colors hover:bg-amber-100"
+                  class="rounded-lg bg-amber-50 p-2 text-amber-600 transition-colors hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
                   title="Edit Deposit"
                 >
                   <Pencil class="h-4 w-4" />
                 </button>
                 <button
-                  class="rounded-lg bg-slate-50 p-2 text-slate-600 transition-colors hover:bg-slate-100"
+                  class="rounded-lg bg-slate-50 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                   title="Print Receipt"
                 >
                   <Printer class="h-4 w-4" />
@@ -158,7 +158,7 @@ function statusBadge(status) {
           <!-- Empty state -->
           <TableRow v-if="filtered.length === 0">
             <TableCell colspan="9">
-              <div class="py-12 text-center text-slate-400">
+              <div class="py-12 text-center text-slate-400 dark:text-gray-500">
                 <p class="text-base font-medium">No students found</p>
                 <p class="mt-1 text-sm">
                   {{

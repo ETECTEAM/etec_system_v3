@@ -36,7 +36,7 @@ function printCertificate() {
                 </button>
             </header>
 
-            <div class="no-print grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-3">
+            <div class="no-print grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-3 dark:border-gray-800 dark:bg-gray-900">
                 <label class="certificate-field">Recipient name<input v-model="certificate.recipient" type="text" /></label>
                 <label class="certificate-field">Course name<input v-model="certificate.course" type="text" /></label>
                 <label class="certificate-field">Granted date<input v-model="certificate.grantedDate" type="text" /></label>
@@ -44,7 +44,7 @@ function printCertificate() {
                 <label class="certificate-field">Director<input v-model="certificate.director" type="text" /></label>
             </div>
 
-            <div class="certificate-preview-wrap overflow-auto rounded-2xl bg-slate-200 p-3 shadow-inner sm:p-6">
+            <div class="certificate-preview-wrap overflow-auto rounded-2xl bg-slate-200 p-3 shadow-inner sm:p-6 dark:bg-gray-800">
                 <article class="certificate-sheet" aria-label="Certificate preview">
                     <div class="certificate-inner">
                         <header class="certificate-government">

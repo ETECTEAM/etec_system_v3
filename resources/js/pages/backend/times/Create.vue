@@ -37,10 +37,10 @@ function submit() {
 
     <!-- HEADER -->
     <div class="text-center mb-4">
-      <h2 class="text-lg font-bold text-gray-900">
+      <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">
         Create Time
       </h2>
-      <p class="text-sm text-gray-500">
+      <p class="text-sm text-gray-500 dark:text-gray-400">
         Add a new time schedule
       </p>
     </div>
@@ -48,12 +48,12 @@ function submit() {
     <!-- FORM -->
     <form
       @submit.prevent="submit"
-      class="rounded-2xl border bg-white p-6 shadow-sm space-y-5"
+      class="rounded-2xl border bg-white p-6 shadow-sm space-y-5 dark:border-gray-800 dark:bg-gray-900"
     >
 
       <!-- TIME NAME -->
       <div>
-        <label class="text-sm  font-medium text-gray-700">
+        <label class="text-sm  font-medium text-gray-700 dark:text-gray-200">
           Time Name
         </label>
 
@@ -63,24 +63,24 @@ function submit() {
           type="text"
           placeholder="Enter time name"
           class="mt-2 w-full rounded-xl border px-4 py-3 text-sm
-                 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none"
+                 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
         />
 
-        <p v-if="form.errors.time_name" class="text-red-500 text-sm mt-1">
+        <p v-if="form.errors.time_name" class="text-red-500 text-sm mt-1 dark:text-red-400">
           {{ form.errors.time_name }}
         </p>
       </div>
 
       <!-- TERM SELECT -->
       <div>
-        <label class="text-sm font-medium text-gray-700">
+        <label class="text-sm font-medium text-gray-700 dark:text-gray-200">
           Term
         </label>
 
         <select
           v-model="form.term_id"
           class="mt-2 w-full rounded-xl border px-4 py-3 text-sm bg-gray-50
-                 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:bg-gray-800 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
         >
           <option value="">Select Term</option>
 
@@ -93,7 +93,7 @@ function submit() {
           </option>
         </select>
 
-        <p v-if="form.errors.term_id" class="text-red-500 text-sm mt-1">
+        <p v-if="form.errors.term_id" class="text-red-500 text-sm mt-1 dark:text-red-400">
           {{ form.errors.term_id }}
         </p>
       </div>
@@ -104,7 +104,7 @@ function submit() {
         <button
           type="button"
           @click="$emit('close')"
-          class="rounded-xl border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50  cursor-pointer"
+          class="rounded-xl border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50  cursor-pointer dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
         >
           Cancel
         </button>
@@ -112,7 +112,7 @@ function submit() {
         <button
           type="submit"
           :disabled="form.processing"
-          class="rounded-xl cursor-pointer bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          class="rounded-xl cursor-pointer bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
         >
           {{ form.processing ? 'Creating...' : 'Create Time' }}
         </button>

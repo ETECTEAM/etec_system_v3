@@ -36,15 +36,15 @@ const statusLabel = computed(() => {
 const statusClasses = computed(() => {
   const status = classList.value.status;
   if (status === 'completed') {
-    return 'bg-emerald-50 text-emerald-700';
+    return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400';
   }
   if (status === 'progress') {
-    return 'bg-blue-50 text-blue-700';
+    return 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400';
   }
   if (status === 'cancelled') {
-    return 'bg-rose-50 text-rose-700';
+    return 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400';
   }
-  return 'bg-slate-100 text-slate-600';
+  return 'bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300';
 });
 
 const breadcrumbItems = [
@@ -81,17 +81,17 @@ const deleteItem = () => {
       />
 
       <div class="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Class summary</p>
-              <h2 class="mt-3 text-2xl font-semibold text-slate-900">{{ courseTitle || 'Untitled class' }}</h2>
-              <p class="mt-2 text-sm text-slate-600">{{ lessonTitle }}</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-gray-400">Class summary</p>
+              <h2 class="mt-3 text-2xl font-semibold text-slate-900 dark:text-gray-100">{{ courseTitle || 'Untitled class' }}</h2>
+              <p class="mt-2 text-sm text-slate-600 dark:text-gray-300">{{ lessonTitle }}</p>
             </div>
             <div class="space-y-2 text-right">
-              <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+              <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-700 dark:bg-gray-800 dark:text-gray-300">
                 <span>ID</span>
-                <span class="rounded-full bg-slate-200 px-2 py-1 text-slate-800">{{ classListId.value }}</span>
+                <span class="rounded-full bg-slate-200 px-2 py-1 text-slate-800 dark:bg-gray-700 dark:text-gray-200">{{ classListId.value }}</span>
               </div>
               <div :class="['inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em]', statusClasses]">
                 <span>Status</span>
@@ -101,94 +101,94 @@ const deleteItem = () => {
           </div>
 
           <div class="mt-8 grid gap-6 sm:grid-cols-2">
-            <div class="rounded-3xl bg-slate-50 p-5">
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Instructor</p>
-              <p class="mt-3 text-base font-semibold text-slate-900">{{ teacherLabel }}</p>
+            <div class="rounded-3xl bg-slate-50 p-5 dark:bg-gray-800">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">Instructor</p>
+              <p class="mt-3 text-base font-semibold text-slate-900 dark:text-gray-100">{{ teacherLabel }}</p>
             </div>
-            <div class="rounded-3xl bg-slate-50 p-5">
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Students</p>
-              <p class="mt-3 text-base font-semibold text-slate-900">{{ classList.student_count ?? 0 }}</p>
+            <div class="rounded-3xl bg-slate-50 p-5 dark:bg-gray-800">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">Students</p>
+              <p class="mt-3 text-base font-semibold text-slate-900 dark:text-gray-100">{{ classList.student_count ?? 0 }}</p>
             </div>
-            <div class="rounded-3xl bg-slate-50 p-5">
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Class type</p>
-              <p class="mt-3 text-base font-semibold text-slate-900">{{ classTypeName }}</p>
+            <div class="rounded-3xl bg-slate-50 p-5 dark:bg-gray-800">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">Class type</p>
+              <p class="mt-3 text-base font-semibold text-slate-900 dark:text-gray-100">{{ classTypeName }}</p>
             </div>
-            <div class="rounded-3xl bg-slate-50 p-5">
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Term</p>
-              <p class="mt-3 text-base font-semibold text-slate-900">{{ termName }}</p>
+            <div class="rounded-3xl bg-slate-50 p-5 dark:bg-gray-800">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">Term</p>
+              <p class="mt-3 text-base font-semibold text-slate-900 dark:text-gray-100">{{ termName }}</p>
             </div>
           </div>
 
-          <div class="mt-8 grid gap-4 rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+          <div class="mt-8 grid gap-4 rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <p class="text-xs uppercase text-slate-400">Time</p>
-                <p class="mt-2 text-base text-slate-900">{{ timeName }}</p>
+                <p class="text-xs uppercase text-slate-400 dark:text-gray-500">Time</p>
+                <p class="mt-2 text-base text-slate-900 dark:text-gray-100">{{ timeName }}</p>
               </div>
               <div>
-                <p class="text-xs uppercase text-slate-400">Room</p>
-                <p class="mt-2 text-base text-slate-900">{{ roomNumber }}</p>
+                <p class="text-xs uppercase text-slate-400 dark:text-gray-500">Room</p>
+                <p class="mt-2 text-base text-slate-900 dark:text-gray-100">{{ roomNumber }}</p>
               </div>
             </div>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <p class="text-xs uppercase text-slate-400">Building</p>
-                <p class="mt-2 text-base text-slate-900">{{ buildingName }}</p>
+                <p class="text-xs uppercase text-slate-400 dark:text-gray-500">Building</p>
+                <p class="mt-2 text-base text-slate-900 dark:text-gray-100">{{ buildingName }}</p>
               </div>
               <div>
-                <p class="text-xs uppercase text-slate-400">Floor</p>
-                <p class="mt-2 text-base text-slate-900">{{ floorName }}</p>
+                <p class="text-xs uppercase text-slate-400 dark:text-gray-500">Floor</p>
+                <p class="mt-2 text-base text-slate-900 dark:text-gray-100">{{ floorName }}</p>
               </div>
             </div>
           </div>
         </div>
 
         <div class="space-y-6">
-          <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Quick details</h3>
-            <div class="mt-6 space-y-4 text-sm text-slate-600">
+          <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">Quick details</h3>
+            <div class="mt-6 space-y-4 text-sm text-slate-600 dark:text-gray-300">
               <div class="flex items-start justify-between gap-4">
-                <span class="text-slate-400">Course</span>
-                <span class="font-medium text-slate-900">{{ classList.course?.title || '—' }}</span>
+                <span class="text-slate-400 dark:text-gray-500">Course</span>
+                <span class="font-medium text-slate-900 dark:text-gray-100">{{ classList.course?.title || '—' }}</span>
               </div>
               <div class="flex items-start justify-between gap-4">
-                <span class="text-slate-400">Lesson</span>
-                <span class="font-medium text-slate-900">{{ classList.lesson?.title || '—' }}</span>
+                <span class="text-slate-400 dark:text-gray-500">Lesson</span>
+                <span class="font-medium text-slate-900 dark:text-gray-100">{{ classList.lesson?.title || '—' }}</span>
               </div>
               <div class="flex items-start justify-between gap-4">
-                <span class="text-slate-400">Teacher</span>
-                <span class="font-medium text-slate-900">{{ classList.teacher?.name || classList.teacher?.teacher_name || '—' }}</span>
+                <span class="text-slate-400 dark:text-gray-500">Teacher</span>
+                <span class="font-medium text-slate-900 dark:text-gray-100">{{ classList.teacher?.name || classList.teacher?.teacher_name || '—' }}</span>
               </div>
               <div class="flex items-start justify-between gap-4">
-                <span class="text-slate-400">Status</span>
-                <span class="font-medium text-slate-900">{{ statusLabel }}</span>
+                <span class="text-slate-400 dark:text-gray-500">Status</span>
+                <span class="font-medium text-slate-900 dark:text-gray-100">{{ statusLabel }}</span>
               </div>
               <div class="flex items-start justify-between gap-4">
-                <span class="text-slate-400">Students</span>
-                <span class="font-medium text-slate-900">{{ classList.student_count ?? 0 }}</span>
+                <span class="text-slate-400 dark:text-gray-500">Students</span>
+                <span class="font-medium text-slate-900 dark:text-gray-100">{{ classList.student_count ?? 0 }}</span>
               </div>
             </div>
           </div>
 
-          <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Actions</h3>
+          <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">Actions</h3>
             <div class="mt-5 flex flex-col gap-3">
               <Link
                 :href="classListEditHref"
-                class="inline-flex w-full items-center justify-center rounded-xl bg-blue-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                class="inline-flex w-full items-center justify-center rounded-xl bg-blue-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
               >
                 Edit class
               </Link>
               <button
                 type="button"
                 @click="deleteItem"
-                class="inline-flex w-full items-center justify-center rounded-xl bg-rose-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-600"
+                class="inline-flex w-full items-center justify-center rounded-xl bg-rose-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-500"
               >
                 Delete class
               </button>
               <Link
                 href="/dashboard/class-list"
-                class="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                class="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
               >
                 Back to list
               </Link>

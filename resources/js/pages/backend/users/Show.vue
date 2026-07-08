@@ -33,7 +33,9 @@ const breadcrumbItems = [
           <div class="space-y-5">
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Full Name</p>
-              <p class="mt-2 text-base font-semibold text-slate-900">{{ user.name }}</p>
+              <p class="mt-2 text-base font-semibold text-slate-900" :class="{ 'text-slate-400 italic': !user.name }">
+                {{ user.name || 'Not provided' }}
+              </p>
             </div>
 
             <div>

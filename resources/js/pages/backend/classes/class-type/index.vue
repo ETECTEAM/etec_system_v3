@@ -98,23 +98,23 @@ const handlePageChange = (page) => {
 
                 <Link
                     href="/dashboard/class-types/create"
-                    class="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
+                    class="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
                 >
                     + Add New Class Type
                 </Link>
             </div>
 
             <div
-                class="flex gap-4 items-center bg-white p-4 rounded-lg border border-slate-200"
+                class="flex gap-4 items-center bg-white p-4 rounded-lg border border-slate-200 dark:bg-gray-900 dark:border-gray-800"
             >
                 <input
                     v-model="search"
                     placeholder="Search by name..."
-                    class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                    class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                 />
                 <select
                     v-model="statusFilter"
-                    class="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                    class="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                 >
                     <option value="all">All Status</option>
                     <option value="active">Active</option>
@@ -145,8 +145,8 @@ const handlePageChange = (page) => {
                                 <span
                                     :class="
                                         item.is_active
-                                            ? 'bg-emerald-50 text-emerald-700'
-                                            : 'bg-slate-100 text-slate-600'
+                                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                            : 'bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300'
                                     "
                                     class="px-2 py-0.5 rounded text-xs font-semibold"
                                 >
@@ -170,7 +170,7 @@ const handlePageChange = (page) => {
                         <TableRow v-if="filteredData.length === 0">
                             <TableCell
                                 colspan="4"
-                                class="text-center py-8 text-slate-400"
+                                class="text-center py-8 text-slate-400 dark:text-gray-500"
                                 >No class types found.</TableCell
                             >
                         </TableRow>
@@ -178,9 +178,9 @@ const handlePageChange = (page) => {
                 </Table>
 
                 <div
-                    class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+                    class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40"
                 >
-                    <p class="text-sm text-slate-500">
+                    <p class="text-sm text-slate-500 dark:text-gray-400">
                         Showing {{ classTypes.from ?? 0 }}–{{
                             classTypes.to ?? 0
                         }}

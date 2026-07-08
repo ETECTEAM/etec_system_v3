@@ -128,14 +128,14 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-100 flex items-center justify-center p-5">
-    <div class="bg-white rounded-3xl shadow-xl p-8 w-full max-w-lg">
+  <div class="min-h-screen bg-slate-100 flex items-center justify-center p-5 dark:bg-gray-950">
+    <div class="bg-white rounded-3xl shadow-xl p-8 w-full max-w-lg dark:bg-gray-900">
       <!-- Loading -->
 
       <div v-if="loading" class="text-center">
-        <h1 class="text-3xl font-bold mb-4">Checking Location...</h1>
+        <h1 class="text-3xl font-bold mb-4 dark:text-gray-100">Checking Location...</h1>
 
-        <p>Please wait...</p>
+        <p class="dark:text-gray-400">Please wait...</p>
       </div>
 
       <!-- Form -->
@@ -147,20 +147,20 @@ onMounted(() => {
 
         <form @submit.prevent="submitForm" class="space-y-5">
           <div>
-            <label class="block mb-2 font-semibold"> Student Name </label>
+            <label class="block mb-2 font-semibold dark:text-gray-200"> Student Name </label>
 
             <input
               v-model="name"
               type="text"
               placeholder="Enter Name"
-              class="w-full border rounded-xl p-4"
+              class="w-full border rounded-xl p-4 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
             />
           </div>
 
           <div>
-            <label class="block mb-2 font-semibold"> Course </label>
+            <label class="block mb-2 font-semibold dark:text-gray-200"> Course </label>
 
-            <select v-model="course" class="w-full border rounded-xl p-4">
+            <select v-model="course" class="w-full border rounded-xl p-4 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
               <option value="">Select Course</option>
 
               <option value="Vue JS">Vue JS</option>
@@ -174,13 +174,13 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="block mb-2 font-semibold text-gray-700">
+            <label class="block mb-2 font-semibold text-gray-700 dark:text-gray-300">
               Time Schedule
             </label>
 
             <select
               v-model="selectedTime"
-              class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-blue-500 focus:outline-none"
+              class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500"
             >
               <option value="">Select Time</option>
 
@@ -206,15 +206,15 @@ onMounted(() => {
       <!-- Denied -->
 
       <div v-else>
-        <h1 class="text-3xl font-bold text-red-600 text-center mb-4">
+        <h1 class="text-3xl font-bold text-red-600 text-center mb-4 dark:text-red-400">
           Access Denied
         </h1>
 
-        <p class="text-center mb-5">
+        <p class="text-center mb-5 dark:text-gray-300">
           {{ error }}
         </p>
 
-        <div class="bg-slate-100 rounded-xl p-4 mb-5">
+        <div class="bg-slate-100 rounded-xl p-4 mb-5 dark:bg-gray-800 dark:text-gray-200">
           Distance:
           {{ distanceText }}
         </div>

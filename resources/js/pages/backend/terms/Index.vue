@@ -91,27 +91,27 @@ const breadcrumbItems = [
         <PageHero eyebrow="Terms Management" title="Terms" description="Read, create, update, and delete terms records " />
 
 
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800">
 
         <!-- Header -->
-        <div class="border-b border-slate-200 px-6 py-5">
+        <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
             <!-- Search -->
             <div class=" w-[24%] lg:items-end">
-  
+
               <input
                 v-model="search"
                 type="text"
                 placeholder="Search terms..."
-                class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
               >
-  
+
             </div>
 
             <button
               @click="openCreateModal"
-              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-650"
+              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-650 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
               Create Term
             </button>
@@ -124,10 +124,10 @@ const breadcrumbItems = [
           <table class="w-full text-sm">
 
             <thead>
-              <tr class="bg-gray-50 border-b border-gray-200">
-                <th class="px-6 py-3 text-left text-slate-600">ID</th>
-                <th class="px-6 py-3 text-left text-slate-600">Term Name</th>
-                <th class="px-6 py-3 text-right text-slate-600">Actions</th>
+              <tr class="bg-gray-50 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-800">
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">ID</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">Term Name</th>
+                <th class="px-6 py-3 text-right text-slate-600 dark:text-gray-300">Actions</th>
               </tr>
             </thead>
 
@@ -135,13 +135,13 @@ const breadcrumbItems = [
               <tr
                 v-for="term in terms.data"
                 :key="term.id"
-                class="border-t border-slate-200 hover:bg-slate-50 transition"
+                class="border-t border-slate-200 hover:bg-slate-50 transition dark:border-gray-800 dark:hover:bg-gray-800"
               >
-                <td class="px-6 py-4 text-slate-500">
+                <td class="px-6 py-4 text-slate-500 dark:text-gray-400">
                   {{ term.id }}
                 </td>
 
-                <td class="px-6 py-4 font-medium text-slate-900">
+                <td class="px-6 py-4 font-medium text-slate-900 dark:text-gray-100">
                   {{ term.term_name }}
                 </td>
 
@@ -149,14 +149,14 @@ const breadcrumbItems = [
 
                   <button
                     @click="openEditModal(term)"
-                    class="px-5 py-2 text-sm rounded-lg border border-blue-200 bg-blue-50 font-semibold text-blue-700  transition hover:bg-blue-100"
+                    class="px-5 py-2 text-sm rounded-lg border border-blue-200 bg-blue-50 font-semibold text-blue-700  transition hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
                   >
                     Edit
                   </button>
 
                   <button
                     @click="deleteTerm(term.id)"
-                    class="px-5 py-2 text-sm rounded-lg border border-rose-200 bg-rose-50 font-semibold text-rose-700 transition hover:bg-rose-100"
+                    class="px-5 py-2 text-sm rounded-lg border border-rose-200 bg-rose-50 font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
                   >
                     Delete
                   </button>
@@ -166,7 +166,7 @@ const breadcrumbItems = [
 
               <!-- Empty -->
               <tr v-if="!terms?.data?.length">
-                <td colspan="3" class="py-10 text-center text-slate-500">
+                <td colspan="3" class="py-10 text-center text-slate-500 dark:text-gray-400">
                   {{ search ? `No results for "${search}"` : 'No terms found.' }}
                 </td>
               </tr>
@@ -176,9 +176,9 @@ const breadcrumbItems = [
         </div>
 
         <!-- Footer -->
-        <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
 
-          <p class="text-sm text-slate-500">
+          <p class="text-sm text-slate-500 dark:text-gray-400">
             Showing {{ terms.from }}–{{ terms.to }} of {{ terms.total }} terms
           </p>
 
@@ -188,10 +188,10 @@ const breadcrumbItems = [
               :key="link.label"
               :href="link.url || '#'"
               v-html="link.label"
-              class="px-3 py-2 rounded-lg border text-sm transition"
+              class="px-3 py-2 rounded-lg border text-sm transition dark:border-gray-700 dark:text-gray-300"
               :class="{
                 'bg-blue-600 text-white border-blue-600': link.active,
-                'hover:bg-gray-100': !link.active,
+                'hover:bg-gray-100 dark:hover:bg-gray-800': !link.active,
                 'opacity-40 pointer-events-none': !link.url
               }"
             />
@@ -209,8 +209,8 @@ const breadcrumbItems = [
         class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
         @click.self="closeCreateModal"
       >
-        <div class="bg-white rounded-xl w-full max-w-lg p-6 shadow-lg relative">
-          <button @click="closeCreateModal" class="absolute top-3 right-3 text-gray-400 hover:text-black">
+        <div class="bg-white rounded-xl w-full max-w-lg p-6 shadow-lg relative dark:bg-gray-900">
+          <button @click="closeCreateModal" class="absolute top-3 right-3 text-gray-400 hover:text-black dark:text-gray-500 dark:hover:text-gray-100">
             ✖
           </button>
           <Create @close="closeCreateModal" />
@@ -225,8 +225,8 @@ const breadcrumbItems = [
         class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
         @click.self="closeEditModal"
       >
-        <div class="bg-white rounded-xl w-full max-w-lg p-6 shadow-lg relative">
-          <button @click="closeEditModal" class="absolute top-3 right-3 text-gray-400 hover:text-black">
+        <div class="bg-white rounded-xl w-full max-w-lg p-6 shadow-lg relative dark:bg-gray-900">
+          <button @click="closeEditModal" class="absolute top-3 right-3 text-gray-400 hover:text-black dark:text-gray-500 dark:hover:text-gray-100">
             ✖
           </button>
           <Edit v-if="selectedTerm" :term="selectedTerm" @close="closeEditModal" />

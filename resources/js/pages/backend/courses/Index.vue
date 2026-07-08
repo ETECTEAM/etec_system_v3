@@ -2,41 +2,41 @@
 <template>
     <div>
         <!-- Tab Navigation -->
-        <div class="border-b border-gray-200 mb-6">
+        <div class="border-b border-gray-200 mb-6 dark:border-gray-800">
             <nav class="-mb-px flex space-x-8">
-                <button @click="activeTab = 'categories'" 
+                <button @click="activeTab = 'categories'"
                         class="py-2 px-1 border-b-2 font-medium text-sm"
-                        :class="activeTab === 'categories' 
-                            ? 'border-blue-500 text-blue-600' 
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
+                        :class="activeTab === 'categories'
+                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'">
                     📁 Categories
                 </button>
-                <button @click="activeTab = 'subcategories'" 
+                <button @click="activeTab = 'subcategories'"
                         class="py-2 px-1 border-b-2 font-medium text-sm"
-                        :class="activeTab === 'subcategories' 
-                            ? 'border-blue-500 text-blue-600' 
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
+                        :class="activeTab === 'subcategories'
+                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'">
                     📂 Sub Categories
                 </button>
-                <button @click="activeTab = 'tracks'" 
+                <button @click="activeTab = 'tracks'"
                         class="py-2 px-1 border-b-2 font-medium text-sm"
-                        :class="activeTab === 'tracks' 
-                            ? 'border-blue-500 text-blue-600' 
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
+                        :class="activeTab === 'tracks'
+                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'">
                     📋 Tracks
                 </button>
-                <button @click="activeTab = 'courses'" 
+                <button @click="activeTab = 'courses'"
                         class="py-2 px-1 border-b-2 font-medium text-sm"
-                        :class="activeTab === 'courses' 
-                            ? 'border-blue-500 text-blue-600' 
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
+                        :class="activeTab === 'courses'
+                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'">
                     📖 Courses
                 </button>
-                <button @click="activeTab = 'lessons'" 
+                <button @click="activeTab = 'lessons'"
                         class="py-2 px-1 border-b-2 font-medium text-sm"
-                        :class="activeTab === 'lessons' 
-                            ? 'border-blue-500 text-blue-600' 
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
+                        :class="activeTab === 'lessons'
+                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'">
                     📝 Lessons
                 </button>
             </nav>
@@ -62,11 +62,11 @@
         <!-- Popup Modal -->
         <div v-if="showPopup" class="fixed inset-0 z-50 overflow-y-auto" @click.self="closePopup">
             <div class="flex items-center justify-center min-h-screen px-4">
-                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-                <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-auto max-h-[90vh] overflow-y-auto">
-                    <div class="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
-                        <h3 class="text-lg font-semibold text-gray-900">{{ popupTitle }}</h3>
-                        <button @click="closePopup" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity dark:bg-black/70"></div>
+                <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-auto max-h-[90vh] overflow-y-auto dark:bg-gray-900">
+                    <div class="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10 dark:border-gray-800 dark:bg-gray-900">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ popupTitle }}</h3>
+                        <button @click="closePopup" class="text-gray-400 hover:text-gray-600 text-2xl dark:text-gray-500 dark:hover:text-gray-300">&times;</button>
                     </div>
                     <div class="p-6">
                         <component :is="popupComponent" 

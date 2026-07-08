@@ -3,12 +3,12 @@
         <div class="p-4 sm:p-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
-                    <h1 class="text-2xl font-bold text-slate-900">Tracks</h1>
-                    <p class="text-sm text-slate-500">Manage course tracks</p>
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-gray-100">Tracks</h1>
+                    <p class="text-sm text-slate-500 dark:text-gray-400">Manage course tracks</p>
                 </div>
                 <Link
                     href="/dashboard/course/tracks/create"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 whitespace-nowrap w-full sm:w-auto justify-center"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 whitespace-nowrap w-full sm:w-auto justify-center dark:bg-blue-600 dark:hover:bg-blue-500"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -25,51 +25,51 @@
                             v-model="search"
                             type="text"
                             placeholder="Search tracks..."
-                            class="w-full rounded-lg border border-slate-200 pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            class="w-full rounded-lg border border-slate-200 pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
                             @input="resetPagination"
                         />
-                        <svg class="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="absolute left-3 top-2.5 w-4 h-4 text-slate-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                     </div>
                 </div>
-                <span class="text-sm text-slate-500 whitespace-nowrap">
-                    Showing <strong class="text-slate-700">{{ paginatedTracks.length }}</strong> of 
-                    <strong class="text-slate-700">{{ filteredTracks.length }}</strong> tracks
+                <span class="text-sm text-slate-500 whitespace-nowrap dark:text-gray-400">
+                    Showing <strong class="text-slate-700 dark:text-gray-200">{{ paginatedTracks.length }}</strong> of
+                    <strong class="text-slate-700 dark:text-gray-200">{{ filteredTracks.length }}</strong> tracks
                 </span>
             </div>
 
             <!-- Tracks Table -->
-            <div class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+            <div class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm dark:bg-gray-900 dark:border-gray-800">
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[640px]">
-                        <thead class="bg-slate-50 border-b border-slate-200">
+                        <thead class="bg-slate-50 border-b border-slate-200 dark:bg-gray-800 dark:border-gray-800">
                             <tr>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 py-3 sm:px-4">#</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 py-3 sm:px-4">Name</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 py-3 sm:px-4">Sub Category</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 py-3 sm:px-4">Slug</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 py-3 sm:px-4">Status</th>
-                                <th class="text-right text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 py-3 sm:px-4">Actions</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 py-3 sm:px-4 dark:text-gray-400">#</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 py-3 sm:px-4 dark:text-gray-400">Name</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 py-3 sm:px-4 dark:text-gray-400">Sub Category</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 py-3 sm:px-4 dark:text-gray-400">Slug</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 py-3 sm:px-4 dark:text-gray-400">Status</th>
+                                <th class="text-right text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 py-3 sm:px-4 dark:text-gray-400">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-200">
-                            <tr v-for="track in paginatedTracks" :key="track.id" class="hover:bg-slate-50 transition">
-                                <td class="px-3 py-3 text-sm text-slate-600 sm:px-4">#{{ track.id }}</td>
+                        <tbody class="divide-y divide-slate-200 dark:divide-gray-800">
+                            <tr v-for="track in paginatedTracks" :key="track.id" class="hover:bg-slate-50 transition dark:hover:bg-gray-800">
+                                <td class="px-3 py-3 text-sm text-slate-600 sm:px-4 dark:text-gray-300">#{{ track.id }}</td>
                                 <td class="px-3 py-3 sm:px-4">
-                                    <span class="text-sm font-medium text-slate-900">{{ track.name }}</span>
+                                    <span class="text-sm font-medium text-slate-900 dark:text-gray-100">{{ track.name }}</span>
                                 </td>
                                 <td class="px-3 py-3 sm:px-4">
-                                    <span class="text-sm text-slate-600">{{ track.sub_category?.name }}</span>
+                                    <span class="text-sm text-slate-600 dark:text-gray-300">{{ track.sub_category?.name }}</span>
                                 </td>
                                 <td class="px-3 py-3 sm:px-4">
-                                    <code class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">{{ track.slug }}</code>
+                                    <code class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded dark:bg-gray-800 dark:text-gray-300">{{ track.slug }}</code>
                                 </td>
                                 <td class="px-3 py-3 sm:px-4">
                                     <span
                                         :class="[
                                             'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                                            track.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                            track.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400'
                                         ]"
                                     >
                                         <span class="w-1.5 h-1.5 rounded-full mr-1.5" :class="track.status === 'active' ? 'bg-green-500' : 'bg-red-500'"></span>
@@ -80,16 +80,16 @@
                                     <div class="flex items-center justify-end gap-1">
                                         <Link
                                             :href="`/dashboard/course/tracks/${track.id}/edit`"
-                                            class="text-blue-600 hover:text-blue-800 transition p-1.5 rounded-lg hover:bg-blue-50"
+                                            class="text-blue-600 hover:text-blue-800 transition p-1.5 rounded-lg hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-500/10"
                                             title="Edit"
                                         >
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                             </svg>
                                         </Link>
-                                        <button 
-                                            @click="confirmDelete(track)" 
-                                            class="text-red-600 hover:text-red-800 transition p-1.5 rounded-lg hover:bg-red-50" 
+                                        <button
+                                            @click="confirmDelete(track)"
+                                            class="text-red-600 hover:text-red-800 transition p-1.5 rounded-lg hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-500/10"
                                             title="Delete"
                                         >
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,8 +100,8 @@
                                 </td>
                             </tr>
                             <tr v-if="paginatedTracks.length === 0">
-                                <td colspan="6" class="px-4 py-12 text-center text-sm text-slate-500">
-                                    <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <td colspan="6" class="px-4 py-12 text-center text-sm text-slate-500 dark:text-gray-400">
+                                    <svg class="w-12 h-12 mx-auto text-slate-300 mb-3 dark:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                                     </svg>
                                     <p>No tracks found</p>
@@ -115,32 +115,32 @@
 
             <!-- Pagination -->
             <div v-if="filteredTracks.length > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div class="text-sm text-slate-500 text-center sm:text-left">
-                    Showing 
-                    <span class="font-medium text-slate-700">{{ (currentPage - 1) * perPage + 1 }}</span> 
-                    to 
-                    <span class="font-medium text-slate-700">{{ Math.min(currentPage * perPage, filteredTracks.length) }}</span> 
-                    of 
-                    <span class="font-medium text-slate-700">{{ filteredTracks.length }}</span> 
+                <div class="text-sm text-slate-500 text-center sm:text-left dark:text-gray-400">
+                    Showing
+                    <span class="font-medium text-slate-700 dark:text-gray-200">{{ (currentPage - 1) * perPage + 1 }}</span>
+                    to
+                    <span class="font-medium text-slate-700 dark:text-gray-200">{{ Math.min(currentPage * perPage, filteredTracks.length) }}</span>
+                    of
+                    <span class="font-medium text-slate-700 dark:text-gray-200">{{ filteredTracks.length }}</span>
                     results
                 </div>
-                
+
                 <div class="flex flex-wrap items-center justify-center gap-2">
                     <button
                         @click="prevPage"
                         :disabled="currentPage === 1"
                         :class="[
                             'p-2 rounded-lg text-sm font-medium transition',
-                            currentPage === 1 
-                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                            currentPage === 1
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600'
+                                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'
                         ]"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                         </svg>
                     </button>
-                    
+
                     <!-- Page Numbers -->
                     <div class="flex items-center gap-1">
                         <button
@@ -151,32 +151,32 @@
                                 'px-3 py-2 rounded-lg text-sm font-medium transition min-w-[36px]',
                                 page === currentPage
                                     ? 'bg-blue-600 text-white'
-                                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'
                             ]"
                         >
                             {{ page }}
                         </button>
                     </div>
-                    
+
                     <button
                         @click="nextPage"
                         :disabled="currentPage === totalPages"
                         :class="[
                             'p-2 rounded-lg text-sm font-medium transition',
-                            currentPage === totalPages 
-                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                            currentPage === totalPages
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600'
+                                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'
                         ]"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                         </svg>
                     </button>
-                    
+
                     <!-- Per Page Selector -->
                     <select
                         v-model="perPage"
-                        class="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ml-1"
+                        class="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ml-1 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                         @change="resetPagination"
                     >
                         <option :value="5">5</option>
@@ -191,29 +191,29 @@
 
         <!-- Delete Modal -->
         <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="showDeleteModal = false">
-            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl dark:bg-gray-900">
                 <div class="flex items-start gap-4 mb-4">
-                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center dark:bg-red-500/10">
+                        <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-lg font-semibold text-slate-900">Delete Track</h3>
-                        <p class="text-sm text-slate-600 mt-1">
-                            Are you sure you want to delete "<span class="font-medium text-slate-900">{{ deleteItem?.name }}</span>"? 
+                        <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">Delete Track</h3>
+                        <p class="text-sm text-slate-600 mt-1 dark:text-gray-300">
+                            Are you sure you want to delete "<span class="font-medium text-slate-900 dark:text-gray-100">{{ deleteItem?.name }}</span>"?
                             This action cannot be undone.
                         </p>
-                        <p v-if="deleteItem?.courses?.length > 0" class="text-sm text-amber-600 mt-2">
+                        <p v-if="deleteItem?.courses?.length > 0" class="text-sm text-amber-600 mt-2 dark:text-amber-400">
                             ⚠️ This track has {{ deleteItem.courses.length }} course(s) that will also be deleted.
                         </p>
                     </div>
                 </div>
-                <div class="flex justify-end gap-3 border-t border-slate-200 pt-4">
-                    <button @click="showDeleteModal = false" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition">
+                <div class="flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-gray-800">
+                    <button @click="showDeleteModal = false" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition dark:text-gray-300 dark:hover:bg-gray-800">
                         Cancel
                     </button>
-                    <button @click="deleteTrack" class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition">
+                    <button @click="deleteTrack" class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition dark:bg-red-600 dark:hover:bg-red-500">
                         Delete Track
                     </button>
                 </div>

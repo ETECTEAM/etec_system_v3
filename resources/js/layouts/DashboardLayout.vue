@@ -64,7 +64,7 @@ function closeSidebar() {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50 text-slate-900">
+    <div class="min-h-screen bg-slate-50 text-slate-900 dark:bg-gray-950 dark:text-gray-100">
         <div class="flex">
             <Sidebar :open="isSidebarOpen" @close="closeSidebar" />
 

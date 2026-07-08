@@ -3,12 +3,12 @@
         <div class="p-6">
             <div class="flex justify-between items-center mb-6">
                 <div>
-                    <h1 class="text-2xl font-bold text-slate-900">Courses</h1>
-                    <p class="text-sm text-slate-500">Manage all courses</p>
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-gray-100">Courses</h1>
+                    <p class="text-sm text-slate-500 dark:text-gray-400">Manage all courses</p>
                 </div>
                 <Link
                     href="/dashboard/course/courses/create"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 whitespace-nowrap"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 whitespace-nowrap dark:bg-blue-600 dark:hover:bg-blue-500"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -25,10 +25,10 @@
                         v-model="filters.search"
                         type="text"
                         placeholder="Search courses..."
-                        class="w-full rounded-lg border border-slate-200 pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full rounded-lg border border-slate-200 pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
                         @input="applyFilters"
                     />
-                    <svg class="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="absolute left-3 top-2.5 w-4 h-4 text-slate-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
                 </div>
@@ -36,7 +36,7 @@
                 <!-- Category Filter -->
                 <select
                     v-model="filters.category_id"
-                    class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
                     @change="applyFilters"
                 >
                     <option value="">All Categories</option>
@@ -48,7 +48,7 @@
                 <!-- Sub Category Filter -->
                 <select
                     v-model="filters.sub_category_id"
-                    class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
                     @change="applyFilters"
                 >
                     <option value="">All Sub Categories</option>
@@ -60,7 +60,7 @@
                 <!-- Track Filter -->
                 <select
                     v-model="filters.track_id"
-                    class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
                     @change="applyFilters"
                 >
                     <option value="">All Tracks</option>
@@ -72,14 +72,14 @@
 
             <!-- Results Count & Reset -->
             <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-                <span class="text-sm text-slate-500">
-                    Showing <strong class="text-slate-700">{{ filteredCourses.length }}</strong> of 
-                    <strong class="text-slate-700">{{ courses.length }}</strong> courses
+                <span class="text-sm text-slate-500 dark:text-gray-400">
+                    Showing <strong class="text-slate-700 dark:text-gray-200">{{ filteredCourses.length }}</strong> of
+                    <strong class="text-slate-700 dark:text-gray-200">{{ courses.length }}</strong> courses
                 </span>
                 <button
                     v-if="hasActiveFilters"
                     @click="resetFilters"
-                    class="text-sm text-blue-600 hover:text-blue-800 font-medium transition flex items-center gap-1"
+                    class="text-sm text-blue-600 hover:text-blue-800 font-medium transition flex items-center gap-1 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -89,29 +89,29 @@
             </div>
 
             <!-- Courses Table -->
-            <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <div class="bg-white rounded-lg border border-slate-200 overflow-hidden dark:bg-gray-900 dark:border-gray-800">
                 <div class="overflow-x-auto">
                     <table class="w-full">
-                        <thead class="bg-slate-50 border-b border-slate-200">
+                        <thead class="bg-slate-50 border-b border-slate-200 dark:bg-gray-800 dark:border-gray-800">
                             <tr>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3">#</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3">Title</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3">Category</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3">Sub Category</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3">Track</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3">Level</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3">Price</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3">Certificate</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3">Status</th>
-                                <th class="text-right text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3">Actions</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3 dark:text-gray-400">#</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3 dark:text-gray-400">Title</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3 dark:text-gray-400">Category</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3 dark:text-gray-400">Sub Category</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3 dark:text-gray-400">Track</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3 dark:text-gray-400">Level</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3 dark:text-gray-400">Price</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3 dark:text-gray-400">Certificate</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3 dark:text-gray-400">Status</th>
+                                <th class="text-right text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3 dark:text-gray-400">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-200">
-                            <tr v-for="(course, index) in filteredCourses" :key="course.id" class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-3 text-sm text-slate-600">{{ index + 1 }}</td>
+                        <tbody class="divide-y divide-slate-200 dark:divide-gray-800">
+                            <tr v-for="(course, index) in filteredCourses" :key="course.id" class="hover:bg-slate-50 transition dark:hover:bg-gray-800">
+                                <td class="px-4 py-3 text-sm text-slate-600 dark:text-gray-300">{{ index + 1 }}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0">
+                                        <div class="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0 dark:bg-gray-800">
                                             <img
                                                 v-if="course.thumbnail"
                                                 :src="`/storage/${course.thumbnail}`"
@@ -119,41 +119,41 @@
                                                 class="w-full h-full object-cover"
                                                 @error="handleImageError"
                                             />
-                                            <div v-else class="w-full h-full flex items-center justify-center text-slate-400">
+                                            <div v-else class="w-full h-full flex items-center justify-center text-slate-400 dark:text-gray-500">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                                 </svg>
                                             </div>
                                         </div>
                                         <div>
-                                            <p class="text-sm font-medium text-slate-900 line-clamp-1">{{ course.title }}</p>
-                                            <p class="text-xs text-slate-500 line-clamp-1">{{ course.slug }}</p>
+                                            <p class="text-sm font-medium text-slate-900 line-clamp-1 dark:text-gray-100">{{ course.title }}</p>
+                                            <p class="text-xs text-slate-500 line-clamp-1 dark:text-gray-400">{{ course.slug }}</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 text-sm text-slate-600">{{ course.track?.sub_category?.category?.name || 'N/A' }}</td>
-                                <td class="px-4 py-3 text-sm text-slate-600">{{ course.track?.sub_category?.name || 'N/A' }}</td>
-                                <td class="px-4 py-3 text-sm text-slate-600">{{ course.track?.name || 'N/A' }}</td>
+                                <td class="px-4 py-3 text-sm text-slate-600 dark:text-gray-300">{{ course.track?.sub_category?.category?.name || 'N/A' }}</td>
+                                <td class="px-4 py-3 text-sm text-slate-600 dark:text-gray-300">{{ course.track?.sub_category?.name || 'N/A' }}</td>
+                                <td class="px-4 py-3 text-sm text-slate-600 dark:text-gray-300">{{ course.track?.name || 'N/A' }}</td>
                                 <td class="px-4 py-3">
                                     <span
                                         v-if="course.level"
                                         :class="[
                                             'px-2 py-1 text-xs font-medium rounded-full',
-                                            course.level === 'beginner' ? 'bg-green-100 text-green-700' :
-                                            course.level === 'intermediate' ? 'bg-yellow-100 text-yellow-700' :
-                                            'bg-red-100 text-red-700'
+                                            course.level === 'beginner' ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' :
+                                            course.level === 'intermediate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400' :
+                                            'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400'
                                         ]"
                                     >
                                         {{ course.level }}
                                     </span>
-                                    <span v-else class="text-sm text-slate-400">-</span>
+                                    <span v-else class="text-sm text-slate-400 dark:text-gray-500">-</span>
                                 </td>
-                                <td class="px-4 py-3 text-sm font-semibold text-blue-600">${{ parseFloat(course.price || 0).toFixed(2) }}</td>
+                                <td class="px-4 py-3 text-sm font-semibold text-blue-600 dark:text-blue-400">${{ parseFloat(course.price || 0).toFixed(2) }}</td>
                                 <td class="px-4 py-3">
                                     <span
                                         :class="[
                                             'px-2 py-1 text-xs font-medium rounded-full',
-                                            course.certificate_available ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'
+                                            course.certificate_available ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
                                         ]"
                                     >
                                         {{ course.certificate_available ? 'Yes' : 'No' }}
@@ -163,7 +163,7 @@
                                     <span
                                         :class="[
                                             'px-2 py-1 text-xs font-medium rounded-full',
-                                            course.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                            course.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400'
                                         ]"
                                     >
                                         {{ course.status === 'active' ? 'Active' : 'Inactive' }}
@@ -173,7 +173,7 @@
                                     <div class="flex items-center justify-end gap-1">
                                         <Link
                                             :href="`/dashboard/course/courses/${course.id}`"
-                                            class="text-slate-500 hover:text-slate-700 transition p-1.5 rounded-lg hover:bg-slate-100"
+                                            class="text-slate-500 hover:text-slate-700 transition p-1.5 rounded-lg hover:bg-slate-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"
                                             title="View"
                                         >
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,7 +183,7 @@
                                         </Link>
                                         <Link
                                             :href="`/dashboard/course/courses/${course.id}/edit`"
-                                            class="text-blue-600 hover:text-blue-800 transition p-1.5 rounded-lg hover:bg-blue-50"
+                                            class="text-blue-600 hover:text-blue-800 transition p-1.5 rounded-lg hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-500/10"
                                             title="Edit"
                                         >
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,7 +192,7 @@
                                         </Link>
                                         <button
                                             @click="confirmDelete(course)"
-                                            class="text-red-600 hover:text-red-800 transition p-1.5 rounded-lg hover:bg-red-50"
+                                            class="text-red-600 hover:text-red-800 transition p-1.5 rounded-lg hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-500/10"
                                             title="Delete"
                                         >
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,7 +203,7 @@
                                 </td>
                             </tr>
                             <tr v-if="filteredCourses.length === 0">
-                                <td colspan="10" class="px-4 py-8 text-center text-sm text-slate-500">
+                                <td colspan="10" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-gray-400">
                                     No courses found matching your filters.
                                 </td>
                             </tr>
@@ -215,16 +215,16 @@
 
         <!-- Delete Modal -->
         <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="showDeleteModal = false">
-            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                <h3 class="text-lg font-semibold text-slate-900 mb-2">Delete Course</h3>
-                <p class="text-sm text-slate-600 mb-6">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 dark:bg-gray-900">
+                <h3 class="text-lg font-semibold text-slate-900 mb-2 dark:text-gray-100">Delete Course</h3>
+                <p class="text-sm text-slate-600 mb-6 dark:text-gray-300">
                     Are you sure you want to delete "{{ deleteItem?.title }}"? This action cannot be undone.
                 </p>
                 <div class="flex justify-end gap-3">
-                    <button @click="showDeleteModal = false" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition">
+                    <button @click="showDeleteModal = false" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition dark:text-gray-300 dark:hover:bg-gray-800">
                         Cancel
                     </button>
-                    <button @click="deleteCourse" class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition">
+                    <button @click="deleteCourse" class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition dark:bg-red-600 dark:hover:bg-red-500">
                         Delete
                     </button>
                 </div>

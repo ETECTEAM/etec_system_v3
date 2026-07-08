@@ -71,11 +71,11 @@ const breadcrumbItems = [
       <PageHero eyebrow="Schedules Management" title="Schedules" description="Read, create, update, and delete schedules records" />
 
       <!-- CARD -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800">
 
         <!-- HEADER -->
-        <div class="border-b border-slate-200 px-6 py-5">
-        
+        <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
+
           <div class="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
             <div class="flex flex-wrap gap-3 items-center w-full lg:w-[80%]">
@@ -85,13 +85,13 @@ const breadcrumbItems = [
                 v-model="filters.search"
                 type="text"
                 placeholder="Search schedules..."
-                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm w-[25%]"
+                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm w-[25%] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
               />
 
               <!-- CLASS TYPE -->
               <select
                 v-model="filters.class_type_id"
-                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="">All Class Types</option>
                 <option
@@ -106,7 +106,7 @@ const breadcrumbItems = [
               <!-- TERM -->
               <select
                 v-model="filters.term_id"
-                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="">All Terms</option>
                 <option
@@ -121,7 +121,7 @@ const breadcrumbItems = [
               <!-- TIME -->
               <select
                 v-model="filters.time_id"
-                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="">All Times</option>
                 <option
@@ -136,7 +136,7 @@ const breadcrumbItems = [
               <!-- PER PAGE -->
               <select
                 v-model="filters.per_page"
-                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option :value="5">Show 5</option>
                 <option :value="7">Show 7</option>
@@ -149,7 +149,7 @@ const breadcrumbItems = [
 
             <Link
               href="/dashboard/schdule/create"
-              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-650"
+              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-650 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
               Create Schedule
             </Link>
@@ -162,12 +162,12 @@ const breadcrumbItems = [
           <table class="w-full text-sm">
 
             <thead>
-              <tr class="bg-gray-50 border-b border-gray-200">
-                <th class="px-6 py-3 text-left text-slate-600">ID</th>
-                <th class="px-6 py-3 text-left text-slate-600">Class Type</th>
-                <th class="px-6 py-3 text-left text-slate-600">Term</th>
-                <th class="px-6 py-3 text-left text-slate-600">Time Slots</th>
-                <th class="px-6 py-3 text-right text-slate-600">Actions</th>
+              <tr class="bg-gray-50 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-800">
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">ID</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">Class Type</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">Term</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">Time Slots</th>
+                <th class="px-6 py-3 text-right text-slate-600 dark:text-gray-300">Actions</th>
               </tr>
             </thead>
 
@@ -176,28 +176,28 @@ const breadcrumbItems = [
               <tr
                 v-for="schdule in schedules.data"
                 :key="schdule.id"
-                class="border-t border-slate-200 hover:bg-slate-50 transition"
+                class="border-t border-slate-200 hover:bg-slate-50 transition dark:border-gray-800 dark:hover:bg-gray-800"
               >
-                <td class="px-6 py-4 text-slate-500">{{ schdule.id }}</td>
+                <td class="px-6 py-4 text-slate-500 dark:text-gray-400">{{ schdule.id }}</td>
 
-                <td class="px-6 py-4 font-semibold text-slate-900">
+                <td class="px-6 py-4 font-semibold text-slate-900 dark:text-gray-100">
                   {{ schdule.class_type?.type_name || '-' }}
                 </td>
 
-                <td class="px-6 py-4 text-slate-600 font-medium">
+                <td class="px-6 py-4 text-slate-600 font-medium dark:text-gray-300">
                   {{ schdule.term?.term_name || '-' }}
                 </td>
 
-                <td class="px-6 py-4 text-slate-600">
+                <td class="px-6 py-4 text-slate-600 dark:text-gray-300">
                   <div class="flex flex-wrap gap-1.5 max-w-md">
                     <span
                       v-for="t in schdule.times"
                       :key="t.id"
-                      class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200"
+                      class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20"
                     >
                       {{ t.time_name }}
                     </span>
-                    <span v-if="!schdule.times?.length" class="text-slate-400 text-xs">
+                    <span v-if="!schdule.times?.length" class="text-slate-400 text-xs dark:text-gray-500">
                       No times selected
                     </span>
                   </div>
@@ -207,14 +207,14 @@ const breadcrumbItems = [
 
                   <Link
                     :href="`/dashboard/schdule/${schdule.id}/edit`"
-                    class="px-5 py-2 text-sm rounded-lg border border-blue-200 bg-blue-50 font-semibold text-blue-700  transition hover:bg-blue-100 inline-block"
+                    class="px-5 py-2 text-sm rounded-lg border border-blue-200 bg-blue-50 font-semibold text-blue-700  transition hover:bg-blue-100 inline-block dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
                   >
                     Edit
                   </Link>
 
                   <button
                     @click="deleteSchedule(schdule.id)"
-                    class="px-5 py-2 text-sm rounded-lg border border-rose-200 bg-rose-50 font-semibold text-rose-700 transition hover:bg-rose-100"
+                    class="px-5 py-2 text-sm rounded-lg border border-rose-200 bg-rose-50 font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
                   >
                     Delete
                   </button>
@@ -223,7 +223,7 @@ const breadcrumbItems = [
               </tr>
 
               <tr v-if="!schedules?.data?.length">
-                <td colspan="5" class="py-10 text-center text-slate-500">
+                <td colspan="5" class="py-10 text-center text-slate-500 dark:text-gray-400">
                   {{ filters.search ? `No results for "${filters.search}"` : 'No schedules found.' }}
                 </td>
               </tr>
@@ -234,9 +234,9 @@ const breadcrumbItems = [
         </div>
 
         <!-- FOOTER -->
-        <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
 
-          <p class="text-sm text-slate-500">
+          <p class="text-sm text-slate-500 dark:text-gray-400">
             Showing {{ schedules.from }}–{{ schedules.to }} of {{ schedules.total }} schedules
           </p>
 
@@ -246,10 +246,10 @@ const breadcrumbItems = [
               :key="link.label"
               :href="link.url || '#'"
               v-html="link.label"
-              class="px-3 py-2 rounded-lg border text-sm transition"
+              class="px-3 py-2 rounded-lg border text-sm transition dark:border-gray-700 dark:text-gray-300"
               :class="{
                 'bg-blue-600 text-white border-blue-600': link.active,
-                'hover:bg-gray-100': !link.active,
+                'hover:bg-gray-100 dark:hover:bg-gray-800': !link.active,
                 'opacity-40 pointer-events-none': !link.url
               }"
             />

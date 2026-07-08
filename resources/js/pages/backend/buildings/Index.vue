@@ -444,11 +444,11 @@ function numberToLetters(number) {
 
 function statusClass(status) {
     if (status === "occupied")
-        return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
+        return "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20";
     if (status === "maintenance")
-        return "bg-rose-50 text-rose-700 ring-1 ring-rose-200";
+        return "bg-rose-50 text-rose-700 ring-1 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/20";
 
-    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20";
 }
 </script>
 <template>
@@ -462,17 +462,17 @@ function statusClass(status) {
                         {
                             label: 'Buildings',
                             value: summary.buildings,
-                            tint: 'from-sky-100 to-white text-sky-900',
+                            tint: 'from-sky-100 to-white text-sky-900 dark:from-sky-500/10 dark:to-transparent dark:text-sky-400',
                         },
                         {
                             label: 'Floors',
                             value: summary.floors,
-                            tint: 'from-emerald-100 to-white text-emerald-900',
+                            tint: 'from-emerald-100 to-white text-emerald-900 dark:from-emerald-500/10 dark:to-transparent dark:text-emerald-400',
                         },
                         {
                             label: 'Rooms',
                             value: summary.rooms,
-                            tint: 'from-amber-100 to-white text-amber-900',
+                            tint: 'from-amber-100 to-white text-amber-900 dark:from-amber-500/10 dark:to-transparent dark:text-amber-400',
                         },
                     ]"
                     :key="item.label"
@@ -480,7 +480,7 @@ function statusClass(status) {
                 >
                     <div :class="['rounded-2xl ', item.tint]">
                         <p
-                            class="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500"
+                            class="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-gray-400"
                         >
                             {{ item.label }}
                         </p>
@@ -489,21 +489,21 @@ function statusClass(status) {
                 </Card>
             </div>
             <!-- Filter & Action Section -->
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                    
+
                     <!-- Filters Grid -->
                     <div class="grid w-full gap-4 grid-cols-1 sm:grid-cols-3 max-w-4xl">
                         <!-- Building Dropdown -->
                         <div class="space-y-1.5 text-left">
-                            <label for="building-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                            <label for="building-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">
                                 Building
                             </label>
                             <div class="relative">
                                 <select
                                     id="building-filter"
                                     v-model="selectedBuildingId"
-                                    class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                    class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                 >
                                     <option value="">All Buildings</option>
                                     <option
@@ -514,7 +514,7 @@ function statusClass(status) {
                                         {{ b.name }}
                                     </option>
                                 </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400 dark:text-gray-500">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                                     </svg>
@@ -524,7 +524,7 @@ function statusClass(status) {
 
                         <!-- Floor Dropdown -->
                         <div class="space-y-1.5 text-left">
-                            <label for="floor-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                            <label for="floor-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">
                                 Floor
                             </label>
                             <div class="relative">
@@ -532,7 +532,7 @@ function statusClass(status) {
                                     id="floor-filter"
                                     v-model="selectedFloorId"
                                     :disabled="!selectedBuildingId"
-                                    class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                                    class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-800/50 dark:disabled:text-gray-500"
                                 >
                                     <option value="">All Floors</option>
                                     <option
@@ -543,7 +543,7 @@ function statusClass(status) {
                                         {{ f.name }} (Lvl {{ f.level ?? 'N/A' }})
                                     </option>
                                 </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400 dark:text-gray-500">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                                     </svg>
@@ -553,7 +553,7 @@ function statusClass(status) {
 
                         <!-- Room Dropdown -->
                         <div class="space-y-1.5 text-left">
-                            <label for="room-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                            <label for="room-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">
                                 Room
                             </label>
                             <div class="relative">
@@ -561,7 +561,7 @@ function statusClass(status) {
                                     id="room-filter"
                                     v-model="selectedRoomId"
                                     :disabled="!selectedFloorId"
-                                    class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                                    class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-800/50 dark:disabled:text-gray-500"
                                 >
                                     <option value="">All Rooms</option>
                                     <option
@@ -572,7 +572,7 @@ function statusClass(status) {
                                         Room {{ r.room_number }}
                                     </option>
                                 </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400 dark:text-gray-500">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                                     </svg>
@@ -587,14 +587,14 @@ function statusClass(status) {
                             v-if="selectedBuildingId"
                             type="button"
                             @click="resetFilters"
-                            class="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                            class="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                         >
                             Reset
                         </button>
 
                         <Link
                             href="/dashboard/buildings/create"
-                            class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 whitespace-nowrap"
+                            class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 whitespace-nowrap dark:bg-blue-600 dark:hover:bg-blue-500"
                         >
                             Add Building
                         </Link>
@@ -605,11 +605,11 @@ function statusClass(status) {
 
         <div class="space-y-5">
             <Card v-if="filteredBuildings.length === 0" card-class="border-dashed">
-                    <div class="rounded-2xl bg-slate-50 p-10 text-center">
-                        <h3 class="text-lg font-semibold text-slate-900">
+                    <div class="rounded-2xl bg-slate-50 p-10 text-center dark:bg-gray-800/40">
+                        <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">
                             {{ summary.buildings === 0 ? "No buildings yet" : "No matching buildings" }}
                         </h3>
-                        <p class="mt-2 text-sm text-slate-500">
+                        <p class="mt-2 text-sm text-slate-500 dark:text-gray-400">
                             {{ summary.buildings === 0 ? "Use the Add Building button to create the first building." : "Try adjusting or resetting your filter selections." }}
                         </p>
                     </div>
@@ -622,7 +622,7 @@ function statusClass(status) {
                     card-class="overflow-hidden"
                 >
                     <div
-                        class="border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-6 py-5"
+                        class="border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-6 py-5 dark:border-gray-800 dark:from-gray-800/40 dark:via-gray-900 dark:to-gray-900"
                     >
                         <div
                             class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
@@ -630,13 +630,13 @@ function statusClass(status) {
                             <div>
                                 <div class="flex flex-wrap items-center gap-3">
                                     <h2
-                                        class="text-2xl font-semibold text-slate-900"
+                                        class="text-2xl font-semibold text-slate-900 dark:text-gray-100"
                                     >
                                         {{ building.name }}
                                     </h2>
                                     <span
                                         v-if="building.code"
-                                        class="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white"
+                                        class="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white dark:bg-gray-700"
                                     >
                                         {{ building.code }}
                                     </span>
@@ -644,7 +644,7 @@ function statusClass(status) {
 
                                 <p
                                     v-if="building.description"
-                                    class="mt-3 max-w-3xl text-sm leading-6 text-slate-500"
+                                    class="mt-3 max-w-3xl text-sm leading-6 text-slate-500 dark:text-gray-400"
                                 >
                                     {{ building.description }}
                                 </p>
@@ -653,27 +653,27 @@ function statusClass(status) {
                             <div class="flex flex-wrap gap-2">
                                 <Link
                                     :href="`/dashboard/buildings/edit/${building.id}`"
-                                    class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                                    class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                                 >
                                     Edit Building
                                 </Link>
                                 <button
                                     type="button"
-                                    class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+                                    class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
                                     @click="openFloorCreate(building)"
                                 >
                                     Add Floor
                                 </button>
                                 <button
                                     type="button"
-                                    class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                                    class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
                                     @click="openFloorAuto(building)"
                                 >
                                     Auto Floor
                                 </button>
                                 <button
                                     type="button"
-                                    class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                                    class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
                                     @click="deleteBuilding(building)"
                                 >
                                     Delete
@@ -683,12 +683,12 @@ function statusClass(status) {
 
                         <div class="mt-4 flex flex-wrap gap-3 text-sm">
                             <span
-                                class="rounded-full bg-white px-3 py-1 font-medium text-slate-700 ring-1 ring-slate-200"
+                                class="rounded-full bg-white px-3 py-1 font-medium text-slate-700 ring-1 ring-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
                             >
                                 {{ building.floors_count }} floors
                             </span>
                             <span
-                                class="rounded-full bg-white px-3 py-1 font-medium text-slate-700 ring-1 ring-slate-200"
+                                class="rounded-full bg-white px-3 py-1 font-medium text-slate-700 ring-1 ring-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
                             >
                                 {{ building.rooms_count }} rooms
                             </span>
@@ -698,11 +698,11 @@ function statusClass(status) {
                     <div class="space-y-4 px-6 py-5">
                         <div
                             v-if="floorFormVisibleFor(building.id, null)"
-                            class="rounded-2xl border border-blue-200 bg-blue-50/60 p-4"
+                            class="rounded-2xl border border-blue-200 bg-blue-50/60 p-4 dark:border-blue-500/20 dark:bg-blue-500/10"
                         >
                             <div class="flex items-center justify-between">
                                 <h3
-                                    class="text-lg font-semibold text-slate-900"
+                                    class="text-lg font-semibold text-slate-900 dark:text-gray-100"
                                 >
                                     {{
                                         floorContext.mode === "edit"
@@ -712,7 +712,7 @@ function statusClass(status) {
                                 </h3>
                                 <button
                                     type="button"
-                                    class="text-sm font-semibold text-slate-500 transition hover:text-slate-800"
+                                    class="text-sm font-semibold text-slate-500 transition hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200"
                                     @click="closeFloorForm"
                                 >
                                     Cancel
@@ -725,18 +725,18 @@ function statusClass(status) {
                             >
                                 <div>
                                     <label
-                                        class="mb-1.5 block text-sm font-medium text-slate-700"
+                                        class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                         >Floor Name</label
                                     >
                                     <input
                                         v-model="floorForm.name"
                                         type="text"
-                                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                         placeholder="Ground Floor"
                                     />
                                     <p
                                         v-if="floorForm.errors.name"
-                                        class="mt-1 text-xs text-red-600"
+                                        class="mt-1 text-xs text-red-600 dark:text-red-400"
                                     >
                                         {{ floorForm.errors.name }}
                                     </p>
@@ -744,18 +744,18 @@ function statusClass(status) {
 
                                 <div>
                                     <label
-                                        class="mb-1.5 block text-sm font-medium text-slate-700"
+                                        class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                         >Level</label
                                     >
                                     <input
                                         v-model="floorForm.level"
                                         type="number"
-                                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                         placeholder="0"
                                     />
                                     <p
                                         v-if="floorForm.errors.level"
-                                        class="mt-1 text-xs text-red-600"
+                                        class="mt-1 text-xs text-red-600 dark:text-red-400"
                                     >
                                         {{ floorForm.errors.level }}
                                     </p>
@@ -764,7 +764,7 @@ function statusClass(status) {
                                 <div class="md:col-span-2">
                                     <button
                                         type="submit"
-                                        class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                        class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-500"
                                         :disabled="floorForm.processing"
                                     >
                                         {{
@@ -782,17 +782,17 @@ function statusClass(status) {
                                 floorContext.mode === 'auto' &&
                                 floorContext.buildingId === building.id
                             "
-                            class="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4"
+                            class="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4 dark:border-indigo-500/20 dark:bg-indigo-500/10"
                         >
                             <div class="flex items-center justify-between">
                                 <h3
-                                    class="text-lg font-semibold text-slate-900"
+                                    class="text-lg font-semibold text-slate-900 dark:text-gray-100"
                                 >
                                     Auto Floor for {{ building.name }}
                                 </h3>
                                 <button
                                     type="button"
-                                    class="text-sm font-semibold text-slate-500 transition hover:text-slate-800"
+                                    class="text-sm font-semibold text-slate-500 transition hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200"
                                     @click="closeFloorForm"
                                 >
                                     Cancel
@@ -805,18 +805,18 @@ function statusClass(status) {
                             >
                                 <div>
                                     <label
-                                        class="mb-1.5 block text-sm font-medium text-slate-700"
+                                        class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                         >Start Floor</label
                                     >
                                     <input
                                         v-model="autoFloorForm.start_name"
                                         type="text"
-                                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
                                         placeholder="A-001"
                                     />
                                     <p
                                         v-if="autoFloorForm.errors.start_name"
-                                        class="mt-1 text-xs text-red-600"
+                                        class="mt-1 text-xs text-red-600 dark:text-red-400"
                                     >
                                         {{ autoFloorForm.errors.start_name }}
                                     </p>
@@ -824,7 +824,7 @@ function statusClass(status) {
 
                                 <div>
                                     <label
-                                        class="mb-1.5 block text-sm font-medium text-slate-700"
+                                        class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                         >How Many Floors</label
                                     >
                                     <input
@@ -832,11 +832,11 @@ function statusClass(status) {
                                         type="number"
                                         min="1"
                                         max="100"
-                                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
                                     />
                                     <p
                                         v-if="autoFloorForm.errors.total_floors"
-                                        class="mt-1 text-xs text-red-600"
+                                        class="mt-1 text-xs text-red-600 dark:text-red-400"
                                     >
                                         {{ autoFloorForm.errors.total_floors }}
                                     </p>
@@ -844,44 +844,44 @@ function statusClass(status) {
 
                                 <div>
                                     <label
-                                        class="mb-1.5 block text-sm font-medium text-slate-700"
+                                        class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                         >Start Level</label
                                     >
                                     <input
                                         v-model="autoFloorForm.start_level"
                                         type="number"
-                                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
                                         placeholder="Optional"
                                     />
                                     <p
                                         v-if="autoFloorForm.errors.start_level"
-                                        class="mt-1 text-xs text-red-600"
+                                        class="mt-1 text-xs text-red-600 dark:text-red-400"
                                     >
                                         {{ autoFloorForm.errors.start_level }}
                                     </p>
                                 </div>
 
                                 <div
-                                    class="md:col-span-3 rounded-2xl border border-dashed border-slate-300 bg-white p-4"
+                                    class="md:col-span-3 rounded-2xl border border-dashed border-slate-300 bg-white p-4 dark:border-gray-700 dark:bg-gray-900"
                                 >
                                     <div
                                         class="flex items-center justify-between gap-3"
                                     >
                                         <div>
                                             <h4
-                                                class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
+                                                class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-gray-400"
                                             >
                                                 Preview
                                             </h4>
                                             <p
-                                                class="mt-1 text-sm text-slate-600"
+                                                class="mt-1 text-sm text-slate-600 dark:text-gray-300"
                                             >
                                                 Supports both `A, B, C` and
                                                 `A-001, A-002, A-003` styles.
                                             </p>
                                         </div>
                                         <span
-                                            class="rounded-full bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+                                            class="rounded-full bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
                                         >
                                             {{ generatedFloors.length }} floors
                                         </span>
@@ -891,7 +891,7 @@ function statusClass(status) {
                                         <span
                                             v-for="floorPreview in generatedFloors"
                                             :key="floorPreview.name"
-                                            class="rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700 ring-1 ring-indigo-200"
+                                            class="rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:ring-indigo-500/20"
                                         >
                                             {{ floorPreview.name
                                             }}<span
@@ -905,7 +905,7 @@ function statusClass(status) {
                                         </span>
                                         <span
                                             v-if="generatedFloors.length === 0"
-                                            class="text-sm text-slate-500"
+                                            class="text-sm text-slate-500 dark:text-gray-400"
                                         >
                                             Type a valid start floor like `A` or
                                             `A-001`.
@@ -916,7 +916,7 @@ function statusClass(status) {
                                 <div class="md:col-span-3">
                                     <button
                                         type="submit"
-                                        class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                        class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-indigo-600 dark:hover:bg-indigo-500"
                                         :disabled="
                                             autoFloorForm.processing ||
                                             generatedFloors.length === 0
@@ -934,7 +934,7 @@ function statusClass(status) {
 
                         <div
                             v-if="building.floors.length === 0"
-                            class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-sm text-slate-500"
+                            class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-sm text-slate-500 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-400"
                         >
                             No floors in this building yet.
                         </div>
@@ -942,9 +942,9 @@ function statusClass(status) {
                         <div
                             v-for="floor in building.floors"
                             :key="floor.id"
-                            class="rounded-2xl border border-slate-200 bg-white"
+                            class="rounded-2xl border border-slate-200 bg-white dark:border-gray-800 dark:bg-gray-900"
                         >
-                            <div class="border-b border-slate-200 px-5 py-4">
+                            <div class="border-b border-slate-200 px-5 py-4 dark:border-gray-800">
                                 <div
                                     class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
                                 >
@@ -953,17 +953,17 @@ function statusClass(status) {
                                             class="flex flex-wrap items-center gap-2"
                                         >
                                             <h3
-                                                class="text-lg font-semibold text-slate-900"
+                                                class="text-lg font-semibold text-slate-900 dark:text-gray-100"
                                             >
                                                 {{ floor.name }}
                                             </h3>
                                             <span
-                                                class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
+                                                class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
                                             >
                                                 Level {{ floor.level ?? "N/A" }}
                                             </span>
                                         </div>
-                                        <p class="mt-2 text-sm text-slate-500">
+                                        <p class="mt-2 text-sm text-slate-500 dark:text-gray-400">
                                             {{ floor.rooms_count }} rooms on
                                             this floor
                                         </p>
@@ -972,7 +972,7 @@ function statusClass(status) {
                                     <div class="flex flex-wrap gap-2">
                                         <button
                                             type="button"
-                                            class="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                                            class="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                                             @click="
                                                 openFloorEdit(building, floor)
                                             "
@@ -981,7 +981,7 @@ function statusClass(status) {
                                         </button>
                                         <button
                                             type="button"
-                                            class="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                                            class="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
                                             @click="
                                                 openRoomCreate(building, floor)
                                             "
@@ -990,7 +990,7 @@ function statusClass(status) {
                                         </button>
                                         <button
                                             type="button"
-                                            class="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+                                            class="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
                                             @click="
                                                 openRoomAuto(building, floor)
                                             "
@@ -999,7 +999,7 @@ function statusClass(status) {
                                         </button>
                                         <button
                                             type="button"
-                                            class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                                            class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
                                             @click="
                                                 deleteFloor(building, floor)
                                             "
@@ -1018,19 +1018,19 @@ function statusClass(status) {
                                             floor.id,
                                         )
                                     "
-                                    class="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                                    class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-700 dark:bg-gray-800/40"
                                 >
                                     <div
                                         class="flex items-center justify-between"
                                     >
                                         <h4
-                                            class="text-base font-semibold text-slate-900"
+                                            class="text-base font-semibold text-slate-900 dark:text-gray-100"
                                         >
                                             Update Floor
                                         </h4>
                                         <button
                                             type="button"
-                                            class="text-sm font-semibold text-slate-500 transition hover:text-slate-800"
+                                            class="text-sm font-semibold text-slate-500 transition hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200"
                                             @click="closeFloorForm"
                                         >
                                             Cancel
@@ -1043,17 +1043,17 @@ function statusClass(status) {
                                     >
                                         <div>
                                             <label
-                                                class="mb-1.5 block text-sm font-medium text-slate-700"
+                                                class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                                 >Floor Name</label
                                             >
                                             <input
                                                 v-model="floorForm.name"
                                                 type="text"
-                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                             />
                                             <p
                                                 v-if="floorForm.errors.name"
-                                                class="mt-1 text-xs text-red-600"
+                                                class="mt-1 text-xs text-red-600 dark:text-red-400"
                                             >
                                                 {{ floorForm.errors.name }}
                                             </p>
@@ -1061,17 +1061,17 @@ function statusClass(status) {
 
                                         <div>
                                             <label
-                                                class="mb-1.5 block text-sm font-medium text-slate-700"
+                                                class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                                 >Level</label
                                             >
                                             <input
                                                 v-model="floorForm.level"
                                                 type="number"
-                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                             />
                                             <p
                                                 v-if="floorForm.errors.level"
-                                                class="mt-1 text-xs text-red-600"
+                                                class="mt-1 text-xs text-red-600 dark:text-red-400"
                                             >
                                                 {{ floorForm.errors.level }}
                                             </p>
@@ -1080,7 +1080,7 @@ function statusClass(status) {
                                         <div class="md:col-span-3">
                                             <button
                                                 type="submit"
-                                                class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                                class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-700 dark:hover:bg-gray-600"
                                                 :disabled="floorForm.processing"
                                             >
                                                 Save Floor
@@ -1097,13 +1097,13 @@ function statusClass(status) {
                                             null,
                                         )
                                     "
-                                    class="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4"
+                                    class="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10"
                                 >
                                     <div
                                         class="flex items-center justify-between"
                                     >
                                         <h4
-                                            class="text-base font-semibold text-slate-900"
+                                            class="text-base font-semibold text-slate-900 dark:text-gray-100"
                                         >
                                             {{
                                                 roomContext.mode === "edit"
@@ -1113,7 +1113,7 @@ function statusClass(status) {
                                         </h4>
                                         <button
                                             type="button"
-                                            class="text-sm font-semibold text-slate-500 transition hover:text-slate-800"
+                                            class="text-sm font-semibold text-slate-500 transition hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200"
                                             @click="closeRoomForm"
                                         >
                                             Cancel
@@ -1126,20 +1126,20 @@ function statusClass(status) {
                                     >
                                         <div>
                                             <label
-                                                class="mb-1.5 block text-sm font-medium text-slate-700"
+                                                class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                                 >Room Number</label
                                             >
                                             <input
                                                 v-model="roomForm.room_number"
                                                 type="text"
-                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                                 placeholder="A-101"
                                             />
                                             <p
                                                 v-if="
                                                     roomForm.errors.room_number
                                                 "
-                                                class="mt-1 text-xs text-red-600"
+                                                class="mt-1 text-xs text-red-600 dark:text-red-400"
                                             >
                                                 {{
                                                     roomForm.errors.room_number
@@ -1149,7 +1149,7 @@ function statusClass(status) {
 
                                         <div>
                                             <label
-                                                class="mb-1.5 block text-sm font-medium text-slate-700"
+                                                class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                                 >Capacity</label
                                             >
                                             <input
@@ -1157,12 +1157,12 @@ function statusClass(status) {
                                                 type="number"
                                                 min="1"
                                                 @keydown="['-', 'e', 'E', '+'].includes($event.key) && $event.preventDefault()"
-                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                                 placeholder="30"
                                             />
                                             <p
                                                 v-if="roomForm.errors.capacity"
-                                                class="mt-1 text-xs text-red-600"
+                                                class="mt-1 text-xs text-red-600 dark:text-red-400"
                                             >
                                                 {{ roomForm.errors.capacity }}
                                             </p>
@@ -1170,12 +1170,12 @@ function statusClass(status) {
 
                                         <div>
                                             <label
-                                                class="mb-1.5 block text-sm font-medium text-slate-700"
+                                                class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                                 >Status</label
                                             >
                                             <select
                                                 v-model="roomForm.status"
-                                                class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                             >
                                                 <option value="available">
                                                     Available
@@ -1189,7 +1189,7 @@ function statusClass(status) {
                                             </select>
                                             <p
                                                 v-if="roomForm.errors.status"
-                                                class="mt-1 text-xs text-red-600"
+                                                class="mt-1 text-xs text-red-600 dark:text-red-400"
                                             >
                                                 {{ roomForm.errors.status }}
                                             </p>
@@ -1198,7 +1198,7 @@ function statusClass(status) {
                                         <div class="flex items-end">
                                             <button
                                                 type="submit"
-                                                class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                                class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-emerald-600 dark:hover:bg-emerald-500"
                                                 :disabled="roomForm.processing"
                                             >
                                                 {{
@@ -1218,19 +1218,19 @@ function statusClass(status) {
                                             building.id &&
                                         roomContext.floorId === floor.id
                                     "
-                                    class="rounded-2xl border border-blue-200 bg-blue-50/60 p-4"
+                                    class="rounded-2xl border border-blue-200 bg-blue-50/60 p-4 dark:border-blue-500/20 dark:bg-blue-500/10"
                                 >
                                     <div
                                         class="flex items-center justify-between"
                                     >
                                         <h4
-                                            class="text-base font-semibold text-slate-900"
+                                            class="text-base font-semibold text-slate-900 dark:text-gray-100"
                                         >
                                             Auto Room for {{ floor.name }}
                                         </h4>
                                         <button
                                             type="button"
-                                            class="text-sm font-semibold text-slate-500 transition hover:text-slate-800"
+                                            class="text-sm font-semibold text-slate-500 transition hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200"
                                             @click="closeRoomForm"
                                         >
                                             Cancel
@@ -1243,7 +1243,7 @@ function statusClass(status) {
                                     >
                                         <div>
                                             <label
-                                                class="mb-1.5 block text-sm font-medium text-slate-700"
+                                                class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                                 >Start Room</label
                                             >
                                             <input
@@ -1251,7 +1251,7 @@ function statusClass(status) {
                                                     autoRoomForm.start_room_number
                                                 "
                                                 type="text"
-                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                                 placeholder="A-101"
                                             />
                                             <p
@@ -1259,7 +1259,7 @@ function statusClass(status) {
                                                     autoRoomForm.errors
                                                         .start_room_number
                                                 "
-                                                class="mt-1 text-xs text-red-600"
+                                                class="mt-1 text-xs text-red-600 dark:text-red-400"
                                             >
                                                 {{
                                                     autoRoomForm.errors
@@ -1270,7 +1270,7 @@ function statusClass(status) {
 
                                         <div>
                                             <label
-                                                class="mb-1.5 block text-sm font-medium text-slate-700"
+                                                class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                                 >How Many Rooms</label
                                             >
                                             <input
@@ -1280,14 +1280,14 @@ function statusClass(status) {
                                                 type="number"
                                                 min="1"
                                                 max="200"
-                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                             />
                                             <p
                                                 v-if="
                                                     autoRoomForm.errors
                                                         .total_rooms
                                                 "
-                                                class="mt-1 text-xs text-red-600"
+                                                class="mt-1 text-xs text-red-600 dark:text-red-400"
                                             >
                                                 {{
                                                     autoRoomForm.errors
@@ -1298,7 +1298,7 @@ function statusClass(status) {
 
                                         <div>
                                             <label
-                                                class="mb-1.5 block text-sm font-medium text-slate-700"
+                                                class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                                 >Capacity</label
                                             >
                                             <input
@@ -1306,14 +1306,14 @@ function statusClass(status) {
                                                 type="number"
                                                 min="1"
                                                 @keydown="['-', 'e', 'E', '+'].includes($event.key) && $event.preventDefault()"
-                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                                 placeholder="30"
                                             />
                                             <p
                                                 v-if="
                                                     autoRoomForm.errors.capacity
                                                 "
-                                                class="mt-1 text-xs text-red-600"
+                                                class="mt-1 text-xs text-red-600 dark:text-red-400"
                                             >
                                                 {{
                                                     autoRoomForm.errors.capacity
@@ -1323,12 +1323,12 @@ function statusClass(status) {
 
                                         <div>
                                             <label
-                                                class="mb-1.5 block text-sm font-medium text-slate-700"
+                                                class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                                 >Status</label
                                             >
                                             <select
                                                 v-model="autoRoomForm.status"
-                                                class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                             >
                                                 <option value="available">
                                                     Available
@@ -1344,26 +1344,26 @@ function statusClass(status) {
                                                 v-if="
                                                     autoRoomForm.errors.status
                                                 "
-                                                class="mt-1 text-xs text-red-600"
+                                                class="mt-1 text-xs text-red-600 dark:text-red-400"
                                             >
                                                 {{ autoRoomForm.errors.status }}
                                             </p>
                                         </div>
 
                                         <div
-                                            class="md:col-span-4 rounded-2xl border border-dashed border-slate-300 bg-white p-4"
+                                            class="md:col-span-4 rounded-2xl border border-dashed border-slate-300 bg-white p-4 dark:border-gray-700 dark:bg-gray-900"
                                         >
                                             <div
                                                 class="flex items-center justify-between gap-3"
                                             >
                                                 <div>
                                                     <h5
-                                                        class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
+                                                        class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-gray-400"
                                                     >
                                                         Preview
                                                     </h5>
                                                     <p
-                                                        class="mt-1 text-sm text-slate-600"
+                                                        class="mt-1 text-sm text-slate-600 dark:text-gray-300"
                                                     >
                                                         Example: `A-101` with
                                                         `3` rooms becomes
@@ -1372,7 +1372,7 @@ function statusClass(status) {
                                                     </p>
                                                 </div>
                                                 <span
-                                                    class="rounded-full bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+                                                    class="rounded-full bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
                                                 >
                                                     {{
                                                         generatedRooms.length
@@ -1387,7 +1387,7 @@ function statusClass(status) {
                                                 <span
                                                     v-for="room in generatedRooms"
                                                     :key="room"
-                                                    class="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 ring-1 ring-blue-200"
+                                                    class="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 ring-1 ring-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20"
                                                 >
                                                     {{ room }}
                                                 </span>
@@ -1396,7 +1396,7 @@ function statusClass(status) {
                                                         generatedRooms.length ===
                                                         0
                                                     "
-                                                    class="text-sm text-slate-500"
+                                                    class="text-sm text-slate-500 dark:text-gray-400"
                                                 >
                                                     Type a valid start room like
                                                     `A-101`.
@@ -1407,7 +1407,7 @@ function statusClass(status) {
                                         <div class="md:col-span-4">
                                             <button
                                                 type="submit"
-                                                class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                                class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-500"
                                                 :disabled="
                                                     autoRoomForm.processing ||
                                                     generatedRooms.length === 0
@@ -1425,7 +1425,7 @@ function statusClass(status) {
 
                                 <div
                                     v-if="floor.rooms.length === 0"
-                                    class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm text-slate-500"
+                                    class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm text-slate-500 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-400"
                                 >
                                     No rooms on this floor yet.
                                 </div>
@@ -1433,7 +1433,7 @@ function statusClass(status) {
                                 <div
                                     v-for="room in floor.rooms"
                                     :key="room.id"
-                                    class="rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-4"
+                                    class="rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-4 dark:border-gray-800 dark:bg-gray-800/40"
                                 >
                                     <div
                                         class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
@@ -1443,7 +1443,7 @@ function statusClass(status) {
                                                 class="flex flex-wrap items-center gap-2"
                                             >
                                                 <p
-                                                    class="text-base font-semibold text-slate-900"
+                                                    class="text-base font-semibold text-slate-900 dark:text-gray-100"
                                                 >
                                                     {{ room.room_number }}
                                                 </p>
@@ -1459,7 +1459,7 @@ function statusClass(status) {
                                                 </span>
                                             </div>
                                             <p
-                                                class="mt-2 text-sm text-slate-500"
+                                                class="mt-2 text-sm text-slate-500 dark:text-gray-400"
                                             >
                                                 Capacity:
                                                 {{ room.capacity ?? "N/A" }}
@@ -1469,7 +1469,7 @@ function statusClass(status) {
                                         <div class="flex flex-wrap gap-2">
                                             <button
                                                 type="button"
-                                                class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                                                class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                                                 @click="
                                                     openRoomEdit(
                                                         building,
@@ -1482,7 +1482,7 @@ function statusClass(status) {
                                             </button>
                                             <button
                                                 type="button"
-                                                class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                                                class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
                                                 @click="
                                                     deleteRoom(
                                                         building,
@@ -1504,19 +1504,19 @@ function statusClass(status) {
                                                 room.id,
                                             )
                                         "
-                                        class="mt-4 rounded-2xl border border-white bg-white p-4"
+                                        class="mt-4 rounded-2xl border border-white bg-white p-4 dark:border-gray-800 dark:bg-gray-900"
                                     >
                                         <div
                                             class="flex items-center justify-between"
                                         >
                                             <h5
-                                                class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
+                                                class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-gray-400"
                                             >
                                                 Room Editor
                                             </h5>
                                             <button
                                                 type="button"
-                                                class="text-sm font-semibold text-slate-500 transition hover:text-slate-800"
+                                                class="text-sm font-semibold text-slate-500 transition hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200"
                                                 @click="closeRoomForm"
                                             >
                                                 Cancel
@@ -1529,7 +1529,7 @@ function statusClass(status) {
                                         >
                                             <div>
                                                 <label
-                                                    class="mb-1.5 block text-sm font-medium text-slate-700"
+                                                    class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                                     >Room Number</label
                                                 >
                                                 <input
@@ -1537,14 +1537,14 @@ function statusClass(status) {
                                                         roomForm.room_number
                                                     "
                                                     type="text"
-                                                    class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                    class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                                 />
                                                 <p
                                                     v-if="
                                                         roomForm.errors
                                                             .room_number
                                                     "
-                                                    class="mt-1 text-xs text-red-600"
+                                                    class="mt-1 text-xs text-red-600 dark:text-red-400"
                                                 >
                                                     {{
                                                         roomForm.errors
@@ -1555,7 +1555,7 @@ function statusClass(status) {
 
                                             <div>
                                                 <label
-                                                    class="mb-1.5 block text-sm font-medium text-slate-700"
+                                                    class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                                     >Capacity</label
                                                 >
                                                 <input
@@ -1563,13 +1563,13 @@ function statusClass(status) {
                                                     type="number"
                                                     min="1"
                                                     @keydown="['-', 'e', 'E', '+'].includes($event.key) && $event.preventDefault()"
-                                                    class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                    class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                                 />
                                                 <p
                                                     v-if="
                                                         roomForm.errors.capacity
                                                     "
-                                                    class="mt-1 text-xs text-red-600"
+                                                    class="mt-1 text-xs text-red-600 dark:text-red-400"
                                                 >
                                                     {{
                                                         roomForm.errors.capacity
@@ -1579,12 +1579,12 @@ function statusClass(status) {
 
                                             <div>
                                                 <label
-                                                    class="mb-1.5 block text-sm font-medium text-slate-700"
+                                                    class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
                                                     >Status</label
                                                 >
                                                 <select
                                                     v-model="roomForm.status"
-                                                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                                 >
                                                     <option value="available">
                                                         Available
@@ -1600,7 +1600,7 @@ function statusClass(status) {
                                                     v-if="
                                                         roomForm.errors.status
                                                     "
-                                                    class="mt-1 text-xs text-red-600"
+                                                    class="mt-1 text-xs text-red-600 dark:text-red-400"
                                                 >
                                                     {{ roomForm.errors.status }}
                                                 </p>
@@ -1609,7 +1609,7 @@ function statusClass(status) {
                                             <div class="flex items-end">
                                                 <button
                                                     type="submit"
-                                                    class="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                                    class="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-700 dark:hover:bg-gray-600"
                                                     :disabled="
                                                         roomForm.processing
                                                     "

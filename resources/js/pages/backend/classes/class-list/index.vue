@@ -133,7 +133,7 @@ const handlePageChange = (page) => {
         />
 
         <div class="flex flex-col items-start gap-3 sm:items-end">
-          <div class="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-800">
+          <div class="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-800 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-200">
             Total Class: {{ totalCount }}
           </div>
           <!-- <Link
@@ -154,14 +154,14 @@ const handlePageChange = (page) => {
               @keyup.enter.prevent="applyFilters"
               type="search"
               placeholder="Search by class, instructor, or time"
-              class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             />
           </div>
 
           <select
             v-model="selectedType"
             @change="applyFilters"
-            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
           >
             <option value="all">Type</option>
             <option v-for="type in classTypeOptions" :key="type" :value="type">{{ type }}</option>
@@ -170,7 +170,7 @@ const handlePageChange = (page) => {
           <select
             v-model="selectedTerm"
             @change="applyFilters"
-            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
           >
             <option value="all">Term</option>
             <option v-for="term in termOptions" :key="term" :value="term">{{ term }}</option>
@@ -179,7 +179,7 @@ const handlePageChange = (page) => {
           <select
             v-model="selectedTime"
             @change="applyFilters"
-            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
           >
             <option value="all">Time</option>
             <option v-for="time in timeOptions" :key="time" :value="time">{{ time }}</option>
@@ -188,7 +188,7 @@ const handlePageChange = (page) => {
           <select
             v-model="selectedStatus"
             @change="applyFilters"
-            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
           >
             <option value="all">Status</option>
             <option value="progress">progress</option>
@@ -200,8 +200,8 @@ const handlePageChange = (page) => {
 
       <Card class="overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="min-w-full text-left text-sm text-slate-700">
-            <thead class="bg-slate-100 text-slate-700 uppercase text-xs tracking-wider">
+          <table class="min-w-full text-left text-sm text-slate-700 dark:text-gray-300">
+            <thead class="bg-slate-100 text-slate-700 uppercase text-xs tracking-wider dark:bg-gray-800 dark:text-gray-300">
               <tr>
                 <th class="px-4 py-4">#</th>
                 <th class="px-4 py-4">Class ID</th>
@@ -215,37 +215,37 @@ const handlePageChange = (page) => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, index) in filteredData" :key="item.id ?? item.class_list_id" class="border-t border-slate-200 hover:bg-slate-50">
-                <td class="px-4 py-4 font-semibold text-slate-900">{{ index + 1 }}</td>
+              <tr v-for="(item, index) in filteredData" :key="item.id ?? item.class_list_id" class="border-t border-slate-200 hover:bg-slate-50 dark:border-gray-800 dark:hover:bg-gray-800">
+                <td class="px-4 py-4 font-semibold text-slate-900 dark:text-gray-100">{{ index + 1 }}</td>
                 <td class="px-4 py-4">
-                  <span class="inline-flex rounded-full bg-blue-800 px-3 py-1 text-xs font-semibold text-white">ID: {{ item.id ?? item.class_list_id }}</span>
+                  <span class="inline-flex rounded-full bg-blue-800 px-3 py-1 text-xs font-semibold text-white dark:bg-blue-600">ID: {{ item.id ?? item.class_list_id }}</span>
                 </td>
                 <td class="px-4 py-4">
                   <div class="flex items-center gap-2">
-                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-700">👤</span>
-                    <span class="font-medium text-slate-900">{{ item.teacher?.name || item.teacher?.teacher_name || 'No teacher' }}</span>
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">👤</span>
+                    <span class="font-medium text-slate-900 dark:text-gray-100">{{ item.teacher?.name || item.teacher?.teacher_name || 'No teacher' }}</span>
                   </div>
                 </td>
                 <td class="px-4 py-4">
-                  <div class="font-semibold text-slate-900">{{ item.course?.title || 'No course' }}</div>
-                  <div class="mt-1 text-xs text-slate-500">Lesson: <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{{ item.lesson?.title || 'No lesson' }}</span></div>
-                  <div class="mt-1 text-xs font-semibold text-emerald-700">Type: {{ item.class_type?.type_name || 'Unknown' }}</div>
+                  <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.course?.title || 'No course' }}</div>
+                  <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">Lesson: <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700 dark:bg-gray-800 dark:text-gray-300">{{ item.lesson?.title || 'No lesson' }}</span></div>
+                  <div class="mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">Type: {{ item.class_type?.type_name || 'Unknown' }}</div>
                 </td>
                 <td class="px-4 py-4">
-                  <div class="font-semibold text-slate-900">{{ item.term?.term_name || 'No term' }}</div>
-                  <div class="mt-1 text-xs text-slate-500">{{ item.time?.time_name || 'No time' }}</div>
+                  <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.term?.term_name || 'No term' }}</div>
+                  <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.time?.time_name || 'No time' }}</div>
                 </td>
                 <td class="px-4 py-4">
-                  <div class="font-semibold text-slate-900">{{ item.building?.name || 'No building' }}</div>
-                  <div class="mt-1 text-xs text-slate-500">{{ item.floor?.name || 'No floor' }} · {{ item.room?.room_number || 'No room' }}</div>
+                  <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.building?.name || 'No building' }}</div>
+                  <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.floor?.name || 'No floor' }} · {{ item.room?.room_number || 'No room' }}</div>
                 </td>
-                <td class="px-4 py-4 font-semibold text-slate-900">{{ item.student_count ?? 0 }}</td>
+                <td class="px-4 py-4 font-semibold text-slate-900 dark:text-gray-100">{{ item.student_count ?? 0 }}</td>
                 <td class="px-4 py-4">
                   <span :class="[
                     'inline-flex rounded-full px-3 py-1 text-[11px] font-semibold',
-                    item.status === 'completed' ? 'bg-emerald-50 text-emerald-700' : '',
-                    item.status === 'progress' ? 'bg-blue-50 text-blue-700' : '',
-                    item.status === 'cancelled' ? 'bg-rose-50 text-rose-700' : '',
+                    item.status === 'completed' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : '',
+                    item.status === 'progress' ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : '',
+                    item.status === 'cancelled' ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400' : '',
                   ]">
                     {{ item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Unknown' }}
                   </span>
@@ -263,14 +263,14 @@ const handlePageChange = (page) => {
               </tr>
 
               <tr v-if="filteredData.length === 0">
-                <td colspan="9" class="px-4 py-12 text-center text-slate-500">No classes found.</td>
+                <td colspan="9" class="px-4 py-12 text-center text-slate-500 dark:text-gray-400">No classes found.</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <p class="text-sm text-slate-500">
+        <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
+          <p class="text-sm text-slate-500 dark:text-gray-400">
             Showing {{ classLists.from ?? 0 }}–{{ classLists.to ?? 0 }} of {{ classLists.total ?? 0 }} entries
           </p>
 

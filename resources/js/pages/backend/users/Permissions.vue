@@ -1,11 +1,31 @@
 <script setup>
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import { computed, ref, watch } from 'vue'
+import { Search } from '@lucide/vue'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { Pagination } from '../../../components/ui/pagination'
 import { formatRole, roleBadgeClass } from '../../../lib/roleBadge'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+
+// Debounces a fast-changing ref (raw keystrokes) into a settled value that
+// computed filters can key off, so large lists don't re-filter on every key.
+function useDebouncedValue(sourceRef, delay = 250) {
+  const debounced = ref(sourceRef.value)
+  let timer = null
+
+  watch(sourceRef, (value) => {
+    if (timer) {
+      clearTimeout(timer)
+    }
+
+    timer = window.setTimeout(() => {
+      debounced.value = value
+    }, delay)
+  })
+
+  return debounced
+}
 
 const page = usePage()
 const users = computed(() => page.props.users ?? [])
@@ -13,6 +33,12 @@ const permissions = computed(() => page.props.permissions ?? [])
 const selectedUserId = ref(users.value[0]?.id ? String(users.value[0].id) : '')
 const matrixPage = ref(1)
 const matrixPerPage = 10
+
+const userSearchInput = ref('')
+const userSearchQuery = useDebouncedValue(userSearchInput)
+
+const moduleSearchInput = ref('')
+const moduleSearchQuery = useDebouncedValue(moduleSearchInput)
 
 const form = useForm({
   permissions: [],
@@ -55,31 +81,61 @@ const resources = computed(() => {
     .filter((resource, index, list) => list.indexOf(resource) === index)
 })
 
-const matrixLastPage = computed(() => Math.max(1, Math.ceil(resources.value.length / matrixPerPage)))
+// Filter against the same "Attendance"/"Building" display text the table renders,
+// not the raw underscored resource key, so the search matches what's on screen.
+const filteredResources = computed(() => {
+  const query = moduleSearchQuery.value.trim().toLowerCase()
+
+  if (!query) {
+    return resources.value
+  }
+
+  return resources.value.filter((resource) => resource.replaceAll('_', ' ').toLowerCase().includes(query))
+})
+
+const matrixLastPage = computed(() => Math.max(1, Math.ceil(filteredResources.value.length / matrixPerPage)))
 const paginatedResources = computed(() => {
   const start = (matrixPage.value - 1) * matrixPerPage
 
-  return resources.value.slice(start, start + matrixPerPage)
+  return filteredResources.value.slice(start, start + matrixPerPage)
 })
 const matrixStart = computed(() => {
-  if (resources.value.length === 0) {
+  if (filteredResources.value.length === 0) {
     return 0
   }
 
   return ((matrixPage.value - 1) * matrixPerPage) + 1
 })
 const matrixEnd = computed(() => {
-  if (resources.value.length === 0) {
+  if (filteredResources.value.length === 0) {
     return 0
   }
 
-  return Math.min(matrixPage.value * matrixPerPage, resources.value.length)
+  return Math.min(matrixPage.value * matrixPerPage, filteredResources.value.length)
 })
 
 const userSummaries = computed(() => users.value.map((user) => ({
   ...user,
   selected: String(user.id) === selectedUserId.value,
 })))
+
+// Match against name, email, and formatted role labels (e.g. "Instructor") so
+// typing a role name filters the list the same way typing a name does.
+const filteredUserSummaries = computed(() => {
+  const query = userSearchQuery.value.trim().toLowerCase()
+
+  if (!query) {
+    return userSummaries.value
+  }
+
+  return userSummaries.value.filter((user) => {
+    const roleLabels = (user.roles ?? []).map((role) => formatRole(role).toLowerCase())
+
+    return (user.name ?? '').toLowerCase().includes(query)
+      || (user.email ?? '').toLowerCase().includes(query)
+      || roleLabels.some((label) => label.includes(query))
+  })
+})
 
 function permissionName(resource, action) {
   const name = `${resource}.${action}`
@@ -129,7 +185,9 @@ function changeMatrixPage(page) {
 
 watch(selectedUserId, syncFormFromSelectedUser, { immediate: true })
 
-watch(resources, () => {
+// Reset to page 1 whenever the underlying data or the module search changes,
+// otherwise a filter could leave the view stuck on a now out-of-range page.
+watch(filteredResources, () => {
   matrixPage.value = 1
 })
 </script>
@@ -191,9 +249,24 @@ watch(resources, () => {
             <span class="text-sm font-semibold text-slate-400">{{ users.length }}</span>
           </div>
 
+          <div class="px-2 pb-3">
+            <div class="relative">
+              <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                v-model="userSearchInput"
+                type="text"
+                placeholder="Search..."
+                class="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              >
+            </div>
+          </div>
+
           <div class="max-h-[640px] space-y-2 overflow-y-auto pr-1">
+            <p v-if="filteredUserSummaries.length === 0" class="px-2 py-6 text-center text-sm text-slate-500">
+              No users found.
+            </p>
             <button
-              v-for="user in userSummaries"
+              v-for="user in filteredUserSummaries"
               :key="user.id"
               type="button"
               class="flex w-full items-start justify-between gap-3 rounded-xl px-4 py-3 text-left transition"
@@ -241,6 +314,18 @@ watch(resources, () => {
             {{ form.errors.permissions }}
           </p>
 
+          <div class="border-b border-slate-200 px-5 py-3">
+            <div class="relative sm:ml-auto sm:max-w-xs">
+              <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                v-model="moduleSearchInput"
+                type="text"
+                placeholder="Search..."
+                class="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              >
+            </div>
+          </div>
+
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
               <thead class="bg-slate-50">
@@ -281,13 +366,19 @@ watch(resources, () => {
                     <span v-else class="text-slate-300">-</span>
                   </td>
                 </tr>
+
+                <tr v-if="paginatedResources.length === 0">
+                  <td :colspan="actions.length + 1" class="px-5 py-10 text-center text-slate-500">
+                    No modules found.
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
 
           <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="text-sm text-slate-500">
-              Showing {{ matrixStart }} to {{ matrixEnd }} of {{ resources.length }} modules
+              Showing {{ matrixStart }} to {{ matrixEnd }} of {{ filteredResources.length }} modules
             </div>
 
             <Pagination
