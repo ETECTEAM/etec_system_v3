@@ -48,83 +48,83 @@ function submit() {
         description="Update account details, reset the password if needed, and change the assigned role."
       />
 
-      <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submit">
           <label class="block sm:col-span-1">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Full Name</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Full Name</span>
             <input
               v-model="form.name"
               type="text"
               autocomplete="name"
               :disabled="nameLocked"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-700 dark:disabled:text-gray-500"
               :placeholder="nameLocked ? 'Set by the instructor/student in their own profile' : 'User full name'"
             >
-            <span v-if="nameLocked" class="mt-1 block text-xs text-slate-500">Instructors and students set their name themselves after logging in.</span>
-            <span v-if="form.errors.name" class="mt-1 block text-xs text-red-600">{{ form.errors.name }}</span>
+            <span v-if="nameLocked" class="mt-1 block text-xs text-slate-500 dark:text-gray-400">Instructors and students set their name themselves after logging in.</span>
+            <span v-if="form.errors.name" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.name }}</span>
           </label>
 
           <label class="block sm:col-span-1">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Email</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Email</span>
             <input
               v-model="form.email"
               type="email"
               autocomplete="email"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
               placeholder="user@etec.com"
             >
-            <span v-if="form.errors.email" class="mt-1 block text-xs text-red-600">{{ form.errors.email }}</span>
+            <span v-if="form.errors.email" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.email }}</span>
           </label>
 
           <label class="block sm:col-span-1">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">New Password</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">New Password</span>
             <input
               v-model="form.password"
               type="password"
               autocomplete="new-password"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
               placeholder="Leave blank to keep current password"
             >
-            <span v-if="form.errors.password" class="mt-1 block text-xs text-red-600">{{ form.errors.password }}</span>
+            <span v-if="form.errors.password" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.password }}</span>
           </label>
 
           <label class="block sm:col-span-1">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Confirm Password</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Confirm Password</span>
             <input
               v-model="form.password_confirmation"
               type="password"
               autocomplete="new-password"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
               placeholder="Repeat new password"
             >
           </label>
 
           <div class="grid gap-4 sm:col-span-2 sm:grid-cols-2">
             <label class="block">
-              <span class="mb-2 block text-sm font-semibold text-slate-700">Role</span>
+              <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Role</span>
               <SelectSearch
                 v-model="form.role"
                 :options="roleSelectOptions"
                 placeholder="Select role"
               />
-              <span v-if="form.errors.role" class="mt-1 block text-xs text-red-600">{{ form.errors.role }}</span>
+              <span v-if="form.errors.role" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.role }}</span>
             </label>
 
             <label class="block">
-              <span class="mb-2 block text-sm font-semibold text-slate-700">Status</span>
+              <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Status</span>
               <SelectSearch
                 v-model="form.account_status"
                 :options="statusSelectOptions"
                 placeholder="Select status"
               />
-              <span v-if="form.errors.account_status" class="mt-1 block text-xs text-red-600">{{ form.errors.account_status }}</span>
+              <span v-if="form.errors.account_status" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.account_status }}</span>
             </label>
           </div>
 
           <div class="flex justify-end gap-3 sm:col-span-2">
             <Link
               href="/dashboard/users"
-              class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               Cancel
             </Link>

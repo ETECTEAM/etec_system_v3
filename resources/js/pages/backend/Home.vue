@@ -31,32 +31,32 @@ const primaryRole = computed(() => {
       </div>
 
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Account</p>
-          <p class="mt-3 text-lg font-bold text-slate-900">
+        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-gray-400">Account</p>
+          <p class="mt-3 text-lg font-bold text-slate-900 dark:text-gray-100">
             {{ user?.email ?? 'Guest session' }}
           </p>
-          <p class="mt-2 text-sm text-slate-600">
+          <p class="mt-2 text-sm text-slate-600 dark:text-gray-400">
             Authenticated email for the current dashboard session.
           </p>
         </article>
 
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Primary Role</p>
-          <p class="mt-3 text-lg font-bold capitalize text-slate-900">
+        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-gray-400">Primary Role</p>
+          <p class="mt-3 text-lg font-bold capitalize text-slate-900 dark:text-gray-100">
             {{ primaryRole.replace('_', ' ') }}
           </p>
-          <p class="mt-2 text-sm text-slate-600">
+          <p class="mt-2 text-sm text-slate-600 dark:text-gray-400">
             Permissions and navigation can be tailored from this role.
           </p>
         </article>
 
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Status</p>
-          <p class="mt-3 text-lg font-bold text-emerald-600">
+        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-gray-400">Status</p>
+          <p class="mt-3 text-lg font-bold text-emerald-600 dark:text-emerald-400">
             {{ user ? 'Logged in' : 'Signed out' }}
           </p>
-          <p class="mt-2 text-sm text-slate-600">
+          <p class="mt-2 text-sm text-slate-600 dark:text-gray-400">
             You are inside the dashboard area.
           </p>
         </article>
