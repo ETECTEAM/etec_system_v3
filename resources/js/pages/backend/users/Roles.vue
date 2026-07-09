@@ -7,10 +7,12 @@ import { PageHero } from '../../../components/ui/page-hero'
 import { Pagination } from '../../../components/ui/pagination'
 import { formatRole, roleBadgeClass } from '../../../lib/roleBadge'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import { useConfirm } from '../../../composables/useConfirm'
 import axios from 'axios'
 
 const page = usePage()
 const toast = useToast()
+const { confirm } = useConfirm()
 
 watch(() => page.props.flash, (flash) => {
   if (flash?.success) {
@@ -93,8 +95,19 @@ function deleteDisabledReason(role) {
   return 'Reassign users before deleting'
 }
 
-function deleteRole(role) {
-  if (!isRoleDeletable(role) || !window.confirm(`Delete the "${formatRole(role.name)}" role? This cannot be undone.`)) {
+async function deleteRole(role) {
+  if (!isRoleDeletable(role)) {
+    return
+  }
+
+  const confirmed = await confirm({
+    title: 'Delete this role?',
+    message: `Delete the "${formatRole(role.name)}" role? This cannot be undone.`,
+    confirmText: 'Delete',
+    danger: true,
+  })
+
+  if (!confirmed) {
     return
   }
 
@@ -472,7 +485,7 @@ watch(permissionSearch, () => {
                 <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">
                   <input
                     type="checkbox"
-                    class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-200 dark:border-gray-600 dark:bg-gray-800 dark:focus:ring-blue-500/20"
+                    class="h-4 w-4 rounded border-slate-300 text-blue-700 accent-blue-700 focus:ring-blue-200 dark:border-gray-600 dark:bg-gray-800 dark:accent-blue-500 dark:focus:ring-blue-500/20"
                     :checked="allPermissionsSelected"
                     @change="toggleAllPermissions"
                   >
@@ -620,7 +633,7 @@ watch(permissionSearch, () => {
             >
               <input
                 type="checkbox"
-                class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-200 dark:border-gray-600 dark:bg-gray-800 dark:focus:ring-blue-500/20"
+                class="h-4 w-4 rounded border-slate-300 text-blue-700 accent-blue-700 focus:ring-blue-200 dark:border-gray-600 dark:bg-gray-800 dark:accent-blue-500 dark:focus:ring-blue-500/20"
                 :checked="isUserSelected(user.id)"
                 @change="toggleUser(user.id)"
               >

@@ -94,7 +94,7 @@ class UserController extends Controller
 
         return Inertia::render('backend/users/Show', [
             // Eager-load role/student/instructor relations so presentUser() can build the full profile in one pass.
-            'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData'])),
+            'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData', 'creator'])),
         ]);
     }
 
@@ -110,7 +110,7 @@ class UserController extends Controller
         $this->authorize('manage', $user);
 
         return Inertia::render('backend/users/Edit', [
-            'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData'])),
+            'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData', 'creator'])),
             'roleOptions' => $this->userService->roleOptions($request->user()),
         ]);
     }
@@ -129,7 +129,7 @@ class UserController extends Controller
         // Re-check role assignability server-side; the request's own rule only
         // limits the dropdown options, it doesn't stop a forged role value.
         $this->userService->ensureRoleIsAssignable($request->user(), $data->role);
-        $this->userService->create($data);
+        $this->userService->create($data, $request->user()?->id);
 
         return redirect('/dashboard/users')->with('success', 'User created successfully.');
     }

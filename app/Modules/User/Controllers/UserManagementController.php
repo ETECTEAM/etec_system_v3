@@ -173,6 +173,9 @@ class UserManagementController extends Controller
                 $user->syncRoles([$role->name]);
             });
 
+        // Role changes affect what the cached user table shows, so bust it.
+        app(UserService::class)->invalidateUsersCache();
+
         return back()->with('success', 'Users assigned to role successfully.');
     }
 
@@ -259,7 +262,7 @@ class UserManagementController extends Controller
         /** @var UserService $service */
         $service = app(UserService::class);
 
-        $service->create($data);
+        $service->create($data, $request->user()?->id);
 
         return redirect('/dashboard/users/create')->with('success', 'User created successfully.');
     }

@@ -7,8 +7,10 @@ import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import UserTableSection from './components/UserTableSection.vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import { useConfirm } from '../../../composables/useConfirm'
 
 const toast = useToast()
+const { confirm } = useConfirm()
 const page = usePage()
 const canCreateUser = page.props.canCreateUser ?? false
 const currentUserRole = page.props.auth?.roles?.[0] ?? null
@@ -81,12 +83,35 @@ function editUser(id) {
   router.visit(`/dashboard/users/edit/${id}`)
 }
 
-function deleteUser(id) {
-  if (!window.confirm('Are you sure?')) {
+async function deleteUser(id) {
+  const confirmed = await confirm({
+    title: 'Delete this user?',
+    message: 'This will permanently remove the account. This action cannot be undone.',
+    confirmText: 'Delete',
+    danger: true,
+  })
+
+  if (!confirmed) {
     return
   }
 
-  router.delete(`/dashboard/users/${id}`)
+  router.delete(`/dashboard/users/${id}`, {
+    preserveScroll: true,
+    // The table's data comes from a separate axios fetch, not Inertia props,
+    // so the redirect this triggers won't refresh it on its own — pull the
+    // current page again once the delete has actually gone through.
+    onSuccess: () => refetchAfterDelete(),
+  })
+}
+
+async function refetchAfterDelete() {
+  await fetchUsers(pagination.value.current_page)
+
+  // Deleting the last row on a page (other than page 1) leaves that page
+  // empty even though earlier pages still have data — step back one page.
+  if (users.value.length === 0 && pagination.value.current_page > 1) {
+    await fetchUsers(pagination.value.current_page - 1)
+  }
 }
 
 watch(search, () => {
@@ -107,7 +132,7 @@ watch(() => page.props.flash, (flash) => {
   } else if (flash?.info) {
     toast.info(flash.info)
   }
-}, { deep: true })
+}, { deep: true, immediate: true })
 </script>
 
 <template>

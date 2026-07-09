@@ -1,11 +1,10 @@
 <script setup>
 import { computed, reactive, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
-import { Search } from '@lucide/vue'
+import { Eye, Pencil, Search, Trash2 } from '@lucide/vue'
 import { formatRole, roleBadgeClass } from '@/lib/roleBadge.js'
 import { Pagination } from '@/components/ui/pagination'
 import { Card } from '@/components/ui/card'
-import { ActionMenu } from '@/components/ui/menu'
 import RightClick from '@/components/ui/rightclick/RightClick.vue'
 import { SelectSearch } from '@/components/ui/select-search'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -95,6 +94,20 @@ function rowNumber(index) {
   return ((props.pagination.current_page - 1) * props.pagination.per_page) + index + 1
 }
 
+// Renders an ISO-8601 (UTC) timestamp in the viewer's own locale/timezone,
+// not the server's — Date parses the UTC instant and toLocaleString()
+// re-projects it onto whatever timezone the browser is running in.
+function formatDateTime(isoString) {
+  if (!isoString) {
+    return '—'
+  }
+
+  return new Date(isoString).toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
 // Build the role filter options from the backend roles list.
 const roleOptions = computed(() => [
   { label: 'All Roles', value: '' },
@@ -160,43 +173,6 @@ const contextMenuActions = [
   { key: 'delete', label: 'Delete', danger: true },
 ]
 
-function actionItemsFor(user) {
-  return [
-    {
-      key: 'view',
-      label: 'View',
-    },
-    {
-      key: 'edit',
-      label: 'Edit',
-    },
-    {
-      key: 'delete',
-      label: 'Delete',
-      danger: true,
-    },
-  ]
-}
-const actions = [
-    {
-        key: 'view',
-        label: 'View',
-    },
-    {
-        key: 'edit',
-        label: 'Edit',
-    },
-    {
-        key: 'delete',
-        label: 'Delete',
-    },
-]
-
-function handleAction(action, user) {
-  if (action.key === 'view') viewUser(user.id)
-  else if (action.key === 'edit') editUser(user.id)
-  else if (action.key === 'delete') deleteUser(user.id)
-}
 </script>
 
 <template>
@@ -216,7 +192,7 @@ function handleAction(action, user) {
               :value="search"
               type="text"
               placeholder="Search..."
-              class="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:w-56 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+              class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:w-56 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
               @input="emit('update:search', $event.target.value)"
             >
           </div>
@@ -233,7 +209,7 @@ function handleAction(action, user) {
           <Link
             v-if="canCreateUser"
             href="/dashboard/users/create"
-            class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+            class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
           >
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             Create User
@@ -253,6 +229,8 @@ function handleAction(action, user) {
             <TableHead>Email</TableHead>
             <TableHead>Roles</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Created By</TableHead>
+            <TableHead>Created At</TableHead>
             <TableHead class="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -267,12 +245,14 @@ function handleAction(action, user) {
               { width: '85%' },
               { width: '5rem', rounded: 'rounded-full' },
               { width: '4rem', rounded: 'rounded-full' },
+              { width: '60%' },
+              { width: '75%' },
               { width: '2rem', align: 'right' },
             ]"
           />
 
           <template v-else>
-            <TableRow v-for="(user, index) in users" :key="user.id" class="transition-opacity duration-200" @contextmenu.prevent="openRowContextMenu($event, user)">
+            <TableRow v-for="(user, index) in users" :key="user.id" class="cursor-pointer transition-opacity duration-200 hover:bg-slate-50 dark:hover:bg-gray-800/60" @click="viewUser(user.id)" @contextmenu.prevent="openRowContextMenu($event, user)">
               <TableCell class="text-slate-500 dark:text-gray-400">{{ rowNumber(index) }}</TableCell>
               <TableCell class="font-medium text-slate-900 dark:text-gray-100">
                 <span v-if="user.name">{{ user.name }}</span>
@@ -298,12 +278,41 @@ function handleAction(action, user) {
                   {{ user.status === 'active' ? 'Active' : 'Inactive' }}
                 </span>
               </TableCell>
-              <TableCell class="text-right">
-                <div class="flex justify-end">
-                  <ActionMenu
-                    :items="actionItemsFor(user)"
-                    @select="handleAction($event, user)"
-                  />
+              <TableCell class="text-slate-600 dark:text-gray-300">{{ user.created_by || 'Unknown' }}</TableCell>
+              <TableCell class="whitespace-nowrap text-slate-600 dark:text-gray-300">{{ formatDateTime(user.created_at) }}</TableCell>
+              <TableCell class="text-right" @click.stop>
+                <div class="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
+                    title="View"
+                    aria-label="View user"
+                    @click="viewUser(user.id)"
+                  >
+                    <Eye class="h-4 w-4" />
+                  </button>
+
+                  <button
+                    v-if="canEdit()"
+                    type="button"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
+                    title="Edit"
+                    aria-label="Edit user"
+                    @click="editUser(user.id)"
+                  >
+                    <Pencil class="h-4 w-4" />
+                  </button>
+
+                  <button
+                    v-if="canDelete(user)"
+                    type="button"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
+                    title="Delete"
+                    aria-label="Delete user"
+                    @click="deleteUser(user.id)"
+                  >
+                    <Trash2 class="h-4 w-4" />
+                  </button>
                 </div>
               </TableCell>
             </TableRow>

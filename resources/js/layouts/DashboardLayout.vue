@@ -51,6 +51,7 @@ function toggleSidebarCollapse() {
 import { ref } from 'vue'
 import Sidebar from './Sidebar.vue'
 import DashboardHeader from './DashboardHeader.vue'
+import { ConfirmDialog } from '../components/ui/confirm-dialog'
 
 const isSidebarOpen = ref(false)
 
@@ -79,5 +80,8 @@ function closeSidebar() {
                 </main>
             </div>
         </div>
+
+        <!-- Single shared instance: any page can trigger it via useConfirm() -->
+        <ConfirmDialog />
     </div>
 </template>
