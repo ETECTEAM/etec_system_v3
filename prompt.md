@@ -65,4 +65,10 @@ OUTPUT:
 - Full contents of any new/updated composable files
 - Updated <script setup> of [COMPONENT_NAME].vue
 - A short note: was useSaveForm.js reused or newly created?
+```
 
+# Prompt For Change code multiple-line to one-line style
+
+```
+In <file>, first collapse any multi-line plain HTML element attributes/tags back to a single line each (input, button, Link, p, span, td, th, etc.) — no line breaks inside those tags, matching the style already used elsewhere in this file/project. Custom Vue components (PascalCase, e.g. SelectSearch, Pagination, PageHero) are exempt and may stay multi-line when they have several props. Then add short explanatory comments: in the <script setup> block, comment any non-obvious logic (computed properties, watchers, form defaults, submit behavior); in the <template>, add one short comment above each form field/section explaining anything non-obvious (disabled/locked state, validation, why a value is blank, etc.). Keep comments to one line each — no multi-line comment blocks, and don't comment things that are already obvious from the code.
+```
