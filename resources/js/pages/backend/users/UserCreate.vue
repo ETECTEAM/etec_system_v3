@@ -10,6 +10,7 @@ import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
 const page = usePage()
 
+// Roles the current admin is allowed to assign, provided by the backend based on their access level.
 const roleOptions = page.props.roleOptions ?? []
 
 const form = useForm({
@@ -21,9 +22,11 @@ const form = useForm({
   account_status: 'active',
 })
 
+// Toggle state for the password/confirm-password visibility eye icons.
 const showPassword = ref(false)
 const showPasswordConfirmation = ref(false)
 
+// Map raw role slugs to the label/value pairs SelectSearch expects.
 const roleSelectOptions = computed(() => roleOptions.map((role) => ({
   label: formatRole(role),
   value: role,
@@ -34,8 +37,10 @@ const statusSelectOptions = [
   { label: 'Inactive', value: 'inactive' },
 ]
 
+// Instructors and students set their own name on first login, so admins can't set it here.
 const nameLocked = computed(() => form.role === 'instructor' || form.role === 'student')
 
+// Clear any name typed before switching to a locked role, so a stale value isn't submitted.
 watch(() => form.role, (role) => {
   if (role === 'instructor' || role === 'student') {
     form.name = ''
@@ -51,6 +56,7 @@ const breadcrumbItems = [
 function submit() {
   form.post('/dashboard/users')
 }
+// Server-side validation errors land on form.errors and are rendered inline per field below.
 </script>
 
 <template>
@@ -63,26 +69,22 @@ function submit() {
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submit">
+          <!-- Name: disabled and auto-cleared when role is instructor/student, see nameLocked -->
           <label class="block sm:col-span-1">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Full Name</span>
-            <input
-              v-model="form.name"
-              type="text"
-              autocomplete="name"
-              :disabled="nameLocked"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-700 dark:disabled:text-gray-500"
-              :placeholder="nameLocked ? 'Set by the instructor/student in their own profile' : 'User full name'"
-            >
+            <input v-model="form.name" type="text" autocomplete="name" :disabled="nameLocked" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-700 dark:disabled:text-gray-500" :placeholder="nameLocked ? 'Set by the instructor/student in their own profile' : 'User full name'">
             <span v-if="nameLocked" class="mt-1 block text-xs text-slate-500 dark:text-gray-400">Instructors and students set their name themselves after logging in.</span>
             <span v-if="form.errors.name" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.name }}</span>
           </label>
 
+          <!-- Email: used as the login identifier -->
           <label class="block sm:col-span-1">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Email</span>
             <input v-model="form.email" type="email" autocomplete="email" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" placeholder="user@etec.com">
             <span v-if="form.errors.email" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.email }}</span>
           </label>
 
+          <!-- Password: eye icon toggles the input type to reveal/hide the typed value -->
           <label class="block sm:col-span-1">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Password</span>
             <div class="relative">
@@ -95,6 +97,7 @@ function submit() {
             <span v-if="form.errors.password" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.password }}</span>
           </label>
 
+          <!-- Confirm password: mirrors the password field's show/hide toggle -->
           <label class="block sm:col-span-1">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Confirm Password</span>
             <div class="relative">
@@ -106,6 +109,7 @@ function submit() {
             </div>
           </label>
 
+          <!-- Role/status: full-width row, driven by roleSelectOptions and statusSelectOptions -->
           <div class="grid gap-4 sm:col-span-2 sm:grid-cols-2">
             <label class="block">
               <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Role</span>
@@ -120,6 +124,7 @@ function submit() {
             </label>
           </div>
 
+          <!-- Actions: submit is disabled while the request is in flight to prevent double-submits -->
           <div class="flex justify-end gap-3 sm:col-span-2">
             <Link href="/dashboard/users" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Cancel</Link>
 

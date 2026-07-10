@@ -33,7 +33,7 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        return Inertia::render('backend/users/Index', [
+        return Inertia::render('backend/users/UserIndex', [
             // Hides the "create user" action when the requester has no assignable roles left to grant.
             'canCreateUser' => $request->user() !== null && $this->userService->roleOptions($request->user())->isNotEmpty(),
         ]);
@@ -75,7 +75,7 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
 
-        return Inertia::render('backend/users/Create', [
+        return Inertia::render('backend/users/UserCreate', [
             // Only roles the current user is authorized to assign are offered.
             'roleOptions' => $this->userService->roleOptions($request->user()),
         ]);
@@ -92,7 +92,7 @@ class UserController extends Controller
     {
         $this->authorize('manage', $user);
 
-        return Inertia::render('backend/users/Show', [
+        return Inertia::render('backend/users/UserShow', [
             // Eager-load role/student/instructor relations so presentUser() can build the full profile in one pass.
             'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData', 'creator'])),
         ]);
@@ -109,7 +109,7 @@ class UserController extends Controller
     {
         $this->authorize('manage', $user);
 
-        return Inertia::render('backend/users/Edit', [
+        return Inertia::render('backend/users/UserEdit', [
             'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData', 'creator'])),
             'roleOptions' => $this->userService->roleOptions($request->user()),
         ]);

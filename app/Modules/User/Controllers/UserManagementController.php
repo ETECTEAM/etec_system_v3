@@ -26,7 +26,7 @@ class UserManagementController extends Controller
         abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
 
         // Fetch users with their roles and pass to the Inertia view.
-        return Inertia::render('backend/users/Index', [
+        return Inertia::render('backend/users/UserIndex', [
 
             // Eager load roles to avoid N+1 query problem.
             'users' => User::query()
@@ -51,7 +51,7 @@ class UserManagementController extends Controller
         abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
 
         // Fetch all available roles to populate the role selection in the form.
-        return Inertia::render('backend/users/Create', [
+        return Inertia::render('backend/users/UserCreate', [
             'roleOptions' => Role::query()->pluck('name')->values(),
         ]);
     }
@@ -69,7 +69,7 @@ class UserManagementController extends Controller
             ->pluck('name')
             ->values();
 
-        return Inertia::render('backend/users/Roles', [
+        return Inertia::render('backend/users/UserRoles', [
             'roles' => Role::query()
                 ->with('permissions')
                 ->withCount('users')
@@ -207,7 +207,7 @@ class UserManagementController extends Controller
         abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
 
         // Fetch users with role and direct permission data for assignment.
-        return Inertia::render('backend/users/Permissions', [
+        return Inertia::render('backend/users/UserPermissions', [
             'users' => User::query()
                 ->with(['roles', 'permissions'])
                 ->latest('id')
