@@ -1,127 +1,19 @@
 <script setup>
-import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
-import { computed, nextTick, ref, watch } from 'vue'
-import { useToast } from 'vue-toastification'
+import { Head, Link } from '@inertiajs/vue3'
+import { ref } from 'vue'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { Pagination } from '../../../components/ui/pagination'
 import { formatRole, roleBadgeClass } from '../../../lib/roleBadge'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
-import { useConfirm } from '../../../composables/useConfirm'
-import axios from 'axios'
+import { useUserRoles } from './composables/useUserRoles'
 
-const page = usePage()
-const toast = useToast()
-const { confirm } = useConfirm()
-
-watch(() => page.props.flash, (flash) => {
-  if (flash?.success) {
-    toast.success(flash.success)
-  } else if (flash?.error) {
-    toast.error(flash.error)
-  }
-}, { deep: true })
-const isSuperAdmin = computed(() => (page.props.auth?.roles ?? []).includes('super_admin'))
-const roles = computed(() => page.props.roles ?? [])
-const permissions = computed(() => page.props.permissions ?? [])
-const users = computed(() => page.props.users ?? [])
-const selectedRoleId = ref(roles.value[0]?.id ? String(roles.value[0].id) : '')
+// UI state only: role/search selection, matrix pagination, and create-role modal visibility.
+const selectedRoleId = ref('')
 const userSearch = ref('')
 const permissionSearch = ref('')
 const matrixPage = ref(1)
-const matrixPerPage = 10
-
-const form = useForm({
-  permissions: [],
-})
-
-const assignUsersForm = useForm({
-  users: [],
-})
-
-// Create-role modal state.
 const showCreateModal = ref(false)
-const createRoleForm = useForm({
-  name: '',
-})
-
-function openCreateModal() {
-  createRoleForm.reset()
-  createRoleForm.clearErrors()
-  showCreateModal.value = true
-}
-
-function closeCreateModal() {
-  showCreateModal.value = false
-  createRoleForm.reset()
-  createRoleForm.clearErrors()
-}
-
-function submitCreateRole() {
-  createRoleForm.post('/dashboard/users/roles', {
-    onSuccess: () => {
-      closeCreateModal()
-      // Auto-select the newly added role (last in list after redirect).
-      nextTick(() => {
-        const last = roles.value[roles.value.length - 1]
-        if (last) {
-          selectedRoleId.value = String(last.id)
-        }
-      })
-    },
-  })
-}
-
-// The Super Admin role can't be removed so nobody can lock out admin access.
-const undeletableRoleNames = ['super_admin']
-
-function isRoleDeletable(role) {
-  return isSuperAdmin.value && !undeletableRoleNames.includes(role.name) && Number(role.users_count ?? 0) === 0
-}
-
-function deleteDisabledReason(role) {
-  if (isRoleDeletable(role)) {
-    return 'Delete role'
-  }
-
-  if (!isSuperAdmin.value) {
-    return 'Only Super Admin can delete roles'
-  }
-
-  if (role.name === 'super_admin') {
-    return 'The Super Admin role cannot be deleted'
-  }
-
-  return 'Reassign users before deleting'
-}
-
-async function deleteRole(role) {
-  if (!isRoleDeletable(role)) {
-    return
-  }
-
-  const confirmed = await confirm({
-    title: 'Delete this role?',
-    message: `Delete the "${formatRole(role.name)}" role? This cannot be undone.`,
-    confirmText: 'Delete',
-    danger: true,
-  })
-
-  if (!confirmed) {
-    return
-  }
-
-  router.delete(`/dashboard/users/roles/${role.id}`, {
-    preserveScroll: true,
-    onSuccess: () => {
-      if (selectedRoleId.value === String(role.id)) {
-        selectedRoleId.value = roles.value[0]?.id ? String(roles.value[0].id) : ''
-      }
-    },
-  })
-}
-
-const preferredActions = ['view', 'create', 'update', 'delete', 'manage', 'approve', 'export', 'track']
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -129,231 +21,45 @@ const breadcrumbItems = [
   { label: 'Roles & Permission', current: true },
 ]
 
-// The selected role drives both the permission matrix and the user assignment list.
-const selectedRole = computed(() => roles.value.find((role) => String(role.id) === selectedRoleId.value) ?? null)
-const totalUsers = computed(() => roles.value.reduce((total, role) => total + Number(role.users_count ?? 0), 0))
-const activeRoles = computed(() => roles.value.length)
-// Count modules where the current role does not have every available action.
-const restrictedModules = computed(() => resources.value.filter((resource) => {
-  return actions.value.some((action) => permissionName(resource, action) && !form.permissions.includes(permissionName(resource, action)))
-}).length)
-
-// Build the action columns shown in the matrix.
-const actions = computed(() => {
-  const discovered = permissions.value
-    .map((permission) => permission.split('.')[1])
-    .filter(Boolean)
-
-  return [...preferredActions, ...discovered.filter((action) => !preferredActions.includes(action))]
-    .filter((action, index, list) => list.indexOf(action) === index)
-})
-
-// Build the unique module list from all permission names.
-const resources = computed(() => {
-  return permissions.value
-    .map((permission) => permission.split('.')[0])
-    .filter((resource, index, list) => list.indexOf(resource) === index)
-})
-
-// Filter modules by the search box before paginating them.
-const filteredResources = computed(() => {
-  const keyword = permissionSearch.value.trim().toLowerCase()
-
-  if (keyword === '') {
-    return resources.value
-  }
-
-  return resources.value.filter((resource) => {
-    return resource.replaceAll('_', ' ').toLowerCase().includes(keyword)
-      || actions.value.some((action) => permissionName(resource, action)?.toLowerCase().includes(keyword))
-  })
-})
-
-const matrixLastPage = computed(() => Math.max(1, Math.ceil(filteredResources.value.length / matrixPerPage)))
-const paginatedResources = computed(() => {
-  const start = (matrixPage.value - 1) * matrixPerPage
-
-  return filteredResources.value.slice(start, start + matrixPerPage)
-})
-const matrixStart = computed(() => {
-  if (filteredResources.value.length === 0) {
-    return 0
-  }
-
-  return ((matrixPage.value - 1) * matrixPerPage) + 1
-})
-const matrixEnd = computed(() => {
-  if (filteredResources.value.length === 0) {
-    return 0
-  }
-
-  return Math.min(matrixPage.value * matrixPerPage, filteredResources.value.length)
-})
-
-const roleSummaries = computed(() => roles.value.map((role) => ({
-  ...role,
-  selected: String(role.id) === selectedRoleId.value,
-  deletable: isRoleDeletable(role),
-})))
-
-// Narrow the user list by name, email, or assigned role.
-const filteredUsers = computed(() => {
-  const keyword = userSearch.value.trim().toLowerCase()
-
-  if (keyword === '') {
-    return users.value
-  }
-
-  return users.value.filter((user) => {
-    return user.name.toLowerCase().includes(keyword)
-      || user.email.toLowerCase().includes(keyword)
-      || (user.roles ?? []).some((role) => formatRole(role).toLowerCase().includes(keyword))
-  })
-})
-
-const selectedUserCount = computed(() => assignUsersForm.users.length)
-const allPermissionsSelected = computed(() => {
-  return permissions.value.length > 0 && form.permissions.length === permissions.value.length
-})
-
-// Return the full permission key only when it exists in the backend list.
-function permissionName(resource, action) {
-  const name = `${resource}.${action}`
-
-  return permissions.value.includes(name) ? name : null
-}
-
-// Reset both forms whenever the selected role changes.
-function syncFormFromSelectedRole() {
-  form.permissions = [...(selectedRole.value?.permissions ?? [])]
-  assignUsersForm.users = users.value
-    .filter((user) => (user.roles ?? []).includes(selectedRole.value?.name))
-    .map((user) => user.id)
-  form.clearErrors()
-  assignUsersForm.clearErrors()
-}
-
-function togglePermission(permission) {
-  if (!permission) {
-    return
-  }
-
-  if (form.permissions.includes(permission)) {
-    form.permissions = form.permissions.filter((item) => item !== permission)
-    return
-  }
-
-  form.permissions = [...form.permissions, permission]
-}
-
-function isChecked(permission) {
-  return permission ? form.permissions.includes(permission) : false
-}
-
-function resourcePermissions(resource) {
-  return actions.value
-    .map((action) => permissionName(resource, action))
-    .filter(Boolean)
-}
-
-function isResourceFullyChecked(resource) {
-  const currentPermissions = resourcePermissions(resource)
-
-  return currentPermissions.length > 0 && currentPermissions.every((permission) => form.permissions.includes(permission))
-}
-
-function isResourcePartiallyChecked(resource) {
-  const currentPermissions = resourcePermissions(resource)
-
-  return currentPermissions.some((permission) => form.permissions.includes(permission)) && !isResourceFullyChecked(resource)
-}
-
-function toggleResourcePermissions(resource) {
-  const currentPermissions = resourcePermissions(resource)
-
-  if (isResourceFullyChecked(resource)) {
-    form.permissions = form.permissions.filter((permission) => !currentPermissions.includes(permission))
-    return
-  }
-
-  form.permissions = [...new Set([...form.permissions, ...currentPermissions])]
-}
-
-function selectAllPermissions() {
-  form.permissions = [...permissions.value]
-}
-
-// Keep the checkbox handler separate so the template stays simple.
-function toggleAllPermissions(event) {
-  if (event.target.checked) {
-    selectAllPermissions()
-    return
-  }
-
-  clearAllPermissions()
-}
-
-function clearAllPermissions() {
-  form.permissions = []
-}
-
-// Save the selected permissions for the active role.
-function savePermissions() {
-  if (!selectedRole.value) {
-    return
-  }
-
-  form.put(`/dashboard/users/roles/${selectedRole.value.id}/permissions`, {
-    preserveScroll: true,
-  })
-}
-
-function toggleUser(userId) {
-  if (assignUsersForm.users.includes(userId)) {
-    assignUsersForm.users = assignUsersForm.users.filter((id) => id !== userId)
-    return
-  }
-
-  assignUsersForm.users = [...assignUsersForm.users, userId]
-}
-
-function isUserSelected(userId) {
-  return assignUsersForm.users.includes(userId)
-}
-
-function initials(name) {
-  return name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-}
-
-// Save the user-role assignments for the active role.
-function saveAssignedUsers() {
-  if (!selectedRole.value) {
-    return
-  }
-
-  assignUsersForm.put(`/dashboard/users/roles/${selectedRole.value.id}/users`, {
-    preserveScroll: true,
-  })
-}
-
-function changeMatrixPage(page) {
-  matrixPage.value = page
-}
-
-watch(selectedRoleId, syncFormFromSelectedRole, { immediate: true })
-
-watch(resources, () => {
-  matrixPage.value = 1
-})
-
-watch(permissionSearch, () => {
-  matrixPage.value = 1
-})
+const {
+  permissions,
+  form,
+  assignUsersForm,
+  createRoleForm,
+  openCreateModal,
+  closeCreateModal,
+  submitCreateRole,
+  deleteDisabledReason,
+  deleteRole,
+  selectedRole,
+  totalUsers,
+  activeRoles,
+  restrictedModules,
+  actions,
+  filteredResources,
+  matrixLastPage,
+  paginatedResources,
+  matrixStart,
+  matrixEnd,
+  roleSummaries,
+  filteredUsers,
+  selectedUserCount,
+  allPermissionsSelected,
+  permissionName,
+  togglePermission,
+  isChecked,
+  isResourceFullyChecked,
+  isResourcePartiallyChecked,
+  toggleResourcePermissions,
+  toggleAllPermissions,
+  clearAllPermissions,
+  savePermissions,
+  toggleUser,
+  isUserSelected,
+  initials,
+  saveAssignedUsers,
+  changeMatrixPage,
+} = useUserRoles({ selectedRoleId, userSearch, permissionSearch, matrixPage, showCreateModal })
 </script>
 
 <template>

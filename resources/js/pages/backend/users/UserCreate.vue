@@ -1,51 +1,16 @@
 <script setup>
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
-import { computed, ref, watch } from 'vue'
+import { Head, Link } from '@inertiajs/vue3'
+import { ref } from 'vue'
 import { Eye, EyeOff } from '@lucide/vue'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { SelectSearch } from '../../../components/ui/select-search'
-import { formatRole } from '../../../lib/roleBadge'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import { useUserCreate } from './composables/useUserCreate'
 
-const page = usePage()
-
-// Roles the current admin is allowed to assign, provided by the backend based on their access level.
-const roleOptions = page.props.roleOptions ?? []
-
-const form = useForm({
-  name: '',
-  email: '',
-  password: '',
-  password_confirmation: '',
-  role: roleOptions[0] ?? 'admin',
-  account_status: 'active',
-})
-
-// Toggle state for the password/confirm-password visibility eye icons.
+// UI-only state: password/confirm-password visibility toggles.
 const showPassword = ref(false)
 const showPasswordConfirmation = ref(false)
-
-// Map raw role slugs to the label/value pairs SelectSearch expects.
-const roleSelectOptions = computed(() => roleOptions.map((role) => ({
-  label: formatRole(role),
-  value: role,
-})))
-
-const statusSelectOptions = [
-  { label: 'Active', value: 'active' },
-  { label: 'Inactive', value: 'inactive' },
-]
-
-// Instructors and students set their own name on first login, so admins can't set it here.
-const nameLocked = computed(() => form.role === 'instructor' || form.role === 'student')
-
-// Clear any name typed before switching to a locked role, so a stale value isn't submitted.
-watch(() => form.role, (role) => {
-  if (role === 'instructor' || role === 'student') {
-    form.name = ''
-  }
-})
 
 // breadcrumbItems => Dashboard / Users / Create
 const breadcrumbItems = [
@@ -54,10 +19,8 @@ const breadcrumbItems = [
   { label: 'Create', current: true },
 ]
 
-function submit() {
-  form.post('/dashboard/users')
-}
 // Server-side validation errors land on form.errors and are rendered inline per field below.
+const { form, roleSelectOptions, statusSelectOptions, nameLocked, submit } = useUserCreate()
 </script>
 
 <template>

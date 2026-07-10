@@ -1,35 +1,11 @@
 <script setup>
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
-import { computed, watch } from 'vue'
+import { Head, Link } from '@inertiajs/vue3'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { SelectSearch } from '../../../components/ui/select-search'
-import { formatRole } from '../../../lib/roleBadge'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import UserAccountForm from './components/UserAccountForm.vue'
-// user/roleOptions come from the backend; s/i pull out the role-specific profile data (if any) to seed the form below.
-const page = usePage(), user = page.props.user, roleOptions = page.props.roleOptions ?? [], s = user.student ?? {}, i = user.instructor_data ?? {}
-// Flat form combining core account fields with every student/instructor profile field, so switching role in the UI
-// doesn't need to swap form models. password/password_confirmation start blank: leaving them blank keeps the current password (see submit).
-const form = useForm({ name: user.name ?? '', email: user.email ?? '', password: '', password_confirmation: '', role: user.role ?? (roleOptions[0] ?? 'admin'), account_status: user.status ?? 'active', avatar: null, student_code: s.student_code ?? '', student_full_name: s.full_name ?? '', student_first_name: s.first_name ?? '', student_last_name: s.last_name ?? '', student_full_name_kh: s.full_name_kh ?? '', student_gender: s.gender ?? '', student_date_of_birth: s.date_of_birth ?? '', student_phone: s.phone ?? '', student_email: s.email ?? '', student_class_id: s.class_id ?? '', parent_name: s.parent_name ?? '', parent_phone: s.parent_phone ?? '', student_address: s.address ?? '', student_status: s.status ?? true, instructor_code: i.instructor_code ?? '', instructor_full_name: i.full_name ?? '', instructor_first_name: i.first_name ?? '', instructor_last_name: i.last_name ?? '', instructor_full_name_kh: i.full_name_kh ?? '', instructor_gender: i.gender ?? '', instructor_date_of_birth: i.date_of_birth ?? '', instructor_phone: i.phone ?? '', instructor_email: i.email ?? '', specialization: i.specialization ?? '', employment_type: i.employment_type ?? 'full_time', shift_preference: i.shift_preference ?? 'morning_evening', available_for_class: i.available_for_class ?? true, hire_date: i.hire_date ?? '', instructor_address: i.address ?? '', instructor_status: i.status ?? true })
-
-// Map raw role slugs to the label/value pairs SelectSearch expects.
-const roleSelectOptions = computed(() => roleOptions.map((role) => ({ label: formatRole(role), value: role })))
-
-// Instructors and students set their own name on first login, so admins can't edit it here.
-const nameLocked = computed(() => form.role === 'instructor' || form.role === 'student')
-
-// Clear any name typed before switching to a locked role, so a stale value isn't submitted.
-watch(() => form.role, (role) => {
-  if (role === 'instructor' || role === 'student') {
-    form.name = ''
-  }
-})
-
-const statusSelectOptions = [
-  { label: 'Active', value: 'active' },
-  { label: 'Inactive', value: 'inactive' },
-]
+import { useUserEdit } from './composables/useUserEdit'
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -37,10 +13,7 @@ const breadcrumbItems = [
   { label: 'Edit', current: true },
 ]
 
-// PUT to this user's edit endpoint; the backend keeps the existing password when the password field is blank.
-function submit() {
-  form.put(`/dashboard/users/edit/${user.id}`)
-}
+const { form, user, roleSelectOptions, statusSelectOptions, nameLocked, submit } = useUserEdit()
 </script>
 
 <template>
