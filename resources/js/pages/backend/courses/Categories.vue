@@ -69,10 +69,6 @@
                         </svg>
                     </div>
                 </div>
-                <span class="text-sm text-slate-500 whitespace-nowrap">
-                    Showing <strong class="text-slate-700">{{ paginatedCategories.length }}</strong> of
-                    <strong class="text-slate-700">{{ filteredCategories.length }}</strong> categories
-                </span>
             </div>
 
             <!-- Categories Table -->

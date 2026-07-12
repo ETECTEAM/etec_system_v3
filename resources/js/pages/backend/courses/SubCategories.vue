@@ -65,10 +65,6 @@
                         </svg>
                     </div>
                 </div>
-                <span class="text-sm text-slate-500 whitespace-nowrap">
-                    Showing <strong class="text-slate-700">{{ paginatedSubCategories.length }}</strong> of
-                    <strong class="text-slate-700">{{ filteredSubCategories.length }}</strong> sub categories
-                </span>
             </div>
 
             <!-- Sub Categories Table -->
