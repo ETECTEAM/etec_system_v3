@@ -17,7 +17,7 @@
             <span class="text-slate-600 font-medium">{{track ? 'Edit' : 'Create' }}</span>
         </nav>
 
-        <div class="p-4 sm:p-6">
+        <div class="w-full">
             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
                 <div class="flex items-center gap-3">
                     <Link href="/dashboard/course/tracks"

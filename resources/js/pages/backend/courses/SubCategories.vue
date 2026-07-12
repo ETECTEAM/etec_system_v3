@@ -1,6 +1,6 @@
 <template>
     <DashboardLayout>
-        <div class="p-4 sm:p-6 max-w-[1400px] mx-auto">
+        <div class="w-full">
 
             <!-- Breadcrumb -->
             <nav class="flex items-center gap-1.5 text-sm text-slate-400 mb-4">

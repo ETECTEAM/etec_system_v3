@@ -19,7 +19,7 @@
             </nav>
 
 
-        <div class="p-4 sm:p-6">
+        <div class="w-full">
             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
                 <div class="flex items-center gap-3">
                     <Link href="/dashboard/course/lessons" class="text-slate-500 hover:text-slate-700 transition p-1.5 rounded-lg hover:bg-slate-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800" title="Back">
