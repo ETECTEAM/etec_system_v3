@@ -48,6 +48,7 @@ const {
   filteredUsers,
   selectedUserCount,
   allPermissionsSelected,
+  hasUnsavedPermissionChanges,
   permissionName,
   togglePermission,
   isChecked,
@@ -122,6 +123,7 @@ const {
           :matrix-start="matrixStart"
           :matrix-end="matrixEnd"
           :all-permissions-selected="allPermissionsSelected"
+          :has-unsaved-permission-changes="hasUnsavedPermissionChanges"
           :permission-name="permissionName"
           :is-checked="isChecked"
           :is-resource-fully-checked="isResourceFullyChecked"

@@ -10,6 +10,18 @@ const MATRIX_PER_PAGE = 10
 // The Super Admin role can't be removed so nobody can lock out admin access.
 const UNDELETABLE_ROLE_NAMES = ['super_admin']
 
+// Order-independent comparison, since toggling permissions off then back on
+// can leave the array in a different order than what the server returned.
+function sameItems(a, b) {
+  if (a.length !== b.length) {
+    return false
+  }
+
+  const setB = new Set(b)
+
+  return a.every((item) => setB.has(item))
+}
+
 // Owns role/permission matrix data, user-assignment data, role create/delete, and their save forms.
 // selectedRoleId/userSearch/permissionSearch/matrixPage/showCreateModal/showOnlyChecked are UI state owned by the component, passed in by ref.
 export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, matrixPage, showCreateModal, showOnlyChecked }) {
@@ -229,6 +241,11 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
     return permissions.value.length > 0 && form.permissions.length === permissions.value.length
   })
 
+  // Drives the "you have unsaved changes" nudge on the Save Changes button.
+  const hasUnsavedPermissionChanges = computed(() => {
+    return !sameItems(form.permissions, selectedRole.value?.permissions ?? [])
+  })
+
   // Return the full permission key only when it exists in the backend list.
   function permissionName(resource, action) {
     const name = `${resource}.${action}`
@@ -387,6 +404,7 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
     filteredUsers,
     selectedUserCount,
     allPermissionsSelected,
+    hasUnsavedPermissionChanges,
     permissionName,
     togglePermission,
     isChecked,

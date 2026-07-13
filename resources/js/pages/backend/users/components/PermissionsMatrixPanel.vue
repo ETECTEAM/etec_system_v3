@@ -14,6 +14,7 @@ defineProps({
   matrixStart: { type: Number, required: true },
   matrixEnd: { type: Number, required: true },
   allPermissionsSelected: { type: Boolean, required: true },
+  hasUnsavedPermissionChanges: { type: Boolean, required: true },
   permissionName: { type: Function, required: true },
   isChecked: { type: Function, required: true },
   isResourceFullyChecked: { type: Function, required: true },
@@ -53,7 +54,14 @@ const showOnlyChecked = defineModel('showOnlyChecked', { type: Boolean, required
               <path d="M14 11v5" />
             </svg>
           </button>
-          <button type="button" :disabled="!selectedRole || form.processing" class="inline-flex items-center justify-center rounded-lg bg-blue-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70" @click="savePermissions">{{ form.processing ? 'Saving...' : 'Save Changes' }}</button>
+          <button type="button" :disabled="!selectedRole || form.processing" class="relative inline-flex items-center justify-center rounded-lg bg-blue-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70" @click="savePermissions">
+            <!-- Nudges the user to save once they've checked a box: a quiet ping until they click, not a blocking modal. -->
+            <span v-if="hasUnsavedPermissionChanges && !form.processing" class="absolute -right-1 -top-1 flex h-3 w-3" aria-hidden="true">
+              <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+              <span class="relative inline-flex h-3 w-3 rounded-full bg-amber-500" />
+            </span>
+            {{ form.processing ? 'Saving...' : 'Save Changes' }}
+          </button>
         </div>
       </div>
 
