@@ -53,6 +53,11 @@ html.dark {
     }
 }
 
+/* Tailwind's Preflight resets <button> to cursor: default; restore the pointer everywhere except disabled buttons. */
+button:not(:disabled) {
+    cursor: pointer;
+}
+
 /* Hide scrollbar but keep scrolling */
 .hide-scrollbar::-webkit-scrollbar {
     display: none;

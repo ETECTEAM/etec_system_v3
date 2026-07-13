@@ -1,4 +1,4 @@
-import { computed, nextTick, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
 import { useToast } from 'vue-toastification'
 import { formatRole } from '../../../../lib/roleBadge'
@@ -11,8 +11,8 @@ const MATRIX_PER_PAGE = 10
 const UNDELETABLE_ROLE_NAMES = ['super_admin']
 
 // Owns role/permission matrix data, user-assignment data, role create/delete, and their save forms.
-// selectedRoleId/userSearch/permissionSearch/matrixPage/showCreateModal are UI state owned by the component, passed in by ref.
-export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, matrixPage, showCreateModal }) {
+// selectedRoleId/userSearch/permissionSearch/matrixPage/showCreateModal/showOnlyChecked are UI state owned by the component, passed in by ref.
+export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, matrixPage, showCreateModal, showOnlyChecked }) {
   const page = usePage()
   const toast = useToast()
   const { confirm } = useConfirm()
@@ -140,18 +140,46 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
       .filter((resource, index, list) => list.indexOf(resource) === index)
   })
 
-  // Filter modules by the search box before paginating them.
+  // Snapshot of which modules had a checked permission at the moment the role was selected.
+  // Used only for sort order, so rows don't jump around underneath the user while they edit.
+  const checkedResourcesSnapshot = ref(new Set())
+
+  // Modules with any checked permission (live, reflects in-progress edits) - used by the
+  // "Show only checked" filter and the checked-count display.
+  function isResourceChecked(resource) {
+    return resourcePermissions(resource).some((permission) => form.permissions.includes(permission))
+  }
+
+  // Checked-first order, frozen per role selection to avoid re-sorting while the user edits.
+  const sortedResources = computed(() => {
+    return [...resources.value].sort((a, b) => {
+      const aChecked = checkedResourcesSnapshot.value.has(a) ? 0 : 1
+      const bChecked = checkedResourcesSnapshot.value.has(b) ? 0 : 1
+
+      return aChecked - bChecked
+    })
+  })
+
+  const checkedResourcesCount = computed(() => resources.value.filter(isResourceChecked).length)
+
+  // Filter modules by the search box and the "show only checked" toggle before paginating them.
   const filteredResources = computed(() => {
     const keyword = permissionSearch.value.trim().toLowerCase()
 
-    if (keyword === '') {
-      return resources.value
+    let list = sortedResources.value
+
+    if (keyword !== '') {
+      list = list.filter((resource) => {
+        return resource.replaceAll('_', ' ').toLowerCase().includes(keyword)
+          || actions.value.some((action) => permissionName(resource, action)?.toLowerCase().includes(keyword))
+      })
     }
 
-    return resources.value.filter((resource) => {
-      return resource.replaceAll('_', ' ').toLowerCase().includes(keyword)
-        || actions.value.some((action) => permissionName(resource, action)?.toLowerCase().includes(keyword))
-    })
+    if (showOnlyChecked.value) {
+      list = list.filter((resource) => isResourceChecked(resource))
+    }
+
+    return list
   })
 
   const matrixLastPage = computed(() => Math.max(1, Math.ceil(filteredResources.value.length / MATRIX_PER_PAGE)))
@@ -211,11 +239,14 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
   // Reset both forms whenever the selected role changes.
   function syncFormFromSelectedRole() {
     form.permissions = [...(selectedRole.value?.permissions ?? [])]
+    checkedResourcesSnapshot.value = new Set(form.permissions.map((permission) => permission.split('.')[0]))
     assignUsersForm.users = users.value
       .filter((user) => (user.roles ?? []).includes(selectedRole.value?.name))
       .map((user) => user.id)
     form.clearErrors()
     assignUsersForm.clearErrors()
+    // New role means a new checked-first order, so land back on page 1.
+    matrixPage.value = 1
   }
 
   function togglePermission(permission) {
@@ -304,15 +335,6 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
     return assignUsersForm.users.includes(userId)
   }
 
-  function initials(name) {
-    return name
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase()
-  }
-
   // Save the user-role assignments for the active role.
   function saveAssignedUsers() {
     if (!selectedRole.value) {
@@ -336,6 +358,10 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
     matrixPage.value = 1
   })
 
+  watch(showOnlyChecked, () => {
+    matrixPage.value = 1
+  })
+
   return {
     permissions,
     form,
@@ -352,6 +378,7 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
     restrictedModules,
     actions,
     filteredResources,
+    checkedResourcesCount,
     matrixLastPage,
     paginatedResources,
     matrixStart,
@@ -371,7 +398,6 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
     savePermissions,
     toggleUser,
     isUserSelected,
-    initials,
     saveAssignedUsers,
     changeMatrixPage,
   }
