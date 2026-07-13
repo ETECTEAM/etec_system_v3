@@ -1,6 +1,23 @@
 <template>
     <DashboardLayout>
-        <div class="p-4 sm:p-6">
+        <!-- Breadcrumb -->
+            <nav class="flex items-center gap-1.5 text-sm text-slate-400 mb-4">
+                <span>Dashboard</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                <span>Course</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                                <Link href="/dashboard/course/subcategories" class="hover:text-slate-600 transition">Sub Categories</Link>
+
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="text-slate-600 font-medium">{{ subCategory ? 'Edit' : 'Create' }}</span>
+            </nav>
+        <div class="w-full">
             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
                 <div class="flex items-center gap-3">
                     <Link href="/dashboard/course/subcategories" class="text-slate-500 hover:text-slate-700 transition p-1.5 rounded-lg hover:bg-slate-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800" title="Back">
