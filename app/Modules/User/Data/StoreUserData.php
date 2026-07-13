@@ -2,6 +2,8 @@
 
 namespace App\Modules\User\Data;
 
+use Illuminate\Http\UploadedFile;
+
 /**
  * Carries validated user creation input into UserService.
  */
@@ -12,6 +14,10 @@ readonly class StoreUserData
         public string $email,
         public string $password,
         public string $role,
+        public string $status,
+        public ?UploadedFile $avatar,
+        public array $student,
+        public array $instructorData,
     ) {}
 
     /**

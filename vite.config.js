@@ -7,26 +7,36 @@ import path from 'path'
 export default defineConfig({
     plugins: [
         vue(),
+
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            input: [
+                'resources/css/app.css',
+                'resources/js/app.js',
+            ],
             refresh: true,
         }),
+
         tailwindcss(),
     ],
 
     resolve: {
         alias: {
             '@': path.resolve(__dirname, 'resources/js'),
+            'ziggy-js': path.resolve(__dirname, 'vendor/tightenco/ziggy'),
         },
     },
 
     server: {
+        // Use 0.0.0.0 because you are inside Docker/container
         host: '0.0.0.0',
         port: 5173,
-        origin: 'http://localhost:5173',
+        strictPort: true,
+
         hmr: {
-            host: 'localhost',
+            host: '127.0.0.1',
+            port: 5173,
         },
+
         watch: {
             usePolling: true,
         },

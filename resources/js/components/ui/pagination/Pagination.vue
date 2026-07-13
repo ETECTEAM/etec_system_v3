@@ -66,7 +66,7 @@ function changePage(page) {
   <div class="flex flex-wrap items-center justify-center gap-2">
     <button
       type="button"
-      class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+      class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-700"
       :disabled="props.disabled || props.currentPage === 1"
       @click="changePage(props.currentPage - 1)"
     >
@@ -80,9 +80,9 @@ function changePage(page) {
       class="rounded-xl px-3 py-1.5 text-sm font-medium transition-all duration-200"
       :class="[
         page === props.currentPage
-          ? 'border border-blue-600 bg-blue-600 text-white shadow-sm'
-          : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
-        page === '...' ? 'cursor-default border-transparent bg-transparent hover:border-transparent hover:bg-transparent' : '',
+          ? 'border border-blue-900 bg-blue-900 text-white shadow-sm dark:border-blue-500 dark:bg-blue-500'
+          : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-700',
+        page === '...' ? 'cursor-default border-transparent bg-transparent hover:border-transparent hover:bg-transparent dark:bg-transparent dark:hover:bg-transparent' : '',
       ]"
       :disabled="props.disabled || page === '...'"
       @click="page !== '...' && changePage(page)"
@@ -92,7 +92,7 @@ function changePage(page) {
 
     <button
       type="button"
-      class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+      class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-700"
       :disabled="props.disabled || props.currentPage === props.lastPage"
       @click="changePage(props.currentPage + 1)"
     >

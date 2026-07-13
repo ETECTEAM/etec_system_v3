@@ -4,11 +4,13 @@ namespace App\Models;
 
 use App\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -17,7 +19,7 @@ class User extends Authenticatable
     use HasRoles;
     use Notifiable;
 
-    protected string $guard_name = 'sanctum';
+    protected string $guard_name = 'web';
 
     /**
      * The attributes that are mass assignable.
@@ -28,9 +30,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'is_active',
+        'role',
         'status',
-        'verified_at',
+        'last_login_at',
+        'created_by',
     ];
 
     /**
@@ -72,5 +75,25 @@ class User extends Authenticatable
     public function authAuditLogs(): HasMany
     {
         return $this->hasMany(AuthAuditLog::class);
+    }
+
+    public function student(): HasOne
+    {
+        return $this->hasOne(Student::class, 'user_id', 'id');
+    }
+
+    public function instructorData(): HasOne
+    {
+        return $this->hasOne(InstructorData::class, 'user_id', 'id');
+    }
+
+    public function photo(): HasOne
+    {
+        return $this->hasOne(Photo::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

@@ -21,7 +21,7 @@ class TermController extends Controller
         }
 
         return Inertia::render('backend/terms/Index', [
-            'terms' => $query->latest()->paginate(9)->withQueryString(),
+            'terms' => $query->orderBy('id', 'asc')->paginate(9)->withQueryString(),
             'filters' => [
                 'search' => $request->search ?? '',
             ]

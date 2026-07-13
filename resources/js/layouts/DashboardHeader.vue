@@ -2,6 +2,8 @@
 import axios from 'axios'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
+import { Moon, Sun, SunMoon } from '@lucide/vue'
+import { useTheme } from '@/composables/useTheme'
 
 const props = defineProps({
   sidebarCollapsed: {
@@ -11,6 +13,17 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['open-sidebar', 'toggle-sidebar'])
+
+const { theme, cycleTheme } = useTheme()
+
+// Icon reflects the active mode, including 'system' so it's clear it isn't pinned to light/dark.
+const themeIcon = computed(() => {
+  if (theme.value === 'dark') return Moon
+  if (theme.value === 'light') return Sun
+  return SunMoon
+})
+
+const themeLabel = computed(() => `Theme: ${theme.value}`)
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user ?? null)
@@ -91,12 +104,12 @@ function handleEscape(event) {
 </script>
 
 <template>
-  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-gray-800 dark:bg-gray-900/90">
     <div class="flex items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
       <div class="flex items-center gap-3">
         <button
           type="button"
-          class="rounded-lg border border-slate-200 p-1.5 text-slate-600 transition hover:bg-slate-50 lg:hidden"
+          class="rounded-lg border border-slate-200 p-1.5 text-slate-600 transition hover:bg-slate-50 lg:hidden dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           @click="emit('open-sidebar')"
         >
           <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -105,7 +118,7 @@ function handleEscape(event) {
         </button>
         <button
           type="button"
-          class="hidden rounded-lg border border-slate-200 p-1.5 text-slate-600 transition hover:bg-slate-50 lg:inline-flex"
+          class="hidden rounded-lg border border-slate-200 p-1.5 text-slate-600 transition hover:bg-slate-50 lg:inline-flex dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           :aria-pressed="props.sidebarCollapsed"
           aria-label="Toggle sidebar"
           @click="emit('toggle-sidebar')"
@@ -118,9 +131,19 @@ function handleEscape(event) {
 
       <div class="flex items-center gap-3 sm:gap-4">
         <button
+          type="button"
+          class="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+          :title="themeLabel"
+          :aria-label="themeLabel"
+          @click="cycleTheme"
+        >
+          <component :is="themeIcon" class="h-5 w-5" />
+        </button>
+
+        <button
           v-if="canAccessNotifications"
           type="button"
-          class="relative rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 transition hover:bg-slate-50"
+          class="relative rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
           :disabled="isLoading"
           @click="goToNotifications"
         >
@@ -144,35 +167,35 @@ function handleEscape(event) {
         <div ref="profileRef" class="relative">
           <button
             type="button"
-            class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-left transition hover:bg-slate-50"
+            class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-left transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
             @click="toggleProfile"
           >
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
               {{ initials }}
             </span>
             <span class="hidden sm:block">
-              <span class="block text-sm font-semibold text-slate-800">{{ user?.name ?? 'Guest' }}</span>
-              <span class="block text-xs text-slate-500">{{ user?.email ?? 'Not signed in' }}</span>
+              <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ user?.name ?? 'Guest' }}</span>
+              <span class="block text-xs text-slate-500 dark:text-gray-400">{{ user?.email ?? 'Not signed in' }}</span>
             </span>
-            <svg class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <svg class="h-4 w-4 text-slate-400 dark:text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
             </svg>
           </button>
 
           <div
             v-if="profileOpen"
-            class="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+            class="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
           >
             <div class="px-4 py-3">
-              <p class="text-sm font-semibold text-slate-900">{{ user?.name ?? 'Guest' }}</p>
-              <p class="text-xs text-slate-500">{{ user?.email ?? 'Not signed in' }}</p>
+              <p class="text-sm font-semibold text-slate-900 dark:text-gray-100">{{ user?.name ?? 'Guest' }}</p>
+              <p class="text-xs text-slate-500 dark:text-gray-400">{{ user?.email ?? 'Not signed in' }}</p>
             </div>
-            <div class="border-t border-slate-200">
+            <div class="border-t border-slate-200 dark:border-gray-700">
               <Link
                 href="/logout"
                 method="post"
                 as="button"
-                class="w-full px-4 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                class="w-full cursor-pointer px-4 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 Sign out
               </Link>

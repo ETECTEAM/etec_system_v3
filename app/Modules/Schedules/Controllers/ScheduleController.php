@@ -19,7 +19,7 @@ class ScheduleController extends Controller
     {
         $query = Schedule::with(['classType', 'term', 'times']);
 
-        // Search by class type name or term name
+        // SEARCH (class type OR term)
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->whereHas('classType', function ($sub) use ($request) {
@@ -30,14 +30,38 @@ class ScheduleController extends Controller
             });
         }
 
+        // FILTER: CLASS TYPE
+        if ($request->filled('class_type_id')) {
+            $query->where('class_type_id', $request->class_type_id);
+        }
+
+        // FILTER: TERM
+        if ($request->filled('term_id')) {
+            $query->where('term_id', $request->term_id);
+        }
+
+        // FILTER: TIME (many-to-many)
+        if ($request->filled('time_id')) {
+            $query->whereHas('times', function ($q) use ($request) {
+                $q->where('times.id', $request->time_id);
+            });
+        }
+
+        $perPage = $request->input('per_page', 7);
+
         return Inertia::render('backend/schdule/Index', [
-            'schedules' => $query
-                ->latest()
-                ->paginate(7)
+            'schedules' =>$query
+                ->orderBy('id', 'asc')
+                ->paginate($perPage)
                 ->withQueryString(),
 
+            // IMPORTANT: return ALL filters
             'filters' => [
                 'search' => $request->search ?? '',
+                'class_type_id' => $request->class_type_id ?? '',
+                'term_id' => $request->term_id ?? '',
+                'time_id' => $request->time_id ?? '',
+                'per_page' => (int) $perPage,
             ],
 
             'classTypes' => ClassType::select('class_type_id', 'type_name')

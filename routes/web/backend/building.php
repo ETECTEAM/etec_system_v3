@@ -7,7 +7,6 @@ Route::middleware(['auth', 'role:super_admin|admin|instructor'])
     ->prefix('/dashboard/buildings')
     ->group(function (): void {
         Route::get('/', [BuildingController::class, 'index']);
-        Route::get('/filter', [BuildingController::class, 'filter']);
         Route::get('/create', [BuildingController::class, 'create']);
         Route::get('/edit/{building}', [BuildingController::class, 'edit']);
         Route::post('/', [BuildingController::class, 'store']);

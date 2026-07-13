@@ -30,24 +30,24 @@ function submit() {
 <template>
   <div>
     <div class="text-center mb-4">
-      <h2 class="text-lg font-bold text-gray-900">
+      <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">
         Create Term
       </h2>
-      <p class="text-sm text-gray-500">
+      <p class="text-sm text-gray-500 dark:text-gray-400">
         Add a new term
       </p>
     </div>
 
-    <form @submit.prevent="submit" class="rounded-2xl border bg-white p-6 shadow-sm space-y-5">
+    <form @submit.prevent="submit" class="rounded-2xl border bg-white p-6 shadow-sm space-y-5 dark:border-gray-800 dark:bg-gray-900">
 
       <div>
-        <label class="text-sm font-medium text-gray-700">
+        <label class="text-sm font-medium text-gray-700 dark:text-gray-200">
           Term Name
         </label>
         <input ref="inputRef" v-model="form.term_name" type="text" class="mt-2 w-full rounded-xl border px-4 py-3 text-sm
-                 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="Enter term name" />
+                 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" placeholder="Enter term name" />
 
-        <p v-if="form.errors.term_name" class="text-red-500 text-sm mt-1">
+        <p v-if="form.errors.term_name" class="text-red-500 text-sm mt-1 dark:text-red-400">
           {{ form.errors.term_name }}
         </p>
       </div>
@@ -55,12 +55,12 @@ function submit() {
       <div class="flex justify-end gap-3">
 
         <button type="button" @click="$emit('close')"
-          class="rounded-xl border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 active:bg-orange-300 cursor-pointer">
+          class="rounded-xl border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800">
           Cancel
         </button>
 
         <button type="submit" :disabled="form.processing"
-          class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+          class="rounded-xl cursor-pointer bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500">
           {{ form.processing ? 'Creating...' : 'Create Term' }}
         </button>
 

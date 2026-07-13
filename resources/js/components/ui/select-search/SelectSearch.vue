@@ -26,6 +26,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  buttonClass: {
+    type: String,
+    default: '',
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -113,27 +117,27 @@ onBeforeUnmount(() => {
   <div ref="root" class="relative w-full">
     <button
       type="button"
-      class="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-left text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+      :class="buttonClass || 'flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-left text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-700 dark:disabled:text-gray-500'"
       :disabled="disabled"
       @click="toggleDropdown"
     >
-      <span :class="selectedLabel ? 'text-slate-700' : 'text-slate-400'">
+      <span :class="selectedLabel ? 'text-slate-700 dark:text-gray-200' : 'text-slate-400 dark:text-gray-500'">
         {{ selectedLabel || placeholder }}
       </span>
-      <span class="text-slate-500 transition-transform duration-200" :class="open ? 'rotate-180' : ''">▾</span>
+      <span class="text-slate-500 transition-transform duration-200 dark:text-gray-400" :class="open ? 'rotate-180' : ''">▾</span>
     </button>
 
     <div
       v-if="open"
-      class="absolute z-50 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+      class="absolute z-50 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
     >
-      <div class="border-b border-slate-200 p-2">
+      <div class="border-b border-slate-200 p-2 dark:border-gray-700">
         <input
           ref="searchInput"
           v-model="search"
           type="text"
           :placeholder="searchPlaceholder"
-          class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+          class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
         >
       </div>
 
@@ -141,7 +145,7 @@ onBeforeUnmount(() => {
         <button
           v-if="modelValue !== ''"
           type="button"
-          class="block w-full px-4 py-2 text-left text-sm text-slate-500 transition hover:bg-slate-50"
+          class="block w-full px-4 py-2 text-left text-sm text-slate-500 transition hover:bg-slate-50 dark:text-gray-400 dark:hover:bg-gray-700"
           @click="clearSelection"
         >
           Clear selection
@@ -151,14 +155,14 @@ onBeforeUnmount(() => {
           v-for="option in filteredOptions"
           :key="option.value"
           type="button"
-          class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-blue-50"
+          class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
           @click="selectOption(option)"
         >
           <span>{{ option.label }}</span>
-          <span v-if="option.value === modelValue" class="text-blue-600">✓</span>
+          <span v-if="option.value === modelValue" class="text-blue-600 dark:text-blue-400">✓</span>
         </button>
 
-        <div v-if="filteredOptions.length === 0" class="px-4 py-3 text-sm text-slate-400">
+        <div v-if="filteredOptions.length === 0" class="px-4 py-3 text-sm text-slate-400 dark:text-gray-500">
           {{ emptyText }}
         </div>
       </div>

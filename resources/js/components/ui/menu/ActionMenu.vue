@@ -61,7 +61,7 @@ onBeforeUnmount(() => {
   <div ref="root" class="relative inline-flex">
     <button
       type="button"
-      class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
+      class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
       aria-label="More actions"
       @click="toggle"
     >
@@ -73,7 +73,7 @@ onBeforeUnmount(() => {
     <div
       v-if="open"
       :class="[
-        'absolute z-40 mt-2 min-w-[10rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg',
+        'absolute z-40 mt-2 min-w-[10rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800',
         props.align === 'left' ? 'left-0' : 'right-0',
       ]"
     >
@@ -81,12 +81,12 @@ onBeforeUnmount(() => {
         v-for="item in items"
         :key="item.key"
         type="button"
-        class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+        class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400 dark:text-gray-300 dark:hover:bg-gray-700 dark:disabled:text-gray-600"
         :disabled="item.disabled"
         @click="selectItem(item)"
       >
         <span>{{ item.label }}</span>
-        <span v-if="item.hint" class="text-xs text-slate-400">{{ item.hint }}</span>
+        <span v-if="item.hint" class="text-xs text-slate-400 dark:text-gray-500">{{ item.hint }}</span>
       </button>
     </div>
   </div>

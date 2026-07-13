@@ -37,11 +37,11 @@ async function fetchNotifications() {
         <p class="mt-1 text-sm text-blue-100/90">Recent pending verification events and system updates.</p>
       </div>
 
-      <div v-if="isLoading" class="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500">
+      <div v-if="isLoading" class="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
         Loading notifications...
       </div>
 
-      <div v-else-if="notifications.length === 0" class="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500">
+      <div v-else-if="notifications.length === 0" class="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
         No notifications found.
       </div>
 
@@ -49,10 +49,10 @@ async function fetchNotifications() {
         <article
           v-for="n in notifications"
           :key="n.id"
-          class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900"
         >
-          <h2 class="font-semibold text-slate-800">{{ n.title }}</h2>
-          <p class="mt-1 text-sm text-slate-500">{{ n.message }}</p>
+          <h2 class="font-semibold text-slate-800 dark:text-gray-100">{{ n.title }}</h2>
+          <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ n.message }}</p>
         </article>
       </div>
     </section>

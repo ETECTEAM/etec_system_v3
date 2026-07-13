@@ -19,10 +19,27 @@ class StoreFloorRequest extends FormRequest
      */
     public function rules(): array
     {
+        $buildingId = $this->route('building')?->id ?? $this->input('building_id');
+
         return [
-            'name' => ['required', 'string', 'max:255', 'unique:floors,name'],
-            'code' => ['nullable', 'string', 'max:255', 'unique:floors,code'],
-            'level' => ['nullable', 'integer', 'min:-50', 'max:300', Rule::unique('floors', 'level')],
+            'building_id' => ['nullable', 'integer', 'exists:buildings,id'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('floors', 'name')->where(function ($query) use ($buildingId) {
+                    return $query->where('building_id', $buildingId);
+                }),
+            ],
+            'level' => [
+                'nullable',
+                'integer',
+                'min:-50',
+                'max:300',
+                Rule::unique('floors', 'level')->where(function ($query) use ($buildingId) {
+                    return $query->where('building_id', $buildingId);
+                }),
+            ],
         ];
     }
 
@@ -32,7 +49,6 @@ class StoreFloorRequest extends FormRequest
 
         return new FloorData(
             name: $validated['name'],
-            code: $validated['code'] ?? null,
             level: isset($validated['level']) ? (int) $validated['level'] : null,
         );
     }

@@ -12,7 +12,7 @@ const props = defineProps({
 </script>
 
 <template>
-  <div :class="['rounded-xl border border-slate-200 bg-white shadow-sm', props.padding, props.cardClass]">
+  <div :class="['rounded-xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900', props.padding, props.cardClass]">
     <slot />
   </div>
 </template>

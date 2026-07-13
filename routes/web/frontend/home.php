@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Route;
 
 // Display the main home view for guest users or redirect authenticated users to the dashboard.
 Route::get('/', function () {
-    if (Auth::check() && (Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('admin'))) {
+    if (Auth::check() && Auth::user()->can('dashboard.view')) {
         return redirect('/dashboard');
     }
 

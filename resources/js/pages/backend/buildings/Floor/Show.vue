@@ -22,35 +22,30 @@ const breadcrumbItems = [
       <Breadcrumbs :items="breadcrumbItems" />
       <PageHero eyebrow="Building Management" title="View Floor" description="Review floor details and level information." />
 
-      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-          <div class="grid gap-5 sm:grid-cols-3">
+          <div class="grid gap-5 sm:grid-cols-2">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Floor Name</p>
-              <p class="mt-2 text-base font-semibold text-slate-900">{{ floor.name }}</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">Floor Name</p>
+              <p class="mt-2 text-base font-semibold text-slate-900 dark:text-gray-100">{{ floor.name }}</p>
             </div>
 
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Code</p>
-              <p class="mt-2 text-base text-slate-800">{{ floor.code || '-' }}</p>
-            </div>
-
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Level</p>
-              <p class="mt-2 text-base text-slate-800">{{ floor.level ?? '-' }}</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">Level</p>
+              <p class="mt-2 text-base text-slate-800 dark:text-gray-300">{{ floor.level ?? '-' }}</p>
             </div>
           </div>
 
           <div class="flex gap-3">
             <Link
               :href="`/dashboard/floors/edit/${floor.id}`"
-              class="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+              class="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
               Edit Floor
             </Link>
             <Link
               href="/dashboard/floors"
-              class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               Back to List
             </Link>
