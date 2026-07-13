@@ -214,6 +214,6 @@ const {
 .modal-fade-enter-from .modal-panel,
 .modal-fade-leave-to .modal-panel {
   transform: scale(0.96) translateY(-8px);
-  opacity: 0;
+  opacity: 0; 
 }
 </style>

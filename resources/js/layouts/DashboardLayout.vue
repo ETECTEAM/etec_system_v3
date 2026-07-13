@@ -52,6 +52,8 @@ import { ref } from 'vue'
 import Sidebar from './Sidebar.vue'
 import DashboardHeader from './DashboardHeader.vue'
 import { ConfirmDialog } from '../components/ui/confirm-dialog'
+import RolePermissionSkeleton from '../pages/backend/users/components/RolePermissionSkeleton.vue'
+import { useRouteLoading } from '../composables/useRouteLoading'
 
 const isSidebarOpen = ref(false)
 
@@ -62,6 +64,12 @@ function openSidebar() {
 function closeSidebar() {
     isSidebarOpen.value = false
 }
+
+// While Inertia is still fetching the destination page, its component hasn't
+// mounted yet, so it can't show its own skeleton — the still-mounted layout
+// from the page being left has to render one on its behalf, keyed off the URL
+// being navigated to.
+const { isNavigating, targetUrl } = useRouteLoading()
 </script>
 
 <template>
@@ -74,8 +82,9 @@ function closeSidebar() {
 
                 <main class="flex-1 px-4 pb-10 pt-6 sm:px-6 lg:px-8">
                     <div class="w-full">
+                        <RolePermissionSkeleton v-if="isNavigating && targetUrl === '/dashboard/users/roles'" />
                         <!-- This is where all page content will appear -->
-                        <slot />
+                        <slot v-else />
                     </div>
                 </main>
             </div>
