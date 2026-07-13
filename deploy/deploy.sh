@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Pulls the latest production branch, rebuilds images, and rolls the stack
+# forward with a migration + cache-warm step. Run from the deploy directory
+# on the VPS (e.g. /opt/etec-system), not from a dev machine.
+#
+# Usage: ./deploy/deploy.sh
+
+set -euo pipefail
+
+COMPOSE_FILE="docker-compose.prod.yml"
+BRANCH="production"
+
+cd "$(git rev-parse --show-toplevel)"
+
+echo "==> Fetching latest ${BRANCH}"
+git fetch origin "${BRANCH}"
+git checkout "${BRANCH}"
+git reset --hard "origin/${BRANCH}"
+
+echo "==> Building images (composer install --no-dev + npm run build happen inside the Dockerfile)"
+docker compose -f "${COMPOSE_FILE}" build app queue scheduler nginx
+
+echo "==> Starting mysql first so migrations have something to run against"
+docker compose -f "${COMPOSE_FILE}" up -d mysql
+docker compose -f "${COMPOSE_FILE}" exec -T mysql sh -c \
+  'until mysqladmin ping -h localhost -u root -p"$MYSQL_ROOT_PASSWORD" --silent; do sleep 2; done'
+
+echo "==> Running migrations"
+docker compose -f "${COMPOSE_FILE}" run --rm app php artisan migrate --force
+
+echo "==> Recreating app, queue, scheduler, nginx with the new images"
+docker compose -f "${COMPOSE_FILE}" up -d app queue scheduler nginx
+
+echo "==> Warming config/route/view caches"
+docker compose -f "${COMPOSE_FILE}" exec -T app php artisan config:cache
+docker compose -f "${COMPOSE_FILE}" exec -T app php artisan route:cache
+docker compose -f "${COMPOSE_FILE}" exec -T app php artisan view:cache
+
+echo "==> Restarting queue worker so it picks up the new code"
+docker compose -f "${COMPOSE_FILE}" restart queue
+
+echo "==> Pruning old images"
+docker image prune -f
+
+echo "==> Done. Current containers:"
+docker compose -f "${COMPOSE_FILE}" ps

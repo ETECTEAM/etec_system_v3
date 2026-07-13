@@ -1,0 +1,29 @@
+# Ensures the whole Docker Compose stack (app, queue worker, scheduler,
+# nginx, mysql) comes back up automatically after a VPS reboot or Docker
+# daemon restart. Individual container crash-recovery is already handled by
+# each service's `restart: unless-stopped` policy in docker-compose.prod.yml
+# — this unit is the outer safety net for the boot case.
+#
+# Install:
+#   sudo cp deploy/systemd/etec-system.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now etec-system.service
+#
+# Adjust WorkingDirectory to match the real deploy path on the server.
+
+[Unit]
+Description=ETEC System (Docker Compose stack)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/etec-system
+ExecStart=/usr/bin/docker compose -f docker-compose.prod.yml up -d
+ExecStop=/usr/bin/docker compose -f docker-compose.prod.yml down
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target
