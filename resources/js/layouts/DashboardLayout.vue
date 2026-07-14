@@ -53,6 +53,7 @@ import Sidebar from './Sidebar.vue'
 import DashboardHeader from './DashboardHeader.vue'
 import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import RolePermissionSkeleton from '../pages/backend/users/components/RolePermissionSkeleton.vue'
+import UserPermissionSkeleton from '../pages/backend/users/components/UserPermissionSkeleton.vue'
 import { useRouteLoading } from '../composables/useRouteLoading'
 
 const isSidebarOpen = ref(false)
@@ -83,6 +84,7 @@ const { isNavigating, targetUrl } = useRouteLoading()
                 <main class="flex-1 px-4 pb-10 pt-6 sm:px-6 lg:px-8">
                     <div class="w-full">
                         <RolePermissionSkeleton v-if="isNavigating && targetUrl === '/dashboard/users/roles'" />
+                        <UserPermissionSkeleton v-else-if="isNavigating && targetUrl === '/dashboard/users/permissions'" />
                         <!-- This is where all page content will appear -->
                         <slot v-else />
                     </div>
