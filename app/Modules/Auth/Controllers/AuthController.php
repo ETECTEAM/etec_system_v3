@@ -40,6 +40,16 @@ class AuthController extends Controller
         private readonly AuthAuditService $auditService,
     ) {}
 
+    public function showLogin(): Response
+    {
+        return Inertia::render('auth/Login');
+    }
+
+    public function showRegister(): Response
+    {
+        return Inertia::render('auth/Register');
+    }
+
     public function registerWeb(RegisterWebRequest $request): RedirectResponse
     {
         $data = $request->toData();
@@ -177,12 +187,21 @@ class AuthController extends Controller
     $user = $this->authService->findUserForLogin($data->login);
 
     if (! $user) {
+        $this->auditService->log(null, 'login.failed', $request->ip(), [
+            'reason' => 'email_not_found',
+            'login' => $data->login,
+        ]);
+
         throw ValidationException::withMessages([
             'login' => ['Email not found.'],
         ]);
     }
 
         if (! Hash::check($data->password, $user->password)) {
+            $this->auditService->log($user, 'login.failed', $request->ip(), [
+                'reason' => 'invalid_password',
+            ]);
+
             throw ValidationException::withMessages([
                 'login' => ['These credentials do not match our records.'],
             ]);

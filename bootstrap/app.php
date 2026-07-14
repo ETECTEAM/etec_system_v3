@@ -73,4 +73,26 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return redirect()->route('login')->with('error', 'Session expired. Please login again.');
         });
+
+        $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, \Illuminate\Http\Request $request) {
+            $retryAfter = (int) ($e->getHeaders()['Retry-After'] ?? 60);
+            $message = "Too many attempts. Please try again in {$retryAfter} seconds.";
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $message,
+                    'retry_after' => $retryAfter,
+                ], 429, ['Retry-After' => (string) $retryAfter]);
+            }
+
+            // Stay on the same form instead of navigating to a dedicated error page - 'login'
+            // surfaces inline under the login field the same way a wrong-password error does,
+            // 'throttle' is available for any other form that wants to show it, 'error' triggers
+            // a toast on pages that watch page.props.flash, and retryAfter drives a countdown
+            // that disables the submit button until the block actually lifts.
+            return back()
+                ->withErrors(['login' => $message, 'throttle' => $message])
+                ->with(['error' => $message, 'retryAfter' => $retryAfter])
+                ->header('Retry-After', (string) $retryAfter);
+        });
     })->create();

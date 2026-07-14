@@ -12,19 +12,14 @@
 */
 use App\Modules\Auth\Controllers\AuthController; // Handles backend authentication actions.
 use Illuminate\Support\Facades\Route; // Registers web routes for the application.
-use Inertia\Inertia; // Renders Inertia-powered frontend pages.
 
 // Display the login screen for guest users only.
-Route::middleware('guest')->get('/login', function () {
-    return Inertia::render('auth/Login');
-})->name('login');
+Route::middleware('guest')->get('/login', [AuthController::class, 'showLogin'])->name('login');
 
 // Display the instructor registration screen for guest users only.
 // Lives at /instructor-register because /register belongs to the
 // frontend student registration flow.
-Route::middleware('guest')->get('/instructor-register', function () {
-    return Inertia::render('auth/Register');
-})->name('register');
+Route::middleware('guest')->get('/instructor-register', [AuthController::class, 'showRegister'])->name('register');
 
 // Display the verification page used after account registration.
 Route::get('/code-verify', [AuthController::class, 'showVerifyCode'])->name('code-verify');
