@@ -17,7 +17,7 @@ const breadcrumbItems = [
 </script>
 
 <template>
-  <Head :title="`View User - ${user.name ?? 'User'}`" />
+  <Head title="View User" />
 
   <DashboardLayout>
     <section class="space-y-6">
