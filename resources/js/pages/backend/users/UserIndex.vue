@@ -4,6 +4,7 @@ import { Head } from '@inertiajs/vue3'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import UserTableSection from './components/UserTableSection.vue'
+import UserIndexSkeleton from './components/UserIndexSkeleton.vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import { useUserIndex } from './composables/useUserIndex'
 
@@ -36,7 +37,11 @@ const {
   <Head title="User" />
 
   <DashboardLayout>
-    <section class="space-y-6">
+    <!-- Shown until the very first fetch resolves, so a hard refresh sees the same
+         skeleton as an in-app navigation, not just the inner table's row placeholders. -->
+    <UserIndexSkeleton v-if="!hasLoadedUsers" />
+
+    <section v-else class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
       <PageHero eyebrow="Users Management" title="Users" description="View existing users and manage account roles." />
 
