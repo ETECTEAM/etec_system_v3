@@ -234,9 +234,16 @@ class AuthController extends Controller
 
         // Combine login + IP so one attacker IP can't lock out a shared account,
         // and one leaked account can't be used to lock out other IPs.
+        // NOTE: because IP is part of the key, an attacker rotating source IPs
+        // (botnet/credential stuffing) gets a fresh 5-attempt bucket per IP —
+        // this does not rate-limit distributed attacks against one account.
+        // A second, login-only limiter with a higher threshold would close that
+        // gap at the cost of being able to lock out a real user's account.
         $limiterKey = Str::lower($data->login).'|'.$request->ip();
 
         // Block further attempts once this login+IP pair is locked out.
+        // NOTE: the account owner isn't notified when this trips — only the
+        // caller sees the 429/validation error.
         if (RateLimiter::tooManyAttempts($limiterKey, 5)) {
             $seconds = RateLimiter::availableIn($limiterKey);
 
@@ -285,6 +292,8 @@ class AuthController extends Controller
         // Any other non-active status (e.g. pending) still needs OTP/approval,
         // so redirect into the same verification flow registerWeb uses instead
         // of logging the user in.
+        // NOTE: OTP here only gates account activation, not every login — an
+        // Active account logs in with password alone, no per-login 2FA.
         if ($user->status !== UserStatus::Active) {
             $request->session()->put('pending_verification_user_id', $user->id);
 
@@ -296,6 +305,9 @@ class AuthController extends Controller
         RateLimiter::clear($limiterKey);
 
         // Log the verified, active user in.
+        // NOTE: unlike the failure path above, successful logins aren't sent to
+        // AuthAuditService — there's currently no audit trail of who logged in
+        // when, only of failures and registrations.
         Auth::login($user, $data->remember);
         // Record the last login timestamp.
         $user->forceFill(['last_login_at' => now()])->save();
