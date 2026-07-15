@@ -24,6 +24,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Timing-Safe Login Dummy Hash
+    |--------------------------------------------------------------------------
+    |
+    | Checked by AuthController::loginWeb() when no user is found for a login
+    | attempt, so the response time for a nonexistent account matches a real
+    | Hash::check() and doesn't leak account existence. Must be a valid bcrypt
+    | hash whose cost matches BCRYPT_ROUNDS. Generate a new one per environment
+    | with: password_hash('anything', PASSWORD_BCRYPT, ['cost' => 12]).
+    |
+    */
+
+    'dummy_password_hash' => env(
+        'AUTH_DUMMY_PASSWORD_HASH',
+        '$2y$12$tHtyWiLhB93IiFOwLuWrnuF2pjUt8EY14lb9rJnnATJGw/gUTBbMC'
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
     | Authentication Guards
     |--------------------------------------------------------------------------
     |
