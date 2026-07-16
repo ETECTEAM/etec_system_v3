@@ -20,32 +20,51 @@ const showPassword = ref(false)
 
 const formValid = computed(() => form.login.trim().length > 0 && form.password.length > 0)
 
-// While locked out, show a live-ticking message instead of the server's static
-// one-time snapshot ("...in 56 seconds." would otherwise sit frozen at 56).
+// While locked out, the lockout alert above the form covers messaging, so
+// suppress the field-level error to avoid showing the same thing twice.
 const loginFieldError = computed(() => {
-  if (lockoutSecondsLeft.value > 0) {
-    const unit = lockoutSecondsLeft.value === 1 ? 'second' : 'seconds'
-
-    return `Too many attempts. Please try again in ${lockoutSecondsLeft.value} ${unit}.`
-  }
+  if (lockoutSecondsLeft.value > 0) return null
 
   return form.errors.login
 })
 
+// The alert and toast read in minutes (or hours, once the wait is an hour or
+// more - a hard block can run up to 24h, and "1440 minutes" doesn't read well)
+// so round the live seconds countdown up to whole units.
+function lockoutMinutesLabel(seconds) {
+  const minutes = Math.max(1, Math.ceil(seconds / 60))
+
+  if (minutes >= 60) {
+    const hours = Math.ceil(minutes / 60)
+
+    return `${hours} ${hours === 1 ? 'hour' : 'hours'}`
+  }
+
+  return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`
+}
+
+const lockoutMinutesText = computed(() => lockoutMinutesLabel(lockoutSecondsLeft.value))
+
 // Counts down a throttle block locally once retryAfter arrives, so the submit
 // button stays disabled without needing to keep polling the server.
 const lockoutSecondsLeft = ref(0)
+// True when the block is an account-wide hard block (past every configured
+// lockout tier) rather than a regular timed one - only an admin unblocking
+// it, or the full reset window, lifts this one.
+const lockoutIsHardBlock = ref(false)
 let lockoutTimer = null
 
-function startLockoutCountdown(seconds) {
+function startLockoutCountdown(seconds, isHardBlock = false) {
   window.clearInterval(lockoutTimer)
   lockoutSecondsLeft.value = seconds
+  lockoutIsHardBlock.value = isHardBlock
 
   lockoutTimer = window.setInterval(() => {
     if (lockoutSecondsLeft.value > 0) {
       lockoutSecondsLeft.value -= 1
     } else {
       window.clearInterval(lockoutTimer)
+      lockoutIsHardBlock.value = false
       // The block has actually lifted now - clear every field error so nothing
       // lingers from either the throttle message or the attempt that caused it.
       form.clearErrors()
@@ -54,12 +73,17 @@ function startLockoutCountdown(seconds) {
 }
 
 watch(() => page.props.flash, (flash) => {
-  if (flash?.error) {
-    toast.error(flash.error)
-  }
-
+  // A throttle lockout carries its own retryAfter-based message so the toast
+  // reads in minutes/hours, instead of the backend's raw "...in N seconds." string.
   if (flash?.retryAfter) {
-    startLockoutCountdown(flash.retryAfter)
+    const wait = lockoutMinutesLabel(flash.retryAfter)
+
+    toast.error(flash.isHardBlock
+      ? `Your account has been blocked. Contact an administrator, or wait ${wait} for it to reset automatically.`
+      : `Too many attempts. Please try again in ${wait}.`)
+    startLockoutCountdown(flash.retryAfter, !!flash.isHardBlock)
+  } else if (flash?.error) {
+    toast.error(flash.error)
   }
 }, { deep: true })
 
@@ -78,6 +102,27 @@ function submit() {
     <div class="mb-8">
       <h2 class="text-3xl font-black text-slate-900 dark:text-gray-100">Sign In</h2>
       <p class="mt-2 text-sm text-slate-600 dark:text-gray-400">Use your email or username to continue.</p>
+    </div>
+
+    <div
+      v-if="lockoutSecondsLeft > 0"
+      class="mb-6 flex items-start gap-2.5 rounded-lg border border-red-100 bg-[#FEECEC] px-4 py-3 dark:border-red-500/20 dark:bg-red-500/10"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mt-0.5 h-4 w-4 shrink-0 text-[#D14343] dark:text-red-400">
+        <circle cx="12" cy="12" r="9" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5v5.5" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.25h.01" />
+      </svg>
+      <div class="text-[13px] leading-snug text-[#D14343] dark:text-red-400">
+        <template v-if="lockoutIsHardBlock">
+          <p>Your account has been blocked due to repeated failed login attempts.</p>
+          <p>Contact an administrator, or wait {{ lockoutMinutesText }} for it to reset automatically.</p>
+        </template>
+        <template v-else>
+          <p>Too many failed login attempts.</p>
+          <p>Please try again in {{ lockoutMinutesText }}.</p>
+        </template>
+      </div>
     </div>
 
     <form class="space-y-4" @submit.prevent="submit">
@@ -133,7 +178,7 @@ function submit() {
         :disabled="form.processing || !formValid || lockoutSecondsLeft > 0"
         class="w-full rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
       >
-        {{ lockoutSecondsLeft > 0 ? `Try again in ${lockoutSecondsLeft}s` : (form.processing ? 'Signing in...' : 'Sign In') }}
+        {{ lockoutSecondsLeft > 0 ? (lockoutIsHardBlock ? `Blocked - ${lockoutMinutesText}` : `Try again in ${lockoutMinutesText}`) : (form.processing ? 'Signing in...' : 'Sign In') }}
       </button>
     </form>
 

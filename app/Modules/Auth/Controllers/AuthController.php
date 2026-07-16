@@ -18,6 +18,7 @@ use App\Modules\Auth\Requests\VerifyCodeRequest;
 use App\Modules\Auth\Responses\VerificationResponse;
 use App\Modules\Auth\Services\AuthAuditService;
 use App\Modules\Auth\Services\AuthService;
+use App\Modules\Auth\Services\LoginLockoutService;
 use App\Modules\Auth\Services\OtpService;
 use App\Modules\User\Services\UserApprovalService;
 
@@ -46,6 +47,7 @@ class AuthController extends Controller
         private readonly OtpService $otpService,
         private readonly UserApprovalService $approvalService,
         private readonly AuthAuditService $auditService,
+        private readonly LoginLockoutService $lockoutService,
     ) {}
 
     // Route to display the login page for guest users.
@@ -227,23 +229,53 @@ class AuthController extends Controller
     }
 
     // Route to process login form submissions; guest-only, with the 'login' rate limiter to slow brute-force attempts.
-    public function loginWeb(LoginWebRequest $request): RedirectResponse
+    public function loginWeb(LoginWebRequest $request): RedirectResponse|JsonResponse
     {
         // Convert the validated request into a typed DTO.
         $data = $request->toData();
+        $loginKey = Str::lower($data->login);
+
+        // Account-wide escalating ban, independent of IP - see
+        // LoginLockoutService. Checked before the short-window limiter below
+        // so a banned account can't burn through its attempts from a new IP.
+        if ($this->lockoutService->isBanned($loginKey)) {
+            $seconds = $this->lockoutService->secondsRemaining($loginKey);
+
+            // Past the last configured tier the account is hard-blocked
+            // rather than timed - point the user at an admin instead of a
+            // countdown, since only an admin (or the full reset window) lifts it.
+            $isHardBlock = $this->lockoutService->isHardBlocked($loginKey);
+            $message = $isHardBlock
+                ? 'Your account has been blocked due to repeated failed login attempts. Contact an administrator or wait for it to reset automatically.'
+                : "Too many failed login attempts. Please try again in {$seconds} seconds.";
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $message,
+                    'retry_after' => $seconds,
+                    'is_hard_block' => $isHardBlock,
+                ], 429, ['Retry-After' => (string) $seconds]);
+            }
+
+            return back()
+                ->withErrors(['login' => $message])
+                ->with(['error' => $message, 'retryAfter' => $seconds, 'isHardBlock' => $isHardBlock])
+                ->header('Retry-After', (string) $seconds);
+        }
 
         // Combine login + IP so one attacker IP can't lock out a shared account,
         // and one leaked account can't be used to lock out other IPs.
-        // NOTE: because IP is part of the key, an attacker rotating source IPs
-        // (botnet/credential stuffing) gets a fresh 5-attempt bucket per IP —
-        // this does not rate-limit distributed attacks against one account.
-        // A second, login-only limiter with a higher threshold would close that
-        // gap at the cost of being able to lock out a real user's account.
-        $limiterKey = Str::lower($data->login).'|'.$request->ip();
+        // NOTE: this short window only throttles a single IP's burst of
+        // attempts - an attacker rotating IPs still gets a fresh 5-attempt
+        // bucket per IP here. What actually stops them is the account-wide
+        // ban above: crossing this threshold escalates a ban keyed on the
+        // account alone (see registerFailure() below), so switching IPs no
+        // longer resets anything once that ban is in effect.
+        $limiterKey = $loginKey.'|'.$request->ip();
 
         // Block further attempts once this login+IP pair is locked out.
-        // NOTE: the account owner isn't notified when this trips — only the
-        // caller sees the 429/validation error.
+        // NOTE: the account owner isn't notified when this - or the
+        // account-wide ban above - trips; only the caller sees the error.
         if (RateLimiter::tooManyAttempts($limiterKey, 5)) {
             $seconds = RateLimiter::availableIn($limiterKey);
 
@@ -265,6 +297,12 @@ class AuthController extends Controller
         if (! $user || ! $passwordMatches) {
             // Count this attempt against the login+IP limiter.
             RateLimiter::hit($limiterKey, 60);
+
+            // This attempt just exhausted the short window - escalate an
+            // account-wide ban via LoginLockoutService (see the NOTE above).
+            if (RateLimiter::attempts($limiterKey) >= 5) {
+                $this->lockoutService->registerFailure($loginKey);
+            }
 
             // One generic client-facing message for both cases; the real reason
             // is only recorded here, in the audit log, to avoid enumeration.
@@ -301,8 +339,11 @@ class AuthController extends Controller
                 ->with('success', 'Please verify your account before logging in.');
         }
 
-        // Successful login: forget prior failed attempts for this login+IP pair.
+        // Successful login: forget prior failed attempts for this login+IP pair,
+        // and reset the account's escalation history so the next lockout (if
+        // any) starts back at the first tier.
         RateLimiter::clear($limiterKey);
+        $this->lockoutService->clear($loginKey);
 
         // Log the verified, active user in.
         // NOTE: unlike the failure path above, successful logins aren't sent to

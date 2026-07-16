@@ -33,6 +33,9 @@ use Database\Seeders\Schedule\ScheduleSeeder;
 // Shift template seeders
 use Database\Seeders\Schedule\ShiftTemplateSeeder;
 
+// Login security seeders
+use Database\Seeders\LoginLockoutSeeder;
+
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
@@ -43,6 +46,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             AssignPermissionSeeder::class,
             UserSeeder::class,
+            LoginLockoutSeeder::class,
 
             // 2. Core/base data
             CoreSeeder::class,

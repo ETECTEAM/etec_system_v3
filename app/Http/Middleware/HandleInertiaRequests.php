@@ -43,6 +43,11 @@ class HandleInertiaRequests extends Middleware
                 // Seconds until a throttle block lifts - lets the triggering form
                 // disable its submit button and count down instead of just erroring.
                 'retryAfter' => $request->session()->get('retryAfter'),
+                // True when a retryAfter block is an account-wide hard block
+                // (past every configured lockout tier), not a regular timed
+                // one - lets the triggering form show "contact an admin"
+                // instead of a plain countdown.
+                'isHardBlock' => $request->session()->get('isHardBlock'),
             ],
         ];
     }
