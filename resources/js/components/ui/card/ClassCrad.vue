@@ -51,6 +51,14 @@ const showBarDialog = ref(false);
 function showViewClass () { 
    router.get(`/dashboard/students/view/${props.classData.id}`);
 }
+
+function showEditClass() {
+    router.get(`/dashboard/students/edit/${props.classData.id}`);
+}
+
+function showAddStudent() {
+    router.get(`/dashboard/students/${props.classData.id}/students/create`);
+}
 </script>
 
 <template>
@@ -219,5 +227,8 @@ function showViewClass () {
     :show="showBarDialog"
     :classData="classData"
     @close="showBarDialog = false"
+    @view="showViewClass"
+    @edit="showEditClass"
+    @add-student="showAddStudent"
 />
 </template>

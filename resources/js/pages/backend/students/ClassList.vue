@@ -11,75 +11,16 @@ import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
 import PageHero from "../../../components/ui/page-hero/PageHero.vue";
 import DepositSummaryCard from "./components/DepositSummaryCard.vue";
 
-const search = ref("");
 const viewMode = ref("card");
-const classes = ref([
-  {
-    id: 366,
-    title: "Web Design + React.js",
-    lesson: "Bootstrap",
-    building: "Building B",
-    floor: "Floor 1",
-    room: "ETEC B102",
-    status: "Physical Class",
-    term: "Mon & Thu",
-    time: "09:00 am - 10:30 am",
-    students: 8,
-    capacity: 20,
-    notifications: 5,
-  },
-  {
-    id: 367,
-    title: "Laravel 12",
-    lesson: "Authentication",
-    building: "Building A",
-    floor: "Floor 2",
-    room: "ETEC A203",
-    status: "Physical Class",
-    term: "Tue & Fri",
-    time: "10:45 am - 12:15 pm",
-    students: 15,
-    capacity: 25,
-    notifications: 2,
-  },
-  {
-    id: 368,
-    title: "UI/UX Design",
-    lesson: "Figma Prototype",
-    building: "Building C",
-    floor: "Floor 3",
-    room: "ETEC C301",
-    status: "Online Class",
-    term: "Wednesday",
-    time: "01:30 pm - 03:00 pm",
-    students: 22,
-    capacity: 30,
-    notifications: 1,
-  },
-  {
-    id: 369,
-    title: "Java Programming",
-    lesson: "Collections Framework",
-    building: "Building B",
-    floor: "Floor 2",
-    room: "ETEC B205",
-    status: "Physical Class",
-    term: "Saturday",
-    time: "08:00 am - 11:00 am",
-    students: 18,
-    capacity: 20,
-    notifications: 3,
-  },
-]);
 
-defineProps({
-  classData: {
+const props = defineProps({
+  classes: {
     type: Object,
-    default: null,
+    default: () => ({ data: [] }),
   },
-  students: {
-    type: Array,
-    default: () => [],
+  filters: {
+    type: Object,
+    default: () => ({ search: "" }),
   },
   depositSummary: {
     type: Object,
@@ -87,15 +28,20 @@ defineProps({
   },
 });
 
-const filteredClasses = computed(() => {
-  if (!search.value) return classes.value;
+const search = ref(props.filters.search ?? "");
+const filteredClasses = computed(() => props.classes?.data ?? []);
+let searchTimer = null;
 
-  return classes.value.filter((item) =>
-    (item.title + item.lesson + item.building + item.room)
-      .toLowerCase()
-      .includes(search.value.toLowerCase())
-  );
-});
+function runSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    router.get(
+      "/dashboard/students",
+      { search: search.value },
+      { preserveState: true, replace: true }
+    );
+  }, 350);
+}
 
 const breadcrumbItems = [
   { label: "Dashboard", href: "/dashboard" },
@@ -104,6 +50,7 @@ const breadcrumbItems = [
 
 function refresh() {
   search.value = "";
+  router.get("/dashboard/students", {}, { preserveState: true, replace: true });
 }
 
 function goCreateClass() {
@@ -149,11 +96,12 @@ function goCreateClass() {
             <Search
               class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
             />
-            <input
-              v-model="search"
-              type="text"
-              placeholder="Search student..."
-              class="w-full rounded-xl border border-slate-300 py-2 pl-10 pr-4 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          <input
+            v-model="search"
+            @input="runSearch"
+            type="text"
+            placeholder="Search student..."
+              class="w-full rounded-xl border border-slate-300 py-2 pl-10 pr-4 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
             />
           </div>
 
@@ -212,6 +160,24 @@ function goCreateClass() {
       <!-- Table View -->
       <div v-else class="w-full overflow-x-auto">
         <ClassTable :items="filteredClasses" />
+      </div>
+
+      <div v-if="classes?.links?.length > 3" class="mt-6 flex flex-wrap justify-center gap-2">
+        <button
+          v-for="link in classes.links"
+          :key="link.label"
+          type="button"
+          :disabled="!link.url"
+          @click="link.url && router.visit(link.url, { preserveState: true })"
+          v-html="link.label"
+          :class="[
+            'rounded-lg border px-3 py-2 text-sm',
+            link.active
+              ? 'border-blue-900 bg-blue-900 text-white'
+              : 'border-slate-300 bg-white text-slate-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300',
+            !link.url ? 'cursor-not-allowed opacity-50' : 'hover:bg-slate-100 dark:hover:bg-gray-800',
+          ]"
+        ></button>
       </div>
     </div>
   </DashboardLayout>

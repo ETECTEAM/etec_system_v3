@@ -15,8 +15,12 @@ const props = defineProps({
     default: () => [],
   },
 });
+const emit = defineEmits(["record-deposit"]);
 
 const search = ref("");
+function refresh() {
+  search.value = "";
+}
 
 const filtered = computed(() => {
   if (!search.value) return props.students;
@@ -24,6 +28,7 @@ const filtered = computed(() => {
   return props.students.filter(
     (s) =>
       s.name?.toLowerCase().includes(q) ||
+      String(s.roster_no).includes(q) ||
       String(s.id).includes(q) ||
       s.phone?.toLowerCase().includes(q)
   );
@@ -31,8 +36,8 @@ const filtered = computed(() => {
 
 function statusBadge(status) {
   switch (status) {
-    case "Paid":
-      return "bg-emerald-100 text-emerald-700";
+            case "Paid":
+      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400";
     case "Partial":
       return "bg-amber-100 text-amber-700";
     case "Unpaid":
@@ -103,9 +108,9 @@ function statusBadge(status) {
         </TableHeader>
 
         <TableBody>
-          <TableRow v-for="student in filtered" :key="student.id">
-            <TableCell class="font-medium text-slate-900">
-              #{{ student.id }}
+          <TableRow v-for="student in filtered" :key="student.enrollment_id">
+            <TableCell class="font-medium text-slate-900 dark:text-gray-100">
+              #{{ student.roster_no }}
             </TableCell>
             <TableCell class="whitespace-nowrap font-medium text-slate-900">
               {{ student.name }}
@@ -115,7 +120,7 @@ function statusBadge(status) {
               {{ student.phone ?? "—" }}
             </TableCell>
             <TableCell class="whitespace-nowrap font-medium">
-              ${{ student.deposit_amount?.toFixed(2) }}
+              ${{ Number(student.amount_paid ?? student.deposit_amount ?? 0).toFixed(2) }}
             </TableCell>
             <TableCell class="whitespace-nowrap">
               {{ student.payment_date ?? "—" }}
@@ -129,7 +134,7 @@ function statusBadge(status) {
               </span>
             </TableCell>
             <TableCell class="whitespace-nowrap font-medium">
-              ${{ student.remaining_balance?.toFixed(2) }}
+              ${{ Number(student.remaining_balance ?? 0).toFixed(2) }}
             </TableCell>
             <TableCell>
               <div class="flex justify-center gap-1.5">
@@ -140,7 +145,8 @@ function statusBadge(status) {
                   <Eye class="h-4 w-4" />
                 </button>
                 <button
-                  class="rounded-lg bg-amber-50 p-2 text-amber-600 transition-colors hover:bg-amber-100"
+                  @click="emit('record-deposit', student)"
+                  class="rounded-lg bg-amber-50 p-2 text-amber-600 transition-colors hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
                   title="Edit Deposit"
                 >
                   <Pencil class="h-4 w-4" />

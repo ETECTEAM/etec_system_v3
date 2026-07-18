@@ -29,7 +29,11 @@ const menus = [
     icon: SquarePen,
     action: () => router.get(`/dashboard/students/edit/${props.classData.id}`),
   },
-  { label: "Add Student", icon: UserPlus },
+  {
+    label: "Add Student",
+    icon: UserPlus,
+    action: () => router.get(`/dashboard/students/${props.classData.id}/students/create`),
+  },
   { label: "Generate QR", icon: QrCode },
   { label: "Switch Teacher", icon: UserCog },
 ];
@@ -54,8 +58,8 @@ const actions = [
       <button
         v-for="item in menus"
         :key="item.label"
-        @click="item.action?.()"
-        class="flex w-full items-center gap-3 px-4 py-3 text-left text-slate-700 hover:bg-slate-50"
+        @click="open = false; item.action?.()"
+        class="flex w-full items-center gap-3 px-4 py-3 text-left text-slate-700 hover:bg-slate-50 dark:text-gray-300 dark:hover:bg-gray-700"
       >
         <component :is="item.icon" class="h-4 w-4" />
         {{ item.label }}
