@@ -1,7 +1,8 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3'
+import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { watch } from 'vue'
-import { CircleCheck, Clock, Plus, RotateCcw, Save, ShieldCheck, X } from '@lucide/vue'
+import { useToast } from 'vue-toastification'
+import { Clock, Plus, RotateCcw, Save, ShieldCheck, X } from '@lucide/vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
@@ -11,6 +12,17 @@ const props = defineProps({
   resetAfterHours: Number,
   isEnabled: Boolean,
 })
+
+const toast = useToast()
+const page = usePage()
+
+watch(() => page.props.flash, (flash) => {
+  if (flash?.success) {
+    toast.success(flash.success)
+  } else if (flash?.error) {
+    toast.error(flash.error)
+  }
+}, { deep: true })
 
 const form = useForm({
   tiers: [],
@@ -102,14 +114,6 @@ const breadcrumbItems = [
         title="Login Security"
         description="Configure how long an account is locked out after repeated failed login attempts, and how long the offense history is remembered."
       />
-
-      <div
-        v-if="$page.props.flash?.success"
-        class="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
-      >
-        <CircleCheck class="h-4 w-4 shrink-0" />
-        {{ $page.props.flash.success }}
-      </div>
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form @submit.prevent="submit">

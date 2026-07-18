@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AuthCard from './components/AuthCard.vue'
 import AuthLayout from '../../layouts/AuthLayout.vue'
 import { Link, useForm, usePage } from '@inertiajs/vue3'
@@ -29,10 +29,17 @@ const loginFieldError = computed(() => {
 })
 
 // The alert and toast read in minutes (or hours, once the wait is an hour or
-// more - a hard block can run up to 24h, and "1440 minutes" doesn't read well)
-// so round the live seconds countdown up to whole units.
-function lockoutMinutesLabel(seconds) {
-  const minutes = Math.max(1, Math.ceil(seconds / 60))
+// more - a hard block can run up to 24h, and "1440 minutes" doesn't read well).
+// Under a minute, show the exact seconds instead of rounding up to "1 minute" -
+// otherwise the last 59 seconds of any ban all read identically.
+function lockoutWaitLabel(seconds) {
+  if (seconds < 60) {
+    const s = Math.max(1, Math.ceil(seconds))
+
+    return `${s} ${s === 1 ? 'second' : 'seconds'}`
+  }
+
+  const minutes = Math.ceil(seconds / 60)
 
   if (minutes >= 60) {
     const hours = Math.ceil(minutes / 60)
@@ -43,7 +50,7 @@ function lockoutMinutesLabel(seconds) {
   return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`
 }
 
-const lockoutMinutesText = computed(() => lockoutMinutesLabel(lockoutSecondsLeft.value))
+const lockoutWaitText = computed(() => lockoutWaitLabel(lockoutSecondsLeft.value))
 
 // Counts down a throttle block locally once retryAfter arrives, so the submit
 // button stays disabled without needing to keep polling the server.
@@ -54,10 +61,30 @@ const lockoutSecondsLeft = ref(0)
 const lockoutIsHardBlock = ref(false)
 let lockoutTimer = null
 
+// The ban itself is enforced server-side (DB-backed), but the countdown UI is
+// only in-memory - without this, refreshing the page during an active block
+// would reset lockoutSecondsLeft to 0 and the form would look usable again,
+// even though the next submit would just be rejected the same way. Persist
+// the absolute expiry so a refresh can restore the same countdown instead of
+// waiting for another failed submit to rediscover it.
+const LOCKOUT_STORAGE_KEY = 'login-lockout'
+
+function persistLockout(seconds, isHardBlock) {
+  sessionStorage.setItem(LOCKOUT_STORAGE_KEY, JSON.stringify({
+    expiresAt: Date.now() + seconds * 1000,
+    isHardBlock,
+  }))
+}
+
+function clearPersistedLockout() {
+  sessionStorage.removeItem(LOCKOUT_STORAGE_KEY)
+}
+
 function startLockoutCountdown(seconds, isHardBlock = false) {
   window.clearInterval(lockoutTimer)
   lockoutSecondsLeft.value = seconds
   lockoutIsHardBlock.value = isHardBlock
+  persistLockout(seconds, isHardBlock)
 
   lockoutTimer = window.setInterval(() => {
     if (lockoutSecondsLeft.value > 0) {
@@ -65,6 +92,7 @@ function startLockoutCountdown(seconds, isHardBlock = false) {
     } else {
       window.clearInterval(lockoutTimer)
       lockoutIsHardBlock.value = false
+      clearPersistedLockout()
       // The block has actually lifted now - clear every field error so nothing
       // lingers from either the throttle message or the attempt that caused it.
       form.clearErrors()
@@ -76,7 +104,7 @@ watch(() => page.props.flash, (flash) => {
   // A throttle lockout carries its own retryAfter-based message so the toast
   // reads in minutes/hours, instead of the backend's raw "...in N seconds." string.
   if (flash?.retryAfter) {
-    const wait = lockoutMinutesLabel(flash.retryAfter)
+    const wait = lockoutWaitLabel(flash.retryAfter)
 
     toast.error(flash.isHardBlock
       ? `Your account has been blocked. Contact an administrator, or wait ${wait} for it to reset automatically.`
@@ -86,6 +114,20 @@ watch(() => page.props.flash, (flash) => {
     toast.error(flash.error)
   }
 }, { deep: true })
+
+onMounted(() => {
+  const stored = sessionStorage.getItem(LOCKOUT_STORAGE_KEY)
+  if (!stored) return
+
+  const { expiresAt, isHardBlock } = JSON.parse(stored)
+  const secondsLeft = Math.ceil((expiresAt - Date.now()) / 1000)
+
+  if (secondsLeft > 0) {
+    startLockoutCountdown(secondsLeft, isHardBlock)
+  } else {
+    clearPersistedLockout()
+  }
+})
 
 onBeforeUnmount(() => {
   window.clearInterval(lockoutTimer)
@@ -116,11 +158,11 @@ function submit() {
       <div class="text-[13px] leading-snug text-[#D14343] dark:text-red-400">
         <template v-if="lockoutIsHardBlock">
           <p>Your account has been blocked due to repeated failed login attempts.</p>
-          <p>Contact an administrator, or wait {{ lockoutMinutesText }} for it to reset automatically.</p>
+          <p>Contact an administrator, or wait {{ lockoutWaitText }} for it to reset automatically.</p>
         </template>
         <template v-else>
           <p>Too many failed login attempts.</p>
-          <p>Please try again in {{ lockoutMinutesText }}.</p>
+          <p>Please try again in {{ lockoutWaitText }}.</p>
         </template>
       </div>
     </div>
@@ -181,7 +223,7 @@ function submit() {
         :disabled="form.processing || !formValid || lockoutSecondsLeft > 0"
         class="w-full rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
       >
-        {{ lockoutSecondsLeft > 0 ? (lockoutIsHardBlock ? `Blocked - ${lockoutMinutesText}` : `Try again in ${lockoutMinutesText}`) : (form.processing ? 'Signing in...' : 'Sign In') }}
+        {{ lockoutSecondsLeft > 0 ? (lockoutIsHardBlock ? `Blocked - ${lockoutWaitText}` : `Try again in ${lockoutWaitText}`) : (form.processing ? 'Signing in...' : 'Sign In') }}
       </button>
     </form>
 

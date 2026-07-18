@@ -58,6 +58,22 @@ button:not(:disabled) {
     cursor: pointer;
 }
 
+/*
+ * Chrome/WebKit paints its own yellow background on autofilled inputs via an
+ * internal UA stylesheet that plain background-color can't override. Delaying
+ * the background-color transition far beyond any real use keeps the input's
+ * own background visible instead, while -webkit-text-fill-color keeps the
+ * text following the app's actual (possibly dark-mode) text color rather
+ * than the black WebKit forces by default.
+ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-text-fill-color: currentColor;
+    transition: background-color 600000s 0s, color 600000s 0s;
+}
+
 /* Hide scrollbar but keep scrolling */
 .hide-scrollbar::-webkit-scrollbar {
     display: none;
