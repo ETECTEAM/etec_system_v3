@@ -107,11 +107,11 @@ class AuthController extends Controller
         }
 
         if (! $user) {
-            return redirect('/register')->with('error', 'Please register first to request a verification code.');
+            return redirect('/instructor-register')->with('error', 'Please register first to request a verification code.');
         }
 
         if ($user->status === UserStatus::Rejected) {
-            return redirect('/register')->with('error', 'Your registration was rejected. Please contact support.');
+            return redirect('/instructor-register')->with('error', 'Your registration was rejected. Please contact support.');
         }
 
         if ($user->status === UserStatus::Active) {
@@ -181,6 +181,12 @@ class AuthController extends Controller
             'login' => ['Email not found.'],
         ]);
     }
+
+        if (! Hash::check($data->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'login' => ['These credentials do not match our records.'],
+            ]);
+        }
 
         if ($user->status === UserStatus::Inactive) {
             throw ValidationException::withMessages(['login' => ['Your account is inactive. Please contact administrator.']]);

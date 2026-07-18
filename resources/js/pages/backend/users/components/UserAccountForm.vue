@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
+import { Eye, EyeOff } from '@lucide/vue'
 import { SelectSearch } from '../../../../components/ui/select-search'
 import { formatRole } from '../../../../lib/roleBadge'
 
@@ -13,6 +14,8 @@ const statusOptions = [
 ]
 const student = computed(() => props.form.role === 'student')
 const instructor = computed(() => props.form.role === 'instructor')
+const showPassword = ref(false)
+const showPasswordConfirmation = ref(false)
 </script>
 
 <template>
@@ -34,11 +37,23 @@ const instructor = computed(() => props.form.role === 'instructor')
     </label>
     <label class="block">
       <span class="mb-2 block text-sm font-semibold text-slate-700">{{ edit ? 'New Password' : 'Password' }}</span>
-      <input v-model="form.password" type="password" placeholder="Min. 8 characters" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
+      <div class="relative">
+        <input v-model="form.password" :type="showPassword ? 'text' : 'password'" placeholder="Min. 8 characters" class="w-full rounded-xl border border-slate-300 px-4 py-3 pr-11 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
+        <button type="button" tabindex="-1" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600" @click="showPassword = !showPassword">
+          <EyeOff v-if="showPassword" class="h-4 w-4" />
+          <Eye v-else class="h-4 w-4" />
+        </button>
+      </div>
     </label>
     <label class="block">
       <span class="mb-2 block text-sm font-semibold text-slate-700">Confirm Password</span>
-      <input v-model="form.password_confirmation" type="password" placeholder="Repeat password" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
+      <div class="relative">
+        <input v-model="form.password_confirmation" :type="showPasswordConfirmation ? 'text' : 'password'" placeholder="Repeat password" class="w-full rounded-xl border border-slate-300 px-4 py-3 pr-11 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
+        <button type="button" tabindex="-1" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600" @click="showPasswordConfirmation = !showPasswordConfirmation">
+          <EyeOff v-if="showPasswordConfirmation" class="h-4 w-4" />
+          <Eye v-else class="h-4 w-4" />
+        </button>
+      </div>
     </label>
     <div class="grid gap-4 md:grid-cols-2 sm:col-span-2">
       <label class="block">

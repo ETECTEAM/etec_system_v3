@@ -117,18 +117,18 @@ watch(perPage, () => fetchFloors(1))
 
       <Card padding="p-0">
         <!-- Header -->
-        <div class="border-b border-slate-200 px-6 py-5">
+        <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex items-center gap-3">
-              <h2 class="text-xl font-semibold text-slate-900">Floors</h2>
-              <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-sm font-semibold text-blue-600">
+              <h2 class="text-xl font-semibold text-slate-900 dark:text-gray-100">Floors</h2>
+              <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-sm font-semibold text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
                 {{ pagination.total }}
               </span>
             </div>
 
             <Link
               href="/dashboard/floors/create"
-              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
               Create Floor
             </Link>
@@ -138,13 +138,13 @@ watch(perPage, () => fetchFloors(1))
             <input
               v-model="search"
               type="text"
-              placeholder="Search by name, code, or level..."
-              class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              placeholder="Search by name or level..."
+              class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             >
 
             <select
               v-model="perPage"
-              class="w-40 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              class="w-40 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             >
               <option v-for="option in perPageOptions" :key="option" :value="option">
                 {{ option === 'all' ? 'All floors' : option + ' per page' }}
@@ -160,7 +160,6 @@ watch(perPage, () => fetchFloors(1))
               <TableRow>
                 <TableHead class="w-16">No</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Code</TableHead>
                 <TableHead>Level</TableHead>
                 <TableHead class="text-right">Actions</TableHead>
               </TableRow>
@@ -168,34 +167,33 @@ watch(perPage, () => fetchFloors(1))
 
             <TableBody>
               <TableRow v-for="(floor, index) in floors" :key="floor.id">
-                <TableCell class="text-slate-500">{{ rowNumber(index) }}</TableCell>
-                <TableCell class="font-medium text-slate-900">{{ floor.name }}</TableCell>
-                <TableCell class="text-slate-600">{{ floor.code || '-' }}</TableCell>
-                <TableCell class="text-slate-600">{{ floor.level ?? '-' }}</TableCell>
+                <TableCell class="text-slate-500 dark:text-gray-400">{{ rowNumber(index) }}</TableCell>
+                <TableCell class="font-medium text-slate-900 dark:text-gray-100">{{ floor.name }}</TableCell>
+                <TableCell class="text-slate-600 dark:text-gray-300">{{ floor.level ?? '-' }}</TableCell>
                 <TableCell class="text-right">
                   <ActionMenu :items="actionItems()" @select="handleAction($event, floor)" />
                 </TableCell>
               </TableRow>
 
               <TableRow v-if="hasLoaded && !isLoading && floors.length === 0">
-                <TableCell colspan="5" class="py-10 text-center text-slate-500">
+                <TableCell colspan="5" class="py-10 text-center text-slate-500 dark:text-gray-400">
                   No floors found.
                 </TableCell>
               </TableRow>
             </TableBody>
           </Table>
 
-          <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-white/70">
-            <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
+          <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-gray-900/70">
+            <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
               <div class="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
-              <span class="text-sm text-slate-600">Loading floors...</span>
+              <span class="text-sm text-slate-600 dark:text-gray-300">Loading floors...</span>
             </div>
           </div>
         </div>
 
         <!-- Footer -->
-        <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <p class="text-sm text-slate-500">
+        <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
+          <p class="text-sm text-slate-500 dark:text-gray-400">
             Showing {{ paginationStart() }}–{{ paginationEnd() }} of {{ pagination.total }} floors
           </p>
 

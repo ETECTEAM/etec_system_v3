@@ -220,7 +220,6 @@ class BuildingService
             'id' => $floor->id,
             'building_id' => $floor->building_id,
             'name' => $floor->name,
-            'code' => $floor->code,
             'level' => $floor->level,
             'rooms_count' => $floor->rooms->count(),
             'rooms' => $floor->rooms->map(fn (Room $room): array => [
@@ -236,7 +235,6 @@ class BuildingService
             'id' => $building->id,
             'name' => $building->name,
             'code' => $building->code,
-            'address' => $building->address,
             'description' => $building->description,
             'floors_count' => $floors->count(),
             'rooms_count' => $floors->sum('rooms_count'),

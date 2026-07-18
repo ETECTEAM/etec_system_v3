@@ -35,14 +35,7 @@ class BuildingController extends Controller
         ]);
     }
 
-    public function filter(Request $request): Response
-    {
-        $this->authorizeAccess($request);
 
-        return Inertia::render('backend/buildings/Filter', [
-            'buildings' => $this->buildingService->hierarchy(),
-        ]);
-    }
 
     public function create(Request $request): Response
     {

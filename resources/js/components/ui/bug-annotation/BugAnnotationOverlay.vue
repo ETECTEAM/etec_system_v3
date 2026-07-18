@@ -146,7 +146,7 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-[9999]">
+    <div class="fixed inset-0 z-[9999]" @mousedown.stop @click.stop>
       <canvas
         ref="canvasRef"
         class="absolute inset-0 h-full w-full touch-none"

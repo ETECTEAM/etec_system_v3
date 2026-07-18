@@ -19,8 +19,10 @@ Route::middleware('guest')->get('/login', function () {
     return Inertia::render('auth/Login');
 })->name('login');
 
-// Display the registration screen for guest users only.
-Route::middleware('guest')->get('/register', function () {
+// Display the instructor registration screen for guest users only.
+// Lives at /instructor-register because /register belongs to the
+// frontend student registration flow.
+Route::middleware('guest')->get('/instructor-register', function () {
     return Inertia::render('auth/Register');
 })->name('register');
 
@@ -30,8 +32,8 @@ Route::get('/code-verify', [AuthController::class, 'showVerifyCode'])->name('cod
 // Handle login form submission with guest restriction and rate limiting.
 Route::middleware(['guest', 'throttle:login'])->post('/login', [AuthController::class, 'loginWeb'])->name('login.store');
 
-// Handle new user registration requests.
-Route::middleware(['guest', 'throttle:register'])->post('/register', [AuthController::class, 'registerWeb'])->name('register.store');
+// Handle new instructor registration requests.
+Route::middleware(['guest', 'throttle:register'])->post('/instructor-register', [AuthController::class, 'registerWeb'])->name('register.store');
 
 // Handle verification code submission for account activation.
 Route::middleware('throttle:otp-verify')->post('/api/code-verify', [AuthController::class, 'verifyCodeApi'])->name('code-verify.store');

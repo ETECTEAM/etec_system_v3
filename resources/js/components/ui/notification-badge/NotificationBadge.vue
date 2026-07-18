@@ -32,7 +32,7 @@ watch(
 <template>
     <div
         v-if="isVisible"
-        class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full border-2 border-white shadow-lg flex items-center justify-center text-xs font-bold min-w-5 h-5 px-1 z-50"
+        class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full border-2 border-white shadow-lg flex items-center justify-center text-xs font-bold min-w-5 h-5 px-1 z-50 dark:border-gray-950"
         :class="pulsing ? 'animate-pulse-custom' : 'animate-scale-in'"
     >
         {{ displayCount }}

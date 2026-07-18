@@ -45,32 +45,32 @@ const confirmDelete = () => {
         description="Confirm permanent removal of this class entry."
       />
 
-      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div class="space-y-4 text-sm text-slate-600">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div class="space-y-4 text-sm text-slate-600 dark:text-gray-300">
           <p>
-            You are about to delete class ID <span class="font-semibold text-slate-900">{{ classListLabel.value }}</span>.
+            You are about to delete class ID <span class="font-semibold text-slate-900 dark:text-gray-100">{{ classListLabel.value }}</span>.
             This action cannot be undone.
           </p>
-          <div class="rounded-2xl bg-slate-50 p-4">
-            <div class="text-xs uppercase text-slate-400">Class type</div>
-            <div class="mt-1 font-semibold text-slate-900">{{ props.classList?.class_type?.type_name || '—' }}</div>
+          <div class="rounded-2xl bg-slate-50 p-4 dark:bg-gray-800">
+            <div class="text-xs uppercase text-slate-400 dark:text-gray-500">Class type</div>
+            <div class="mt-1 font-semibold text-slate-900 dark:text-gray-100">{{ props.classList?.class_type?.type_name || '—' }}</div>
           </div>
-          <div class="rounded-2xl bg-slate-50 p-4">
-            <div class="text-xs uppercase text-slate-400">Schedule</div>
-            <div class="mt-1 text-slate-900">{{ props.classList?.term?.term_name || '—' }} · {{ props.classList?.time?.time_name || '—' }}</div>
+          <div class="rounded-2xl bg-slate-50 p-4 dark:bg-gray-800">
+            <div class="text-xs uppercase text-slate-400 dark:text-gray-500">Schedule</div>
+            <div class="mt-1 text-slate-900 dark:text-gray-100">{{ props.classList?.term?.term_name || '—' }} · {{ props.classList?.time?.time_name || '—' }}</div>
           </div>
         </div>
 
         <div class="mt-6 flex flex-wrap items-center gap-3">
           <Link
             href="/dashboard/class-list"
-            class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
           >
             Cancel
           </Link>
           <button
             @click="confirmDelete"
-            class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-700"
+            class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-500"
           >
             Delete permanently
           </button>

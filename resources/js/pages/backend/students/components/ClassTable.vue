@@ -32,7 +32,7 @@ const deleteClass = (id) => {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl shadow overflow-hidden">
+  <div class="bg-white rounded-xl shadow overflow-hidden dark:bg-gray-900">
     <Table>
       <TableHeader>
         <TableRow>
@@ -58,7 +58,7 @@ const deleteClass = (id) => {
                 {{ item.title }}
               </p>
 
-              <p class="text-xs text-slate-500">
+              <p class="text-xs text-slate-500 dark:text-gray-400">
                 {{ item.term }}
               </p>
             </div>
@@ -78,7 +78,7 @@ const deleteClass = (id) => {
 
           <TableCell>
             <span
-              class="inline-flex whitespace-nowrap rounded-full bg-indigo-100 text-indigo-700 px-3 py-1 text-xs"
+              class="inline-flex whitespace-nowrap rounded-full bg-indigo-100 text-indigo-700 px-3 py-1 text-xs dark:bg-indigo-500/10 dark:text-indigo-400"
             >
               {{ item.status }}
             </span>
@@ -94,21 +94,21 @@ const deleteClass = (id) => {
             <div class="flex justify-center gap-2">
               <button
                 @click="viewClass(item.id)"
-                class="rounded-lg bg-blue-100 p-2 text-blue-600 transition hover:bg-blue-200"
+                class="rounded-lg bg-blue-100 p-2 text-blue-600 transition hover:bg-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
               >
                 <Eye class="h-4 w-4" />
               </button>
 
               <button
                 @click="editClass(item.id)"
-                class="rounded-lg bg-yellow-100 p-2 text-yellow-600 transition hover:bg-yellow-200"
+                class="rounded-lg bg-yellow-100 p-2 text-yellow-600 transition hover:bg-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:hover:bg-yellow-500/20"
               >
                 <Pencil class="h-4 w-4" />
               </button>
 
               <button
                 @click="deleteClass(item.id)"
-                class="rounded-lg bg-red-100 p-2 text-red-600 transition hover:bg-red-200"
+                class="rounded-lg bg-red-100 p-2 text-red-600 transition hover:bg-red-200 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
               >
                 <Trash2 class="h-4 w-4" />
               </button>
@@ -118,7 +118,7 @@ const deleteClass = (id) => {
 
         <TableRow v-if="props.items.length === 0">
           <TableCell colspan="9">
-            <div class="py-10 text-center text-slate-500">
+            <div class="py-10 text-center text-slate-500 dark:text-gray-400">
               No classes found.
             </div>
           </TableCell>

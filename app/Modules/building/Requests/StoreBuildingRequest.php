@@ -21,7 +21,6 @@ class StoreBuildingRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255', 'unique:buildings,name'],
             'code' => ['nullable', 'string', 'max:255', 'unique:buildings,code'],
-            'address' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
         ];
     }
@@ -33,7 +32,6 @@ class StoreBuildingRequest extends FormRequest
         return new BuildingData(
             name: $validated['name'],
             code: $validated['code'] ?? null,
-            address: $validated['address'] ?? null,
             description: $validated['description'] ?? null,
         );
     }

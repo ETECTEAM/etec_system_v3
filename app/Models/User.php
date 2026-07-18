@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -31,8 +32,8 @@ class User extends Authenticatable
         'password',
         'role',
         'status',
-        'avatar',
         'last_login_at',
+        'created_by',
     ];
 
     /**
@@ -84,5 +85,15 @@ class User extends Authenticatable
     public function instructorData(): HasOne
     {
         return $this->hasOne(InstructorData::class, 'user_id', 'id');
+    }
+
+    public function photo(): HasOne
+    {
+        return $this->hasOne(Photo::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

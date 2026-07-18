@@ -70,7 +70,7 @@ function goCreateClass() {
 
         <button
           @click="goCreateClass"
-          class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+          class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
         >
           <Plus class="w-4 h-4" /> Add EnRoll
         </button>
@@ -82,11 +82,11 @@ function goCreateClass() {
       </div>
 
       <div
-        class="flex flex-col gap-4 border-b border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+        class="flex flex-col gap-4 border-b border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800"
       >
         <!-- Title -->
         <div>
-          <h1 class="text-xl font-bold text-slate-800">All Class</h1>
+          <h1 class="text-xl font-bold text-slate-800 dark:text-gray-100">All Class</h1>
         </div>
 
         <!-- Actions -->
@@ -94,13 +94,12 @@ function goCreateClass() {
           <!-- Search -->
           <div class="relative w-full sm:w-64">
             <Search
-              class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-500"
             />
-          <input
-            v-model="search"
-            @input="runSearch"
-            type="text"
-            placeholder="Search student..."
+            <input
+              v-model="search"
+              type="text"
+              placeholder="Search student..."
               class="w-full rounded-xl border border-slate-300 py-2 pl-10 pr-4 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
             />
           </div>
@@ -108,7 +107,7 @@ function goCreateClass() {
           <!-- Reset -->
           <button
             @click="refresh"
-            class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800"
+            class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
           >
             <RotateCcw class="h-4 w-4" />
             Reset
@@ -121,7 +120,7 @@ function goCreateClass() {
               'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition',
               viewMode === 'card'
                 ? 'border-blue-900 bg-blue-800 text-white'
-                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100',
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
             ]"
           >
             <LayoutGrid class="h-4 w-4" />
@@ -135,7 +134,7 @@ function goCreateClass() {
               'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition',
               viewMode === 'table'
                 ? 'border-blue-900 bg-blue-800 text-white'
-                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100',
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
             ]"
           >
             <Table2 class="h-4 w-4" />

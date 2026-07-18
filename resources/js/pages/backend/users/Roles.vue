@@ -1,14 +1,27 @@
 <script setup>
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { computed, nextTick, ref, watch } from 'vue'
+import { useToast } from 'vue-toastification'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { Pagination } from '../../../components/ui/pagination'
 import { formatRole, roleBadgeClass } from '../../../lib/roleBadge'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import { useConfirm } from '../../../composables/useConfirm'
 import axios from 'axios'
 
 const page = usePage()
+const toast = useToast()
+const { confirm } = useConfirm()
+
+watch(() => page.props.flash, (flash) => {
+  if (flash?.success) {
+    toast.success(flash.success)
+  } else if (flash?.error) {
+    toast.error(flash.error)
+  }
+}, { deep: true })
+const isSuperAdmin = computed(() => (page.props.auth?.roles ?? []).includes('super_admin'))
 const roles = computed(() => page.props.roles ?? [])
 const permissions = computed(() => page.props.permissions ?? [])
 const users = computed(() => page.props.users ?? [])
@@ -55,6 +68,55 @@ function submitCreateRole() {
           selectedRoleId.value = String(last.id)
         }
       })
+    },
+  })
+}
+
+// The Super Admin role can't be removed so nobody can lock out admin access.
+const undeletableRoleNames = ['super_admin']
+
+function isRoleDeletable(role) {
+  return isSuperAdmin.value && !undeletableRoleNames.includes(role.name) && Number(role.users_count ?? 0) === 0
+}
+
+function deleteDisabledReason(role) {
+  if (isRoleDeletable(role)) {
+    return 'Delete role'
+  }
+
+  if (!isSuperAdmin.value) {
+    return 'Only Super Admin can delete roles'
+  }
+
+  if (role.name === 'super_admin') {
+    return 'The Super Admin role cannot be deleted'
+  }
+
+  return 'Reassign users before deleting'
+}
+
+async function deleteRole(role) {
+  if (!isRoleDeletable(role)) {
+    return
+  }
+
+  const confirmed = await confirm({
+    title: 'Delete this role?',
+    message: `Delete the "${formatRole(role.name)}" role? This cannot be undone.`,
+    confirmText: 'Delete',
+    danger: true,
+  })
+
+  if (!confirmed) {
+    return
+  }
+
+  router.delete(`/dashboard/users/roles/${role.id}`, {
+    preserveScroll: true,
+    onSuccess: () => {
+      if (selectedRoleId.value === String(role.id)) {
+        selectedRoleId.value = roles.value[0]?.id ? String(roles.value[0].id) : ''
+      }
     },
   })
 }
@@ -131,6 +193,7 @@ const matrixEnd = computed(() => {
 const roleSummaries = computed(() => roles.value.map((role) => ({
   ...role,
   selected: String(role.id) === selectedRoleId.value,
+  deletable: isRoleDeletable(role),
 })))
 
 // Narrow the user list by name, email, or assigned role.
@@ -306,7 +369,7 @@ watch(permissionSearch, () => {
         <div class="flex gap-3">
           <Link
             href="/dashboard/users/create"
-            class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             Create User
           </Link>
@@ -323,33 +386,33 @@ watch(permissionSearch, () => {
 
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <!-- Quick stats used to understand the current access setup at a glance. -->
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Total Users</p>
-          <p class="mt-3 text-3xl font-bold text-slate-900">{{ totalUsers }}</p>
-          <p class="mt-1 text-xs text-emerald-600">Across all active roles</p>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">Total Users</p>
+          <p class="mt-3 text-3xl font-bold text-slate-900 dark:text-gray-100">{{ totalUsers }}</p>
+          <p class="mt-1 text-xs text-emerald-600 dark:text-emerald-400">Across all active roles</p>
         </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Active Roles</p>
-          <p class="mt-3 text-3xl font-bold text-slate-900">{{ activeRoles }}</p>
-          <p class="mt-1 text-xs text-slate-500">Available for assignment</p>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">Active Roles</p>
+          <p class="mt-3 text-3xl font-bold text-slate-900 dark:text-gray-100">{{ activeRoles }}</p>
+          <p class="mt-1 text-xs text-slate-500 dark:text-gray-400">Available for assignment</p>
         </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Permissions</p>
-          <p class="mt-3 text-3xl font-bold text-slate-900">{{ permissions.length }}</p>
-          <p class="mt-1 text-xs text-blue-700">Registered access rules</p>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">Permissions</p>
+          <p class="mt-3 text-3xl font-bold text-slate-900 dark:text-gray-100">{{ permissions.length }}</p>
+          <p class="mt-1 text-xs text-blue-700 dark:text-blue-400">Registered access rules</p>
         </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Restricted Modules</p>
-          <p class="mt-3 text-3xl font-bold text-slate-900">{{ restrictedModules }}</p>
-          <p class="mt-1 text-xs text-slate-500">For selected role</p>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">Restricted Modules</p>
+          <p class="mt-3 text-3xl font-bold text-slate-900 dark:text-gray-100">{{ restrictedModules }}</p>
+          <p class="mt-1 text-xs text-slate-500 dark:text-gray-400">For selected role</p>
         </div>
       </div>
 
       <div class="grid gap-6 2xl:grid-cols-[280px_1fr_340px]">
         <!-- Left panel: pick the role to edit. -->
-        <aside class="self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <aside class="self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div class="flex items-center justify-between pb-3">
-            <h2 class="text-base font-bold text-slate-900">Roles</h2>
+            <h2 class="text-base font-bold text-slate-900 dark:text-gray-100">Roles</h2>
             <button
               type="button"
               class="inline-flex items-center gap-1.5 rounded-lg bg-blue-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
@@ -363,45 +426,66 @@ watch(permissionSearch, () => {
           </div>
 
           <div class="space-y-2">
-            <button
+            <div
               v-for="role in roleSummaries"
               :key="role.id"
-              type="button"
-              class="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition"
-              :class="role.selected ? 'bg-blue-50 text-blue-900' : 'text-slate-700 hover:bg-slate-50'"
-              @click="selectedRoleId = String(role.id)"
+              class="group flex w-full items-center gap-2 rounded-xl px-4 py-3 transition"
+              :class="role.selected ? 'bg-blue-50 text-blue-900 dark:bg-blue-500/10 dark:text-blue-400' : 'text-slate-700 hover:bg-slate-50 dark:text-gray-300 dark:hover:bg-gray-800'"
             >
-              <span>
-                <span
-                  :class="[
-                    'inline-flex rounded-full px-3 py-1 text-xs font-semibold',
-                    roleBadgeClass(role.name),
-                  ]"
-                >
-                  {{ formatRole(role.name) }}
+              <button
+                type="button"
+                class="flex flex-1 items-center justify-between text-left"
+                @click="selectedRoleId = String(role.id)"
+              >
+                <span>
+                  <span
+                    :class="[
+                      'inline-flex rounded-full px-3 py-1 text-xs font-semibold',
+                      roleBadgeClass(role.name),
+                    ]"
+                  >
+                    {{ formatRole(role.name) }}
+                  </span>
+                  <span class="mt-2 block text-xs text-slate-500 dark:text-gray-400">{{ role.users_count }} users</span>
                 </span>
-                <span class="mt-2 block text-xs text-slate-500">{{ role.users_count }} users</span>
-              </span>
-              <span class="text-sm font-semibold text-slate-400">{{ role.permissions.length }}</span>
-            </button>
+                <span class="text-sm font-semibold text-slate-400 dark:text-gray-500">{{ role.permissions.length }}</span>
+              </button>
+              <button
+                type="button"
+                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition"
+                :class="role.deletable ? 'text-slate-400 hover:bg-red-50 hover:text-red-600 dark:text-gray-500 dark:hover:bg-red-500/10 dark:hover:text-red-400' : 'cursor-not-allowed text-slate-200 dark:text-gray-700'"
+                :disabled="!role.deletable"
+                :title="deleteDisabledReason(role)"
+                :aria-label="`Delete ${formatRole(role.name)} role`"
+                @click="deleteRole(role)"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4h8v2" />
+                  <path d="M19 6l-1 14H6L5 6" />
+                  <path d="M10 11v5" />
+                  <path d="M14 11v5" />
+                </svg>
+              </button>
+            </div>
           </div>
         </aside>
 
         <!-- Middle panel: permission matrix for the selected role. -->
-        <form class="self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" @submit.prevent="savePermissions">
-          <div class="flex flex-col gap-4 border-b border-slate-200 p-5">
+        <form class="self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900" @submit.prevent="savePermissions">
+          <div class="flex flex-col gap-4 border-b border-slate-200 p-5 dark:border-gray-800">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 class="text-base font-bold text-slate-900">Permissions Matrix</h2>
-                <p class="mt-1 text-sm text-slate-600">
+                <h2 class="text-base font-bold text-slate-900 dark:text-gray-100">Permissions Matrix</h2>
+                <p class="mt-1 text-sm text-slate-600 dark:text-gray-400">
                   {{ selectedRole ? formatRole(selectedRole.name) : 'Select a role' }} role access by module.
                 </p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
-                <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
+                <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">
                   <input
                     type="checkbox"
-                    class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-200"
+                    class="h-4 w-4 rounded border-slate-300 text-blue-700 accent-blue-700 focus:ring-blue-200 dark:border-gray-600 dark:bg-gray-800 dark:accent-blue-500 dark:focus:ring-blue-500/20"
                     :checked="allPermissionsSelected"
                     @change="toggleAllPermissions"
                   >
@@ -409,7 +493,7 @@ watch(permissionSearch, () => {
                 </label>
                 <button
                   type="button"
-                  class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                  class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                   title="Clear all permissions"
                   aria-label="Clear all permissions"
                   @click="clearAllPermissions"
@@ -431,43 +515,43 @@ watch(permissionSearch, () => {
                 v-model="permissionSearch"
                 type="text"
                 placeholder="Search modules or permissions..."
-                class="w-full rounded-xl border border-slate-300 px-4 py-2.5 pr-10 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                class="w-full rounded-xl border border-slate-300 px-4 py-2.5 pr-10 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
               >
-              <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" />
                 <path d="m20 20-3.5-3.5" />
               </svg>
             </label>
           </div>
 
-          <p v-if="form.errors.permissions" class="m-5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p v-if="form.errors.permissions" class="m-5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
             {{ form.errors.permissions }}
           </p>
 
           <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-              <thead class="bg-slate-50">
+            <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-gray-800">
+              <thead class="bg-slate-50 dark:bg-gray-800">
                 <tr>
-                  <th class="sticky left-0 z-10 whitespace-nowrap bg-slate-50 px-5 py-4 text-left font-semibold text-slate-700 min-w-[240px] w-[260px]">Module</th>
+                  <th class="sticky left-0 z-10 whitespace-nowrap bg-slate-50 px-5 py-4 text-left font-semibold text-slate-700 min-w-[240px] w-[260px] dark:bg-gray-800 dark:text-gray-300">Module</th>
                   <th
                     v-for="action in actions"
                     :key="action"
-                    class="w-24 px-4 py-4 text-center font-semibold capitalize text-slate-700"
+                    class="w-24 px-4 py-4 text-center font-semibold capitalize text-slate-700 dark:text-gray-300"
                   >
                     {{ action }}
                   </th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100 bg-white">
-                <tr v-for="resource in paginatedResources" :key="resource" class="hover:bg-slate-50">
-                  <td class="sticky left-0 z-10 whitespace-nowrap bg-white px-5 py-4 font-semibold capitalize text-slate-800 min-w-[240px] w-[260px]">
+              <tbody class="divide-y divide-slate-100 bg-white dark:divide-gray-800 dark:bg-gray-900">
+                <tr v-for="resource in paginatedResources" :key="resource" class="hover:bg-slate-50 dark:hover:bg-gray-800/60">
+                  <td class="sticky left-0 z-10 whitespace-nowrap bg-white px-5 py-4 font-semibold capitalize text-slate-800 min-w-[240px] w-[260px] dark:bg-gray-900 dark:text-gray-200">
                     <div class="flex items-center gap-3">
                       <button
                         type="button"
                         class="flex h-5 w-5 items-center justify-center rounded border transition"
                         :class="isResourceFullyChecked(resource) || isResourcePartiallyChecked(resource)
-                          ? 'border-emerald-600 bg-emerald-600 text-white'
-                          : 'border-slate-300 bg-white text-transparent hover:border-emerald-500'"
+                          ? 'border-emerald-600 bg-emerald-600 text-white dark:border-emerald-500 dark:bg-emerald-500'
+                          : 'border-slate-300 bg-white text-transparent hover:border-emerald-500 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-emerald-500'"
                         :aria-pressed="isResourceFullyChecked(resource)"
                         :aria-label="`Select all ${resource.replaceAll('_', ' ')} permissions`"
                         @click="toggleResourcePermissions(resource)"
@@ -487,25 +571,25 @@ watch(permissionSearch, () => {
                       type="button"
                       class="mx-auto flex h-5 w-5 items-center justify-center rounded border transition"
                       :class="isChecked(permissionName(resource, action))
-                        ? 'border-blue-700 bg-blue-700 text-white'
-                        : 'border-slate-300 bg-white text-transparent hover:border-blue-400'"
+                        ? 'border-blue-700 bg-blue-700 text-white dark:border-blue-500 dark:bg-blue-500'
+                        : 'border-slate-300 bg-white text-transparent hover:border-blue-400 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-blue-500'"
                       @click="togglePermission(permissionName(resource, action))"
                     >
                       <span class="text-xs font-bold">✓</span>
                     </button>
-                    <span v-else class="text-slate-300">-</span>
+                    <span v-else class="text-slate-300 dark:text-gray-600">-</span>
                   </td>
                 </tr>
               </tbody>
             </table>
 
-            <div v-if="filteredResources.length === 0" class="px-5 py-10 text-center text-sm text-slate-500">
+            <div v-if="filteredResources.length === 0" class="px-5 py-10 text-center text-sm text-slate-500 dark:text-gray-400">
               No permissions found.
             </div>
           </div>
 
-          <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="text-sm text-slate-500">
+          <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
+            <div class="text-sm text-slate-500 dark:text-gray-400">
               Showing {{ matrixStart }} to {{ matrixEnd }} of {{ filteredResources.length }} modules
             </div>
 
@@ -519,63 +603,63 @@ watch(permissionSearch, () => {
         </form>
 
         <!-- Right panel: assign users to the selected role. -->
-        <form class="self-start rounded-2xl border border-slate-200 bg-white shadow-sm" @submit.prevent="saveAssignedUsers">
-          <div class="border-b border-slate-200 p-5">
-            <h2 class="text-base font-bold text-slate-900">Assign Users to Role</h2>
-            <p class="mt-1 text-sm text-slate-600">
+        <form class="self-start rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900" @submit.prevent="saveAssignedUsers">
+          <div class="border-b border-slate-200 p-5 dark:border-gray-800">
+            <h2 class="text-base font-bold text-slate-900 dark:text-gray-100">Assign Users to Role</h2>
+            <p class="mt-1 text-sm text-slate-600 dark:text-gray-400">
               {{ selectedRole ? formatRole(selectedRole.name) : 'Select a role' }}
             </p>
 
             <label class="mt-4 block">
-              <span class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Search</span>
+              <span class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">Search</span>
               <input
                 v-model="userSearch"
                 type="text"
                 placeholder="Search users..."
-                class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
               >
             </label>
           </div>
 
-          <p v-if="assignUsersForm.errors.users" class="mx-5 mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p v-if="assignUsersForm.errors.users" class="mx-5 mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
             {{ assignUsersForm.errors.users }}
           </p>
 
-          <div class="max-h-[560px] divide-y divide-slate-100 overflow-y-auto">
+          <div class="max-h-[560px] divide-y divide-slate-100 overflow-y-auto dark:divide-gray-800">
             <label
               v-for="user in filteredUsers"
               :key="user.id"
-              class="flex cursor-pointer items-center gap-3 px-5 py-4 transition hover:bg-slate-50"
+              class="flex cursor-pointer items-center gap-3 px-5 py-4 transition hover:bg-slate-50 dark:hover:bg-gray-800/60"
             >
               <input
                 type="checkbox"
-                class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-200"
+                class="h-4 w-4 rounded border-slate-300 text-blue-700 accent-blue-700 focus:ring-blue-200 dark:border-gray-600 dark:bg-gray-800 dark:accent-blue-500 dark:focus:ring-blue-500/20"
                 :checked="isUserSelected(user.id)"
                 @change="toggleUser(user.id)"
               >
 
-              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
                 {{ initials(user.name) }}
               </span>
 
               <span class="min-w-0 flex-1">
-                <span class="block truncate text-sm font-bold text-slate-900">{{ user.name }}</span>
-                <span class="block truncate text-xs text-slate-500">{{ user.email }}</span>
+                <span class="block truncate text-sm font-bold text-slate-900 dark:text-gray-100">{{ user.name }}</span>
+                <span class="block truncate text-xs text-slate-500 dark:text-gray-400">{{ user.email }}</span>
               </span>
 
                   <div class="shrink-0 text-right">
-                    <span class="block text-xs font-semibold text-blue-700">{{ formatRole(user.roles?.[0] ?? 'No Role') }}</span>
-                    <span class="block text-[11px] text-slate-400">{{ user.total_permissions_count }} permissions</span>
+                    <span class="block text-xs font-semibold text-blue-700 dark:text-blue-400">{{ formatRole(user.roles?.[0] ?? 'No Role') }}</span>
+                    <span class="block text-[11px] text-slate-400 dark:text-gray-500">{{ user.total_permissions_count }} permissions</span>
                   </div>
             </label>
 
-            <div v-if="filteredUsers.length === 0" class="px-5 py-10 text-center text-sm text-slate-500">
+            <div v-if="filteredUsers.length === 0" class="px-5 py-10 text-center text-sm text-slate-500 dark:text-gray-400">
               No users found.
             </div>
           </div>
 
-          <div class="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-5 py-4">
-            <span class="text-sm text-slate-500">Selected {{ selectedUserCount }} users</span>
+          <div class="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-5 py-4 dark:border-gray-800 dark:bg-gray-800/40">
+            <span class="text-sm text-slate-500 dark:text-gray-400">Selected {{ selectedUserCount }} users</span>
             <button
               type="submit"
               :disabled="!selectedRole || assignUsersForm.processing"
@@ -607,13 +691,13 @@ watch(permissionSearch, () => {
           />
 
           <!-- Panel: max-h + overflow-y-auto prevents bottom clipping on short viewports -->
-          <div class="modal-panel relative z-10 flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" style="max-height: calc(100vh - 2rem);">
+          <div class="modal-panel relative z-10 flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900" style="max-height: calc(100vh - 2rem);">
             <!-- Header -->
-            <div class="flex shrink-0 items-center justify-between border-b border-slate-200 px-6 py-4">
-              <h2 id="create-role-title" class="text-base font-bold text-slate-900">Create New Role</h2>
+            <div class="flex shrink-0 items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-gray-800">
+              <h2 id="create-role-title" class="text-base font-bold text-slate-900 dark:text-gray-100">Create New Role</h2>
               <button
                 type="button"
-                class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                 aria-label="Close modal"
                 @click="closeCreateModal"
               >
@@ -632,8 +716,8 @@ watch(permissionSearch, () => {
               <div class="flex-1 overflow-y-auto px-6 py-5">
                 <!-- Role Name -->
                 <div>
-                  <label for="create-role-name" class="mb-1.5 block text-sm font-semibold text-slate-700">
-                    Role Name <span class="text-red-500">*</span>
+                  <label for="create-role-name" class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">
+                    Role Name <span class="text-red-500 dark:text-red-400">*</span>
                   </label>
                   <input
                     id="create-role-name"
@@ -642,26 +726,26 @@ watch(permissionSearch, () => {
                     placeholder="e.g. editor"
                     autocomplete="off"
                     :disabled="createRoleForm.processing"
-                    class="w-full rounded-xl border px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+                    class="w-full rounded-xl border px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-800 dark:text-gray-200"
                     :class="createRoleForm.errors.name
-                      ? 'border-red-400 focus:border-red-400 focus:ring-red-100'
-                      : 'border-slate-300 focus:border-blue-600 focus:ring-blue-100'"
+                      ? 'border-red-400 focus:border-red-400 focus:ring-red-100 dark:border-red-500/60 dark:focus:border-red-500 dark:focus:ring-red-500/20'
+                      : 'border-slate-300 focus:border-blue-600 focus:ring-blue-100 dark:border-gray-600 dark:focus:border-blue-500 dark:focus:ring-blue-500/20'"
                   >
-                  <p v-if="createRoleForm.errors.name" class="mt-1.5 text-xs font-medium text-red-600">
+                  <p v-if="createRoleForm.errors.name" class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">
                     {{ createRoleForm.errors.name }}
                   </p>
-                  <p class="mt-1.5 text-xs text-slate-400">
-                    Spaces are converted to underscores automatically, e.g. <code class="rounded bg-slate-100 px-1 py-0.5 font-mono">Super Editor</code> → <code class="rounded bg-slate-100 px-1 py-0.5 font-mono">super_editor</code>
+                  <p class="mt-1.5 text-xs text-slate-400 dark:text-gray-500">
+                    Spaces are converted to underscores automatically, e.g. <code class="rounded bg-slate-100 px-1 py-0.5 font-mono dark:bg-gray-800">Super Editor</code> → <code class="rounded bg-slate-100 px-1 py-0.5 font-mono dark:bg-gray-800">super_editor</code>
                   </p>
                 </div>
               </div>
 
               <!-- Footer: shrink-0 keeps it always visible -->
-              <div class="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+              <div class="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 dark:border-gray-800 dark:bg-gray-800/40">
                 <button
                   type="button"
                   :disabled="createRoleForm.processing"
-                  class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
                   @click="closeCreateModal"
                 >
                   Cancel
