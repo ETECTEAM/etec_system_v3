@@ -1,8 +1,8 @@
 <template>
-  <section class="relative hidden min-h-screen overflow-hidden bg-gradient-to-br from-blue-900 to-blue-700 p-10 lg:flex lg:flex-col lg:justify-between xl:p-16">
+  <section class="relative hidden min-h-screen overflow-hidden bg-gradient-to-br from-blue-900 to-blue-700 p-10 lg:flex lg:flex-col lg:justify-between xl:p-16 dark:from-slate-950 dark:via-blue-950 dark:to-slate-900">
     <div id="particles-js" class="absolute inset-0"></div>
-    <div class="absolute -right-10 -top-10 h-56 w-56 rounded-full bg-blue-300/30 blur-3xl"></div>
-    <div class="absolute -bottom-16 left-10 h-64 w-64 rounded-full bg-sky-300/20 blur-3xl"></div>
+    <div class="absolute -right-10 -top-10 h-56 w-56 rounded-full bg-blue-300/30 blur-3xl dark:bg-blue-500/20"></div>
+    <div class="absolute -bottom-16 left-10 h-64 w-64 rounded-full bg-sky-300/20 blur-3xl dark:bg-sky-500/10"></div>
 
     <div class="relative z-10 text-white">
       <p class="text-xs uppercase tracking-[0.35em] text-blue-100/90">ETEC System</p>

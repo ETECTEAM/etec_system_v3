@@ -2,6 +2,8 @@
 
 namespace App\Modules\User\Data;
 
+use Illuminate\Http\UploadedFile;
+
 /**
  * Carries validated user update input into UserService.
  */

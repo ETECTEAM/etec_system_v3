@@ -2,6 +2,7 @@
 import { router } from "@inertiajs/vue3";
 import { route } from "ziggy-js";
 import { Eye, Pencil, Trash2 } from "@lucide/vue";
+import { router } from "@inertiajs/vue3";
 
 import Table from "../../../../components/ui/table/Table.vue";
 import TableHeader from "../../../../components/ui/table/TableHeader.vue";
@@ -11,136 +12,120 @@ import TableRow from "../../../../components/ui/table/TableRow.vue";
 import TableCell from "../../../../components/ui/table/TableCell.vue";
 
 const props = defineProps({
-    items: {
-        type: Array,
-        default: () => [],
-    },
+  items: {
+    type: Array,
+    default: () => [],
+  },
 });
 
-function viewClass(id) {
-    router.visit(route("students.show", { class: id }));
-}
+const viewClass = (id) => {
+  router.get(`/dashboard/students/view/${id}`);
+};
 
-function editClass(id) {
-    router.visit(route("students.edit", { class: id }));
-}
+const editClass = (id) => {
+  router.get(`/dashboard/students/edit/${id}`);
+};
 
-function deleteClass(id) {
-    if (confirm("Are you sure you want to delete this class? This action cannot be undone.")) {
-        router.delete(route("students.destroy", { class: id }), {
-            preserveScroll: true,
-        });
-    }
-}
+const deleteClass = (id) => {
+  if (confirm("Are you sure you want to delete this class?")) {
+    router.delete(`/dashboard/students/${id}`);
+  }
+};
 </script>
 
 <template>
-    <div class="bg-white rounded-xl shadow overflow-hidden">
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Class</TableHead>
-                    <TableHead>Lesson</TableHead>
-                    <TableHead>Building</TableHead>
-                    <TableHead>Room</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Students</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead class="text-center">Action</TableHead>
-                </TableRow>
-            </TableHeader>
+  <div class="bg-white rounded-xl shadow overflow-hidden dark:bg-gray-900">
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>ID</TableHead>
+          <TableHead>Class</TableHead>
+          <TableHead>Lesson</TableHead>
+          <TableHead>Building</TableHead>
+          <TableHead>Room</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Students</TableHead>
+          <TableHead>Time</TableHead>
+          <TableHead class="text-center">Action</TableHead>
+        </TableRow>
+      </TableHeader>
 
-            <TableBody>
-                <TableRow
-                    v-for="item in props.items"
-                    :key="item.id"
-                >
-                    <TableCell>#{{ item.id }}</TableCell>
+      <TableBody>
+        <TableRow v-for="item in props.items" :key="item.id">
+          <TableCell>#{{ item.id }}</TableCell>
 
-                    <TableCell class="whitespace-nowrap">
-                        <div>
-                            <p class="font-semibold">
-                                {{ item.title }}
-                            </p>
-                            <p class="text-xs text-slate-500">
-                                {{ item.term }}
-                            </p>
-                        </div>
-                    </TableCell>
+          <TableCell class="whitespace-nowrap">
+            <div>
+              <p class="font-semibold">
+                {{ item.title }}
+              </p>
 
-                    <TableCell>
-                        {{ item.lesson }}
-                    </TableCell>
+              <p class="text-xs text-slate-500 dark:text-gray-400">
+                {{ item.term }}
+              </p>
+            </div>
+          </TableCell>
 
-                    <TableCell>
-                        {{ item.building }}
-                    </TableCell>
+          <TableCell>
+            {{ item.lesson }}
+          </TableCell>
 
-                    <TableCell class="whitespace-nowrap">
-                        {{ item.floor }} {{ item.room }}
-                    </TableCell>
+          <TableCell>
+            {{ item.building }}
+          </TableCell>
 
-                    <TableCell>
-                        <span
-                            :class="[
-                                'inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold',
-                                item.status === 'active'
-                                    ? 'bg-emerald-100 text-emerald-700'
-                                    : item.status === 'inactive'
-                                        ? 'bg-slate-100 text-slate-600'
-                                        : 'bg-blue-100 text-blue-700',
-                            ]"
-                        >
-                            {{ item.status }}
-                        </span>
-                    </TableCell>
+          <TableCell class="whitespace-nowrap">
+            {{ item.floor }} {{ item.room }}
+          </TableCell>
 
-                    <TableCell class="tabular-nums">
-                        {{ item.students }}/{{ item.capacity }}
-                    </TableCell>
+          <TableCell>
+            <span
+              class="inline-flex whitespace-nowrap rounded-full bg-indigo-100 text-indigo-700 px-3 py-1 text-xs dark:bg-indigo-500/10 dark:text-indigo-400"
+            >
+              {{ item.status }}
+            </span>
+          </TableCell>
 
-                    <TableCell class="whitespace-nowrap">
-                        {{ item.time }}
-                    </TableCell>
+          <TableCell> {{ item.students }}/{{ item.capacity }} </TableCell>
 
-                    <TableCell>
-                        <div class="flex justify-center gap-2">
-                            <button
-                                @click="viewClass(item.id)"
-                                class="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 cursor-pointer"
-                                title="View"
-                            >
-                                <Eye class="w-4 h-4" />
-                            </button>
+          <TableCell class="whitespace-nowrap">
+            {{ item.time }}
+          </TableCell>
 
-                            <button
-                                @click="editClass(item.id)"
-                                class="p-2 rounded-lg bg-yellow-100 text-yellow-600 hover:bg-yellow-200 cursor-pointer"
-                                title="Edit"
-                            >
-                                <Pencil class="w-4 h-4" />
-                            </button>
+          <TableCell>
+            <div class="flex justify-center gap-2">
+              <button
+                @click="viewClass(item.id)"
+                class="rounded-lg bg-blue-100 p-2 text-blue-600 transition hover:bg-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
+              >
+                <Eye class="h-4 w-4" />
+              </button>
 
-                            <button
-                                @click="deleteClass(item.id)"
-                                class="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer"
-                                title="Delete"
-                            >
-                                <Trash2 class="w-4 h-4" />
-                            </button>
-                        </div>
-                    </TableCell>
-                </TableRow>
+              <button
+                @click="editClass(item.id)"
+                class="rounded-lg bg-yellow-100 p-2 text-yellow-600 transition hover:bg-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:hover:bg-yellow-500/20"
+              >
+                <Pencil class="h-4 w-4" />
+              </button>
 
-                <TableRow v-if="props.items.length === 0">
-                    <TableCell colspan="9">
-                        <div class="py-10 text-center text-slate-500">
-                            No classes found.
-                        </div>
-                    </TableCell>
-                </TableRow>
-            </TableBody>
-        </Table>
-    </div>
+              <button
+                @click="deleteClass(item.id)"
+                class="rounded-lg bg-red-100 p-2 text-red-600 transition hover:bg-red-200 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
+              >
+                <Trash2 class="h-4 w-4" />
+              </button>
+            </div>
+          </TableCell>
+        </TableRow>
+
+        <TableRow v-if="props.items.length === 0">
+          <TableCell colspan="9">
+            <div class="py-10 text-center text-slate-500 dark:text-gray-400">
+              No classes found.
+            </div>
+          </TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
+  </div>
 </template>

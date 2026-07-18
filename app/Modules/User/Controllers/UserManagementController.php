@@ -12,7 +12,6 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
-use App\Modules\User\Requests\StoreUserRequest;
 use App\Modules\User\Services\UserService;
 
 /**
@@ -20,42 +19,6 @@ use App\Modules\User\Services\UserService;
  */
 class UserManagementController extends Controller
 {
-    public function index(Request $request): Response
-    {
-        // Only super admins and admins can access user management pages.
-        abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
-
-        // Fetch users with their roles and pass to the Inertia view.
-        return Inertia::render('backend/users/Index', [
-
-            // Eager load roles to avoid N+1 query problem.
-            'users' => User::query()
-                ->latest('id')
-                ->with('roles')
-                ->get(['id', 'name', 'email'])
-                ->map(function (User $user): array {
-                    return [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'roles' => $user->getRoleNames()->values(),
-                    ];
-                }),
-        ]);
-    }
-
-    // Show the form to create a new user.
-    public function create(Request $request): Response
-    {
-        // Only super admins and admins can access user management pages.
-        abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
-
-        // Fetch all available roles to populate the role selection in the form.
-        return Inertia::render('backend/users/Create', [
-            'roleOptions' => Role::query()->pluck('name')->values(),
-        ]);
-    }
-
     // Show the list of roles. Only accessible to super admins.
     public function roles(Request $request): Response
     {
@@ -69,7 +32,7 @@ class UserManagementController extends Controller
             ->pluck('name')
             ->values();
 
-        return Inertia::render('backend/users/Roles', [
+        return Inertia::render('backend/users/UserRoles', [
             'roles' => Role::query()
                 ->with('permissions')
                 ->withCount('users')
@@ -173,7 +136,31 @@ class UserManagementController extends Controller
                 $user->syncRoles([$role->name]);
             });
 
+        // Role changes affect what the cached user table shows, so bust it.
+        app(UserService::class)->invalidateUsersCache();
+
         return back()->with('success', 'Users assigned to role successfully.');
+    }
+
+    // Delete a role from the roles management page. Only super admins can do this.
+    public function destroyRole(Request $request, Role $role): RedirectResponse
+    {
+        // Only super admins can delete roles.
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
+
+        // The super_admin role must always exist so admin access can never be locked out.
+        if ($role->name === 'super_admin') {
+            return back()->with('error', 'The Super Admin role cannot be deleted.');
+        }
+
+        // Refuse to delete a role that still has users assigned to it.
+        if ($role->users()->exists()) {
+            return back()->with('error', 'Reassign users before deleting this role.');
+        }
+
+        $role->delete();
+
+        return redirect('/dashboard/users/roles')->with('success', "Role '{$role->name}' deleted successfully.");
     }
 
     // Show the list of permissions. Only accessible to super admins.
@@ -183,7 +170,7 @@ class UserManagementController extends Controller
         abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
 
         // Fetch users with role and direct permission data for assignment.
-        return Inertia::render('backend/users/Permissions', [
+        return Inertia::render('backend/users/UserPermissions', [
             'users' => User::query()
                 ->with(['roles', 'permissions'])
                 ->latest('id')
@@ -224,22 +211,5 @@ class UserManagementController extends Controller
         $user->syncPermissions($validated['permissions'] ?? []);
 
         return back()->with('success', 'User permissions updated successfully.');
-    }
-
-    // Handle the form submission to create a new user. Only accessible to super admins.
-    public function store(StoreUserRequest $request): RedirectResponse
-    {
-        // Only super admins and admins can access user management pages.
-        abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
-
-        // Convert validated input into a DTO and delegate creation to the service.
-        $data = $request->toData();
-
-        /** @var UserService $service */
-        $service = app(UserService::class);
-
-        $service->create($data);
-
-        return redirect('/dashboard/users/create')->with('success', 'User created successfully.');
     }
 }

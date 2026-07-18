@@ -1,11 +1,15 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import AuthCard from './components/AuthCard.vue'
 import AuthLayout from '../../layouts/AuthLayout.vue'
-import { Link, useForm } from '@inertiajs/vue3'
+import { Link, useForm, usePage } from '@inertiajs/vue3'
+import { useToast } from 'vue-toastification'
 defineOptions({
   layout: AuthLayout,
 })
+
+const page = usePage()
+const toast = useToast()
 
 const form = useForm({
   login: '',
@@ -16,8 +20,55 @@ const showPassword = ref(false)
 
 const formValid = computed(() => form.login.trim().length > 0 && form.password.length > 0)
 
+// While locked out, show a live-ticking message instead of the server's static
+// one-time snapshot ("...in 56 seconds." would otherwise sit frozen at 56).
+const loginFieldError = computed(() => {
+  if (lockoutSecondsLeft.value > 0) {
+    const unit = lockoutSecondsLeft.value === 1 ? 'second' : 'seconds'
+
+    return `Too many attempts. Please try again in ${lockoutSecondsLeft.value} ${unit}.`
+  }
+
+  return form.errors.login
+})
+
+// Counts down a throttle block locally once retryAfter arrives, so the submit
+// button stays disabled without needing to keep polling the server.
+const lockoutSecondsLeft = ref(0)
+let lockoutTimer = null
+
+function startLockoutCountdown(seconds) {
+  window.clearInterval(lockoutTimer)
+  lockoutSecondsLeft.value = seconds
+
+  lockoutTimer = window.setInterval(() => {
+    if (lockoutSecondsLeft.value > 0) {
+      lockoutSecondsLeft.value -= 1
+    } else {
+      window.clearInterval(lockoutTimer)
+      // The block has actually lifted now - clear every field error so nothing
+      // lingers from either the throttle message or the attempt that caused it.
+      form.clearErrors()
+    }
+  }, 1000)
+}
+
+watch(() => page.props.flash, (flash) => {
+  if (flash?.error) {
+    toast.error(flash.error)
+  }
+
+  if (flash?.retryAfter) {
+    startLockoutCountdown(flash.retryAfter)
+  }
+}, { deep: true })
+
+onBeforeUnmount(() => {
+  window.clearInterval(lockoutTimer)
+})
+
 function submit() {
-  if (!formValid.value) return
+  if (!formValid.value || lockoutSecondsLeft.value > 0) return
   form.post('/login')
 }
 </script>
@@ -25,37 +76,37 @@ function submit() {
 <template>
   <AuthCard>
     <div class="mb-8">
-      <h2 class="text-3xl font-black text-slate-900">Sign In</h2>
-      <p class="mt-2 text-sm text-slate-600">Use your email or username to continue.</p>
+      <h2 class="text-3xl font-black text-slate-900 dark:text-gray-100">Sign In</h2>
+      <p class="mt-2 text-sm text-slate-600 dark:text-gray-400">Use your email or username to continue.</p>
     </div>
 
     <form class="space-y-4" @submit.prevent="submit">
       <label class="block">
-        <span class="mb-2 block text-sm font-semibold text-slate-700">Email or Username</span>
+        <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Email or Username</span>
         <input
           v-model="form.login"
           type="text"
           autocomplete="username"
-          class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+          class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
           placeholder="you@example.com or username"
         >
-        <span v-if="form.errors.login" class="mt-1 block text-xs text-red-600">{{ form.errors.login }}</span>
+        <span v-if="loginFieldError" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ loginFieldError }}</span>
       </label>
 
       <label class="block">
-        <span class="mb-2 block text-sm font-semibold text-slate-700">Password</span>
+        <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Password</span>
         <div class="relative">
           <input
             v-model="form.password"
             :type="showPassword ? 'text' : 'password'"
             autocomplete="current-password"
-            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-12 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-12 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             placeholder="Enter your password"
           >
 
           <button
             type="button"
-            class="absolute top-1/2 right-3 -translate-y-1/2 text-slate-500 transition hover:text-slate-700"
+            class="absolute top-1/2 right-3 -translate-y-1/2 text-slate-500 transition hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200"
             @click="showPassword = !showPassword"
           >
             <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-5 w-5" stroke-width="1.8">
@@ -70,25 +121,25 @@ function submit() {
             </svg>
           </button>
         </div>
-        <span v-if="form.errors.password" class="mt-1 block text-xs text-red-600">{{ form.errors.password }}</span>
+        <span v-if="form.errors.password" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.password }}</span>
       </label>
 
-      <p v-if="form.hasErrors && !form.errors.login && !form.errors.password" class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+      <p v-if="form.hasErrors && !form.errors.login && !form.errors.password" class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
         Invalid login credentials.
       </p>
 
       <button
         type="submit"
-        :disabled="form.processing || !formValid"
-        class="w-full rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+        :disabled="form.processing || !formValid || lockoutSecondsLeft > 0"
+        class="w-full rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
       >
-        {{ form.processing ? 'Signing in...' : 'Sign In' }}
+        {{ lockoutSecondsLeft > 0 ? `Try again in ${lockoutSecondsLeft}s` : (form.processing ? 'Signing in...' : 'Sign In') }}
       </button>
     </form>
 
-    <p class="mt-6 text-center text-sm text-slate-600">
+    <p class="mt-6 text-center text-sm text-slate-600 dark:text-gray-400">
       New here?
-      <Link href="/auth/register" class="font-semibold text-blue-900 hover:text-blue-950">Create account</Link>
+      <Link href="/instructor-register" class="font-semibold text-blue-900 hover:text-blue-950 dark:text-blue-400 dark:hover:text-blue-300">Create account</Link>
     </p>
   </AuthCard>
 </template>

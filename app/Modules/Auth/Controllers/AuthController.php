@@ -40,6 +40,16 @@ class AuthController extends Controller
         private readonly AuthAuditService $auditService,
     ) {}
 
+    public function showLogin(): Response
+    {
+        return Inertia::render('auth/Login');
+    }
+
+    public function showRegister(): Response
+    {
+        return Inertia::render('auth/Register');
+    }
+
     public function registerWeb(RegisterWebRequest $request): RedirectResponse
     {
         $data = $request->toData();
@@ -107,11 +117,11 @@ class AuthController extends Controller
         }
 
         if (! $user) {
-            return redirect('/register')->with('error', 'Please register first to request a verification code.');
+            return redirect('/instructor-register')->with('error', 'Please register first to request a verification code.');
         }
 
         if ($user->status === UserStatus::Rejected) {
-            return redirect('/register')->with('error', 'Your registration was rejected. Please contact support.');
+            return redirect('/instructor-register')->with('error', 'Your registration was rejected. Please contact support.');
         }
 
         if ($user->status === UserStatus::Active) {
@@ -177,10 +187,25 @@ class AuthController extends Controller
     $user = $this->authService->findUserForLogin($data->login);
 
     if (! $user) {
+        $this->auditService->log(null, 'login.failed', $request->ip(), [
+            'reason' => 'email_not_found',
+            'login' => $data->login,
+        ]);
+
         throw ValidationException::withMessages([
             'login' => ['Email not found.'],
         ]);
     }
+
+        if (! Hash::check($data->password, $user->password)) {
+            $this->auditService->log($user, 'login.failed', $request->ip(), [
+                'reason' => 'invalid_password',
+            ]);
+
+            throw ValidationException::withMessages([
+                'login' => ['These credentials do not match our records.'],
+            ]);
+        }
 
         if ($user->status === UserStatus::Inactive) {
             throw ValidationException::withMessages(['login' => ['Your account is inactive. Please contact administrator.']]);

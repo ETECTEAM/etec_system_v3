@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
     --font-sans: 'Poppins', 'Siemreap', sans-serif;
 }
@@ -7,6 +9,53 @@
 html,
 body {
     font-family: var(--font-sans);
+}
+
+/*
+ * Native form controls (checkboxes, radios, scrollbars, date pickers) render
+ * using the browser's own light-theme chrome unless told otherwise — that's
+ * why a checkbox styled with dark:bg-gray-800 still shows up as a plain
+ * white box, since browsers largely ignore background-color on unstyled
+ * checkboxes. color-scheme tells the browser which built-in palette to draw
+ * these controls with, kept in sync with the .dark class from useTheme.js.
+ */
+html {
+    color-scheme: light;
+}
+
+html.dark {
+    color-scheme: dark;
+}
+
+/*
+ * Smooth light/dark theme switching. Toggling the `.dark` class on <html>
+ * (see useTheme.js) instantly flips every `dark:` color class at once, but
+ * only elements that already carry Tailwind's `transition` utility (mostly
+ * hover states) actually animate — everything else snaps, which reads as a
+ * jarring, half-finished flash rather than a smooth switch. Give every
+ * element a baseline color transition so the whole page fades in sync;
+ * elements with their own `.transition` utility keep taking priority since
+ * a class selector is more specific than the universal selector below.
+ */
+*,
+*::before,
+*::after {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+    transition-timing-function: ease;
+    transition-duration: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms;
+    }
+}
+
+/* Tailwind's Preflight resets <button> to cursor: default; restore the pointer everywhere except disabled buttons. */
+button:not(:disabled) {
+    cursor: pointer;
 }
 
 /* Hide scrollbar but keep scrolling */

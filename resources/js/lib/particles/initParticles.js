@@ -1,4 +1,4 @@
-export function initParticles(containerId = 'particles-js') {
+export function initParticles(containerId = 'particles-js', { isDark = false } = {}) {
   if (typeof window === 'undefined') {
     return () => {}
   }
@@ -42,8 +42,10 @@ export function initParticles(containerId = 'particles-js') {
 
   const particles = []
   const particleCount = 50
-  const particleColor = 'rgba(96, 165, 250, 0.9)'
-  const lineColor = 'rgba(147, 197, 253, 0.35)'
+  // Dark mode gets brighter, higher-contrast particles so they stay visible
+  // against the app's darker chrome around the hero panel.
+  const particleColor = isDark ? 'rgba(191, 219, 254, 0.95)' : 'rgba(96, 165, 250, 0.9)'
+  const lineColor = isDark ? 'rgba(191, 219, 254, 0.45)' : 'rgba(147, 197, 253, 0.35)'
   const maxDistance = 150
   let animationFrameId = null
 

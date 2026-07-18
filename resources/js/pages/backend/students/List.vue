@@ -35,12 +35,12 @@ const students = ref([
 
             <!-- Header -->
 
-            <div class=" flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm" >
+            <div class=" flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800" >
                 <div>
-                    <h1 class="text-3xl font-bold text-slate-900">
+                    <h1 class="text-3xl font-bold text-slate-900 dark:text-gray-100">
                         QR Registration
                     </h1>
-                    <p class="text-sm text-slate-500 mt-1">
+                    <p class="text-sm text-slate-500 mt-1 dark:text-gray-400">
                         Generate QR for student registration
                     </p>
                 </div>
@@ -53,10 +53,10 @@ const students = ref([
 
             <!-- Table -->
 
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" >
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden dark:bg-gray-900 dark:border-gray-800" >
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
-                        <thead class="bg-slate-100">
+                        <thead class="bg-slate-100 dark:bg-gray-800">
                             <tr>
                                 <th class="px-6 py-4 text-left">
                                     ID
@@ -80,7 +80,7 @@ const students = ref([
                             <tr
                                 v-for="student in students"
                                 :key="student.id"
-                                class="border-b last:border-0 hover:bg-slate-50"
+                                class="border-b last:border-0 hover:bg-slate-50 dark:border-gray-800 dark:hover:bg-gray-800"
                             >
                                 <td class="px-6 py-4">
                                     #{{ student.id }}
@@ -97,13 +97,13 @@ const students = ref([
                                 <td class="px-6 py-4">
                                     <span
                                         v-if="student.status === 'Present'"
-                                        class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium"
+                                        class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium dark:bg-green-500/10 dark:text-green-400"
                                     >
                                         Present
                                     </span>
                                     <span
                                         v-else
-                                        class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium"
+                                        class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium dark:bg-yellow-500/10 dark:text-yellow-400"
                                     >
                                         Late
                                     </span>
@@ -135,18 +135,18 @@ const students = ref([
                 >
 
                     <div
-                        class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl"
+                        class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl dark:bg-gray-900"
                     >
 
                         <div
                             class="flex justify-between items-center mb-5"
                         >
 
-                            <h2 class="text-xl font-bold">
+                            <h2 class="text-xl font-bold dark:text-gray-100">
                                 Scan QR Code
                             </h2>
 
-                            <button @click="showQr = false" class="text-gray-500 hover:text-black text-xl">
+                            <button @click="showQr = false" class="text-gray-500 hover:text-black text-xl dark:text-gray-400 dark:hover:text-gray-200">
                                 ✕
                             </button>
                         </div>
@@ -156,7 +156,7 @@ const students = ref([
                                <QrcodeCanvas :value="qrUrl" :size="240" level="H"/>
                             </div>
                         </div>
-                        <p class="text-center text-sm text-gray-500 mt-4" >
+                        <p class="text-center text-sm text-gray-500 mt-4 dark:text-gray-400" >
                             Scan QR using mobile phone
                         </p>
                         <a :href="qrUrl" target="_blank" class="mt-5 block text-center bg-blue-600 hover:bg-blue-700 transition text-white py-3 rounded-xl">

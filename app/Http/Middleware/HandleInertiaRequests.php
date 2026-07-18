@@ -40,6 +40,9 @@ class HandleInertiaRequests extends Middleware
                 'error' => $request->session()->get('error'),
                 'warning' => $request->session()->get('warning'),
                 'info' => $request->session()->get('info'),
+                // Seconds until a throttle block lifts - lets the triggering form
+                // disable its submit button and count down instead of just erroring.
+                'retryAfter' => $request->session()->get('retryAfter'),
             ],
         ];
     }

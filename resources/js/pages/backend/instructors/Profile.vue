@@ -189,226 +189,226 @@ function submit() {
       <Breadcrumbs :breadcrumbItems="breadcrumbItems" />
       <PageHero eyebrow="Instructor" title="My Instructor Profile" description="Complete or update your instructor profile information." />
 
-      <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form @submit.prevent="submit">
 
           <!-- Basic Information -->
           <div class="mb-8">
-            <h2 class="mb-1 text-lg font-semibold text-slate-900">Basic Information</h2>
-            <p class="mb-5 text-sm text-slate-500">Your core account and employment details.</p>
+            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Basic Information</h2>
+            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">Your core account and employment details.</p>
             <div class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
               <div class="md:col-span-2 md:grid md:grid-cols-3 md:gap-x-6">
                 <label class="block md:col-span-1">
-                  <span class="mb-1.5 block text-sm font-semibold text-slate-700">Email</span>
+                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Email</span>
                   <input
                     v-model="form.email"
                     type="email"
-                    class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                    class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                     placeholder="your@email.com"
                   >
-                  <span v-if="form.errors.email" class="mt-1 block text-xs text-red-600">{{ form.errors.email }}</span>
+                  <span v-if="form.errors.email" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.email }}</span>
                 </label>
                 <label class="block md:col-span-1">
-                  <span class="mb-1.5 block text-sm font-semibold text-slate-700">Full Name <span class="text-red-500">*</span></span>
+                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Full Name <span class="text-red-500">*</span></span>
                   <input
                     v-model="form.full_name"
                     type="text"
-                    class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                    class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                     placeholder="Your full name"
                   >
-                  <span v-if="form.errors.full_name" class="mt-1 block text-xs text-red-600">{{ form.errors.full_name }}</span>
+                  <span v-if="form.errors.full_name" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.full_name }}</span>
                 </label>
                 <label class="block md:col-span-1">
-                  <span class="mb-1.5 block text-sm font-semibold text-slate-700">Instructor Code</span>
+                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Instructor Code</span>
                   <input
                     v-model="form.instructor_code"
                     type="text"
                     disabled
-                    class="w-full h-11 rounded-lg border border-slate-300 bg-slate-100 px-4 text-sm text-slate-500 outline-none transition"
+                    class="w-full h-11 rounded-lg border border-slate-300 bg-slate-100 px-4 text-sm text-slate-500 outline-none transition dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400"
                   >
-                  <span v-if="form.errors.instructor_code" class="mt-1 block text-xs text-red-600">{{ form.errors.instructor_code }}</span>
+                  <span v-if="form.errors.instructor_code" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.instructor_code }}</span>
                 </label>
               </div>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700">Employment Type <span class="text-red-500">*</span></span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Employment Type <span class="text-red-500">*</span></span>
                 <SelectSearch
                   v-model="form.employment_type"
                   :options="employmentTypeOptions"
                   placeholder="Select employment type"
-                  button-class="flex w-full h-11 items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  button-class="flex w-full h-11 items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-900 dark:disabled:text-gray-500"
                 />
-                <span v-if="form.errors.employment_type" class="mt-1 block text-xs text-red-600">{{ form.errors.employment_type }}</span>
+                <span v-if="form.errors.employment_type" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.employment_type }}</span>
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700">Phone</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Phone</span>
                 <input
                   v-model="form.phone"
                   type="text"
-                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                   placeholder="Phone number"
                 >
-                <span v-if="form.errors.phone" class="mt-1 block text-xs text-red-600">{{ form.errors.phone }}</span>
+                <span v-if="form.errors.phone" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.phone }}</span>
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700">Shift Template</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Shift Template</span>
                 <SelectSearch
                   v-model="form.shift_template_id"
                   :options="filteredShiftTemplateOptions"
                   :disabled="!form.employment_type"
                   placeholder="Select a shift template"
-                  button-class="flex w-full h-11 items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  button-class="flex w-full h-11 items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-900 dark:disabled:text-gray-500"
                 />
-                <p class="mt-1 text-xs text-slate-400">Availabilities will be auto-generated from the selected template.</p>
-                <span v-if="form.errors.shift_template_id" class="mt-1 block text-xs text-red-600">{{ form.errors.shift_template_id }}</span>
+                <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">Availabilities will be auto-generated from the selected template.</p>
+                <span v-if="form.errors.shift_template_id" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.shift_template_id }}</span>
               </label>
             </div>
           </div>
 
-          <hr class="mb-8 border-slate-200">
+          <hr class="mb-8 border-slate-200 dark:border-gray-800">
 
           <!-- Profile Details -->
           <div class="mb-8">
-            <h2 class="mb-1 text-lg font-semibold text-slate-900">Profile Details</h2>
-            <p class="mb-5 text-sm text-slate-500">Optional CV-style information about yourself.</p>
+            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Profile Details</h2>
+            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">Optional CV-style information about yourself.</p>
             <div class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
               <div class="md:col-span-2">
                 <label class="block">
-                  <span class="mb-1.5 block text-sm font-semibold text-slate-700">Headline</span>
+                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Headline</span>
                   <input
                     v-model="form.headline"
                     type="text"
-                    class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                    class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                     placeholder="e.g. Senior Math Instructor | 10+ Years Experience"
                   >
-                  <span v-if="form.errors.headline" class="mt-1 block text-xs text-red-600">{{ form.errors.headline }}</span>
+                  <span v-if="form.errors.headline" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.headline }}</span>
                 </label>
               </div>
 
               <div class="md:col-span-2">
                 <label class="block">
-                  <span class="mb-1.5 block text-sm font-semibold text-slate-700">Bio</span>
+                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Bio</span>
                   <textarea
                     v-model="form.bio"
                     rows="4"
-                    class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                    class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                     placeholder="A short professional summary about yourself..."
                   />
-                  <span v-if="form.errors.bio" class="mt-1 block text-xs text-red-600">{{ form.errors.bio }}</span>
+                  <span v-if="form.errors.bio" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.bio }}</span>
                 </label>
               </div>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700">Date of Birth</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Date of Birth</span>
                 <input
                   v-model="form.date_of_birth"
                   type="date"
-                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                 >
-                <span v-if="form.errors.date_of_birth" class="mt-1 block text-xs text-red-600">{{ form.errors.date_of_birth }}</span>
+                <span v-if="form.errors.date_of_birth" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.date_of_birth }}</span>
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700">Gender</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Gender</span>
                 <SelectSearch
                   v-model="form.gender"
                   :options="genderOptions"
                   placeholder="Select gender"
-                  button-class="flex w-full h-11 items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  button-class="flex w-full h-11 items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-900 dark:disabled:text-gray-500"
                 />
-                <span v-if="form.errors.gender" class="mt-1 block text-xs text-red-600">{{ form.errors.gender }}</span>
+                <span v-if="form.errors.gender" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.gender }}</span>
               </label>
 
               <div class="md:col-span-2">
                 <label class="block">
-                  <span class="mb-1.5 block text-sm font-semibold text-slate-700">Address</span>
+                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Address</span>
                   <input
                     v-model="form.address"
                     type="text"
-                    class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                    class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                     placeholder="Your address"
                   >
-                  <span v-if="form.errors.address" class="mt-1 block text-xs text-red-600">{{ form.errors.address }}</span>
+                  <span v-if="form.errors.address" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.address }}</span>
                 </label>
               </div>
             </div>
           </div>
 
-          <hr class="mb-8 border-slate-200">
+          <hr class="mb-8 border-slate-200 dark:border-gray-800">
 
           <!-- Social Links -->
           <div class="mb-8">
-            <h2 class="mb-1 text-lg font-semibold text-slate-900">Social Links</h2>
-            <p class="mb-5 text-sm text-slate-500">Connect your professional online profiles.</p>
+            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Social Links</h2>
+            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">Connect your professional online profiles.</p>
             <div class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700">Telegram</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Telegram</span>
                 <input
                   v-model="form.telegram"
                   type="text"
-                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                   placeholder="Telegram username or link"
                 >
-                <span v-if="form.errors.telegram" class="mt-1 block text-xs text-red-600">{{ form.errors.telegram }}</span>
+                <span v-if="form.errors.telegram" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.telegram }}</span>
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700">LinkedIn</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">LinkedIn</span>
                 <input
                   v-model="form.linkedin"
                   type="url"
-                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                   placeholder="https://linkedin.com/in/..."
                 >
-                <span v-if="form.errors.linkedin" class="mt-1 block text-xs text-red-600">{{ form.errors.linkedin }}</span>
+                <span v-if="form.errors.linkedin" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.linkedin }}</span>
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700">GitHub</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">GitHub</span>
                 <input
                   v-model="form.github"
                   type="url"
-                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                   placeholder="https://github.com/..."
                 >
-                <span v-if="form.errors.github" class="mt-1 block text-xs text-red-600">{{ form.errors.github }}</span>
+                <span v-if="form.errors.github" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.github }}</span>
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700">Portfolio URL</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Portfolio URL</span>
                 <input
                   v-model="form.portfolio_url"
                   type="url"
-                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                   placeholder="https://your-portfolio.com"
                 >
-                <span v-if="form.errors.portfolio_url" class="mt-1 block text-xs text-red-600">{{ form.errors.portfolio_url }}</span>
+                <span v-if="form.errors.portfolio_url" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.portfolio_url }}</span>
               </label>
             </div>
           </div>
 
-          <hr class="mb-8 border-slate-200">
+          <hr class="mb-8 border-slate-200 dark:border-gray-800">
 
           <!-- Attachments -->
           <div class="mb-8">
-            <h2 class="mb-1 text-lg font-semibold text-slate-900">Attachments</h2>
-            <p class="mb-5 text-sm text-slate-500">Upload your profile photo, CV, and other documents.</p>
+            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Attachments</h2>
+            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">Upload your profile photo, CV, and other documents.</p>
             <div class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
 
               <!-- Profile Photo -->
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700">Profile Photo</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Profile Photo</span>
                 <div class="flex items-center gap-4">
-                  <div class="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+                  <div class="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-50 dark:border-gray-700 dark:bg-gray-800">
                     <img
                       v-if="profilePhotoPreview"
                       :src="profilePhotoPreview"
                       class="h-full w-full object-cover"
                       alt="Profile photo"
                     >
-                    <div v-else class="flex h-full w-full items-center justify-center text-slate-400">
+                    <div v-else class="flex h-full w-full items-center justify-center text-slate-400 dark:text-gray-500">
                       <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     </div>
                   </div>
@@ -416,37 +416,37 @@ function submit() {
                     <input
                       type="file"
                       accept="image/*"
-                      class="block w-full text-sm text-slate-500 file:mr-3 file:h-9 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:text-sm file:font-semibold file:text-blue-900 hover:file:bg-blue-100"
+                      class="block w-full text-sm text-slate-500 file:mr-3 file:h-9 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:text-sm file:font-semibold file:text-blue-900 hover:file:bg-blue-100 dark:text-gray-400 dark:file:bg-blue-500/10 dark:file:text-blue-400 dark:hover:file:bg-blue-500/20"
                       @change="onProfilePhotoChange"
                     >
-                    <p class="mt-1 text-xs text-slate-400">JPEG, PNG, GIF, WebP. Max 2MB.</p>
-                    <span v-if="form.errors.profile_photo" class="mt-1 block text-xs text-red-600">{{ form.errors.profile_photo }}</span>
+                    <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">JPEG, PNG, GIF, WebP. Max 2MB.</p>
+                    <span v-if="form.errors.profile_photo" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.profile_photo }}</span>
                   </div>
                 </div>
               </label>
 
               <!-- CV -->
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700">CV / Resume</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">CV / Resume</span>
                 <div class="space-y-2">
-                  <div v-if="cvFileName" class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                    <svg class="h-4 w-4 shrink-0 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <div v-if="cvFileName" class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                    <svg class="h-4 w-4 shrink-0 text-blue-900 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     <span class="truncate">{{ cvFileName }}</span>
                     <a
                       v-if="cvFileProp?.url"
                       :href="cvFileProp.url"
                       target="_blank"
-                      class="ml-auto shrink-0 text-blue-900 underline hover:text-blue-700"
+                      class="ml-auto shrink-0 text-blue-900 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                     >View</a>
                   </div>
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx"
-                    class="block w-full text-sm text-slate-500 file:mr-3 file:h-9 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:text-sm file:font-semibold file:text-blue-900 hover:file:bg-blue-100"
+                    class="block w-full text-sm text-slate-500 file:mr-3 file:h-9 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:text-sm file:font-semibold file:text-blue-900 hover:file:bg-blue-100 dark:text-gray-400 dark:file:bg-blue-500/10 dark:file:text-blue-400 dark:hover:file:bg-blue-500/20"
                     @change="onCvFileChange"
                   >
-                  <p class="mt-1 text-xs text-slate-400">PDF, DOC, DOCX. Max 5MB.</p>
-                  <span v-if="form.errors.cv_file" class="mt-1 block text-xs text-red-600">{{ form.errors.cv_file }}</span>
+                  <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">PDF, DOC, DOCX. Max 5MB.</p>
+                  <span v-if="form.errors.cv_file" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.cv_file }}</span>
                 </div>
               </label>
 
@@ -454,45 +454,45 @@ function submit() {
             </div>
           </div>
 
-          <hr class="mb-8 border-slate-200">
+          <hr class="mb-8 border-slate-200 dark:border-gray-800">
 
           <!-- Change Password -->
           <div class="mb-8">
-            <h2 class="mb-1 text-lg font-semibold text-slate-900">Change Password</h2>
-            <p class="mb-5 text-sm text-slate-500">Leave blank to keep your current password.</p>
+            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Change Password</h2>
+            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">Leave blank to keep your current password.</p>
             <div class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700">New Password</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">New Password</span>
                 <input
                   v-model="form.password"
                   type="password"
-                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                   placeholder="New password"
                   autocomplete="new-password"
                 >
-                <span v-if="form.errors.password" class="mt-1 block text-xs text-red-600">{{ form.errors.password }}</span>
+                <span v-if="form.errors.password" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.password }}</span>
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700">Confirm New Password</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Confirm New Password</span>
                 <input
                   v-model="form.password_confirmation"
                   type="password"
-                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                   placeholder="Confirm new password"
                   autocomplete="new-password"
                 >
-                <span v-if="form.errors.password_confirmation" class="mt-1 block text-xs text-red-600">{{ form.errors.password_confirmation }}</span>
+                <span v-if="form.errors.password_confirmation" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.password_confirmation }}</span>
               </label>
             </div>
           </div>
 
           <!-- Submit -->
-          <div class="flex justify-end border-t border-slate-200 pt-6">
+          <div class="flex justify-end border-t border-slate-200 pt-6 dark:border-gray-800">
             <button
               type="submit"
               :disabled="!isDirty || form.processing"
-              class="h-11 rounded-lg bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+              class="h-11 rounded-lg bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
               {{ form.processing ? 'Saving...' : 'Save Profile' }}
             </button>
