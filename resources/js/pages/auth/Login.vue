@@ -139,7 +139,10 @@ function submit() {
       </label>
 
       <label class="block">
-        <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Password</span>
+        <span class="mb-2 flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-slate-700 dark:text-gray-300">Password</span>
+          <Link href="/forgot-password" class="text-xs font-semibold text-blue-900 hover:text-blue-950 dark:text-blue-400 dark:hover:text-blue-300">Forgot password?</Link>
+        </span>
         <div class="relative">
           <input
             v-model="form.password"

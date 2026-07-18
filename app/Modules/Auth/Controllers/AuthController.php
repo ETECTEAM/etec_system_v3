@@ -12,8 +12,10 @@ use App\Models\User;
 use App\Modules\Auth\Events\PendingUserRegistered;
 use App\Modules\Instructor\Services\InstructorService;
 use App\Modules\User\Services\UserService;
+use App\Modules\Auth\Requests\ForgotPasswordRequest;
 use App\Modules\Auth\Requests\LoginWebRequest;
 use App\Modules\Auth\Requests\RegisterWebRequest;
+use App\Modules\Auth\Requests\ResetPasswordRequest;
 use App\Modules\Auth\Requests\VerifyCodeRequest;
 use App\Modules\Auth\Responses\VerificationResponse;
 use App\Modules\Auth\Services\AuthAuditService;
@@ -29,6 +31,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -358,6 +361,72 @@ class AuthController extends Controller
         // Send the user to their role-appropriate landing page.
         return redirect($this->redirectPathFor($user))
             ->with('success', 'Logged in successfully.');
+    }
+
+    // Route to display the forgot-password form for guest users.
+    public function showForgotPassword(): Response
+    {
+        // Render the forgot-password form.
+        return Inertia::render('auth/ForgotPassword');
+    }
+
+    // Route to email a password reset link; guest-only, with the 'password-email' rate limiter to slow abuse.
+    public function sendResetLink(ForgotPasswordRequest $request): RedirectResponse
+    {
+        // Convert the validated request into a typed DTO.
+        $data = $request->toData();
+
+        $status = Password::sendResetLink(['email' => $data->email]);
+
+        // Report the same generic outcome whether or not the email is
+        // registered, so this form can't be used to enumerate accounts -
+        // mirrors loginWeb()'s generic "credentials do not match" message.
+        if (! in_array($status, [Password::RESET_LINK_SENT, Password::INVALID_USER], true)) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
+        }
+
+        return redirect('/forgot-password')
+            ->with('success', 'If an account exists for that email, a password reset link has been sent.');
+    }
+
+    // Route to display the reset-password form linked from the emailed token.
+    public function showResetPassword(Request $request, string $token): Response
+    {
+        // Render the reset-password form, pre-filling the email from the link's query string.
+        return Inertia::render('auth/ResetPassword', [
+            'token' => $token,
+            'email' => $request->query('email', ''),
+        ]);
+    }
+
+    // Route to process a password reset submission; guest-only.
+    public function resetPassword(ResetPasswordRequest $request): RedirectResponse
+    {
+        // Convert the validated request into a typed DTO.
+        $data = $request->toData();
+
+        $status = Password::reset(
+            [
+                'email' => $data->email,
+                'password' => $data->password,
+                'password_confirmation' => $data->passwordConfirmation,
+                'token' => $data->token,
+            ],
+            function (User $user) use ($data): void {
+                // Cast to 'hashed' on the model handles hashing here.
+                $user->forceFill(['password' => $data->password])->save();
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
+        }
+
+        return redirect('/login')->with('success', 'Your password has been reset. Please sign in.');
     }
 
     // Route to log the authenticated user out and invalidate their session.

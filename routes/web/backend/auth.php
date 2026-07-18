@@ -28,6 +28,18 @@ Route::middleware(['guest', 'throttle:login'])->post('/login', [AuthController::
 // Route to process instructor registration submissions; guest-only, with the 'register' rate limiter to slow signup abuse.
 Route::middleware(['guest', 'throttle:register'])->post('/instructor-register', [AuthController::class, 'registerWeb'])->name('register.store');
 
+// Route to display the forgot-password form for guest users.
+Route::middleware('guest')->get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+
+// Route to email a password reset link; guest-only, with the 'password-email' rate limiter to slow abuse.
+Route::middleware(['guest', 'throttle:password-email'])->post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+
+// Route to display the reset-password form linked from the emailed token.
+Route::middleware('guest')->get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
+
+// Route to process a password reset submission; guest-only.
+Route::middleware('guest')->post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+
 // Route to validate a submitted OTP code and activate the pending account; rate-limited to slow code-guessing.
 Route::middleware('throttle:otp-verify')->post('/api/code-verify', [AuthController::class, 'verifyCodeApi'])->name('code-verify.store');
 
