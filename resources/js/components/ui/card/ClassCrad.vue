@@ -5,7 +5,7 @@ import { ref, computed } from "vue";
 import NotificationBadge from "../notification-badge/NotificationBadge.vue";
 import ClassActionMenu from "./ClassActionMenu.vue";
 import BarClass from "../../../pages/backend/students/components/BarClass.vue";
-import { router } from "@inertiajs/vue3";
+// import { router } from "@inertiajs/vue3";
 
 const props = defineProps({
     classData: Object,

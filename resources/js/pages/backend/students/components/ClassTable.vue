@@ -2,7 +2,7 @@
 import { router } from "@inertiajs/vue3";
 import { route } from "ziggy-js";
 import { Eye, Pencil, Trash2 } from "@lucide/vue";
-import { router } from "@inertiajs/vue3";
+// import { router } from "@inertiajs/vue3";
 
 import Table from "../../../../components/ui/table/Table.vue";
 import TableHeader from "../../../../components/ui/table/TableHeader.vue";

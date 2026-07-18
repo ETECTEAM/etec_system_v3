@@ -394,6 +394,8 @@ const sectionDescClass =
             </div>
 
             <!-- ── Form ────────────────────────────────────────────────── -->
+            <!-- Kept for future use. Enable this template when the full create-class form is needed again. -->
+            <template v-if="false">
             <form @submit.prevent="submit" class="space-y-8">
                 <!-- ══════════════════════════════════════════════════════
                      SECTION 1 — General Information
@@ -1470,6 +1472,7 @@ const sectionDescClass =
                     </div>
                 </div>
             </form>
+            </template>
         </div>
     </div>
     </DashboardLayout>

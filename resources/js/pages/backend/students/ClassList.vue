@@ -1,7 +1,6 @@
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { router } from "@inertiajs/vue3";
-import { route } from "ziggy-js";
 import { Search, RotateCcw, Plus, LayoutGrid, Table2 } from "@lucide/vue";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
@@ -87,7 +86,7 @@ const props = defineProps({
   },
 });
 
-const search = ref(props.filters.search ?? "");
+// const search = ref(props.filters.search ?? "");
 const filteredClasses = computed(() => props.classes?.data ?? []);
 let searchTimer = null;
 
@@ -103,7 +102,7 @@ function runSearch() {
 }
 
 const search = ref(props.filters?.search ?? "");
-const viewMode = ref("card");
+// const viewMode = ref("card");
 
 const breadcrumbItems = [
   { label: "Dashboard", href: "/dashboard" },
@@ -112,15 +111,16 @@ const breadcrumbItems = [
 
 function refresh() {
     search.value = "";
-    router.visit(route("students.index"), { preserveState: true });
+    router.visit("/dashboard/students", { preserveState: true });
 }
 
 function goCreateClass() {
-    router.visit(route("students.create"));
+    router.visit("/dashboard/students/create");
 }
 
 function onSearch() {
-    router.visit(route("students.index", { search: search.value || null }), {
+    router.visit("/dashboard/students", {
+        data: { search: search.value || null },
         preserveState: true,
         replace: true,
     });
