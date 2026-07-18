@@ -203,7 +203,6 @@ const handlePageChange = (page) => {
           <table class="min-w-full text-left text-sm text-slate-700 dark:text-gray-300">
             <thead class="bg-slate-100 text-slate-700 uppercase text-xs tracking-wider dark:bg-gray-800 dark:text-gray-300">
               <tr>
-                <th class="px-4 py-4">#</th>
                 <th class="px-4 py-4">Class ID</th>
                 <th class="px-4 py-4">Teacher</th>
                 <th class="px-4 py-4">Course / Lesson</th>
@@ -216,13 +215,11 @@ const handlePageChange = (page) => {
             </thead>
             <tbody>
               <tr v-for="(item, index) in filteredData" :key="item.id ?? item.class_list_id" class="border-t border-slate-200 hover:bg-slate-50 dark:border-gray-800 dark:hover:bg-gray-800">
-                <td class="px-4 py-4 font-semibold text-slate-900 dark:text-gray-100">{{ index + 1 }}</td>
                 <td class="px-4 py-4">
                   <span class="inline-flex rounded-full bg-blue-800 px-3 py-1 text-xs font-semibold text-white dark:bg-blue-600">ID: {{ item.id ?? item.class_list_id }}</span>
                 </td>
                 <td class="px-4 py-4">
                   <div class="flex items-center gap-2">
-                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">👤</span>
                     <span class="font-medium text-slate-900 dark:text-gray-100">{{ item.teacher?.name || item.teacher?.teacher_name || 'No teacher' }}</span>
                   </div>
                 </td>
