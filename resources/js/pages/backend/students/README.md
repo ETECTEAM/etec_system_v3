@@ -1,182 +1,337 @@
-# Student Module — Pages
+# Student Management Module
 
-## ClassList
+## Overview
 
-### Purpose
-
-The main "My Classes" index page. Displays all classes in either a **Card Grid** or **Table View**, toggled by the user. Includes a text search filter, a reset button, and a call-to-action to create a new class.
-
-### Features
-
-- Search-as-you-type filtering across title, lesson, building, and room
-- View mode toggle: Card Grid ↔ Table View with active state highlighting
-- Reset search button
-- "Add Class" button navigating to the create page
-- Reactive filtered list via computed property
-- Inertia-powered client-side navigation
-- Uses `DashboardLayout` for consistent sidebar/header chrome
-
-### Props
-
-No Props.
-
-### Emits
-
-No Emits.
-
-### Dependencies
-
-- `@inertiajs/vue3` — `router`
-- `@lucide/vue` — Search, RotateCcw, Plus, LayoutGrid, Table2
-- `vue` — `ref`, `computed`
-- `DashboardLayout` — `../../../layouts/DashboardLayout.vue`
-- `ClassCrad` — `../../../components/ui/card/ClassCrad.vue`
-- `ClassTable` — `./components/ClassTable.vue`
-
-### Methods
-
-| Method | Description |
-|--------|-------------|
-| `refresh()` | Clears the search input to show all classes |
-| `goCreateClass()` | Navigates to `/dashboard/students/create` via Inertia router |
-
-### Reactive State
-
-| Name | Type | Description |
-|------|------|-------------|
-| `search` | `ref("")` | Search query string bound to the input field |
-| `viewMode` | `ref("card")` | Current view mode: `"card"` or `"table"` |
-| `classes` | `ref([...])` | Hardcoded array of class objects (mock data) |
-| `filteredClasses` | `computed` | Filters `classes` by `search` matching title, lesson, building, room (case-insensitive). Returns unfiltered when search is empty |
-
-### UI Description
-
-- **Header** — "My Classes" title with subtitle "Manage all classes" left-aligned; "Add Class" button (indigo with Plus icon) right-aligned.
-- **Toolbar** — White rounded shadow bar containing:
-  - Search input with search icon
-  - "Reset" button (dark grey, RotateCcw icon)
-  - "Card" toggle button (LayoutGrid icon)
-  - "Table" toggle button (Table2 icon)
-  - Active mode button gets indigo background.
-- **Card View** — Responsive grid (`1col` / `2col` / `3col` at breakpoints) rendering `ClassCrad` for each item.
-- **Table View** — Full-width `ClassTable` component.
-
-### Navigation
-
-| Route | Action |
-|-------|--------|
-| `/dashboard/students` | Class list page (current) |
-| `/dashboard/students/create` | Create class page (via `goCreateClass`) |
-
-### Future Improvements
-
-- Replace hardcoded mock data with Inertia server-side props
-- Server-side pagination with Laravel `LengthAwarePaginator`
-- Debounced search (300ms) to reduce renders
-- Sorting controls (by title, date, capacity)
-- Filters dropdown (by status, building, term)
-- Loading spinner while data fetches
-- Skeleton placeholders during load
-- Error state with retry button
-- Empty state illustration when no classes exist
-- Lazy-load card images / avatars
-- Keyboard shortcuts (`/` to focus search, `c` to create)
+A full-featured **Student Management Module** built for the ETEC system. This module provides complete administration of classes, students, attendance, deposits/payments, and reports. It leverages a modern tech stack with **Laravel 13** on the backend, **Vue 3** with **Inertia.js** for seamless single-page navigation, and **Tailwind CSS** for a polished, responsive UI.
 
 ---
 
-## CreateClass
+## Tech Stack
 
-### Purpose
-
-A form page for creating a new class. Collects all required class metadata and submits via Inertia POST request. Provides back-navigation and cancel functionality.
-
-### Features
-
-- Inertia `useForm` integration with full validation support
-- Fields: Class Title, Lesson, Status (select), Building (select), Floor (select), Room, Study Days, Study Time, Capacity
-- Status: "Physical Class" / "Online Class"
-- Back button and Cancel button both navigate to class list
-- Save button submits the form
-- Responsive 3-column grid layout on large screens
-- Styled card container with shadow and border
-
-### Props
-
-No Props.
-
-### Emits
-
-No Emits.
-
-### Dependencies
-
-- `@inertiajs/vue3` — `useForm`, `router`
-- `@lucide/vue` — GraduationCap, ArrowLeft, Save
-- `DashboardLayout` — `../../../layouts/DashboardLayout.vue`
-
-### Methods
-
-| Method | Description |
-|--------|-------------|
-| `back()` | Navigates to `/dashboard/students` via `router.get()` |
-| `submit()` | POSTs the form to `/dashboard/students` via Inertia |
-
-### Reactive State
-
-| Name | Type | Description |
-|------|------|-------------|
-| `form` | `useForm({...})` | Inertia form object with fields: `title`, `lesson`, `building`, `floor`, `room`, `status`, `term`, `time`, `capacity` (default 20), `description` |
-
-### UI Description
-
-- **Header** — Icon (GraduationCap) + "Create New Class" title + "Create and manage class information." subtitle on left; "Back" button (ArrowLeft icon, outlined) on right.
-- **Form Card** — White rounded-3xl shadow card with 3-column grid of form fields:
-  - **Class Title** — text input (indigo focus ring)
-  - **Lesson** — text input
-  - **Status** — select dropdown (Physical Class / Online Class)
-  - **Building** — select (Building A / B / C)
-  - **Floor** — select (Floor 1 / 2 / 3)
-  - **Room** — text input
-  - **Study Days** — text input (e.g. Mon & Thu)
-  - **Study Time** — text input (e.g. 09:00 AM - 10:30 AM)
-  - **Capacity** — number input (min 1)
-- **Footer** — Right-aligned "Cancel" (outlined) and "Save Class" (indigo, Save icon) buttons.
-
-### Navigation
-
-| Route | Action |
-|-------|--------|
-| `/dashboard/students` | Back / Cancel navigation |
-| `/dashboard/students` | Form POST target (create) |
-
-### Future Improvements
-
-- Server-side validation error display per field
-- Inline validation messages under each input
-- Date/time picker components
-- Image / thumbnail upload
-- Autocomplete for building / floor based on API
-- Draft auto-save to localStorage
-- Confirmation dialog on cancel if form is dirty
-- Loading state on submit button
-- Success toast after creation
-- Redirect to newly created class detail page
-- Permission / role check
+| Layer | Technology |
+|-------|-----------|
+| **Backend** | Laravel 13 |
+| **Frontend** | Vue 3 (Composition API, `<script setup>`) |
+| **SPA Engine** | Inertia.js |
+| **Styling** | Tailwind CSS |
+| **Icons** | Lucide Vue |
+| **Database** | MySQL |
+| **Tooling** | Vite, Ziggy |
 
 ---
 
-## Example Usage (ClassList)
+## Folder Structure
 
-```vue
-<template>
-  <ClassList />
-</template>
+```
+resources/
+└── js/
+    ├── components/
+    │   └── ui/
+    │       ├── card/
+    │       │   ├── Card.vue
+    │       │   ├── ClassCrad.vue
+    │       │   ├── ClassActionMenu.vue
+    │       │   └── index.js
+    │       ├── table/
+    │       │   ├── Table.vue
+    │       │   ├── TableHeader.vue
+    │       │   ├── TableHead.vue
+    │       │   ├── TableBody.vue
+    │       │   ├── TableRow.vue
+    │       │   └── TableCell.vue
+    │       ├── breadcrumbs/
+    │       │   └── Breadcrumbs.vue
+    │       ├── page-hero/
+    │       │   └── PageHero.vue
+    │       └── notification-badge/
+    │           └── NotificationBadge.vue
+    └── pages/
+        └── backend/
+            └── students/
+                ├── ClassList.vue
+                ├── CreateClass.vue
+                ├── EditClass.vue
+                ├── ViewClass.vue
+                ├── Form.vue (QR attendance check-in)
+                ├── List.vue (attendance list)
+                └── components/
+                    ├── ClassTable.vue
+                    ├── BarClass.vue
+                    └── README.md
 ```
 
-## Example Usage (CreateClass)
+---
 
-```vue
-<template>
-  <CreateClass />
-</template>
+## Features
+
+### Class Management
+- [x] Create Class
+- [x] Edit Class
+- [x] View Class
+- [x] Delete Class
+- [x] Search / Filter Classes
+- [x] Card Grid View
+- [x] Table View (with sortable columns)
+- [x] Capacity tracking with progress bar
+- [x] Status badges (Active / Inactive / Completed)
+- [ ] Pagination (server-side)
+
+### Student Management
+- [ ] Add Student to Class
+- [ ] Remove Student from Class
+- [ ] Student List per Class
+- [ ] Student Attendance Tracking
+- [ ] Student Profile
+
+### Deposit & Payment Management
+- [ ] Record Deposit
+- [ ] Deposit Summary Card
+- [ ] Remaining Balance Tracking
+- [ ] Payment History
+
+### QR System
+- [x] QR Code Generation
+- [x] QR Scan Attendance
+- [x] Location-based Check-in
+- [ ] QR Add Student to Class
+
+### Reports
+- [ ] Export to Excel
+- [ ] Export to PDF
+- [ ] Print Student List
+- [ ] Print Deposit Report
+
+### Notifications
+- [ ] Telegram Notification
+- [ ] Email Notification
+
+### UI & Experience
+- [x] Responsive Design (mobile-first)
+- [x] View mode toggle (Card / Table)
+- [x] Breadcrumb navigation
+- [x] Inertia.js client-side navigation
+- [x] Dialog action menu (BarClass)
+- [x] Search-as-you-type filtering
+- [x] Validation error display
+- [ ] Loading skeletons
+- [ ] Empty state illustrations
+- [ ] Toast notifications
+
+---
+
+## Components
+
+### ClassCrad.vue
+Display a single class in card format within the grid view.
+- Shows title, lesson, building, floor/room, study days, time, and capacity with a gradient progress bar
+- Renders a status badge (active / inactive / completed)
+- Includes a three-dot action menu to open the BarClass dialog
+- Emits `view`, `edit`, `add-student`, `qr`, `switch-teacher`, `attendance`, `export`, `pre-end`, `end`
+
+### ClassTable.vue
+Tabular view of all classes, used when the user toggles to table mode.
+- Columns: ID, Class (title + term), Lesson, Building, Room, Status, Students/Capacity, Time, Actions
+- Action buttons per row: View (blue), Edit (yellow), Delete (red)
+- Empty state fallback message
+- Wired to Inertia routes for navigation
+
+### BarClass.vue
+Slide-over / dialog action panel triggered from the class card.
+- Teleported to `<body>` with backdrop blur and ESC-to-close
+- Action items: Edit Class, Add Student, QR Add, Switch Teacher, View Details, Attendance, Export Student List
+- Danger zone: Pre-End Class (amber) and End Class (red) with confirmations
+- Keyboard accessible with focus trap
+
+### ClassActionMenu.vue
+Minimal three-dot vertical icon button that emits `open-bar` to trigger the BarClass dialog.
+- Used inside `ClassCrad.vue`
+
+### ClassInformationCard.vue *(planned)*
+Dedicated card to display full class metadata on the View Class page.
+- Shows lesson, building, floor/room, study days, time, status
+- Icon-labeled rows for scanability
+
+### DepositSummaryCard.vue *(planned)*
+Summary card showing total deposits, remaining balance, and payment status for a class.
+- Color-coded indicators for overdue / on-track / paid
+
+### DepositTable.vue *(planned)*
+Detailed table of all deposit records per student or per class.
+- Columns: Student name, amount, date, payment method, notes, balance
+
+### QuickActions.vue *(planned)*
+Card on the View Class sidebar with shortcut buttons.
+- Edit Class, Add Student, Take Attendance, End Class
+
+### NotificationBadge.vue
+Reusable badge for displaying counts (e.g., unread notifications, pending actions).
+- Used in the class card header
+
+---
+
+## Pages
+
+### ClassList.vue
+The main index page (`/dashboard/students`). Displays all classes in either a **Card Grid** or **Table View**, toggled by the user. Includes search-as-you-type filtering with server-side pagination support. Breadcrumbs + PageHero provide contextual navigation. An "Add Class" button links to the create page.
+
+### CreateClass.vue
+A multi-field form page for creating a new class (`/dashboard/students/create`). Uses Inertia `useForm` for validation. Fields include title, course, lesson, status, building, floor, room, study days, study time, and capacity. Back and Cancel buttons navigate to the class list. On submit, POSTs to `/dashboard/students`.
+
+### EditClass.vue
+Pre-filled form for updating an existing class (`/dashboard/students/{id}/edit`). Loads existing data via Inertia props and submits a `PUT` request. Includes server-side validation error display per field. Manually wired breadcrumbs and a Back button.
+
+### ViewClass.vue
+Detail page for a single class (`/dashboard/students/{id}`). Shows full class information (lesson, building, floor/room, study days, time, status), enrolled students list with avatars, capacity progress bar with percentage filled, and a sidebar with quick actions (Edit, Add Student, End Class).
+
+### Form.vue *(QR Check-in)*
+Location-based QR attendance check-in page. Uses the browser Geolocation API to verify the student is within 50m of the ETEC Center. Displays distance from the center and allows check-in when within range.
+
+### List.vue *(Attendance)*
+Attendance list page with QR code generation for check-in. Displays a table of students with their attendance status (Present / Late). Intended for instructors to mark attendance.
+
+---
+
+## Routes
+
+| Method | URI | Action |
+|--------|-----|--------|
+| `GET` | `/dashboard/students` | `ClassList` — view all classes |
+| `GET` | `/dashboard/students/create` | `CreateClass` — show create form |
+| `POST` | `/dashboard/students` | Store new class |
+| `GET` | `/dashboard/students/{id}` | `ViewClass` — view class details |
+| `GET` | `/dashboard/students/{id}/edit` | `EditClass` — show edit form |
+| `PUT` | `/dashboard/students/{id}` | Update class |
+| `DELETE` | `/dashboard/students/{id}` | Delete class |
+
+---
+
+## Development Status
+
+| Feature | Status |
+|---------|--------|
+| Class List (Card + Table) | ✅ Completed |
+| View Mode Toggle | ✅ Completed |
+| Search / Filter | ✅ Completed |
+| Create Class Form | ✅ Completed |
+| Edit Class Form | ✅ Completed |
+| View Class Detail | ✅ Completed |
+| BarClass Action Dialog | ✅ Completed |
+| UX (Breadcrumbs, PageHero, responsive) | ✅ Completed |
+| QR Code Generation | ✅ Completed |
+| Attendance Form (QR Check-in) | ✅ Completed |
+| Server-side Validation | ✅ Completed |
+| Pagination | ⏳ Planned |
+| Delete Class (Confirmation Modal) | ⏳ Planned |
+| Add Student to Class | ⏳ Planned |
+| Remove Student from Class | ⏳ Planned |
+| Student Attendance | ⏳ Planned |
+| QR Attendance | ⏳ Planned |
+| QR Add Student | ⏳ Planned |
+| Deposit Management | ⏳ Planned |
+| Payment History | ⏳ Planned |
+| Refund System | ⏳ Planned |
+| Export Excel | ⏳ Planned |
+| Export PDF | ⏳ Planned |
+| Print Student List | ⏳ Planned |
+| Telegram Notification | ⏳ Planned |
+| Email Notification | ⏳ Planned |
+| SMS Notification | ⏳ Planned |
+| Teacher Management | ⏳ Planned |
+| Student Import | ⏳ Planned |
+| Dashboard Charts | ⏳ Planned |
+| Waiting List | ⏳ Planned |
+| Course Schedule | ⏳ Planned |
+| Calendar View | ⏳ Planned |
+| Multi-language Support | ⏳ Planned |
+| Dark Mode | ⏳ Planned |
+| Activity Log | ⏳ Planned |
+| Audit Log | ⏳ Planned |
+| Role & Permission System | ⏳ Planned |
+| Backup & Restore | ⏳ Planned |
+| Testing (Vitest + Laravel Dusk) | ⏳ Planned |
+
+---
+
+## Future Features
+
+- [ ] Attendance tracking per session
+- [ ] QR-based attendance scanning
+- [ ] Teacher/instructor assignment & management
+- [ ] Bulk student import (CSV / Excel)
+- [ ] Export class list to Excel
+- [ ] Export attendance & deposit reports to PDF
+- [ ] Email notifications (class reminders, payment receipts)
+- [ ] Telegram bot notifications
+- [ ] SMS notifications
+- [ ] Dashboard analytics with charts (enrollment trends, revenue)
+- [ ] Payment history with invoice generation
+- [ ] Refund processing
+- [ ] Waiting list with auto-enrollment
+- [ ] Course scheduling & calendar view
+- [ ] Multi-language / localization (i18n)
+- [ ] Dark mode toggle
+- [ ] Full activity log (who did what, when)
+- [ ] Audit trail for compliance
+- [ ] Role-based access control (admin, teacher, finance)
+- [ ] Backup & restore functionality
+- [ ] Server-side pagination for large datasets
+- [ ] Debounced search with Laravel query scopes
+- [ ] Sorting controls (by title, date, capacity)
+- [ ] Advanced filters (by status, building, term)
+- [ ] Loading skeletons during data fetch
+- [ ] Empty state with illustration
+- [ ] Success / error toast notifications
+- [ ] Confirmation modal for destructive actions
+- [ ] Draft auto-save to localStorage
+- [ ] Image / thumbnail upload for classes
+- [ ] Mobile responsive table fallback
+- [ ] Bulk actions (select multiple classes)
+- [ ] Unit testing (Vue Test Utils / Vitest)
+- [ ] End-to-end testing (Playwright / Laravel Dusk)
+- [ ] Keyboard shortcuts (`/` to focus search, `c` to create)
+
+---
+
+## Coding Standards
+
+| Practice | Description |
+|----------|-------------|
+| **Vue 3 Composition API** | All components use `<script setup>` with `ref`, `computed`, `watch` |
+| **Reusable Components** | UI primitives (Table, Card, Badge) are extracted to `components/ui/` |
+| **Single Responsibility** | Each component has a clear, focused purpose |
+| **Responsive Design** | Mobile-first layouts with Tailwind breakpoints (`sm:`, `md:`, `lg:`, `xl:`) |
+| **Tailwind CSS** | Utility-first styling; no custom CSS files unless necessary |
+| **Lucide Icons** | Consistent icon set via `@lucide/vue` |
+| **Inertia.js** | SPA-style navigation using `@inertiajs/vue3` router; form handling via `useForm` |
+| **Clean Code** | Meaningful names, flat structure, no commented-out code |
+| **SOLID Principles** | Components are open for extension, closed for modification |
+| **Laravel Best Practices** | Route model binding, validation, resource controllers, service classes |
+| **Accessibility** | Focus management, aria labels, keyboard navigation, `Teleport` for modals |
+
+---
+
+## Getting Started
+
+```bash
+# Install PHP dependencies
+composer install
+
+# Install Node dependencies
+npm install
+
+# Build frontend assets
+npm run build
+
+# Run database migrations
+php artisan migrate
+
+# Start the development server
+php artisan serve
+
+# Compile assets in watch mode (separate terminal)
+npm run dev
 ```
+
+---
+
+<p align="center">Built with ❤️ using Laravel & Vue 3</p>

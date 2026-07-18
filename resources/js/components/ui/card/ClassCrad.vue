@@ -1,19 +1,11 @@
 <script setup>
-import {
-    GraduationCap,
-    Building2,
-    DoorOpen,
-    CalendarDays,
-    Clock3,
-    Users,
-    BookOpen,
-    MonitorSmartphone,
-} from "@lucide/vue";
-
+import { router } from "@inertiajs/vue3";
+import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,BookOpen,} from "@lucide/vue";
 import { ref, computed } from "vue";
 import NotificationBadge from "../notification-badge/NotificationBadge.vue";
 import ClassActionMenu from "./ClassActionMenu.vue";
 import BarClass from "../../../pages/backend/students/components/BarClass.vue";
+import { route } from "ziggy-js";
 
 const props = defineProps({
     classData: Object,
@@ -41,22 +33,28 @@ const fill = computed(() => {
     return (props.classData.students / capacity.value) * 100;
 });
 
-const online = computed(() => {
-    return props.classData.status === "Online Class";
+const statusStyle = computed(() => {
+    switch (props.classData.status) {
+        case 'active':    return 'bg-emerald-50 text-emerald-700 ring-emerald-600/20';
+        case 'inactive':  return 'bg-slate-100 text-slate-600 ring-slate-400/20';
+        case 'completed': return 'bg-blue-50 text-blue-700 ring-blue-600/20';
+        default:          return 'bg-blue-50 text-blue-700 ring-blue-600/20';
+    }
 });
 
 const showBarDialog = ref(false);
+
+function showViewClass(){
+    router.visit(route('students.show', { class: props.classData.id }));
+}
 </script>
 
 <template>
-<div
-    class="group relative flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-0.5 hover:border-indigo-200 transition-all duration-300"
->
+<div class="group relative flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-0.5 hover:border-indigo-200 transition-all duration-300">
     <NotificationBadge :count="props.count" />
-
     <div class="p-5 sm:p-6 flex flex-col flex-1">
 
-        <!-- ─── Header ─── -->
+        <!-- Header -->
         <div class="flex items-start justify-between gap-3">
             <div class="flex items-start gap-3 min-w-0">
                 <div
@@ -91,7 +89,7 @@ const showBarDialog = ref(false);
             />
         </div>
 
-        <!-- ─── Information ─── -->
+        <!-- Information -->
         <div class="mt-4 sm:mt-5 space-y-3 flex-1">
 
             <div class="flex items-center justify-between gap-2">
@@ -125,22 +123,22 @@ const showBarDialog = ref(false);
             </div>
 
             <div class="flex items-center justify-between gap-2">
-                <span class="text-xs sm:text-sm text-slate-500">Status</span>
+                <div class="flex items-center gap-2 text-slate-500">
+                <Users class="w-3.5 h-3.5 shrink-0"/>
+                <span class="text-xs sm:text-sm">Status</span>
+                </div>
                 <span
                     :class="[
-                        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0',
-                        online
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-blue-50 text-blue-700'
+                        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ring-1',
+                        statusStyle,
                     ]"
                 >
                     <span
                         :class="[
                             'w-1.5 h-1.5 rounded-full',
-                            online ? 'bg-emerald-500' : 'bg-blue-500'
+                            classData.status === 'active' ? 'bg-emerald-500' : classData.status === 'inactive' ? 'bg-slate-400' : 'bg-blue-500',
                         ]"
                     ></span>
-                    <MonitorSmartphone v-if="online" class="w-3 h-3" />
                     {{ classData.status }}
                 </span>
             </div>
@@ -166,7 +164,7 @@ const showBarDialog = ref(false);
             </div>
         </div>
 
-        <!-- ─── Student Progress ─── -->
+        <!-- Student Progress -->
         <div class="mt-4 sm:mt-5 pt-4 sm:pt-5 border-t border-slate-100">
             <div class="flex items-center justify-between gap-2 mb-2">
                 <div class="flex items-center gap-2 text-slate-500">
@@ -187,21 +185,11 @@ const showBarDialog = ref(false);
                     :style="{ width: Math.min(fill, 100) + '%' }"
                 ></div>
             </div>
-
-            <div class="flex items-center justify-between mt-1">
-                <span class="text-[11px] text-slate-400 tabular-nums">
-                    {{ Math.round(fill) }}% filled
-                </span>
-                <span class="text-[11px] text-slate-400 tabular-nums">
-                    {{ Math.max(0, capacity - classData.students) }} left
-                </span>
-            </div>
         </div>
 
-        <!-- ─── Footer ─── -->
-        <button
-            type="button"
-            @click="emit('view')"
+        <!-- Footer -->
+        <button type="button"
+            @click="showViewClass"
             class="mt-4 sm:mt-5 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 active:bg-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 transition-all"
         >
             View Class

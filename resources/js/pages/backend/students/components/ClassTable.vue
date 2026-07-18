@@ -1,4 +1,6 @@
 <script setup>
+import { router } from "@inertiajs/vue3";
+import { route } from "ziggy-js";
 import { Eye, Pencil, Trash2 } from "@lucide/vue";
 
 import Table from "../../../../components/ui/table/Table.vue";
@@ -14,6 +16,22 @@ const props = defineProps({
         default: () => [],
     },
 });
+
+function viewClass(id) {
+    router.visit(route("students.show", { class: id }));
+}
+
+function editClass(id) {
+    router.visit(route("students.edit", { class: id }));
+}
+
+function deleteClass(id) {
+    if (confirm("Are you sure you want to delete this class? This action cannot be undone.")) {
+        router.delete(route("students.destroy", { class: id }), {
+            preserveScroll: true,
+        });
+    }
+}
 </script>
 
 <template>
@@ -45,7 +63,6 @@ const props = defineProps({
                             <p class="font-semibold">
                                 {{ item.title }}
                             </p>
-
                             <p class="text-xs text-slate-500">
                                 {{ item.term }}
                             </p>
@@ -65,12 +82,21 @@ const props = defineProps({
                     </TableCell>
 
                     <TableCell>
-                        <span class="inline-flex whitespace-nowrap rounded-full bg-indigo-100 text-indigo-700 px-3 py-1 text-xs">
+                        <span
+                            :class="[
+                                'inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold',
+                                item.status === 'active'
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : item.status === 'inactive'
+                                        ? 'bg-slate-100 text-slate-600'
+                                        : 'bg-blue-100 text-blue-700',
+                            ]"
+                        >
                             {{ item.status }}
                         </span>
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell class="tabular-nums">
                         {{ item.students }}/{{ item.capacity }}
                     </TableCell>
 
@@ -81,19 +107,25 @@ const props = defineProps({
                     <TableCell>
                         <div class="flex justify-center gap-2">
                             <button
-                                class="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200"
+                                @click="viewClass(item.id)"
+                                class="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 cursor-pointer"
+                                title="View"
                             >
                                 <Eye class="w-4 h-4" />
                             </button>
 
                             <button
-                                class="p-2 rounded-lg bg-yellow-100 text-yellow-600 hover:bg-yellow-200"
+                                @click="editClass(item.id)"
+                                class="p-2 rounded-lg bg-yellow-100 text-yellow-600 hover:bg-yellow-200 cursor-pointer"
+                                title="Edit"
                             >
                                 <Pencil class="w-4 h-4" />
                             </button>
 
                             <button
-                                class="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200"
+                                @click="deleteClass(item.id)"
+                                class="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer"
+                                title="Delete"
                             >
                                 <Trash2 class="w-4 h-4" />
                             </button>
