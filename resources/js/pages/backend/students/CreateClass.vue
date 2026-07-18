@@ -206,8 +206,8 @@ const sectionDescClass =
     <DashboardLayout>
     <div class="w-full">
         <div class="space-y-4 sm:space-y-5">
-         <Breadcrumbs :items="breadcrumbItems" />
-          <PageHero/>
+            <Breadcrumbs :items="breadcrumbItems" />
+            <PageHero/>
             <!-- Header -->
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <div class="flex items-center gap-4">
@@ -1471,5 +1471,6 @@ const sectionDescClass =
                 </div>
             </form>
         </div>
+    </div>
     </DashboardLayout>
 </template>

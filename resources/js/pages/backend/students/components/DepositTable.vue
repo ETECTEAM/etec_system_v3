@@ -15,8 +15,12 @@ const props = defineProps({
     default: () => [],
   },
 });
+const emit = defineEmits(["record-deposit"]);
 
 const search = ref("");
+function refresh() {
+  search.value = "";
+}
 
 const filtered = computed(() => {
   if (!search.value) return props.students;
@@ -24,6 +28,7 @@ const filtered = computed(() => {
   return props.students.filter(
     (s) =>
       s.name?.toLowerCase().includes(q) ||
+      String(s.roster_no).includes(q) ||
       String(s.id).includes(q) ||
       s.phone?.toLowerCase().includes(q)
   );
@@ -115,7 +120,7 @@ function statusBadge(status) {
               {{ student.phone ?? "—" }}
             </TableCell>
             <TableCell class="whitespace-nowrap font-medium">
-              ${{ student.deposit_amount?.toFixed(2) }}
+              ${{ Number(student.amount_paid ?? student.deposit_amount ?? 0).toFixed(2) }}
             </TableCell>
             <TableCell class="whitespace-nowrap">
               {{ student.payment_date ?? "—" }}
@@ -129,7 +134,7 @@ function statusBadge(status) {
               </span>
             </TableCell>
             <TableCell class="whitespace-nowrap font-medium">
-              ${{ student.remaining_balance?.toFixed(2) }}
+              ${{ Number(student.remaining_balance ?? 0).toFixed(2) }}
             </TableCell>
             <TableCell>
               <div class="flex justify-center gap-1.5">

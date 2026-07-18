@@ -29,7 +29,11 @@ const menus = [
     icon: SquarePen,
     action: () => router.get(`/dashboard/students/edit/${props.classData.id}`),
   },
-  { label: "Add Student", icon: UserPlus },
+  {
+    label: "Add Student",
+    icon: UserPlus,
+    action: () => router.get(`/dashboard/students/${props.classData.id}/students/create`),
+  },
   { label: "Generate QR", icon: QrCode },
   { label: "Switch Teacher", icon: UserCog },
 ];

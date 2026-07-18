@@ -69,8 +69,7 @@ defineProps({
           </p>
           <p class="mt-1 text-2xl font-bold text-red-700 dark:text-red-400">
             {{
-              (depositSummary?.unpaid_students ?? 0) +
-              (depositSummary?.partial_students ?? 0)
+              depositSummary?.unpaid_students ?? 0
             }}
           </p>
         </div>
