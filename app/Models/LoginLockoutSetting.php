@@ -9,6 +9,7 @@ class LoginLockoutSetting extends Model
     protected $fillable = [
         'reset_after_hours',
         'is_enabled',
+        'free_attempts',
     ];
 
     protected function casts(): array
@@ -16,6 +17,7 @@ class LoginLockoutSetting extends Model
         return [
             'reset_after_hours' => 'integer',
             'is_enabled' => 'boolean',
+            'free_attempts' => 'integer',
         ];
     }
 
@@ -23,6 +25,9 @@ class LoginLockoutSetting extends Model
     // settings, not a list, so callers always resolve id 1.
     public static function current(): self
     {
-        return static::query()->firstOrCreate(['id' => 1], ['reset_after_hours' => 24, 'is_enabled' => true]);
+        return static::query()->firstOrCreate(
+            ['id' => 1],
+            ['reset_after_hours' => 24, 'is_enabled' => true, 'free_attempts' => 5]
+        );
     }
 }

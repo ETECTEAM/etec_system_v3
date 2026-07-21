@@ -2,7 +2,7 @@
 import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { watch } from 'vue'
 import { useToast } from 'vue-toastification'
-import { Clock, Plus, RotateCcw, Save, ShieldCheck, X } from '@lucide/vue'
+import { Clock, KeyRound, Plus, RotateCcw, Save, ShieldCheck, X } from '@lucide/vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
@@ -11,6 +11,7 @@ const props = defineProps({
   tiers: Array,
   resetAfterHours: Number,
   isEnabled: Boolean,
+  freeAttempts: Number,
 })
 
 const toast = useToast()
@@ -29,6 +30,7 @@ const form = useForm({
   reset_after_hours: 24,
   reset_unit: 'hours',
   is_enabled: true,
+  free_attempts: 5,
 })
 
 // Picks a display unit that shows the stored value as a whole number
@@ -44,9 +46,10 @@ function initFromProps() {
   }))
   form.reset_after_hours = props.resetAfterHours ?? 24
   form.reset_unit = unitFor(props.resetAfterHours ?? 24, 'hours', 'days')
+  form.free_attempts = props.freeAttempts ?? 5
 }
 
-watch(() => [props.tiers, props.resetAfterHours, props.isEnabled], initFromProps, { immediate: true })
+watch(() => [props.tiers, props.resetAfterHours, props.isEnabled, props.freeAttempts], initFromProps, { immediate: true })
 
 function addTier() {
   const lastDuration = form.tiers.at(-1)?.duration_minutes ?? 1
@@ -91,6 +94,10 @@ function setResetValue(value) {
 
 function setResetUnit(unit) {
   form.reset_unit = unit
+}
+
+function setFreeAttempts(value) {
+  form.free_attempts = Math.max(1, Number(value) || 1)
 }
 
 function submit() {
@@ -146,6 +153,33 @@ const breadcrumbItems = [
 
           <div class="space-y-6 transition" :class="{ 'pointer-events-none opacity-40': !form.is_enabled }">
             <div>
+              <h4 class="mb-4 text-xs font-bold tracking-wide text-slate-400 uppercase dark:text-gray-500">First lockout trigger</h4>
+
+              <div class="flex flex-wrap items-center gap-4">
+                <div class="flex w-full items-center gap-3 sm:w-48 sm:shrink-0">
+                  <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 dark:bg-gray-800 dark:text-gray-400">
+                    <KeyRound class="h-3.5 w-3.5" />
+                  </span>
+                  <label class="text-sm font-semibold text-slate-700 dark:text-gray-200">Free wrong attempts</label>
+                </div>
+                <div class="max-w-[140px] flex-1">
+                  <input
+                    :value="form.free_attempts"
+                    type="number"
+                    min="1"
+                    class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+                    @input="setFreeAttempts($event.target.value)"
+                  >
+                </div>
+                <p class="w-full text-xs text-slate-500 italic sm:ml-52 sm:w-auto sm:flex-1 dark:text-gray-400">
+                  Wrong passwords allowed before the 1st offense trips. After that, every single wrong attempt
+                  escalates straight to the next tier below - no more batching.
+                </p>
+              </div>
+              <p v-if="form.errors.free_attempts" class="mt-2 text-xs text-red-600 sm:ml-52 dark:text-red-400">{{ form.errors.free_attempts }}</p>
+            </div>
+
+            <div class="border-t border-slate-200 pt-6 dark:border-gray-800">
               <div class="mb-4 flex items-center justify-between gap-4">
                 <h4 class="text-xs font-bold tracking-wide text-slate-400 uppercase dark:text-gray-500">Offense escalation</h4>
                 <button

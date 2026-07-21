@@ -20,6 +20,7 @@ class LoginSecuritySettingsController extends Controller
                 ->get(['offense_number', 'duration_minutes']),
             'resetAfterHours' => LoginLockoutSetting::current()->reset_after_hours,
             'isEnabled' => LoginLockoutSetting::current()->is_enabled,
+            'freeAttempts' => LoginLockoutSetting::current()->free_attempts,
         ]);
     }
 
@@ -30,6 +31,7 @@ class LoginSecuritySettingsController extends Controller
             'tiers.*.duration_minutes' => ['required', 'integer', 'min:1', 'max:10080'],
             'reset_after_hours' => ['required', 'integer', 'min:1', 'max:720'],
             'is_enabled' => ['required', 'boolean'],
+            'free_attempts' => ['required', 'integer', 'min:1', 'max:20'],
         ]);
 
         // Replace-all: numbering is always the tier's position in the
@@ -46,6 +48,7 @@ class LoginSecuritySettingsController extends Controller
         LoginLockoutSetting::current()->update([
             'reset_after_hours' => $validated['reset_after_hours'],
             'is_enabled' => $validated['is_enabled'],
+            'free_attempts' => $validated['free_attempts'],
         ]);
 
         return redirect()->route('login-security.edit')

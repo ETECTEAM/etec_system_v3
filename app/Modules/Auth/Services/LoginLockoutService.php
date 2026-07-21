@@ -40,6 +40,34 @@ class LoginLockoutService
         return $lockout !== null && $lockout->is_hard_block && $lockout->banned_until?->isFuture();
     }
 
+    // How many wrong attempts are free before offense 1 trips.
+    public function freeAttempts(): int
+    {
+        return max(1, LoginLockoutSetting::current()->free_attempts);
+    }
+
+    // True once an account has ever tripped a lockout and that history
+    // hasn't aged out yet (same clean-streak forgiveness registerFailure()
+    // applies). Callers use this to tell offense 1 - which still needs a
+    // burst of freeAttempts() wrong passwords - apart from every offense
+    // after it, which escalates on a single wrong attempt, iPhone-style.
+    public function hasOffenseHistory(string $login): bool
+    {
+        $lockout = $this->find($login);
+
+        if (! $lockout || $lockout->offense_number <= 0) {
+            return false;
+        }
+
+        $resetAfterHours = LoginLockoutSetting::current()->reset_after_hours;
+
+        if ($lockout->last_offense_at && $lockout->last_offense_at->addHours($resetAfterHours)->isPast()) {
+            return false;
+        }
+
+        return true;
+    }
+
     public function secondsRemaining(string $login): int
     {
         $lockout = $this->find($login);
