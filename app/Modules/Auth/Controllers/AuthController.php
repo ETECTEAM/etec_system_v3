@@ -191,7 +191,8 @@ class AuthController extends Controller
     public function loginWeb(LoginWebRequest $request): RedirectResponse|JsonResponse
     {
         $data = $request->toData();
-        $loginKey = Str::lower($data->login);
+        $loginKey = Str::lower($data->login); // convert email uppercase to lowercase
+        // dd($loginKey);
 
         // Account-wide ban, independent of IP - checked first so a banned
         // account can't burn through attempts from a new IP.
