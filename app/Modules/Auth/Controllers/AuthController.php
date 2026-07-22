@@ -10,6 +10,7 @@ use App\Models\User;
 
 // Auth module events, requests, responses, and services.
 use App\Modules\Auth\Events\PendingUserRegistered;
+use App\Modules\Auth\Notifications\PasswordChangedNotification;
 use App\Modules\Instructor\Services\InstructorService;
 use App\Modules\User\Services\UserService;
 use App\Modules\Auth\Requests\ForgotPasswordRequest;
@@ -31,6 +32,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -407,6 +409,7 @@ class AuthController extends Controller
     {
         // Convert the validated request into a typed DTO.
         $data = $request->toData();
+        $resetUser = null;
 
         $status = Password::reset(
             [
@@ -415,9 +418,10 @@ class AuthController extends Controller
                 'password_confirmation' => $data->passwordConfirmation,
                 'token' => $data->token,
             ],
-            function (User $user) use ($data): void {
+            function (User $user) use ($data, &$resetUser): void {
                 // Cast to 'hashed' on the model handles hashing here.
                 $user->forceFill(['password' => $data->password])->save();
+                $resetUser = $user;
             }
         );
 
@@ -425,6 +429,18 @@ class AuthController extends Controller
             throw ValidationException::withMessages([
                 'email' => [__($status)],
             ]);
+        }
+
+        // Reaching this flow at all required a verified recovery email (see
+        // User::sendPasswordResetNotification()), so the account's escalating
+        // lockout history is cleared the same way a normal successful login
+        // clears it, and every other session for this account is killed.
+        $this->lockoutService->clear(Str::lower($data->email));
+        DB::table('sessions')->where('user_id', $resetUser->id)->delete();
+
+        if ($resetUser->recovery_email) {
+            Notification::route('mail', $resetUser->recovery_email)
+                ->notify(new PasswordChangedNotification($resetUser->email));
         }
 
         return redirect('/login')->with('success', 'Your password has been reset. Please sign in.');
