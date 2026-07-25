@@ -6,6 +6,7 @@ import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
 const notifications = ref([])
 const isLoading = ref(false)
+const actioningId = ref(null)
 
 onMounted(() => {
   fetchNotifications()
@@ -16,13 +17,26 @@ async function fetchNotifications() {
 
   try {
     const res = await axios.get('/notifications/data')
-    const payload = res.data?.data ?? res.data ?? []
+    const payload = res.data?.data ?? []
     notifications.value = Array.isArray(payload) ? payload : []
   } catch (error) {
     console.error('Failed to fetch notifications', error)
     notifications.value = []
   } finally {
     isLoading.value = false
+  }
+}
+
+async function actOnNotification(notification, action) {
+  actioningId.value = notification.id
+
+  try {
+    const response = await axios.post(`/notifications/${notification.id}/${action}`)
+    notification.approval_status = response.data?.approval_status ?? notification.approval_status
+  } catch (error) {
+    console.error(`Failed to ${action} notification`, error)
+  } finally {
+    actioningId.value = null
   }
 }
 </script>
@@ -53,6 +67,31 @@ async function fetchNotifications() {
         >
           <h2 class="font-semibold text-slate-800 dark:text-gray-100">{{ n.title }}</h2>
           <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ n.message }}</p>
+
+          <div v-if="n.approval_status === 'pending'" class="mt-3 flex gap-2">
+            <button
+              type="button"
+              class="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+              :disabled="actioningId === n.id"
+              @click="actOnNotification(n, 'approve')"
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              class="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+              :disabled="actioningId === n.id"
+              @click="actOnNotification(n, 'reject')"
+            >
+              Reject
+            </button>
+          </div>
+          <p v-else-if="n.approval_status === 'approved'" class="mt-3 text-xs font-semibold text-green-600 dark:text-green-400">
+            Approved
+          </p>
+          <p v-else-if="n.approval_status === 'rejected'" class="mt-3 text-xs font-semibold text-red-600 dark:text-red-400">
+            Rejected
+          </p>
         </article>
       </div>
     </section>

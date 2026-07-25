@@ -26,13 +26,11 @@ watch(() => page.props.flash, (flash) => {
 
 const form = useForm({
   recovery_email: '',
-  current_password: '',
 })
 
 function submit() {
   form.transform((data) => ({
     recovery_email: data.recovery_email.trim().toLowerCase(),
-    current_password: data.current_password,
   })).post('/dashboard/account-security/recovery-email', {
     preserveScroll: true,
     onSuccess: () => form.reset(),
@@ -114,17 +112,6 @@ const breadcrumbItems = [
               class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             >
             <p v-if="form.errors.recovery_email" class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ form.errors.recovery_email }}</p>
-          </div>
-
-          <div>
-            <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-200">Current password</label>
-            <input
-              v-model="form.current_password"
-              type="password"
-              autocomplete="current-password"
-              class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-            >
-            <p v-if="form.errors.current_password" class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ form.errors.current_password }}</p>
           </div>
 
           <div class="flex items-center justify-end gap-3 border-t border-slate-200 pt-6 dark:border-gray-800">

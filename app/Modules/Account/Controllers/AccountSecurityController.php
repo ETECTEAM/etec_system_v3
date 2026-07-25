@@ -10,10 +10,8 @@ use App\Modules\Account\Requests\UpdateRecoveryEmailRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,17 +34,11 @@ class AccountSecurityController extends Controller
         ]);
     }
 
-    // Route to submit a new/changed recovery email; requires the current password instead of a full re-auth.
+    // Route to submit a new/changed recovery email.
     public function updateRecoveryEmail(UpdateRecoveryEmailRequest $request): RedirectResponse
     {
         $data = $request->toData();
         $user = Auth::user();
-
-        if (! Hash::check($data->currentPassword, $user->password)) {
-            throw ValidationException::withMessages([
-                'current_password' => ['The provided password is incorrect.'],
-            ]);
-        }
 
         // Overwrites any prior recovery email outright and drops verification -
         // there is deliberately no staging column, so the account has zero

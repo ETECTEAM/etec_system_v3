@@ -30,9 +30,14 @@ const user = computed(() => page.props.auth?.user ?? null)
 const roles = computed(() => page.props.auth?.roles ?? [])
 const canAccessNotifications = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin'))
 const notifications = ref([])
+const unreadCount = ref(0)
 const isLoading = ref(false)
+const actioningId = ref(null)
 const profileOpen = ref(false)
 const profileRef = ref(null)
+const notificationsOpen = ref(false)
+const notificationsRef = ref(null)
+let pollTimer = null
 
 const initials = computed(() => {
   const name = user.value?.name ?? ''
@@ -49,9 +54,12 @@ const initials = computed(() => {
     .toUpperCase()
 })
 
+const NOTIFICATIONS_POLL_MS = 20000
+
 onMounted(() => {
   if (canAccessNotifications.value) {
     fetchNotifications()
+    pollTimer = setInterval(fetchNotifications, NOTIFICATIONS_POLL_MS)
   }
 
   document.addEventListener('click', handleDocumentClick)
@@ -61,6 +69,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleDocumentClick)
   document.removeEventListener('keydown', handleEscape)
+
+  if (pollTimer) {
+    clearInterval(pollTimer)
+  }
 })
 
 async function fetchNotifications() {
@@ -68,8 +80,9 @@ async function fetchNotifications() {
 
   try {
     const response = await axios.get('/notifications/data')
-    const payload = response.data?.data ?? response.data ?? []
+    const payload = response.data?.data ?? []
     notifications.value = Array.isArray(payload) ? payload : []
+    unreadCount.value = response.data?.unread_count ?? 0
   } catch (error) {
     console.error('Failed to fetch notifications', error)
     notifications.value = []
@@ -78,8 +91,30 @@ async function fetchNotifications() {
   }
 }
 
+function toggleNotifications() {
+  notificationsOpen.value = !notificationsOpen.value
+}
+
 function goToNotifications() {
+  notificationsOpen.value = false
   router.visit('/dashboard/notifications')
+}
+
+async function actOnNotification(notification, action) {
+  actioningId.value = notification.id
+  isLoading.value = true
+
+  try {
+    const response = await axios.post(`/notifications/${notification.id}/${action}`)
+    notification.approval_status = response.data?.approval_status ?? notification.approval_status
+    notification.is_read = true
+  } catch (error) {
+    console.error(`Failed to ${action} notification`, error)
+  } finally {
+    actioningId.value = null
+    isLoading.value = false
+    fetchNotifications()
+  }
 }
 
 function toggleProfile() {
@@ -94,11 +129,16 @@ function handleDocumentClick(event) {
   if (!profileRef.value?.contains(event.target)) {
     closeProfile()
   }
+
+  if (!notificationsRef.value?.contains(event.target)) {
+    notificationsOpen.value = false
+  }
 }
 
 function handleEscape(event) {
   if (event.key === 'Escape') {
     closeProfile()
+    notificationsOpen.value = false
   }
 }
 </script>
@@ -140,29 +180,84 @@ function handleEscape(event) {
           <component :is="themeIcon" class="h-5 w-5" />
         </button>
 
-        <button
-          v-if="canAccessNotifications"
-          type="button"
-          class="relative rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-          :disabled="isLoading"
-          @click="goToNotifications"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-            />
-          </svg>
-
-          <span
-            v-if="notifications.length"
-            class="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-500 px-1 text-center text-xs font-semibold text-white"
+        <div v-if="canAccessNotifications" ref="notificationsRef" class="relative">
+          <button
+            type="button"
+            class="relative rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            @click="toggleNotifications"
           >
-            {{ notifications.length }}
-          </span>
-        </button>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+              />
+            </svg>
+
+            <span
+              v-if="unreadCount"
+              class="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-500 px-1 text-center text-xs font-semibold text-white"
+            >
+              {{ unreadCount }}
+            </span>
+          </button>
+
+          <div
+            v-if="notificationsOpen"
+            class="absolute right-0 z-30 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+          >
+            <div class="flex items-center justify-between border-b border-slate-200 px-4 py-2.5 dark:border-gray-700">
+              <p class="text-sm font-semibold text-slate-800 dark:text-gray-100">Notifications</p>
+              <button type="button" class="text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400" @click="goToNotifications">
+                View all
+              </button>
+            </div>
+
+            <div class="max-h-96 overflow-y-auto">
+              <p v-if="isLoading && !notifications.length" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-gray-400">
+                Loading...
+              </p>
+              <p v-else-if="!notifications.length" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-gray-400">
+                No notifications yet.
+              </p>
+
+              <article
+                v-for="n in notifications"
+                :key="n.id"
+                class="border-b border-slate-100 px-4 py-3 last:border-b-0 dark:border-gray-700"
+              >
+                <p class="text-sm font-semibold text-slate-800 dark:text-gray-100">{{ n.title }}</p>
+                <p class="mt-0.5 text-xs text-slate-500 dark:text-gray-400">{{ n.message }}</p>
+
+                <div v-if="n.approval_status === 'pending'" class="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    class="rounded-lg bg-green-600 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+                    :disabled="actioningId === n.id"
+                    @click="actOnNotification(n, 'approve')"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                    :disabled="actioningId === n.id"
+                    @click="actOnNotification(n, 'reject')"
+                  >
+                    Reject
+                  </button>
+                </div>
+                <p v-else-if="n.approval_status === 'approved'" class="mt-2 text-xs font-semibold text-green-600 dark:text-green-400">
+                  Approved
+                </p>
+                <p v-else-if="n.approval_status === 'rejected'" class="mt-2 text-xs font-semibold text-red-600 dark:text-red-400">
+                  Rejected
+                </p>
+              </article>
+            </div>
+          </div>
+        </div>
 
         <div ref="profileRef" class="relative">
           <button

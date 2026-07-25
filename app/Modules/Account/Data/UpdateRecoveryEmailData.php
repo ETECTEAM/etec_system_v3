@@ -9,6 +9,5 @@ readonly class UpdateRecoveryEmailData
 {
     public function __construct(
         public string $recoveryEmail,
-        public string $currentPassword,
     ) {}
 }

@@ -31,7 +31,6 @@ class UpdateRecoveryEmailRequest extends FormRequest
                     }
                 },
             ],
-            'current_password' => ['required', 'string'],
         ];
     }
 
@@ -41,7 +40,6 @@ class UpdateRecoveryEmailRequest extends FormRequest
 
         return new UpdateRecoveryEmailData(
             recoveryEmail: trim((string) $validated['recovery_email']),
-            currentPassword: (string) $validated['current_password'],
         );
     }
 }
