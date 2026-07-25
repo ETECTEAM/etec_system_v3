@@ -2,6 +2,12 @@
 
 This document reflects the current module-first authentication flow implemented across `AuthController`, auth requests, DTOs, services, responses, events, listeners, and the Telegram approval webhook.
 
+For step-by-step detail on individual flows, see the dedicated docs — this page stays at the module/route level and defers to them rather than duplicating their content:
+
+- `docs/registration-workflow.md` — full registration walkthrough
+- `docs/login-workflow.md` — full login walkthrough, including the lockout system
+- `docs/notification-workflow.md` — how the admin-approval request reaches Telegram and the dashboard
+
 ## Team Structure Rule
 
 Feature code belongs inside `app/Modules/{FeatureName}`.
@@ -58,70 +64,52 @@ Route
 
 ## Main Routes
 
+Defined in `routes/web/backend/auth.php` unless noted otherwise.
+
 - `GET /login` renders the login page for guests.
-- `GET /register` renders the register page for guests.
-- `GET /code-verify` shows the OTP verification page.
-- `POST /login` calls `AuthController::loginWeb()` with `throttle:login`.
-- `POST /register` calls `AuthController::registerWeb()` with `throttle:register`.
+- `GET /instructor-register` renders the instructor signup page for guests (kept off `/register`, which is the separate frontend student-registration flow).
+- `GET /code-verify` shows the OTP verification page (no guest restriction - reused by pending-status login too).
+- `POST /login` calls `AuthController::loginWeb()` with `guest` + `throttle:login`.
+- `POST /instructor-register` calls `AuthController::registerWeb()` with `guest` + `throttle:register`.
+- `GET/POST /forgot-password`, `GET /reset-password/{token}`, `POST /reset-password` handle the password-reset flow (`throttle:password-email` on the send step).
 - `POST /api/code-verify` calls `AuthController::verifyCodeApi()` with `throttle:otp-verify`.
 - `POST /logout` calls `AuthController::logoutWeb()` for authenticated users.
-- `POST /api/telegram/webhook` is handled by `TelegramWebhookController` with `throttle:telegram-webhook`.
+- `POST /api/telegram/webhook` (`routes/api.php`) is handled by `TelegramWebhookController` with `throttle:telegram-webhook`.
 
 ## Register Flow
 
 Endpoint: `AuthController::registerWeb(RegisterWebRequest)`
 
-1. `RegisterWebRequest` validates:
-   - `name` is required
-   - `email` is required, unique, valid, and must match `@etec.com`
-   - `password` is required, minimum 8 characters, and must be confirmed
-2. `RegisterWebRequest::toData()` returns `RegisterUserData`.
-3. Creates the user in a database transaction with:
-   - `status = pending`
-   - `is_active = false`
-4. Ensures the default role exists and assigns it to the user.
-5. Creates a new OTP with `OtpService::createForUser($user)`.
-6. Logs the `user.registered` audit event.
-7. Logs the new user in immediately and regenerates the session.
-8. Stores `pending_verification_user_id` in session.
-9. Dispatches `PendingUserRegistered($user, $otp, $plainCode)`.
-10. Redirects to `/code-verify` with a success message.
+Full walkthrough: `docs/registration-workflow.md`. Summary:
+
+1. `RegisterWebRequest` validates `name`, `email` (unique, must match `@etec.com`), and `password` (min 8, confirmed).
+2. Inside one DB transaction: creates the `User` (`role: instructor`, `status: pending`), syncs the Spatie `instructor` role, and creates an `InstructorData` row with a generated instructor code.
+3. If OTP verification is enabled, creates an OTP via `OtpService::createForUser($user)`; otherwise auto-approves immediately (`source: otp_disabled`).
+4. Logs the `user.registered` audit event, logs the user in immediately (status still `pending` - access is gated by status checks, not by withholding login), and regenerates the session.
+5. Stores `pending_verification_user_id` in session and dispatches `PendingUserRegistered($user, $otp, $plainCode)`.
+6. Redirects to `/code-verify`.
 
 ### OTP Created During Registration
 
-`OtpService::createForUser()` currently:
+`OtpService::createForUser()`:
 
 - Generates a random 6-digit code.
-- Stores only the hashed OTP in `otp_verifications.otp_code`.
-- Sets `expires_at` to 10 minutes from creation.
-- Starts with `attempts = 0`.
+- Stores only the hashed code in `otp_verifications.otp_code` - the plain code is never persisted, only returned in memory.
+- Sets `expires_at` to 10 minutes from creation, `attempts = 0`.
 - Logs the `otp.created` audit event.
-- Returns both the `OtpVerification` model and the plain OTP code.
+- Returns both the `OtpVerification` model and the plain code.
 
-## Telegram Notification Flow
+## Admin Notification Flow
 
 Triggered by: `PendingUserRegistered`
 
-The registration event listener calls `TelegramService::sendAdminApprovalRequest($user, $otp, $plainCode)`.
+Two listeners handle this event independently - a Telegram push and a dashboard notification row. Full detail, including how approvals from either channel converge on `UserApprovalService`, is in `docs/notification-workflow.md`. Summary:
 
-Telegram message behavior:
-
-- Sends the message only when `telegram.admin_chat_id` is configured.
-- Uses a cache lock key `telegram:approval-request:{otp_id}` to avoid duplicate sends for the same OTP.
-- Includes:
-  - registration title: `New Instructor Registration`
-  - user name
-  - user email
-  - `Phone: not provided`
-  - plain OTP code
-  - approval prompt text
-- Adds inline buttons with callback data:
-  - `approve:{otp_id}`
-  - `reject:{otp_id}`
-- Removes the cache lock if Telegram sending throws an exception, so the request can be retried.
+- `SendTelegramAdminApproval` -> `TelegramService::sendAdminApprovalRequest()` sends the plain OTP code and user info to a configured Telegram admin chat, with inline `Approve`/`Reject` buttons (`callback_data: approve:{otp_id}` / `reject:{otp_id}`). No-ops silently if `telegram.admin_chat_id`/bot token aren't configured. Deduped per-OTP via a cache lock.
+- `CreateAdminApprovalNotification` -> writes a `Notification` row (`type: instructor_approval`, linked via `otp_verification_id`) that the dashboard bell polls for (`GET /notifications/data`, every 20s) and lets `super_admin`/`admin` users approve/reject inline.
 
 Important note:
-- The plain OTP is sent to Telegram admins, but only the hashed OTP is stored in the database.
+- The plain OTP is only ever surfaced in these two admin-facing channels - it is never emailed or SMS'd to the registrant directly.
 
 ## Show Verification Page
 
@@ -130,8 +118,8 @@ Endpoint: `AuthController::showVerifyCode(Request)`
 1. Reads `pending_verification_user_id` from the session.
 2. If that session value is missing, it falls back to the authenticated user when the account is not active yet.
 3. If a fallback user is used, the session key is restored.
-4. If no pending user is found, redirects to `/register` with `Please register first to request a verification code.`
-5. If the user status is `rejected`, redirects to `/register` with `Your registration was rejected. Please contact support.`
+4. If no pending user is found, redirects to `/instructor-register` with `Please register first to request a verification code.`
+5. If the user status is `rejected`, redirects to `/instructor-register` with `Your registration was rejected. Please contact support.`
 6. If the user status is `active`, redirects to `/login` with `Your account is already active.`
 7. Otherwise renders `auth/VerifyCode` with:
    - `pendingEmail`
@@ -155,12 +143,12 @@ Endpoint: `AuthController::verifyCodeApi(VerifyCodeRequest)`
    - `Your registration was rejected. Please contact support.`
 6. If the user is already active, returns JSON through `VerificationResponse::alreadyActive()`:
    - `message = Account is already active.`
-   - `redirect = role-based path`
+   - `redirect = permission-based path`
 7. Calls `OtpService::verify($user, $data->code)`.
 8. If OTP verification succeeds, calls `UserApprovalService::approve($user, null, 'otp')`.
 9. Logs the user in, regenerates the session, clears `pending_verification_user_id`, and returns JSON through `VerificationResponse::verified()`:
    - `message = Account verified successfully.`
-   - `redirect = role-based path`
+   - `redirect = permission-based path`
 
 ### `OtpService::verify()` Behavior
 
@@ -208,21 +196,23 @@ Important note:
 
 Endpoint: `AuthController::loginWeb(LoginWebRequest)`
 
-1. `LoginWebRequest` validates:
-   - `login` or `email`
-   - `password`
-2. `LoginWebRequest::toData()` returns `LoginData`.
-3. Resolves the login identifier from `login` first, then `email`.
-4. `AuthService::findUserForLogin()` searches:
-   - by `email` when the input looks like an email
-   - by `name` otherwise
-5. If the user is missing or the password is wrong, throws:
-   - `The provided credentials are incorrect.`
-6. If the user is rejected, throws:
-   - `Your account was rejected. Please contact support.`
-7. If the user is not active, throws:
-   - `Your account is pending verification. Please complete the 6-digit verification first.`
-8. If valid, logs the user in with optional `remember`, regenerates the session, and redirects to the role-based path with `Logged in successfully.`
+Full walkthrough, including the two-layer lockout system, is in `docs/login-workflow.md`. Summary:
+
+1. `LoginWebRequest` validates `login` or `email`, plus `password`.
+2. Checks `LoginLockoutService::isBanned()` first - account-wide, keyed on the login alone (not IP), so rotating IPs doesn't help a banned account.
+3. Pre-first-offense, a short login+IP `RateLimiter` burst applies; once an account has ever tripped a lockout, every wrong attempt escalates the ban immediately instead.
+4. `AuthService::findUserForLogin()` looks up by `email` or `name`. `Hash::check()` always runs (against a dummy hash if no user was found), so a nonexistent login takes the same time to reject as a wrong password - no timing leak.
+5. Wrong credentials: registers a lockout failure (escalating ban tiers, then a hard block past the last tier) and returns the generic message `These credentials do not match our records.` The real reason is audit-logged only, never shown to the client.
+6. Only after a correct password does status get checked: `Inactive`/`Rejected` throw their own errors; any other non-`Active` status (i.e. `pending`) redirects to `/code-verify` instead of throwing.
+7. On success: clears the rate limiter and lockout history, `Auth::login()` with optional `remember`, regenerates the session, and redirects to the permission-based path (`redirectPathFor()`) with `Logged in successfully.`
+
+## Forgot / Reset Password Flow
+
+Endpoints: `AuthController::sendResetLink(ForgotPasswordRequest)`, `AuthController::resetPassword(ResetPasswordRequest)`
+
+1. `sendResetLink()` calls Laravel's `Password::sendResetLink()`. The response is the same generic success message whether or not the email exists, so the endpoint can't be used to enumerate accounts.
+2. `resetPassword()` calls `Password::reset()`, force-fills the new password, then clears the account's login-lockout history and deletes every other active session for that user (`sessions` table), so a password reset also kills any hijacked sessions.
+3. If the user has a verified recovery email, sends `PasswordChangedNotification` there (not to the login email, in case that inbox is the compromised one).
 
 ## Logout Flow
 
@@ -233,14 +223,11 @@ Endpoint: `AuthController::logoutWeb(Request)`
 3. Regenerates the CSRF token.
 4. Redirects to `/login`.
 
-## Role-Based Redirect
+## Post-Login Redirect
 
 Method: `redirectPathFor(User)`
 
-- `super_admin` => `/dashboard`
-- `admin` => `/dashboard`
-- `instructor` => `/dashboard`
-- any other role => `/`
+Permission-based, not role-name-based: `/dashboard` if the user `can('dashboard.view')`, otherwise `/login`.
 
 ## Adding New Module Code
 

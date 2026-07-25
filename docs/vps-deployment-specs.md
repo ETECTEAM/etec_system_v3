@@ -74,16 +74,39 @@ VPS price, there's no good reason to skip it.
 
 ## Deployment Note
 
-The repo's `docker-compose.yml` currently targets `dev` (runs `composer run
-dev` and the Vite dev server, live-mounts the working directory). That's fine
-for local development but should **not** be used as-is on the VPS. Production
-deployment needs a separate compose/Dockerfile target that:
+The repo's `docker-compose.yml` targets `dev` (runs `composer run dev` and the
+Vite dev server, live-mounts the working directory) and is for local
+development only - do not use it as-is on the VPS.
 
-- Builds frontend assets ahead of time (`npm run build`) rather than running
-  the Vite dev server.
-- Runs PHP-FPM + Nginx (or `php artisan serve` behind a reverse proxy) instead
-  of the dev container command.
-- Does not bind-mount the whole working directory as a live volume.
+For production, use `docker-compose.prod.yml`, which builds the `production`
+Dockerfile stage:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+That stage:
+
+- Builds frontend assets ahead of time (`npm run build` in a throwaway
+  `frontend-build` stage) rather than running the Vite dev server.
+- Runs PHP-FPM (`php:8.3-fpm-bookworm`) behind the nginx config in
+  `deploy/nginx/default.conf` (rate limiting, `.php` proxying to `app:9000`),
+  instead of the dev container command.
+- Copies the app code in at build time (respecting `.dockerignore`, so
+  `docs/`, `tests/`, `.git/` never enter the image) - no bind mount, so a
+  container restart can't be affected by uncommitted host changes.
+- Persists only runtime state (`storage/`, MySQL data, and the built
+  `public/` directory shared with nginx) via named volumes, not the whole
+  repo.
+- Does not include `phpmyadmin` - exposing a DB admin UI on a production box
+  is an unnecessary attack surface. Use an SSH tunnel to `mysql:3306` instead
+  if you need direct DB access.
+
+Still needed before a real deploy: TLS (nginx currently serves plain HTTP on
+port 80 - put Certbot/Let's Encrypt or a TLS-terminating reverse proxy in
+front), and a migration step (`docker compose -f docker-compose.prod.yml exec
+app php artisan migrate --force`) run manually after each deploy rather than
+automatically on container start.
 
 ## Open Question
 
