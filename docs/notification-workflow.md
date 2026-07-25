@@ -69,9 +69,21 @@ Notification::create([
 
 Same OTP code, same underlying `OtpVerification` row — just a second surface for it.
 
-## Step 4 — Dashboard picks it up via polling
+Alongside creating the row, this listener (and every action listed in Step 5) also dispatches `App\Modules\Notification\Events\NotificationsUpdated`, an `ShouldBroadcastNow` event broadcast on a private `admin-notifications` channel (authorized in `routes/channels.php` for `super_admin`/`admin` only). The event carries no payload on purpose - it's just a "something changed" nudge, so the client always refetches `GET /notifications/data` rather than trusting a second, duplicated serialization of the same data.
 
-`resources/js/layouts/DashboardHeader.vue` — on mount, if the logged-in user is `super_admin` or `admin`, it fetches immediately and then every 20 seconds (`setInterval`) via `GET /notifications/data`. There is no push/broadcast infrastructure in this app (no Reverb/Pusher/Echo) — this is a plain polling loop.
+## Step 4 — Dashboard picks it up live (Reverb), with polling as a fallback
+
+The app runs a Laravel Reverb websocket server (Pusher-compatible protocol). Both `resources/js/layouts/DashboardHeader.vue` and `resources/js/pages/backend/notifications/Index.vue` independently do, on mount (if the user is `super_admin`/`admin`):
+
+```js
+getEcho().private('admin-notifications').listen('.notifications.updated', fetchNotifications)
+```
+
+`resources/js/echo.js` lazily creates a single shared Echo/Pusher-js client (so pages that never touch notifications - students, instructors - never open a websocket at all). When the event fires, connected dashboards refetch almost instantly instead of waiting on a timer.
+
+A 60-second `setInterval` poll still runs alongside this as a safety net in case the websocket connection drops without reconnecting - not the primary delivery mechanism anymore, just a backstop.
+
+Because both components can be mounted at the same time (the header is part of the layout wrapping the notifications page) and both subscribe to the same channel independently, cleanup on unmount uses `channel.stopListening(event, callback)`, not `echo.leave(channel)` - `leave()` would drop the *entire* channel subscription, including the other still-mounted component's listener.
 
 `NotificationController::getNotificationData` (`app/Modules/Notification/Controllers/NotificationController.php:37-64`):
 
@@ -97,6 +109,8 @@ $approvalService->approve($user, null, 'telegram');
 $approvalService->reject($user, null, 'telegram');
 ```
 
+Telegram resolves the `User`/`OtpVerification` directly and has no idea the dashboard's copy of this request even exists, so `syncDashboardNotification()` marks that `Notification` row `is_read = true` and dispatches `NotificationsUpdated` afterward - otherwise it would stay stuck "unread" forever, and any admin watching the dashboard wouldn't see the resolution until the 60s fallback poll.
+
 **Dashboard** — admin clicks a button in the popup or on the notifications page → `POST /notifications/{id}/approve` or `/reject` → `NotificationController::resolve()` (`app/Modules/Notification/Controllers/NotificationController.php:76-112`) loads `$notification->otpVerification->user`, guards against an already-rejected user, then calls:
 
 ```php
@@ -105,7 +119,7 @@ $this->approvalService->approve($user, $request->user()->id, 'dashboard');
 $this->approvalService->reject($user, $request->user()->id, 'dashboard');
 ```
 
-and marks the notification `is_read = true`.
+marks the notification `is_read = true`, and dispatches `NotificationsUpdated`.
 
 Both paths land in `UserApprovalService::approve()` (`app/Modules/User/Services/UserApprovalService.php:17-33`):
 

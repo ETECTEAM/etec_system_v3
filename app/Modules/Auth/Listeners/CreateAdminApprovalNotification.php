@@ -4,6 +4,7 @@ namespace App\Modules\Auth\Listeners;
 
 use App\Models\Notification;
 use App\Modules\Auth\Events\PendingUserRegistered;
+use App\Modules\Notification\Events\NotificationsUpdated;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
 /**
@@ -20,5 +21,7 @@ class CreateAdminApprovalNotification implements ShouldQueue
             'type' => 'instructor_approval',
             'otp_verification_id' => $event->otp->id,
         ]);
+
+        NotificationsUpdated::dispatch();
     }
 }

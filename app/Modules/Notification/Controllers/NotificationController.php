@@ -6,6 +6,7 @@ use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Modules\Auth\Services\AuthAuditService;
+use App\Modules\Notification\Events\NotificationsUpdated;
 use App\Modules\User\Services\UserApprovalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -73,6 +74,36 @@ class NotificationController extends Controller
         return $this->resolve($request, $notification, 'reject');
     }
 
+    public function markAllRead(Request $request): JsonResponse
+    {
+        abort_unless(
+            $request->user()?->hasRole('super_admin')
+                || $request->user()?->hasRole('admin'),
+            403
+        );
+
+        Notification::query()->where('is_read', false)->update(['is_read' => true]);
+
+        NotificationsUpdated::dispatch();
+
+        return response()->json(['unread_count' => 0]);
+    }
+
+    public function destroy(Request $request, Notification $notification): JsonResponse
+    {
+        abort_unless(
+            $request->user()?->hasRole('super_admin')
+                || $request->user()?->hasRole('admin'),
+            403
+        );
+
+        $notification->delete();
+
+        NotificationsUpdated::dispatch();
+
+        return response()->json(['deleted' => true]);
+    }
+
     private function resolve(Request $request, Notification $notification, string $action): JsonResponse
     {
         abort_unless(
@@ -107,7 +138,8 @@ class NotificationController extends Controller
             ]);
         }
 
-        $notification->forceFill(['is_read' => true])->save();
+        // UserApprovalService already syncs this notification's is_read flag
+        // and dispatches NotificationsUpdated - see its syncDashboardNotification().
 
         return response()->json([
             'approval_status' => $this->approvalStatusFor($notification->fresh('otpVerification.user')),

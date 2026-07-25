@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import { Moon, Sun, SunMoon } from '@lucide/vue'
 import { useTheme } from '@/composables/useTheme'
+import { getEcho } from '@/echo'
 
 const props = defineProps({
   sidebarCollapsed: {
@@ -54,12 +55,19 @@ const initials = computed(() => {
     .toUpperCase()
 })
 
-const NOTIFICATIONS_POLL_MS = 20000
+// Reverb pushes updates instantly; this is just a safety net in case the
+// websocket connection drops without reconnecting.
+const NOTIFICATIONS_POLL_MS = 60000
+let notificationsChannel = null
 
 onMounted(() => {
   if (canAccessNotifications.value) {
     fetchNotifications()
     pollTimer = setInterval(fetchNotifications, NOTIFICATIONS_POLL_MS)
+
+    notificationsChannel = getEcho()
+      .private('admin-notifications')
+      .listen('.notifications.updated', fetchNotifications)
   }
 
   document.addEventListener('click', handleDocumentClick)
@@ -72,6 +80,12 @@ onBeforeUnmount(() => {
 
   if (pollTimer) {
     clearInterval(pollTimer)
+  }
+
+  // stopListening (not leave) - Index.vue may share this channel
+  // simultaneously, and leave() would drop its subscription too.
+  if (notificationsChannel) {
+    notificationsChannel.stopListening('.notifications.updated', fetchNotifications)
   }
 })
 

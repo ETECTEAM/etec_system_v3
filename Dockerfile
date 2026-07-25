@@ -63,6 +63,13 @@ CMD ["bash"]
 # tooling. Runs behind the nginx config in deploy/nginx (fastcgi_pass app:9000).
 # ---------------------------------------------------------------------------
 
+# Installs vendor/ once, reused by both the frontend build (vite.config.js
+# resolves the ziggy-js alias to vendor/tightenco/ziggy) and the final image.
+FROM base AS composer-deps
+
+COPY . .
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
 FROM node:20-bullseye-slim AS frontend-build
 
 WORKDIR /app
@@ -71,6 +78,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+COPY --from=composer-deps /var/www/vendor ./vendor
 RUN npm run build
 
 FROM php:8.3-fpm-bookworm AS production
@@ -108,14 +116,8 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-enable opcache
 
 COPY deploy/php/opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# App code first (respects .dockerignore - no docs/, tests/, .git/, node_modules/,
-# vendor/), then composer install, so Laravel's package:discover (which runs
-# post-autoload-dump) has the full app available.
-COPY . .
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
-
+COPY --from=composer-deps /var/www /var/www
 COPY --from=frontend-build /app/public/build ./public/build
 
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache

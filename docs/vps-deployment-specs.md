@@ -6,6 +6,9 @@
 - **Database:** MySQL 8
 - **Queue:** `sync` (no background workers currently)
 - **Cache / Session:** `file` driver (no Redis currently)
+- **Real-time:** Laravel Reverb (Pusher-compatible websocket server) for live
+  dashboard notifications - a persistent process, not just a request-time
+  dependency; see the Deployment Note below
 - **Other:** Telegram webhook integration, notification system
 
 This is an internal admin / school-management control panel rather than a
@@ -101,12 +104,24 @@ That stage:
 - Does not include `phpmyadmin` - exposing a DB admin UI on a production box
   is an unnecessary attack surface. Use an SSH tunnel to `mysql:3306` instead
   if you need direct DB access.
+- Runs a `reverb` service (same production image, `php artisan reverb:start`)
+  for live dashboard notifications. It has no published host port - nginx
+  proxies `/app` to `reverb:8080` internally (see `deploy/nginx/default.conf`),
+  so only 80/443 are ever exposed publicly, same as everything else.
 
-Still needed before a real deploy: TLS (nginx currently serves plain HTTP on
-port 80 - put Certbot/Let's Encrypt or a TLS-terminating reverse proxy in
-front), and a migration step (`docker compose -f docker-compose.prod.yml exec
-app php artisan migrate --force`) run manually after each deploy rather than
-automatically on container start.
+Still needed before a real deploy:
+
+- **TLS** - nginx currently serves plain HTTP on port 80 (put Certbot/Let's
+  Encrypt or a TLS-terminating reverse proxy in front). Once added, `REVERB_SCHEME`/`VITE_REVERB_SCHEME` need to move to `https` and
+  `REVERB_PORT`/`VITE_REVERB_PORT` to `443` in `.env` - the browser connects
+  to Reverb directly by these values, so they must match whatever the public
+  URL actually uses, not just the app's own `APP_URL`.
+- **Migrations** - run manually after each deploy rather than automatically
+  on container start: `docker compose -f docker-compose.prod.yml exec app
+  php artisan migrate --force`.
+- **Reverb secrets** - `REVERB_APP_ID`/`REVERB_APP_KEY`/`REVERB_APP_SECRET` in
+  `.env` are generated per-environment by `php artisan reverb:install` - never
+  copy dev's values into production.
 
 ## Open Question
 
