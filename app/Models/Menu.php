@@ -30,6 +30,14 @@ class Menu extends Model
 
     public function getResolvedUrlAttribute(): ?string
     {
-        return $this->page?->slug ? route('pages.show', $this->page->slug) : null;
+        if (! $this->page?->slug) {
+            return null;
+        }
+
+        if ($this->page->slug === 'home') {
+            return '/home';
+        }
+
+        return route('pages.show', $this->page->slug, false);
     }
 }

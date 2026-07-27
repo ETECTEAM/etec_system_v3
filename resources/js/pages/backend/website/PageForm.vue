@@ -14,6 +14,9 @@ const props = defineProps({
 
 const isEditing = computed(() => Boolean(props.pageData));
 const imagePreview = ref(props.pageData?.hero?.background_image_url ?? "");
+const sliderImagePreviews = ref([]);
+const existingSliderImages = ref([...(props.pageData?.hero?.images ?? [])]);
+const maxSliderImages = 3;
 
 const form = useForm({
   _method: isEditing.value ? "put" : "post",
@@ -25,6 +28,9 @@ const form = useForm({
   hero_subtitle: props.pageData?.hero?.subtitle ?? "",
   hero_description: props.pageData?.hero?.description ?? "",
   hero_background_image: null,
+  hero_slider_images: [],
+  hero_image_states: Object.fromEntries((props.pageData?.hero?.images ?? []).map((image) => [image.id, image.is_active])),
+  remove_hero_images: {},
   remove_hero_image: false,
   primary_button_text: props.pageData?.hero?.primary_button_text ?? "",
   primary_button_url: props.pageData?.hero?.primary_button_url ?? "",
@@ -40,6 +46,9 @@ const breadcrumbs = [
   { label: "Page Management", href: "/dashboard/website/pages" },
   { label: isEditing.value ? "Edit Page" : "Create Page", current: true },
 ];
+
+const sliderImageCount = computed(() => existingSliderImages.value.length + form.hero_slider_images.length);
+const remainingSliderSlots = computed(() => Math.max(maxSliderImages - existingSliderImages.value.length, 0));
 
 function slugify(value) {
   return String(value ?? "")
@@ -78,6 +87,26 @@ function removeHeroImage() {
   form.hero_background_image = null;
   form.remove_hero_image = true;
   imagePreview.value = "";
+}
+
+function chooseSliderImages(event) {
+  const files = Array.from(event.target.files ?? []).slice(0, remainingSliderSlots.value);
+  form.hero_slider_images = files;
+  sliderImagePreviews.value.forEach((url) => URL.revokeObjectURL(url));
+  sliderImagePreviews.value = files.map((file) => URL.createObjectURL(file));
+
+  if (event.target.files?.length > files.length) {
+    event.target.value = "";
+  }
+}
+
+function toggleSliderImage(image) {
+  form.hero_image_states[image.id] = !form.hero_image_states[image.id];
+}
+
+function removeSliderImage(image) {
+  form.remove_hero_images[image.id] = true;
+  existingSliderImages.value = existingSliderImages.value.filter((item) => item.id !== image.id);
 }
 
 function submit() {
@@ -160,6 +189,29 @@ function submit() {
                 <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-blue-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200" @change="chooseHeroImage" />
                 <button v-if="imagePreview" type="button" class="mt-2 text-sm font-semibold text-rose-600 hover:text-rose-700" @click="removeHeroImage">Remove current hero image</button>
                 <p v-if="form.errors.hero_background_image" class="mt-1 text-sm text-rose-600">{{ form.errors.hero_background_image }}</p>
+              </div>
+              <div class="md:col-span-2">
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Hero Slider Images</label>
+                <input type="file" multiple accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" :disabled="remainingSliderSlots === 0" class="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-blue-700 disabled:bg-slate-50 disabled:text-slate-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:disabled:bg-gray-800/50" @change="chooseSliderImages" />
+                <p class="mt-1 text-xs font-semibold text-slate-500 dark:text-gray-400">{{ sliderImageCount }}/{{ maxSliderImages }} slider images used</p>
+                <p v-if="form.errors.hero_slider_images" class="mt-1 text-sm text-rose-600">{{ form.errors.hero_slider_images }}</p>
+
+                <div v-if="existingSliderImages.length || sliderImagePreviews.length" class="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div v-for="image in existingSliderImages" :key="image.id" class="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-gray-700 dark:bg-gray-800">
+                    <img :src="image.image_url" alt="Hero slide" class="aspect-video w-full object-cover" />
+                    <div class="flex items-center justify-between gap-3 p-3">
+                      <button type="button" class="rounded-lg px-3 py-1.5 text-xs font-bold" :class="form.hero_image_states[image.id] ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600 dark:bg-gray-700 dark:text-gray-300'" @click="toggleSliderImage(image)">
+                        {{ form.hero_image_states[image.id] ? "Active" : "Inactive" }}
+                      </button>
+                      <button type="button" class="text-xs font-bold text-rose-600 hover:text-rose-700" @click="removeSliderImage(image)">Remove</button>
+                    </div>
+                  </div>
+
+                  <div v-for="(url, index) in sliderImagePreviews" :key="url" class="overflow-hidden rounded-xl border border-blue-200 bg-blue-50 dark:border-blue-500/20 dark:bg-blue-500/10">
+                    <img :src="url" alt="New hero slide" class="aspect-video w-full object-cover" />
+                    <p class="p-3 text-xs font-bold text-blue-700 dark:text-blue-300">New slide {{ index + 1 }} - Active after save</p>
+                  </div>
+                </div>
               </div>
               <div>
                 <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Primary Button Text</label>

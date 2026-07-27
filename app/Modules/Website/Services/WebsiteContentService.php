@@ -2,12 +2,13 @@
 
 namespace App\Modules\Website\Services;
 
+use App\Models\Category;
+use App\Models\Course;
 use App\Models\Menu;
 use App\Models\Page;
-use App\Models\Course;
 use App\Models\SchoolSetting;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -81,14 +82,54 @@ class WebsiteContentService
     /**
      * @return array<string, mixed>
      */
-    public function paginatedPublicCourses(int $perPage = 12): array
+    public function paginatedPublicCourses(int $perPage = 12, array $filters = []): array
     {
+        $perPage = min(max($perPage, 1), 24);
+        $sortBy = in_array($filters['sort_by'] ?? null, ['title', 'level', 'duration', 'price', 'created_at'], true)
+            ? $filters['sort_by']
+            : 'id';
+        $sortDirection = ($filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
         /** @var LengthAwarePaginator $paginator */
-        $paginator = Course::query()
+        $query = Course::query()
             ->with('track.subCategory.category')
-            ->where('status', 'active')
-            ->orderByDesc('id')
-            ->paginate($perPage);
+            ->where('status', 'active');
+
+        if ($search = trim((string) ($filters['search'] ?? ''))) {
+            $query->where(function ($query) use ($search): void {
+                $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('slug', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('track', fn ($trackQuery) => $trackQuery->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('track.subCategory', fn ($subCategoryQuery) => $subCategoryQuery->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('track.subCategory.category', fn ($categoryQuery) => $categoryQuery->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        if ($level = trim((string) ($filters['level'] ?? ''))) {
+            $query->where('level', $level);
+        }
+
+        if ($duration = trim((string) ($filters['duration'] ?? ''))) {
+            $query->where('duration', '<=', (int) $duration);
+        }
+
+        if ($category = trim((string) ($filters['category'] ?? ''))) {
+            $query->whereHas('track.subCategory.category', function ($categoryQuery) use ($category): void {
+                $categoryQuery->where('slug', $category)->orWhere('name', $category);
+            });
+        }
+
+        if ($subCategory = trim((string) ($filters['sub_category'] ?? ''))) {
+            $query->whereHas('track.subCategory', function ($subCategoryQuery) use ($subCategory): void {
+                $subCategoryQuery->where('slug', $subCategory)->orWhere('name', $subCategory);
+            });
+        }
+
+        $paginator = $query
+            ->orderBy($sortBy, $sortDirection)
+            ->paginate($perPage)
+            ->withQueryString();
 
         return [
             'data' => $paginator->getCollection()
@@ -108,13 +149,49 @@ class WebsiteContentService
     /**
      * @return array<string, mixed>
      */
-    private function presentCourse(Course $course): array
+    public function publicCourseFilters(): array
+    {
+        $categories = Category::query()
+            ->with(['subCategories' => fn ($query) => $query
+                ->where('status', 'active')
+                ->orderBy('name')])
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Category $category): array => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'sub_categories' => $category->subCategories
+                    ->map(fn ($subCategory): array => [
+                        'id' => $subCategory->id,
+                        'name' => $subCategory->name,
+                        'slug' => $subCategory->slug,
+                        'category_id' => $subCategory->category_id,
+                    ])
+                    ->values()
+                    ->all(),
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'categories' => $categories,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function presentCourse(Course $course): array
     {
         return [
             'id' => $course->id,
             'title' => $course->title,
             'slug' => $course->slug,
+            'description' => $course->description,
             'level' => $course->level,
+            'duration' => $course->duration,
             'price' => $course->price,
             'language' => $course->language,
             'certificate_available' => $course->certificate_available,
@@ -123,7 +200,39 @@ class WebsiteContentService
             'track' => $course->track?->name,
             'sub_category' => $course->track?->subCategory?->name,
             'category' => $course->track?->subCategory?->category?->name,
+            'lessons' => $course->relationLoaded('lessons')
+                ? $course->lessons->map(fn ($lesson): array => [
+                    'id' => $lesson->id,
+                    'title' => $lesson->title,
+                    'slug' => $lesson->slug,
+                    'description' => $lesson->description,
+                    'content' => $lesson->content,
+                    'video_url' => $lesson->video_url,
+                    'duration' => $lesson->duration,
+                    'order_number' => $lesson->order_number,
+                ])->values()->all()
+                : [],
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function publicCourseDetail(string $slug): array
+    {
+        $course = Course::query()
+            ->with([
+                'track.subCategory.category',
+                'lessons' => fn ($query) => $query
+                    ->where('status', 'active')
+                    ->orderBy('order_number')
+                    ->orderBy('id'),
+            ])
+            ->where('slug', $slug)
+            ->where('status', 'active')
+            ->firstOrFail();
+
+        return $this->presentCourse($course);
     }
 
     public function uniqueUploadPath(UploadedFile $file, string $directory): string
@@ -160,13 +269,13 @@ class WebsiteContentService
      */
     public function presentPage(Page $page): array
     {
-        $page->loadMissing(['hero', 'menus']);
+        $page->loadMissing(['hero.images', 'menus']);
 
         return [
             'id' => $page->id,
             'title' => $page->title,
             'slug' => $page->slug,
-            'content' => $page->content,
+            'content' => $this->sanitizeContent($page->content),
             'is_active' => $page->is_active,
             'created_at' => $page->created_at?->format('Y-m-d'),
             'menus' => $page->menus->map(fn (Menu $menu): array => [
@@ -189,6 +298,13 @@ class WebsiteContentService
                 'overlay_opacity' => $page->hero->overlay_opacity,
                 'text_alignment' => $page->hero->text_alignment,
                 'is_active' => $page->hero->is_active,
+                'images' => $page->hero->images->map(fn ($image): array => [
+                    'id' => $image->id,
+                    'image' => $image->image,
+                    'image_url' => $image->image_url,
+                    'position' => $image->position,
+                    'is_active' => $image->is_active,
+                ])->values()->all(),
             ] : null,
         ];
     }

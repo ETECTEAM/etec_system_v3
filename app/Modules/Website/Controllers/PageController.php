@@ -211,5 +211,39 @@ class PageController extends Controller
         if (($request->hasFile('hero_background_image') || $request->boolean('remove_hero_image')) && $oldImage !== $backgroundImage) {
             $this->website->deletePublicFile($oldImage);
         }
+
+        $this->saveHeroSliderImages($request, $hero);
+    }
+
+    private function saveHeroSliderImages(PageRequest $request, \App\Models\PageHero $hero): void
+    {
+        $removeIds = collect($request->validated('remove_hero_images', []))
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if ($removeIds) {
+            $images = $hero->images()->whereIn('id', $removeIds)->get();
+
+            foreach ($images as $image) {
+                $this->website->deletePublicFile($image->image);
+                $image->delete();
+            }
+        }
+
+        foreach ($request->validated('hero_image_states', []) as $id => $isActive) {
+            $hero->images()
+                ->whereKey((int) $id)
+                ->update(['is_active' => (bool) $isActive]);
+        }
+
+        $nextPosition = ((int) $hero->images()->max('position')) + 1;
+
+        foreach ($request->file('hero_slider_images', []) as $file) {
+            $hero->images()->create([
+                'image' => $this->website->uniqueUploadPath($file, 'uploads/pages/heroes/slides'),
+                'position' => $nextPosition++,
+                'is_active' => true,
+            ]);
+        }
     }
 }

@@ -16,7 +16,7 @@ class PublicPageController extends Controller
         private readonly WebsiteContentService $website,
     ) {}
 
-    public function show(string $slug): Response
+    public function show(Request $request, string $slug): Response
     {
         $page = Page::query()
             ->with('hero')
@@ -29,19 +29,39 @@ class PublicPageController extends Controller
         return Inertia::render('frontend/pages/Show', [
             'pageData' => $this->website->presentPage($page),
             'preview' => false,
-            'courses' => $isCoursePage ? $this->website->paginatedPublicCourses(12) : [
+            'courses' => $isCoursePage ? $this->website->paginatedPublicCourses(12, $this->courseFilters($request)) : [
                 'data' => [],
                 'meta' => null,
             ],
+            'courseFilters' => $isCoursePage ? $this->website->publicCourseFilters() : [
+                'categories' => [],
+            ],
+            'activeCourseFilters' => $this->courseFilters($request),
         ]);
     }
 
     public function courses(Request $request): JsonResponse
     {
-        $request->validate([
+        return response()->json($this->website->paginatedPublicCourses(12, $this->courseFilters($request)));
+    }
+
+    public function courseDetail(string $slug): Response
+    {
+        return Inertia::render('frontend/courses/Show', [
+            'course' => $this->website->publicCourseDetail($slug),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function courseFilters(Request $request): array
+    {
+        return $request->validate([
+            'search' => ['nullable', 'string', 'max:120'],
+            'category' => ['nullable', 'string', 'max:120'],
+            'sub_category' => ['nullable', 'string', 'max:120'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
-
-        return response()->json($this->website->paginatedPublicCourses(12));
     }
 }

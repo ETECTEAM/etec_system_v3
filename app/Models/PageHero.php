@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PageHero extends Model
 {
@@ -34,6 +35,11 @@ class PageHero extends Model
     public function page(): BelongsTo
     {
         return $this->belongsTo(Page::class);
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(PageHeroImage::class)->orderBy('position')->orderBy('id');
     }
 
     public function getBackgroundImageUrlAttribute(): ?string
