@@ -34,7 +34,9 @@ Route::middleware(['auth', 'active', 'role:super_admin|admin'])->group(function 
     Route::post('/notifications/{notification}/reject', [NotificationController::class, 'reject'])
         ->name('notifications.reject');
 
-    // Mark every unread notification as read, and remove a single notification.
+    // Mark a single notification as read, mark every unread notification as read, and remove a single notification.
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])
+        ->name('notifications.read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])
         ->name('notifications.mark-all-read');
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])

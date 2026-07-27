@@ -74,6 +74,23 @@ class NotificationController extends Controller
         return $this->resolve($request, $notification, 'reject');
     }
 
+    public function markRead(Request $request, Notification $notification): JsonResponse
+    {
+        abort_unless(
+            $request->user()?->hasRole('super_admin')
+                || $request->user()?->hasRole('admin'),
+            403
+        );
+
+        if (! $notification->is_read) {
+            $notification->update(['is_read' => true]);
+
+            NotificationsUpdated::dispatch();
+        }
+
+        return response()->json(['is_read' => true]);
+    }
+
     public function markAllRead(Request $request): JsonResponse
     {
         abort_unless(

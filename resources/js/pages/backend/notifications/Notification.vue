@@ -2,10 +2,11 @@
 import axios from 'axios'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Head } from '@inertiajs/vue3'
-import { Bell, Check, Mail, Trash2 } from '@lucide/vue'
+import { Bell, Check, Copy, Mail, Trash2 } from '@lucide/vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
+import { Skeleton } from '../../../components/ui/skeleton'
 import { getEcho } from '@/echo'
 
 const notifications = ref([])
@@ -20,6 +21,36 @@ const tabs = [
   { key: 'unread', label: 'Unread' },
   { key: 'pending', label: 'Pending Approval' },
 ]
+
+const CODE_PATTERN = /^(.*verification code:\s*)(\d+)\s*$/i
+
+function splitMessage(message) {
+  const match = CODE_PATTERN.exec(message ?? '')
+
+  if (!match) {
+    return { text: message ?? '', code: null }
+  }
+
+  return { text: match[1], code: match[2] }
+}
+
+const copiedId = ref(null)
+let copiedResetTimeout = null
+
+async function copyCode(code, notificationId) {
+  try {
+    await navigator.clipboard.writeText(code)
+  } catch (error) {
+    console.error('Failed to copy code', error)
+    return
+  }
+
+  clearTimeout(copiedResetTimeout)
+  copiedId.value = notificationId
+  copiedResetTimeout = setTimeout(() => {
+    copiedId.value = null
+  }, 1500)
+}
 
 const filteredNotifications = computed(() => {
   if (activeTab.value === 'unread') {
@@ -49,10 +80,16 @@ onBeforeUnmount(() => {
   if (notificationsChannel) {
     notificationsChannel.stopListening('.notifications.updated', fetchNotifications)
   }
+
+  clearTimeout(copiedResetTimeout)
 })
 
 async function fetchNotifications() {
-  isLoading.value = true
+  // Only the very first load shows the skeleton - background refetches
+  // (from the socket broadcast, our own actions, etc.) patch the list in
+  // place so it never flashes/looks like the page reloaded.
+  const isInitialLoad = notifications.value.length === 0
+  if (isInitialLoad) isLoading.value = true
 
   try {
     const res = await axios.get('/notifications/data')
@@ -61,9 +98,9 @@ async function fetchNotifications() {
     unreadCount.value = res.data?.unread_count ?? 0
   } catch (error) {
     console.error('Failed to fetch notifications', error)
-    notifications.value = []
+    if (isInitialLoad) notifications.value = []
   } finally {
-    isLoading.value = false
+    if (isInitialLoad) isLoading.value = false
   }
 }
 
@@ -79,6 +116,21 @@ async function actOnNotification(notification, action) {
   } finally {
     actioningId.value = null
     fetchNotifications()
+  }
+}
+
+async function markRead(notification) {
+  if (notification.is_read) return
+
+  notification.is_read = true
+  unreadCount.value = Math.max(0, unreadCount.value - 1)
+
+  try {
+    await axios.post(`/notifications/${notification.id}/read`)
+  } catch (error) {
+    console.error('Failed to mark notification as read', error)
+    notification.is_read = false
+    unreadCount.value += 1
   }
 }
 
@@ -173,8 +225,22 @@ const breadcrumbItems = [
           </button>
         </div>
 
-        <div v-if="isLoading" class="py-8 text-center text-sm text-slate-500 dark:text-gray-400">
-          Loading notifications...
+        <div v-if="isLoading" class="divide-y divide-slate-100 dark:divide-gray-800">
+          <div
+            v-for="i in 4"
+            :key="i"
+            class="flex flex-wrap items-start gap-4 py-4 sm:flex-nowrap"
+          >
+            <Skeleton width="2.5rem" height="2.5rem" rounded="rounded-xl" />
+
+            <div class="min-w-0 flex-1 space-y-2">
+              <Skeleton width="12rem" height="0.9rem" rounded="rounded" />
+              <Skeleton width="22rem" height="0.8rem" rounded="rounded" />
+              <Skeleton width="5rem" height="0.7rem" rounded="rounded" />
+            </div>
+
+            <Skeleton width="4.5rem" height="1.75rem" rounded="rounded-full" />
+          </div>
         </div>
 
         <div v-else-if="filteredNotifications.length === 0" class="py-8 text-center text-sm text-slate-500 dark:text-gray-400">
@@ -185,7 +251,9 @@ const breadcrumbItems = [
           <article
             v-for="n in filteredNotifications"
             :key="n.id"
-            class="flex flex-wrap items-start gap-4 py-4 sm:flex-nowrap"
+            class="flex flex-wrap items-start gap-4 py-4 transition sm:flex-nowrap"
+            :class="n.is_read ? 'cursor-default' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-800/40'"
+            @click="markRead(n)"
           >
             <span
               class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
@@ -202,7 +270,24 @@ const breadcrumbItems = [
                 <p class="font-semibold text-slate-800 dark:text-gray-100">{{ n.title }}</p>
                 <span v-if="!n.is_read" class="h-2 w-2 shrink-0 rounded-full bg-blue-600 dark:bg-blue-400" />
               </div>
-              <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ n.message }}</p>
+              <p class="mt-1 flex flex-wrap items-center text-sm text-slate-600 dark:text-gray-300">
+                <span>{{ splitMessage(n.message).text }}</span>
+                <span
+                  v-if="splitMessage(n.message).code"
+                  class="ml-1 inline-flex items-center gap-1 rounded-md bg-slate-100 py-0.5 pr-1 pl-1.5 dark:bg-gray-800"
+                >
+                  <span class="font-mono text-sm font-semibold tracking-wider text-slate-900 dark:text-gray-50">{{ splitMessage(n.message).code }}</span>
+                  <button
+                    type="button"
+                    class="rounded p-0.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-50"
+                    :title="copiedId === n.id ? 'Copied!' : 'Copy code'"
+                    @click.stop="copyCode(splitMessage(n.message).code, n.id)"
+                  >
+                    <Check v-if="copiedId === n.id" class="h-3 w-3 text-green-600 dark:text-green-400" />
+                    <Copy v-else class="h-3 w-3" />
+                  </button>
+                </span>
+              </p>
               <p class="mt-1.5 text-xs text-slate-400 dark:text-gray-500">{{ formatTimestamp(n.created_at) }}</p>
             </div>
 
@@ -210,17 +295,9 @@ const breadcrumbItems = [
               <template v-if="n.approval_status === 'pending'">
                 <button
                   type="button"
-                  class="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
-                  :disabled="actioningId === n.id"
-                  @click="actOnNotification(n, 'approve')"
-                >
-                  Approve
-                </button>
-                <button
-                  type="button"
                   class="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
                   :disabled="actioningId === n.id"
-                  @click="actOnNotification(n, 'reject')"
+                  @click.stop="actOnNotification(n, 'reject')"
                 >
                   Reject
                 </button>
@@ -243,7 +320,7 @@ const breadcrumbItems = [
                 class="rounded-lg border border-slate-200 p-1.5 text-slate-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:border-gray-700 dark:text-gray-500 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                 :disabled="actioningId === n.id"
                 title="Delete notification"
-                @click="deleteNotification(n)"
+                @click.stop="deleteNotification(n)"
               >
                 <Trash2 class="h-3.5 w-3.5" />
               </button>
