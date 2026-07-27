@@ -19,7 +19,7 @@ use App\Modules\Notification\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 // Define routes for notifications, protected by authentication and role-based access control.
-Route::middleware(['auth', 'role:super_admin|admin'])->group(function () {
+Route::middleware(['auth', 'active', 'role:super_admin|admin'])->group(function () {
     // Route to display the notifications page in the dashboard.
     Route::get('/dashboard/notifications', [NotificationController::class, 'showNotificationPage'])
         ->name('dashboard.notifications.index');

@@ -15,7 +15,7 @@ use App\Modules\Auth\Controllers\LoginLockoutController;
 use App\Modules\Auth\Controllers\LoginSecuritySettingsController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'permission:manage-login-security'])
+Route::middleware(['auth', 'active', 'permission:manage-login-security'])
     ->prefix('/dashboard/login-security')
     ->name('login-security.')
     ->group(function () {
@@ -26,7 +26,7 @@ Route::middleware(['auth', 'permission:manage-login-security'])
         Route::put('/', [LoginSecuritySettingsController::class, 'update'])->name('update');
     });
 
-Route::middleware(['auth', 'permission:unblock-login-accounts'])
+Route::middleware(['auth', 'active', 'permission:unblock-login-accounts'])
     ->prefix('/dashboard/login-security/blocked-accounts')
     ->name('login-security.blocked.')
     ->group(function () {

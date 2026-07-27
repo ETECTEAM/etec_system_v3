@@ -16,7 +16,7 @@
 use App\Modules\Account\Controllers\AccountSecurityController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth'])
+Route::middleware(['auth', 'active'])
     ->prefix('/dashboard/account-security')
     ->name('account-security.')
     ->group(function () {

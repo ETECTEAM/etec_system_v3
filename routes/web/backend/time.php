@@ -3,7 +3,7 @@
 use App\Modules\Times\Controllers\TimeController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth')
+Route::middleware(['auth', 'active'])
     ->prefix('/dashboard/times')
     ->name('times.')
     ->group(function () {

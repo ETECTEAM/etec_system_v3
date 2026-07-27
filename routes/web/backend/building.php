@@ -3,7 +3,7 @@
 use App\Modules\building\Controller\BuildingController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'role:super_admin|admin|instructor'])
+Route::middleware(['auth', 'active', 'role:super_admin|admin|instructor'])
     ->prefix('/dashboard/buildings')
     ->group(function (): void {
         Route::get('/', [BuildingController::class, 'index']);

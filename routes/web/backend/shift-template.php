@@ -3,7 +3,7 @@
 use App\Modules\ShiftTemplate\Controllers\ShiftTemplateController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'permission:shift_template.view'])
+Route::middleware(['auth', 'active', 'permission:shift_template.view'])
     ->prefix('/dashboard/shift-templates')
     ->name('shift-templates.')
     ->group(function () {

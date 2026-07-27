@@ -23,7 +23,7 @@ use App\Modules\User\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Group routes under the '/dashboard/users' prefix for user management operations.
-Route::middleware('auth')->prefix('/dashboard/users')->group(function () {
+Route::middleware(['auth', 'active'])->prefix('/dashboard/users')->group(function () {
 
     // Reads: generous limit, just enough to stop scripted scraping/polling abuse.
     Route::middleware('throttle:60,1')->group(function () {
