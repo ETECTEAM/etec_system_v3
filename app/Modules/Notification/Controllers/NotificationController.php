@@ -32,7 +32,7 @@ class NotificationController extends Controller
             403
         );
 
-        return Inertia::render('backend/notifications/Index');
+        return Inertia::render('backend/notifications/Notification');
     }
 
     public function getNotificationData(Request $request): JsonResponse
