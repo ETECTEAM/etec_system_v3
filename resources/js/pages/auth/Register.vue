@@ -137,7 +137,7 @@ function submit() {
 
     <p class="mt-6 text-center text-sm text-slate-600 dark:text-gray-400">
       Already have an account?
-      <Link href="/auth/login" class="font-semibold text-blue-900 hover:text-blue-950 dark:text-blue-400 dark:hover:text-blue-300">Sign in</Link>
+      <Link href="/login" class="font-semibold text-blue-900 hover:text-blue-950 dark:text-blue-400 dark:hover:text-blue-300">Sign in</Link>
     </p>
   </AuthCard>
 </template>
