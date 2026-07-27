@@ -1,9 +1,7 @@
 <script setup>
-import { ref, computed } from "vue";
+import { computed, ref } from "vue";
 import { router } from "@inertiajs/vue3";
-
 import { Search, RotateCcw, Plus, LayoutGrid, Table2 } from "@lucide/vue";
-
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
 import ClassTable from "./components/ClassTable.vue";
@@ -11,8 +9,8 @@ import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
 import PageHero from "../../../components/ui/page-hero/PageHero.vue";
 import DepositSummaryCard from "./components/DepositSummaryCard.vue";
 
-const search = ref("");
-const viewMode = ref("card");
+// const search = ref("");
+// const viewMode = ref("card");
 const classes = ref([
   {
     id: 366,
@@ -71,15 +69,16 @@ const classes = ref([
     notifications: 3,
   },
 ]);
+const viewMode = ref("card");
 
-defineProps({
-  classData: {
+const props = defineProps({
+  classes: {
     type: Object,
-    default: null,
+    default: () => ({ data: [] }),
   },
-  students: {
-    type: Array,
-    default: () => [],
+  filters: {
+    type: Object,
+    default: () => ({ search: "" }),
   },
   depositSummary: {
     type: Object,
@@ -87,15 +86,23 @@ defineProps({
   },
 });
 
-const filteredClasses = computed(() => {
-  if (!search.value) return classes.value;
+// const search = ref(props.filters.search ?? "");
+const filteredClasses = computed(() => props.classes?.data ?? []);
+let searchTimer = null;
 
-  return classes.value.filter((item) =>
-    (item.title + item.lesson + item.building + item.room)
-      .toLowerCase()
-      .includes(search.value.toLowerCase())
-  );
-});
+function runSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    router.get(
+      "/dashboard/students",
+      { search: search.value },
+      { preserveState: true, replace: true }
+    );
+  }, 350);
+}
+
+const search = ref(props.filters?.search ?? "");
+// const viewMode = ref("card");
 
 const breadcrumbItems = [
   { label: "Dashboard", href: "/dashboard" },
@@ -103,13 +110,23 @@ const breadcrumbItems = [
 ];
 
 function refresh() {
-  search.value = "";
+    search.value = "";
+    router.visit("/dashboard/students", { preserveState: true });
 }
 
 function goCreateClass() {
-  router.visit("/dashboard/students/create");
+    router.visit("/dashboard/students/create");
+}
+
+function onSearch() {
+    router.visit("/dashboard/students", {
+        data: { search: search.value || null },
+        preserveState: true,
+        replace: true,
+    });
 }
 </script>
+
 <template>
   <DashboardLayout>
     <div class="w-full">
@@ -212,6 +229,24 @@ function goCreateClass() {
       <!-- Table View -->
       <div v-else class="w-full overflow-x-auto">
         <ClassTable :items="filteredClasses" />
+      </div>
+
+      <div v-if="classes?.links?.length > 3" class="mt-6 flex flex-wrap justify-center gap-2">
+        <button
+          v-for="link in classes.links"
+          :key="link.label"
+          type="button"
+          :disabled="!link.url"
+          @click="link.url && router.visit(link.url, { preserveState: true })"
+          v-html="link.label"
+          :class="[
+            'rounded-lg border px-3 py-2 text-sm',
+            link.active
+              ? 'border-blue-900 bg-blue-900 text-white'
+              : 'border-slate-300 bg-white text-slate-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300',
+            !link.url ? 'cursor-not-allowed opacity-50' : 'hover:bg-slate-100 dark:hover:bg-gray-800',
+          ]"
+        ></button>
       </div>
     </div>
   </DashboardLayout>

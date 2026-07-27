@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Modules\Registration\Controllers\Enroll\StudentRegistrationController;
 use Illuminate\Database\Seeder;
 
 // Permission seeders
@@ -32,6 +33,8 @@ use Database\Seeders\Schedule\ScheduleSeeder;
 
 // Shift template seeders
 use Database\Seeders\Schedule\ShiftTemplateSeeder;
+use Database\Seeders\Enroll\StudyClassAndEnrollmentSeeder;
+use Database\Seeders\Website\WebsiteMenuSeeder;
 
 // Login security seeders
 use Database\Seeders\LoginLockoutSeeder;
@@ -68,6 +71,12 @@ class DatabaseSeeder extends Seeder
 
             // 5. Shift templates
             ShiftTemplateSeeder::class,
+
+            // 6. Test enrollment data
+            StudyClassAndEnrollmentSeeder::class,
+
+            // 7. Public website defaults
+            WebsiteMenuSeeder::class,
         ]);
     }
 }

@@ -50,11 +50,11 @@
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1 dark:text-gray-300">Thumbnail Image</label>
                         <div class="flex items-center gap-4">
-                            <div v-if="imagePreview || form.thumbnail"
+                            <div v-if="imagePreview || existingThumbnail"
                                 class="relative w-32 h-32 rounded-lg border border-slate-200 overflow-hidden">
-                                <img :src="imagePreview || `/storage/${form.thumbnail}`" alt="Course thumbnail"
+                                <img :src="imagePreview || `/storage/${existingThumbnail}`" alt="Course thumbnail"
                                     class="w-full h-full object-cover" />
-                                <button v-if="imagePreview || form.thumbnail" type="button" @click="removeImage"
+                                <button v-if="imagePreview || existingThumbnail" type="button" @click="removeImage"
                                     class="absolute top-1 right-1 bg-rose-500 text-white rounded-full p-1 hover:bg-rose-600 transition">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -226,17 +226,31 @@ const props = defineProps({
 });
 
 const imagePreview = ref(null);
+const existingThumbnail = ref(props.course?.thumbnail || null);
+const courseCategoryId = computed(() =>
+    props.course?.category_id ||
+    props.course?.track?.sub_category?.category_id ||
+    props.course?.track?.subCategory?.category_id ||
+    ''
+);
+const courseSubCategoryId = computed(() =>
+    props.course?.sub_category_id ||
+    props.course?.track?.sub_category_id ||
+    props.course?.track?.subCategory?.id ||
+    ''
+);
+const toBoolean = (value) => value === true || value === 1 || value === '1';
 
 const form = useForm({
     title: props.course?.title || '',
-    category_id: props.course?.category_id || '',
-    sub_category_id: props.course?.sub_category_id || '',
+    category_id: courseCategoryId.value,
+    sub_category_id: courseSubCategoryId.value,
     course_track_id: props.course?.course_track_id || '',
     description: props.course?.description || '',
     duration: props.course?.duration || '',
     price: props.course?.price || '',
     language: props.course?.language || 'en',
-    certificate_available: props.course?.certificate_available ?? false,
+    certificate_available: toBoolean(props.course?.certificate_available),
     status: props.course?.status || 'active',
     thumbnail: null
 });
@@ -311,15 +325,14 @@ const handleImageUpload = (event) => {
 
 const removeImage = () => {
     imagePreview.value = null;
+    existingThumbnail.value = null;
     form.thumbnail = null;
     const fileInput = document.querySelector('input[type="file"]');
     if (fileInput) fileInput.value = '';
 };
 
 watch(() => props.course, (newCourse) => {
-    if (newCourse?.thumbnail) {
-        form.thumbnail = newCourse.thumbnail;
-    }
+    existingThumbnail.value = newCourse?.thumbnail || null;
 }, { immediate: true });
 
 const submit = () => {
@@ -328,6 +341,8 @@ const submit = () => {
     Object.keys(form.data()).forEach(key => {
         if (key === 'thumbnail' && form.thumbnail instanceof File) {
             formData.append('thumbnail', form.thumbnail);
+        } else if (key === 'thumbnail') {
+            return;
         } else if (key === 'certificate_available') {
             formData.append(key, form[key] ? 1 : 0);
         } else if (form[key] !== null && form[key] !== undefined) {
@@ -339,9 +354,6 @@ const submit = () => {
         formData.append('_method', 'PUT');
 
         router.post(`/dashboard/course/courses/${props.course.id}`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
             onSuccess: () => {
                 imagePreview.value = null;
             },
@@ -351,9 +363,6 @@ const submit = () => {
         });
     } else {
         router.post('/dashboard/course/courses', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
             onSuccess: () => {
                 imagePreview.value = null;
             }

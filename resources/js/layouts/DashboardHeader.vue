@@ -29,6 +29,7 @@ const themeLabel = computed(() => `Theme: ${theme.value}`)
 const page = usePage()
 const user = computed(() => page.props.auth?.user ?? null)
 const roles = computed(() => page.props.auth?.roles ?? [])
+const schoolSettings = computed(() => page.props.website?.settings ?? {})
 const canAccessNotifications = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin'))
 const notifications = ref([])
 const unreadCount = ref(0)
@@ -181,6 +182,15 @@ function handleEscape(event) {
             <path fill-rule="evenodd" d="M3 5.75A.75.75 0 0 1 3.75 5h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 5.75ZM3 10a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 10Zm0 4.25a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
           </svg>
         </button>
+        <div class="hidden min-w-0 items-center gap-3 md:flex">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+            <img v-if="schoolSettings.logo_url" :src="schoolSettings.logo_url" :alt="schoolSettings.school_name" class="h-full w-full object-contain" />
+            <span v-else>ETEC</span>
+          </span>
+          <span class="max-w-xs truncate text-sm font-bold text-slate-800 dark:text-gray-100">
+            {{ schoolSettings.school_name || 'ETEC Control Center' }}
+          </span>
+        </div>
       </div>
 
       <div class="flex items-center gap-3 sm:gap-4">

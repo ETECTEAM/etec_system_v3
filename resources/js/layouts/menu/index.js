@@ -9,6 +9,7 @@ import * as shiftTemplates from "./shiftTemplates";
 import * as schedule from "./schedule";
 import * as loginSecurity from "./loginSecurity";
 import * as accountSecurity from "./accountSecurity";
+import * as website from "./website";
 
 export const menuDomains = [
   building,
@@ -18,6 +19,7 @@ export const menuDomains = [
   course,
   profile,
   user,
+  website,
   shiftTemplates,
   schedule,
   loginSecurity,

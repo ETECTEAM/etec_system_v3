@@ -102,7 +102,6 @@ class ClassListSeeder extends Seeder
                 'id' => $id,
                 'name' => "Building {$id}",
                 'code' => "B{$id}",
-                'address' => 'Sample address',
                 'description' => 'Seeded for class list testing',
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -119,7 +118,6 @@ class ClassListSeeder extends Seeder
             [
                 'id' => $id,
                 'name' => "Floor {$id}",
-                'code' => "F{$id}",
                 'level' => $id,
                 'building_id' => $buildingId,
                 'created_at' => now(),

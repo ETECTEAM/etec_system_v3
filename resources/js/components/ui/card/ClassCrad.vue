@@ -1,20 +1,11 @@
 <script setup>
-import {
-    GraduationCap,
-    Building2,
-    DoorOpen,
-    CalendarDays,
-    Clock3,
-    Users,
-    BookOpen,
-    MonitorSmartphone,
-} from "@lucide/vue";
-
+import { router } from "@inertiajs/vue3";
+import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,BookOpen,} from "@lucide/vue";
 import { ref, computed } from "vue";
 import NotificationBadge from "../notification-badge/NotificationBadge.vue";
 import ClassActionMenu from "./ClassActionMenu.vue";
 import BarClass from "../../../pages/backend/students/components/BarClass.vue";
-import { router } from "@inertiajs/vue3";
+// import { router } from "@inertiajs/vue3";
 
 const props = defineProps({
     classData: Object,
@@ -42,14 +33,27 @@ const fill = computed(() => {
     return (props.classData.students / capacity.value) * 100;
 });
 
-const online = computed(() => {
-    return props.classData.status === "Online Class";
+const statusStyle = computed(() => {
+    switch (props.classData.status) {
+        case 'active':    return 'bg-emerald-50 text-emerald-700 ring-emerald-600/20';
+        case 'inactive':  return 'bg-slate-100 text-slate-600 ring-slate-400/20';
+        case 'completed': return 'bg-blue-50 text-blue-700 ring-blue-600/20';
+        default:          return 'bg-blue-50 text-blue-700 ring-blue-600/20';
+    }
 });
 
 const showBarDialog = ref(false);
 
 function showViewClass () { 
    router.get(`/dashboard/students/view/${props.classData.id}`);
+}
+
+function showEditClass() {
+    router.get(`/dashboard/students/edit/${props.classData.id}`);
+}
+
+function showAddStudent() {
+    router.get(`/dashboard/students/${props.classData.id}/students/create`);
 }
 </script>
 
@@ -58,10 +62,9 @@ function showViewClass () {
     class="group relative flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-0.5 hover:border-indigo-200 transition-all duration-300 dark:bg-gray-900 dark:border-gray-800 dark:hover:border-indigo-500/40"
 >
     <NotificationBadge :count="props.count" />
-
     <div class="p-5 sm:p-6 flex flex-col flex-1">
 
-        <!-- ─── Header ─── -->
+        <!-- Header -->
         <div class="flex items-start justify-between gap-3">
             <div class="flex items-start gap-3 min-w-0">
                 <div
@@ -96,7 +99,7 @@ function showViewClass () {
             />
         </div>
 
-        <!-- ─── Information ─── -->
+        <!-- Information -->
         <div class="mt-4 sm:mt-5 space-y-3 flex-1">
 
             <div class="flex items-center justify-between gap-2">
@@ -142,10 +145,9 @@ function showViewClass () {
                     <span
                         :class="[
                             'w-1.5 h-1.5 rounded-full',
-                            online ? 'bg-emerald-500' : 'bg-blue-500'
+                            classData.status === 'active' ? 'bg-emerald-500' : classData.status === 'inactive' ? 'bg-slate-400' : 'bg-blue-500',
                         ]"
                     ></span>
-                    <MonitorSmartphone v-if="online" class="w-3 h-3" />
                     {{ classData.status }}
                 </span>
             </div>
@@ -219,5 +221,8 @@ function showViewClass () {
     :show="showBarDialog"
     :classData="classData"
     @close="showBarDialog = false"
+    @view="showViewClass"
+    @edit="showEditClass"
+    @add-student="showAddStudent"
 />
 </template>
