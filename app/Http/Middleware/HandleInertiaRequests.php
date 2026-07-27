@@ -4,7 +4,9 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Middleware;
+use App\Modules\Website\Services\WebsiteContentService;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -44,6 +46,19 @@ class HandleInertiaRequests extends Middleware
                 // disable its submit button and count down instead of just erroring.
                 'retryAfter' => $request->session()->get('retryAfter'),
             ],
+            'website' => fn () => Schema::hasTable('school_settings') && Schema::hasTable('menus') && Schema::hasTable('pages')
+                ? [
+                    'settings' => app(WebsiteContentService::class)->publicSettings(),
+                    'menus' => app(WebsiteContentService::class)->publicMenus(),
+                ]
+                : [
+                    'settings' => [
+                        'school_name' => 'Engineer of Technology and Electronic Center',
+                        'school_logo' => null,
+                        'logo_url' => null,
+                    ],
+                    'menus' => [],
+                ],
         ];
     }
 }

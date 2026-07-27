@@ -34,6 +34,7 @@ use Database\Seeders\Schedule\ScheduleSeeder;
 // Shift template seeders
 use Database\Seeders\Schedule\ShiftTemplateSeeder;
 use Database\Seeders\Enroll\StudyClassAndEnrollmentSeeder;
+use Database\Seeders\Website\WebsiteMenuSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -69,6 +70,9 @@ class DatabaseSeeder extends Seeder
 
             // 6. Test enrollment data
             StudyClassAndEnrollmentSeeder::class,
+
+            // 7. Public website defaults
+            WebsiteMenuSeeder::class,
         ]);
     }
 }

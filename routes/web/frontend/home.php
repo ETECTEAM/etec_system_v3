@@ -14,6 +14,7 @@
 
 // Import necessary classes for route definitions and controller handling.
 use Inertia\Inertia;
+use App\Modules\Website\Services\WebsiteContentService;
 
 // Import Auth facade for checking user authentication status.
 use Illuminate\Support\Facades\Auth;
@@ -22,16 +23,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 // Display the main home view for guest users or redirect authenticated users to the dashboard.
-Route::get('/', function () {
+Route::get('/', function (WebsiteContentService $website) {
     if (Auth::check() && Auth::user()->can('dashboard.view')) {
         return redirect('/dashboard');
     }
 
-    return Inertia::render('frontend/home/Home');
+    return Inertia::render('frontend/home/Home', [
+        'courses' => $website->publicCourses(6),
+    ]);
 });
-
-// Catch-all route to handle undefined frontend paths.
-// Keep this route last so it does not override auth routes like /login or /register.
-Route::get('/{any}', function () {
-    return Inertia::render('frontend/home/Home');
-})->where('any', '.*');

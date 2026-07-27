@@ -7,6 +7,7 @@ import * as profile from "./profile";
 import * as user from "./user";
 import * as shiftTemplates from "./shiftTemplates";
 import * as schedule from "./schedule";
+import * as website from "./website";
 
 export const menuDomains = [
   building,
@@ -16,6 +17,7 @@ export const menuDomains = [
   course,
   profile,
   user,
+  website,
   shiftTemplates,
   schedule,
 ];
