@@ -10,10 +10,12 @@ use App\Modules\Account\Requests\UpdateRecoveryEmailRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 /**
  * Self-service recovery-email management, available to every logged-in
@@ -48,12 +50,25 @@ class AccountSecurityController extends Controller
             'recovery_verified' => false,
         ])->save();
 
-        $this->sendVerificationLink($user);
+        // The email is saved either way - mail delivery failing here shouldn't
+        // crash the request or lose the save, since "Resend" already exists
+        // to retry once delivery is working again.
+        if (! $this->sendVerificationLink($user)) {
+            return redirect()->route('account-security.edit')
+                ->with('error', 'Recovery email saved, but the verification email could not be sent right now. Use "Resend" to try again later.');
+        }
 
         // Alert the login inbox, not the (unverified) new recovery address,
         // so a compromised recovery email alone can't silently take over the account.
-        Notification::route('mail', $user->email)
-            ->notify(new RecoveryEmailChangedNotification($data->recoveryEmail));
+        try {
+            Notification::route('mail', $user->email)
+                ->notify(new RecoveryEmailChangedNotification($data->recoveryEmail));
+        } catch (Throwable $e) {
+            Log::warning('Failed to send recovery-email-changed alert', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return redirect()->route('account-security.edit')
             ->with('success', 'Recovery email saved. Check that inbox for a verification link.');
@@ -72,7 +87,10 @@ class AccountSecurityController extends Controller
             return redirect()->route('account-security.edit')->with('error', 'Your recovery email is already verified.');
         }
 
-        $this->sendVerificationLink($user);
+        if (! $this->sendVerificationLink($user)) {
+            return redirect()->route('account-security.edit')
+                ->with('error', 'Could not send the verification email right now. Please try again shortly.');
+        }
 
         return redirect()->route('account-security.edit')->with('success', 'Verification link resent.');
     }
@@ -90,7 +108,7 @@ class AccountSecurityController extends Controller
         return redirect()->route('login')->with('success', 'Recovery email verified. You can now sign in.');
     }
 
-    private function sendVerificationLink(User $user): void
+    private function sendVerificationLink(User $user): bool
     {
         $url = URL::temporarySignedRoute(
             'account-security.recovery-email.verify',
@@ -98,7 +116,18 @@ class AccountSecurityController extends Controller
             ['user' => $user->id]
         );
 
-        Notification::route('mail', $user->recovery_email)
-            ->notify(new RecoveryEmailVerificationNotification($url));
+        try {
+            Notification::route('mail', $user->recovery_email)
+                ->notify(new RecoveryEmailVerificationNotification($url));
+
+            return true;
+        } catch (Throwable $e) {
+            Log::warning('Failed to send recovery-email verification link', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 }
