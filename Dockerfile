@@ -35,6 +35,8 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+COPY deploy/php/uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
+
 RUN mkdir -p \
         /home/app/.composer/cache \
         /home/app/.npm \
@@ -116,6 +118,7 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-enable opcache
 
 COPY deploy/php/opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
+COPY deploy/php/uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
 
 COPY --from=composer-deps /var/www /var/www
 COPY --from=frontend-build /app/public/build ./public/build

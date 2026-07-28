@@ -41,10 +41,19 @@ class PublicApiController extends Controller
         return $this->success([
             'page' => $homePage ? $this->website->presentPage($homePage) : null,
             'courses' => $this->website->publicCourses(6),
-            'news' => [],
+            'news' => $this->website->publicFeaturedNews(6),
             'events' => [],
-            'videos' => [],
+            'videos' => $this->website->publicFeaturedVideos(6),
             'testimonials' => [],
+        ]);
+    }
+
+    public function featured(): JsonResponse
+    {
+        return $this->success([
+            'courses' => $this->website->publicCourses(6),
+            'news' => $this->website->publicFeaturedNews(6),
+            'videos' => $this->website->publicFeaturedVideos(6),
         ]);
     }
 
@@ -82,6 +91,46 @@ class PublicApiController extends Controller
     public function course(string $slug): JsonResponse
     {
         return $this->success($this->website->publicCourseDetail($slug));
+    }
+
+    public function news(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:120'],
+            'featured' => ['nullable', 'boolean'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            ...$this->website->paginatedPublicNews((int) ($validated['per_page'] ?? 12), $validated),
+        ]);
+    }
+
+    public function newsDetail(string $slug): JsonResponse
+    {
+        return $this->success($this->website->publicNewsDetail($slug));
+    }
+
+    public function videos(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:120'],
+            'featured' => ['nullable', 'boolean'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            ...$this->website->paginatedPublicVideos((int) ($validated['per_page'] ?? 12), $validated),
+        ]);
+    }
+
+    public function video(int $video): JsonResponse
+    {
+        return $this->success($this->website->publicVideoDetail($video));
     }
 
     public function emptyCollection(): JsonResponse

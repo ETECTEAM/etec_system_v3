@@ -5,8 +5,10 @@ namespace App\Modules\Website\Services;
 use App\Models\Category;
 use App\Models\Course;
 use App\Models\Menu;
+use App\Models\News;
 use App\Models\Page;
 use App\Models\SchoolSetting;
+use App\Models\WebsiteVideo;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
@@ -233,6 +235,224 @@ class WebsiteContentService
             ->firstOrFail();
 
         return $this->presentCourse($course);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function publicFeaturedNews(?int $limit = null): array
+    {
+        $query = News::query()
+            ->with([
+                'user',
+                'images' => fn ($query) => $query->where('is_active', true),
+            ])
+            ->where('is_active', true)
+            ->where('is_featured', true)
+            ->orderBy('sort_order')
+            ->latest('published_at')
+            ->latest('id');
+
+        if ($limit) {
+            $query->limit($limit);
+        }
+
+        return $query->get()
+            ->map(fn (News $news): array => $this->presentNews($news))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function paginatedPublicNews(int $perPage = 12, array $filters = []): array
+    {
+        $perPage = min(max($perPage, 1), 24);
+
+        /** @var LengthAwarePaginator $paginator */
+        $query = News::query()
+            ->with([
+                'user',
+                'images' => fn ($query) => $query->where('is_active', true),
+            ])
+            ->where('is_active', true);
+
+        if ($search = trim((string) ($filters['search'] ?? ''))) {
+            $query->where(function ($query) use ($search): void {
+                $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('slug', 'like', "%{$search}%")
+                    ->orWhere('excerpt', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if (array_key_exists('featured', $filters)) {
+            $query->where('is_featured', filter_var($filters['featured'], FILTER_VALIDATE_BOOLEAN));
+        }
+
+        $paginator = $query
+            ->orderBy('sort_order')
+            ->latest('published_at')
+            ->latest('id')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return [
+            'data' => $paginator->getCollection()
+                ->map(fn (News $news): array => $this->presentNews($news))
+                ->values()
+                ->all(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'next_page_url' => $paginator->nextPageUrl(),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function publicNewsDetail(string $slug): array
+    {
+        $news = News::query()
+            ->with([
+                'user',
+                'images' => fn ($query) => $query->where('is_active', true),
+            ])
+            ->where('slug', $slug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        return $this->presentNews($news);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function presentNews(News $news): array
+    {
+        $news->loadMissing(['images', 'user']);
+
+        return [
+            'id' => $news->id,
+            'title' => $news->title,
+            'slug' => $news->slug,
+            'author' => $news->user?->name ?? $news->user?->email,
+            'excerpt' => $news->excerpt,
+            'description' => $this->sanitizeContent($news->description),
+            'published_at' => $news->published_at?->format('Y-m-d'),
+            'sort_order' => $news->sort_order,
+            'is_featured' => $news->is_featured,
+            'is_active' => $news->is_active,
+            'created_at' => $news->created_at?->format('Y-m-d'),
+            'images' => $news->images->map(fn ($image): array => [
+                'id' => $image->id,
+                'image' => $image->image,
+                'image_url' => $image->image_url,
+                'position' => $image->position,
+                'is_active' => $image->is_active,
+            ])->values()->all(),
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function publicFeaturedVideos(?int $limit = null): array
+    {
+        $query = WebsiteVideo::query()
+            ->where('is_active', true)
+            ->where('is_featured', true)
+            ->orderBy('sort_order')
+            ->latest('id');
+
+        if ($limit) {
+            $query->limit($limit);
+        }
+
+        return $query->get()
+            ->map(fn (WebsiteVideo $video): array => $this->presentVideo($video))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function paginatedPublicVideos(int $perPage = 12, array $filters = []): array
+    {
+        $perPage = min(max($perPage, 1), 24);
+
+        /** @var LengthAwarePaginator $paginator */
+        $query = WebsiteVideo::query()
+            ->where('is_active', true);
+
+        if ($search = trim((string) ($filters['search'] ?? ''))) {
+            $query->where(function ($query) use ($search): void {
+                $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if (array_key_exists('featured', $filters)) {
+            $query->where('is_featured', filter_var($filters['featured'], FILTER_VALIDATE_BOOLEAN));
+        }
+
+        $paginator = $query
+            ->orderBy('sort_order')
+            ->latest('id')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return [
+            'data' => $paginator->getCollection()
+                ->map(fn (WebsiteVideo $video): array => $this->presentVideo($video))
+                ->values()
+                ->all(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'next_page_url' => $paginator->nextPageUrl(),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function publicVideoDetail(int $id): array
+    {
+        $video = WebsiteVideo::query()
+            ->whereKey($id)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        return $this->presentVideo($video);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function presentVideo(WebsiteVideo $video): array
+    {
+        return [
+            'id' => $video->id,
+            'title' => $video->title,
+            'description' => $video->description,
+            'video_url' => $video->video_url,
+            'thumbnail_url' => $video->thumbnail_url,
+            'duration' => $video->duration,
+            'views_count' => $video->views_count,
+            'sort_order' => $video->sort_order,
+            'is_featured' => $video->is_featured,
+            'created_at' => $video->created_at?->format('Y-m-d'),
+        ];
     }
 
     public function uniqueUploadPath(UploadedFile $file, string $directory): string

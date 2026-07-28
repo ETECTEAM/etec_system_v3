@@ -34,6 +34,20 @@ export function build(ctx) {
         exact: false,
         isActive: (path) => path.startsWith("/dashboard/website/pages"),
       },
+      {
+        label: "Video Management",
+        href: "/dashboard/website/videos",
+        match: ["/dashboard/website/videos"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/website/videos"),
+      },
+      {
+        label: "News Management",
+        href: "/dashboard/website/news",
+        match: ["/dashboard/website/news"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/website/news"),
+      },
     ],
   };
 }

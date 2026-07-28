@@ -1,8 +1,10 @@
 <?php
 
 use App\Modules\Website\Controllers\MenuController;
+use App\Modules\Website\Controllers\NewsController;
 use App\Modules\Website\Controllers\PageController;
 use App\Modules\Website\Controllers\SchoolSettingController;
+use App\Modules\Website\Controllers\WebsiteVideoController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'role:super_admin|admin'])
@@ -21,4 +23,10 @@ Route::middleware(['auth', 'role:super_admin|admin'])
         Route::put('/menus/reorder', [MenuController::class, 'reorder'])->name('menus.reorder');
         Route::patch('/menus/{menu}/status', [MenuController::class, 'updateStatus'])->name('menus.status');
         Route::resource('menus', MenuController::class)->except(['show']);
+
+        Route::patch('/videos/{video}/status', [WebsiteVideoController::class, 'updateStatus'])->name('videos.status');
+        Route::resource('videos', WebsiteVideoController::class)->except(['show']);
+
+        Route::patch('/news/{news}/status', [NewsController::class, 'updateStatus'])->name('news.status');
+        Route::resource('news', NewsController::class)->except(['show']);
     });

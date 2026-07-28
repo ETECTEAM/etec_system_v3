@@ -62,6 +62,7 @@ const activeSlug = computed(() => props.pageData?.slug ?? "");
 const isCoursePage = computed(() => ["course", "courses"].includes(activeSlug.value));
 const fallbackHero = "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1800&q=80";
 let courseFilterTimer = null;
+let courseRequestSequence = 0;
 
 const alignmentClass = computed(() => ({
   left: "items-start text-left",
@@ -80,7 +81,18 @@ const categoryOptions = computed(() => props.courseFilters?.categories ?? []);
 const selectedCategoryData = computed(() =>
   categoryOptions.value.find((category) => category.slug === selectedCategory.value || category.name === selectedCategory.value) ?? null
 );
-const subCategoryOptions = computed(() => selectedCategoryData.value?.sub_categories ?? []);
+const allSubCategoryOptions = computed(() => {
+  const subCategories = new Map();
+
+  categoryOptions.value.forEach((category) => {
+    (category.sub_categories ?? []).forEach((subCategory) => {
+      subCategories.set(subCategory.slug || subCategory.id, subCategory);
+    });
+  });
+
+  return Array.from(subCategories.values());
+});
+const subCategoryOptions = computed(() => selectedCategoryData.value?.sub_categories ?? allSubCategoryOptions.value);
 const activeCourseQuery = computed(() => ({
   search: courseSearch.value || undefined,
   category: selectedCategory.value || undefined,
@@ -88,6 +100,8 @@ const activeCourseQuery = computed(() => ({
 }));
 
 const fetchCourses = async (page = 1, append = false) => {
+  const requestId = ++courseRequestSequence;
+
   filteringCourses.value = !append;
   loadingMoreCourses.value = append;
 
@@ -99,13 +113,19 @@ const fetchCourses = async (page = 1, append = false) => {
       },
     });
 
+    if (requestId !== courseRequestSequence) {
+      return;
+    }
+
     courseItems.value = append
       ? [...courseItems.value, ...(response.data?.data ?? [])]
       : response.data?.data ?? [];
     courseMeta.value = response.data?.meta ?? courseMeta.value;
   } finally {
-    filteringCourses.value = false;
-    loadingMoreCourses.value = false;
+    if (requestId === courseRequestSequence) {
+      filteringCourses.value = false;
+      loadingMoreCourses.value = false;
+    }
   }
 };
 
@@ -152,7 +172,17 @@ const submitContact = async () => {
 };
 
 watch(selectedCategory, () => {
-  selectedSubCategory.value = "";
+  if (!selectedSubCategory.value) {
+    return;
+  }
+
+  const selectedSubCategoryStillVisible = subCategoryOptions.value.some(
+    (subCategory) => subCategory.slug === selectedSubCategory.value || subCategory.name === selectedSubCategory.value
+  );
+
+  if (!selectedSubCategoryStillVisible) {
+    selectedSubCategory.value = "";
+  }
 });
 
 watch([courseSearch, selectedCategory, selectedSubCategory], () => {
@@ -250,7 +280,7 @@ watch([courseSearch, selectedCategory, selectedSubCategory], () => {
 
             <label class="grid gap-2 text-sm font-bold text-slate-700">
               Sub Category
-              <select v-model="selectedSubCategory" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-normal outline-none transition focus:border-[#1e5aa8] focus:ring-4 focus:ring-[#1e5aa8]/10" :disabled="!selectedCategory">
+              <select v-model="selectedSubCategory" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-normal outline-none transition focus:border-[#1e5aa8] focus:ring-4 focus:ring-[#1e5aa8]/10">
                 <option value="">All sub categories</option>
                 <option v-for="subCategory in subCategoryOptions" :key="subCategory.id" :value="subCategory.slug">{{ subCategory.name }}</option>
               </select>
@@ -262,23 +292,46 @@ watch([courseSearch, selectedCategory, selectedSubCategory], () => {
           </div>
         </div>
 
-        <div v-if="filteringCourses" class="rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center font-bold text-slate-600">Loading courses...</div>
+        <div v-if="courseItems.length" class="relative">
+          <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" :class="{ 'pointer-events-none opacity-60': filteringCourses }" :aria-busy="filteringCourses">
+            <article v-for="course in courseItems" :key="course.id" class="group flex h-full overflow-hidden rounded-[18px] border border-slate-200/80 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.08)] ring-1 ring-transparent transition duration-300 hover:-translate-y-1 hover:border-[#1e5aa8]/25 hover:shadow-[0_22px_55px_rgba(30,90,168,0.16)] hover:ring-[#1e5aa8]/10">
+              <div class="flex min-h-full w-full flex-col">
+                <div class="relative overflow-hidden bg-slate-100">
+                  <img v-if="course.thumbnail_url" :src="course.thumbnail_url" :alt="course.title" class="aspect-[16/9] w-full object-cover transition duration-500 group-hover:scale-105" />
+                  <div v-else class="grid aspect-[16/9] place-items-center bg-gradient-to-br from-slate-100 via-blue-50 to-orange-50 text-3xl font-black text-[#1e5aa8]">
+                    {{ course.title?.charAt(0) ?? "C" }}
+                  </div>
+                  <div class="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-950/18 to-transparent"></div>
+                </div>
 
-        <div v-if="!filteringCourses && courseItems.length" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <article v-for="course in courseItems" :key="course.id" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(30,90,168,0.14)]">
-            <img v-if="course.thumbnail_url" :src="course.thumbnail_url" :alt="course.title" class="aspect-video w-full object-cover" />
-            <div v-else class="grid aspect-video place-items-center bg-[#1e5aa8]/10 text-xl font-black text-[#1e5aa8]">{{ course.title?.charAt(0) ?? "C" }}</div>
-            <div class="p-6">
-              <span v-if="course.category || course.track" class="rounded-full bg-[#f4a261]/20 px-3 py-1 text-xs font-bold text-[#8a4b12]">{{ course.category || course.track }}</span>
-              <h3 class="mt-4 text-xl font-black text-slate-950">{{ course.title }}</h3>
-              <p class="mt-3 text-sm font-bold capitalize text-slate-500">{{ course.level || "Course" }}</p>
-              <div class="mt-5 flex flex-col gap-2 sm:flex-row">
-                <Link :href="`/courses/${course.slug}`" class="inline-flex justify-center rounded-full bg-[#1e5aa8] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#174981]">View Details</Link>
-                <Link href="/register" class="inline-flex justify-center rounded-full bg-[#f4a261] px-5 py-2.5 text-sm font-black text-slate-950 transition hover:bg-[#f7c948]">Register</Link>
+                <div class="flex flex-1 flex-col p-6">
+                  <div class="flex flex-wrap gap-2">
+                    <span v-if="course.category || course.track" class="rounded-full bg-[#f4a261]/18 px-3 py-1 text-xs font-black text-[#8a4b12]">{{ course.category || course.track }}</span>
+                    <span v-if="course.sub_category" class="rounded-full bg-[#1e5aa8]/10 px-3 py-1 text-xs font-bold text-[#174981]">{{ course.sub_category }}</span>
+                  </div>
+
+                  <h3 class="course-card-title mt-4 min-h-[3.5rem] text-xl font-black leading-7 text-slate-950">{{ course.title }}</h3>
+                  <div class="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold capitalize text-slate-500">
+                    <span>{{ course.level || "Course" }}</span>
+                    <span v-if="course.duration" class="h-1 w-1 rounded-full bg-slate-300"></span>
+                    <span v-if="course.duration">{{ course.duration }}</span>
+                  </div>
+
+                  <div class="mt-6 flex flex-col gap-2 sm:flex-row">
+                    <Link :href="`/courses/${course.slug}`" class="inline-flex flex-1 justify-center rounded-full bg-[#1e5aa8] px-5 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-[#174981]">View Details</Link>
+                    <Link href="/register" class="inline-flex flex-1 justify-center rounded-full bg-[#f4a261] px-5 py-2.5 text-sm font-black text-slate-950 shadow-sm transition hover:bg-[#f7c948]">Register</Link>
+                  </div>
+                </div>
               </div>
-            </div>
-          </article>
+            </article>
+          </div>
+
+          <div v-if="filteringCourses" class="pointer-events-none absolute inset-x-0 top-0 flex justify-center">
+            <span class="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-[#1e5aa8] shadow-lg">Updating courses...</span>
+          </div>
         </div>
+
+        <div v-else-if="filteringCourses" class="rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center font-bold text-slate-600">Loading courses...</div>
 
         <div v-if="!filteringCourses && courseItems.length && hasMoreCourses" class="flex justify-center pt-2">
           <button type="button" class="rounded-full bg-[#f4a261] px-6 py-3 text-sm font-black text-slate-950 shadow-[0_12px_28px_rgba(244,162,97,0.28)] transition hover:bg-[#f7c948] disabled:cursor-not-allowed disabled:opacity-70" :disabled="loadingMoreCourses" @click="loadMoreCourses">
@@ -357,6 +410,15 @@ watch([courseSearch, selectedCategory, selectedSubCategory], () => {
     <FrontendFooter :settings="settings" :menus="menus" />
   </div>
 </template>
+
+<style scoped>
+.course-card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+</style>
 
 <style scoped>
 .rich-content :deep(img) {
