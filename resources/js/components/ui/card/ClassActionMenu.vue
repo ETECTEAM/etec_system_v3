@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue";
 import { router } from "@inertiajs/vue3";
+import { useI18n } from "@/i18n";
 import {
   MoreVertical,
   Eye,
@@ -17,6 +18,7 @@ const props = defineProps({
 });
 
 const open = ref(false);
+const { t } = useI18n();
 
 const menus = [
   {
@@ -62,7 +64,7 @@ const actions = [
         class="flex w-full items-center gap-3 px-4 py-3 text-left text-slate-700 hover:bg-slate-50 dark:text-gray-300 dark:hover:bg-gray-700"
       >
         <component :is="item.icon" class="h-4 w-4" />
-        {{ item.label }}
+        {{ t(item.label) }}
       </button>
 
       <div class="my-2 border-t dark:border-gray-700"></div>
@@ -78,7 +80,7 @@ const actions = [
           ]"
         >
           <component :is="item.icon" class="h-4 w-4" />
-          {{ item.label }}
+          {{ t(item.label) }}
         </button>
       </div>
     </div>

@@ -8,6 +8,9 @@ import { Card } from '../../../../components/ui/card'
 import { ActionMenu } from '../../../../components/ui/menu'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table'
 import DashboardLayout from '../../../../layouts/DashboardLayout.vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const floors = ref([])
 const search = ref('')
@@ -67,7 +70,7 @@ function editFloor(id) {
 }
 
 function deleteFloor(id) {
-  if (!window.confirm('Are you sure?')) {
+  if (!window.confirm(t('Are you sure?'))) {
     return
   }
 
@@ -109,7 +112,7 @@ watch(perPage, () => fetchFloors(1))
 </script>
 
 <template>
-  <Head title="Floors" />
+  <Head :title="$t('Floors')" />
 
   <DashboardLayout>
     <section class="space-y-6">
@@ -120,7 +123,7 @@ watch(perPage, () => fetchFloors(1))
         <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex items-center gap-3">
-              <h2 class="text-xl font-semibold text-slate-900 dark:text-gray-100">Floors</h2>
+              <h2 class="text-xl font-semibold text-slate-900 dark:text-gray-100">{{ $t('Floors') }}</h2>
               <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-sm font-semibold text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
                 {{ pagination.total }}
               </span>
@@ -130,7 +133,7 @@ watch(perPage, () => fetchFloors(1))
               href="/dashboard/floors/create"
               class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
-              Create Floor
+              {{ $t('Create Floor') }}
             </Link>
           </div>
 
@@ -138,7 +141,7 @@ watch(perPage, () => fetchFloors(1))
             <input
               v-model="search"
               type="text"
-              placeholder="Search by name or level..."
+              :placeholder="$t('Search by name or level...')"
               class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             >
 
@@ -147,7 +150,7 @@ watch(perPage, () => fetchFloors(1))
               class="w-40 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             >
               <option v-for="option in perPageOptions" :key="option" :value="option">
-                {{ option === 'all' ? 'All floors' : option + ' per page' }}
+                {{ option === 'all' ? $t('All floors') : $t(':count per page', { count: option }) }}
               </option>
             </select>
           </div>
@@ -158,10 +161,10 @@ watch(perPage, () => fetchFloors(1))
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead class="w-16">No</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Level</TableHead>
-                <TableHead class="text-right">Actions</TableHead>
+                <TableHead class="w-16">{{ $t('No') }}</TableHead>
+                <TableHead>{{ $t('Name') }}</TableHead>
+                <TableHead>{{ $t('Level') }}</TableHead>
+                <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
               </TableRow>
             </TableHeader>
 
@@ -177,7 +180,7 @@ watch(perPage, () => fetchFloors(1))
 
               <TableRow v-if="hasLoaded && !isLoading && floors.length === 0">
                 <TableCell colspan="5" class="py-10 text-center text-slate-500 dark:text-gray-400">
-                  No floors found.
+                  {{ $t('No floors found.') }}
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -186,7 +189,7 @@ watch(perPage, () => fetchFloors(1))
           <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-gray-900/70">
             <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
               <div class="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
-              <span class="text-sm text-slate-600 dark:text-gray-300">Loading floors...</span>
+              <span class="text-sm text-slate-600 dark:text-gray-300">{{ $t('Loading floors...') }}</span>
             </div>
           </div>
         </div>
@@ -194,7 +197,7 @@ watch(perPage, () => fetchFloors(1))
         <!-- Footer -->
         <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
           <p class="text-sm text-slate-500 dark:text-gray-400">
-            Showing {{ paginationStart() }}–{{ paginationEnd() }} of {{ pagination.total }} floors
+            {{ $t('Showing :from-:to of :total floors', { from: paginationStart(), to: paginationEnd(), total: pagination.total }) }}
           </p>
 
           <Pagination

@@ -33,7 +33,7 @@ const classes = [
 </script>
 
 <template>
-  <Head title="Dashboard" />
+  <Head :title="$t('Dashboard')" />
 
   <DashboardLayout>
     <section class="space-y-6">
@@ -43,8 +43,8 @@ const classes = [
         <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-gray-800">
           <svg class="h-8 w-8 text-slate-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
         </div>
-        <h2 class="text-lg font-semibold text-slate-900 dark:text-gray-100">Instructor profile not completed yet.</h2>
-        <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">Please complete your profile to view your dashboard.</p>
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Instructor profile not completed yet.') }}</h2>
+        <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t('Please complete your profile to view your dashboard.') }}</p>
         <Link
           href="/dashboard/instructor/profile"
           class="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-800"
@@ -64,11 +64,11 @@ const classes = [
               </svg>
             </div>
             <div>
-              <p class="text-xs font-medium text-slate-500 dark:text-gray-400">Total Classes</p>
+              <p class="text-xs font-medium text-slate-500 dark:text-gray-400">{{ $t('Total Classes') }}</p>
               <p class="text-xl font-bold text-slate-900 dark:text-gray-100">--</p>
             </div>
           </div>
-          <p class="mt-2 text-xs text-slate-400 dark:text-gray-500">Across all terms</p>
+          <p class="mt-2 text-xs text-slate-400 dark:text-gray-500">{{ $t('Across all terms') }}</p>
         </div>
 
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -82,11 +82,11 @@ const classes = [
               </svg>
             </div>
             <div>
-              <p class="text-xs font-medium text-slate-500 dark:text-gray-400">Active Courses</p>
+              <p class="text-xs font-medium text-slate-500 dark:text-gray-400">{{ $t('Active Courses') }}</p>
               <p class="text-xl font-bold text-slate-900 dark:text-gray-100">--</p>
             </div>
           </div>
-          <p class="mt-2 text-xs text-slate-400 dark:text-gray-500">Currently teaching</p>
+          <p class="mt-2 text-xs text-slate-400 dark:text-gray-500">{{ $t('Currently teaching') }}</p>
         </div>
 
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -100,11 +100,11 @@ const classes = [
               </svg>
             </div>
             <div>
-              <p class="text-xs font-medium text-slate-500 dark:text-gray-400">Students</p>
+              <p class="text-xs font-medium text-slate-500 dark:text-gray-400">{{ $t('Students') }}</p>
               <p class="text-xl font-bold text-slate-900 dark:text-gray-100">--</p>
             </div>
           </div>
-          <p class="mt-2 text-xs text-slate-400 dark:text-gray-500">Enrolled this term</p>
+          <p class="mt-2 text-xs text-slate-400 dark:text-gray-500">{{ $t('Enrolled this term') }}</p>
         </div>
 
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -118,17 +118,17 @@ const classes = [
               </svg>
             </div>
             <div>
-              <p class="text-xs font-medium text-slate-500 dark:text-gray-400">Upcoming Sessions</p>
+              <p class="text-xs font-medium text-slate-500 dark:text-gray-400">{{ $t('Upcoming Sessions') }}</p>
               <p class="text-xl font-bold text-slate-900 dark:text-gray-100">--</p>
             </div>
           </div>
-          <p class="mt-2 text-xs text-slate-400 dark:text-gray-500">Next 7 days</p>
+          <p class="mt-2 text-xs text-slate-400 dark:text-gray-500">{{ $t('Next 7 days') }}</p>
         </div>
       </div>
 
       <!-- My Classes -->
       <div v-if="instructorData">
-        <h2 class="text-lg font-bold text-slate-900 dark:text-gray-100">My Classes</h2>
+        <h2 class="text-lg font-bold text-slate-900 dark:text-gray-100">{{ $t('My Classes') }}</h2>
 
         <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card v-for="cls in classes" :key="cls.classId" padding="p-5">
@@ -141,31 +141,31 @@ const classes = [
 
             <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               <div>
-                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">Class id</dt>
+                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">{{ $t('Class id') }}</dt>
                 <dd class="mt-0.5 font-semibold text-slate-900 dark:text-gray-100">{{ cls.classId }}</dd>
               </div>
               <div>
-                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">Class Lessons</dt>
+                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">{{ $t('Class Lessons') }}</dt>
                 <dd class="mt-0.5 font-semibold text-slate-900 dark:text-gray-100">{{ cls.lessons }}</dd>
               </div>
               <div>
-                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">Building</dt>
+                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">{{ $t('Building') }}</dt>
                 <dd class="mt-0.5 font-semibold text-slate-900 dark:text-gray-100">{{ cls.building }}</dd>
               </div>
               <div>
-                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">Floor &amp; Room</dt>
+                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">{{ $t('Floor &amp; Room') }}</dt>
                 <dd class="mt-0.5 font-semibold text-slate-900 dark:text-gray-100">{{ cls.floorRoom }}</dd>
               </div>
               <div>
-                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">Term</dt>
+                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">{{ $t('Term') }}</dt>
                 <dd class="mt-0.5 font-semibold text-slate-900 dark:text-gray-100">{{ cls.term }}</dd>
               </div>
               <div>
-                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">Time</dt>
+                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">{{ $t('Time') }}</dt>
                 <dd class="mt-0.5 font-semibold text-slate-900 dark:text-gray-100">{{ cls.time }}</dd>
               </div>
               <div>
-                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">Total Stu</dt>
+                <dt class="text-xs font-medium text-slate-500 dark:text-gray-400">{{ $t('Total Stu') }}</dt>
                 <dd class="mt-0.5 font-semibold text-slate-900 dark:text-gray-100">{{ cls.totalStu }}</dd>
               </div>
             </dl>

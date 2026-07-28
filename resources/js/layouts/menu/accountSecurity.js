@@ -1,6 +1,7 @@
 export function build() {
   return {
     label: "Account Security",
+    labelKey: "navigation.accountSecurity",
     href: "/dashboard/account-security",
     match: ["/dashboard/account-security"],
     exact: false,

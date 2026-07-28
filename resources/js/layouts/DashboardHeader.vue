@@ -1,10 +1,11 @@
 <script setup>
 import axios from 'axios'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
-import { Moon, Sun, SunMoon } from '@lucide/vue'
+import { Languages, Moon, Sun, SunMoon } from '@lucide/vue'
 import { useTheme } from '@/composables/useTheme'
 import { getEcho } from '@/echo'
+import { useI18n } from '@/i18n'
 
 const props = defineProps({
   sidebarCollapsed: {
@@ -16,6 +17,7 @@ const props = defineProps({
 const emit = defineEmits(['open-sidebar', 'toggle-sidebar'])
 
 const { theme, cycleTheme } = useTheme()
+const { locale, setLocale, supportedLocales, t } = useI18n()
 
 // Icon reflects the active mode, including 'system' so it's clear it isn't pinned to light/dark.
 const themeIcon = computed(() => {
@@ -24,12 +26,13 @@ const themeIcon = computed(() => {
   return SunMoon
 })
 
-const themeLabel = computed(() => `Theme: ${theme.value}`)
+const themeLabel = computed(() => `${t('common.theme')}: ${theme.value}`)
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user ?? null)
 const roles = computed(() => page.props.auth?.roles ?? [])
 const schoolSettings = computed(() => page.props.website?.settings ?? {})
+const sharedLocale = computed(() => page.props.locale?.current ?? 'en')
 const canAccessNotifications = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin'))
 const notifications = ref([])
 const unreadCount = ref(0)
@@ -39,7 +42,13 @@ const profileOpen = ref(false)
 const profileRef = ref(null)
 const notificationsOpen = ref(false)
 const notificationsRef = ref(null)
+const languageOpen = ref(false)
+const languageRef = ref(null)
 let pollTimer = null
+
+const activeLocale = computed(() => {
+  return supportedLocales.find((item) => item.code === locale.value) ?? supportedLocales[0]
+})
 
 const initials = computed(() => {
   const name = user.value?.name ?? ''
@@ -90,6 +99,14 @@ onBeforeUnmount(() => {
   }
 })
 
+watch(
+  sharedLocale,
+  (value) => {
+    setLocale(value)
+  },
+  { immediate: true },
+)
+
 async function fetchNotifications() {
   isLoading.value = true
 
@@ -108,6 +125,24 @@ async function fetchNotifications() {
 
 function toggleNotifications() {
   notificationsOpen.value = !notificationsOpen.value
+}
+
+function toggleLanguage() {
+  languageOpen.value = !languageOpen.value
+}
+
+function selectLocale(value) {
+  if (value === locale.value) {
+    languageOpen.value = false
+    return
+  }
+
+  setLocale(value)
+  languageOpen.value = false
+
+  router.post('/locale', { locale: value }, {
+    preserveScroll: true,
+  })
 }
 
 function goToNotifications() {
@@ -148,12 +183,17 @@ function handleDocumentClick(event) {
   if (!notificationsRef.value?.contains(event.target)) {
     notificationsOpen.value = false
   }
+
+  if (!languageRef.value?.contains(event.target)) {
+    languageOpen.value = false
+  }
 }
 
 function handleEscape(event) {
   if (event.key === 'Escape') {
     closeProfile()
     notificationsOpen.value = false
+    languageOpen.value = false
   }
 }
 </script>
@@ -175,7 +215,7 @@ function handleEscape(event) {
           type="button"
           class="hidden rounded-lg border border-slate-200 p-1.5 text-slate-600 transition hover:bg-slate-50 lg:inline-flex dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           :aria-pressed="props.sidebarCollapsed"
-          aria-label="Toggle sidebar"
+          :aria-label="t('common.toggleSidebar')"
           @click="emit('toggle-sidebar')"
         >
           <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -188,7 +228,7 @@ function handleEscape(event) {
             <span v-else>ETEC</span>
           </span>
           <span class="max-w-xs truncate text-sm font-bold text-slate-800 dark:text-gray-100">
-            {{ schoolSettings.school_name || 'ETEC Control Center' }}
+            {{ schoolSettings.school_name || t("app.fallbackName") }}
           </span>
         </div>
       </div>
@@ -203,6 +243,36 @@ function handleEscape(event) {
         >
           <component :is="themeIcon" class="h-5 w-5" />
         </button>
+
+        <div ref="languageRef" class="relative">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            :title="t('common.language')"
+            :aria-label="t('common.language')"
+            @click="toggleLanguage"
+          >
+            <Languages class="h-5 w-5" />
+            <span class="min-w-6 text-center uppercase">{{ activeLocale.code }}</span>
+          </button>
+
+          <div
+            v-if="languageOpen"
+            class="absolute right-0 z-30 mt-2 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+          >
+            <button
+              v-for="item in supportedLocales"
+              :key="item.code"
+              type="button"
+              class="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm font-semibold transition hover:bg-slate-50 dark:hover:bg-gray-700"
+              :class="item.code === locale ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-gray-300'"
+              @click="selectLocale(item.code)"
+            >
+              <span>{{ t(item.labelKey) }}</span>
+              <span v-if="item.code === locale" class="text-xs uppercase">{{ item.code }}</span>
+            </button>
+          </div>
+        </div>
 
         <div v-if="canAccessNotifications" ref="notificationsRef" class="relative">
           <button
@@ -232,18 +302,18 @@ function handleEscape(event) {
             class="absolute right-0 z-30 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
           >
             <div class="flex items-center justify-between border-b border-slate-200 px-4 py-2.5 dark:border-gray-700">
-              <p class="text-sm font-semibold text-slate-800 dark:text-gray-100">Notifications</p>
+              <p class="text-sm font-semibold text-slate-800 dark:text-gray-100">{{ t("notifications.title") }}</p>
               <button type="button" class="text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400" @click="goToNotifications">
-                View all
+                {{ t("common.viewAll") }}
               </button>
             </div>
 
             <div class="max-h-96 overflow-y-auto">
               <p v-if="isLoading && !notifications.length" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-gray-400">
-                Loading...
+                {{ t("common.loading") }}
               </p>
               <p v-else-if="!notifications.length" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-gray-400">
-                No notifications yet.
+                {{ t("notifications.empty") }}
               </p>
 
               <article
@@ -261,7 +331,7 @@ function handleEscape(event) {
                     :disabled="actioningId === n.id"
                     @click="actOnNotification(n, 'approve')"
                   >
-                    Approve
+                    {{ t("common.approve") }}
                   </button>
                   <button
                     type="button"
@@ -269,14 +339,14 @@ function handleEscape(event) {
                     :disabled="actioningId === n.id"
                     @click="actOnNotification(n, 'reject')"
                   >
-                    Reject
+                    {{ t("common.reject") }}
                   </button>
                 </div>
                 <p v-else-if="n.approval_status === 'approved'" class="mt-2 text-xs font-semibold text-green-600 dark:text-green-400">
-                  Approved
+                  {{ t("common.approved") }}
                 </p>
                 <p v-else-if="n.approval_status === 'rejected'" class="mt-2 text-xs font-semibold text-red-600 dark:text-red-400">
-                  Rejected
+                  {{ t("common.rejected") }}
                 </p>
               </article>
             </div>
@@ -293,8 +363,8 @@ function handleEscape(event) {
               {{ initials }}
             </span>
             <span class="hidden sm:block">
-              <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ user?.name ?? 'Guest' }}</span>
-              <span class="block text-xs text-slate-500 dark:text-gray-400">{{ user?.email ?? 'Not signed in' }}</span>
+              <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ user?.name ?? t("common.guest") }}</span>
+              <span class="block text-xs text-slate-500 dark:text-gray-400">{{ user?.email ?? t("common.notSignedIn") }}</span>
             </span>
             <svg class="h-4 w-4 text-slate-400 dark:text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
@@ -306,8 +376,8 @@ function handleEscape(event) {
             class="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
           >
             <div class="px-4 py-3">
-              <p class="text-sm font-semibold text-slate-900 dark:text-gray-100">{{ user?.name ?? 'Guest' }}</p>
-              <p class="text-xs text-slate-500 dark:text-gray-400">{{ user?.email ?? 'Not signed in' }}</p>
+              <p class="text-sm font-semibold text-slate-900 dark:text-gray-100">{{ user?.name ?? t("common.guest") }}</p>
+              <p class="text-xs text-slate-500 dark:text-gray-400">{{ user?.email ?? t("common.notSignedIn") }}</p>
             </div>
             <div class="border-t border-slate-200 dark:border-gray-700">
               <Link
@@ -316,7 +386,7 @@ function handleEscape(event) {
                 as="button"
                 class="w-full cursor-pointer px-4 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                Sign out
+                {{ t("common.signOut") }}
               </Link>
             </div>
           </div>

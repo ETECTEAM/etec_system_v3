@@ -74,63 +74,63 @@ function submit() {
       <Breadcrumbs :items="breadcrumbs" />
       <PageHero
         eyebrow="Website Management"
-        :title="isEditing ? 'Edit Video' : 'Create Video'"
-        description="Upload video content and tune the details shown around the viewer."
+        :title="isEditing ? $t('Edit Video') : $t('Create Video')"
+        :description="$t('Upload video content and tune the details shown around the viewer.')"
       />
 
       <form class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]" @submit.prevent="submit">
         <div class="space-y-6">
           <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-lg font-bold text-slate-900 dark:text-gray-100">Video Details</h2>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-gray-100">{{ $t('Video Details') }}</h2>
             <div class="mt-5 space-y-5">
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Title</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Title') }}</label>
                 <input v-model="form.title" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
                 <p v-if="form.errors.title" class="mt-1 text-sm text-rose-600">{{ form.errors.title }}</p>
               </div>
 
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Description</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Description') }}</label>
                 <textarea v-model="form.description" rows="5" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
                 <p v-if="form.errors.description" class="mt-1 text-sm text-rose-600">{{ form.errors.description }}</p>
               </div>
 
               <div class="grid gap-5 md:grid-cols-2">
                 <div>
-                  <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Duration</label>
+                  <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Duration') }}</label>
                   <input v-model="form.duration" type="text" placeholder="03:45" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
                   <p v-if="form.errors.duration" class="mt-1 text-sm text-rose-600">{{ form.errors.duration }}</p>
                 </div>
 
                 <div>
-                  <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Sort Order</label>
+                  <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Sort Order') }}</label>
                   <input v-model.number="form.sort_order" type="number" min="0" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
                   <p v-if="form.errors.sort_order" class="mt-1 text-sm text-rose-600">{{ form.errors.sort_order }}</p>
                 </div>
               </div>
 
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Video File</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Video File') }}</label>
                 <input type="file" accept=".mp4,.mov,.webm,.ogg,video/mp4,video/quicktime,video/webm,video/ogg" class="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-blue-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200" @change="chooseVideo" />
-                <p class="mt-1 text-xs text-slate-500 dark:text-gray-400">MP4, MOV, WebM, OGG. Max 1GB.</p>
+                <p class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ $t('MP4, MOV, WebM, OGG. Max 1GB.') }}</p>
                 <p v-if="form.errors.video" class="mt-1 text-sm text-rose-600">{{ form.errors.video }}</p>
               </div>
 
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Thumbnail</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Thumbnail') }}</label>
                 <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-blue-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200" @change="chooseThumbnail" />
-                <button v-if="thumbnailPreview" type="button" class="mt-2 text-sm font-semibold text-rose-600 hover:text-rose-700" @click="removeThumbnail">Remove thumbnail</button>
+                <button v-if="thumbnailPreview" type="button" class="mt-2 text-sm font-semibold text-rose-600 hover:text-rose-700" @click="removeThumbnail">{{ $t('Remove thumbnail') }}</button>
                 <p v-if="form.errors.thumbnail" class="mt-1 text-sm text-rose-600">{{ form.errors.thumbnail }}</p>
               </div>
 
               <div class="grid gap-3 md:grid-cols-2">
                 <label class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50">
-                  <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">Active</span>
+                  <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ $t('Active') }}</span>
                   <input v-model="form.is_active" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                 </label>
 
                 <label class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50">
-                  <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">Featured</span>
+                  <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ $t('Featured') }}</span>
                   <input v-model="form.is_featured" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                 </label>
               </div>
@@ -138,16 +138,16 @@ function submit() {
           </div>
 
           <div class="flex flex-wrap justify-end gap-3">
-            <Link href="/dashboard/website/videos" class="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-200">Cancel</Link>
+            <Link href="/dashboard/website/videos" class="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-200">{{ $t('Cancel') }}</Link>
             <button type="submit" :disabled="form.processing" class="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50">
-              {{ form.processing ? "Saving..." : isEditing ? "Update Video" : "Create Video" }}
+              {{ form.processing ? $t("Saving...") : isEditing ? $t("Update Video") : $t("Create Video") }}
             </button>
           </div>
         </div>
 
         <aside class="space-y-4">
           <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <p class="mb-3 text-sm font-bold text-slate-900 dark:text-gray-100">Viewer Preview</p>
+            <p class="mb-3 text-sm font-bold text-slate-900 dark:text-gray-100">{{ $t('Viewer Preview') }}</p>
             <div class="overflow-hidden rounded-xl border border-slate-200 bg-slate-950 dark:border-gray-800">
               <video
                 v-if="videoPreview"
@@ -164,13 +164,13 @@ function submit() {
             <div class="mt-4 space-y-2">
               <div class="flex flex-wrap items-center gap-2">
                 <span v-if="form.duration" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 dark:bg-gray-800 dark:text-gray-200">{{ form.duration }}</span>
-                <span v-if="form.is_featured" class="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">Featured</span>
+                <span v-if="form.is_featured" class="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">{{ $t('Featured') }}</span>
                 <span class="rounded-full px-3 py-1 text-xs font-bold" :class="form.is_active ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' : 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300'">
-                  {{ form.is_active ? "Active" : "Inactive" }}
+                  {{ form.is_active ? $t('Active') : $t('Inactive') }}
                 </span>
               </div>
-              <h3 class="text-lg font-bold text-slate-900 dark:text-gray-100">{{ form.title || "Video title" }}</h3>
-              <p class="whitespace-pre-line text-sm leading-6 text-slate-600 dark:text-gray-300">{{ form.description || "Video description" }}</p>
+              <h3 class="text-lg font-bold text-slate-900 dark:text-gray-100">{{ form.title || $t('Video title') }}</h3>
+              <p class="whitespace-pre-line text-sm leading-6 text-slate-600 dark:text-gray-300">{{ form.description || $t('Video description') }}</p>
             </div>
           </div>
         </aside>

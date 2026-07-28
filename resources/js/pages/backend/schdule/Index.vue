@@ -4,6 +4,9 @@ import { Link, router } from '@inertiajs/vue3'
 import { ref, watch } from 'vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
+import { useI18n } from '../../../i18n'
+
+const { t } = useI18n()
 
 // PROPS
 const props = defineProps({
@@ -50,7 +53,7 @@ watch(filters, (value) => {
 
 // DELETE
 function deleteSchedule(id) {
-  if (confirm('Are you sure you want to delete this schedule?')) {
+  if (confirm(t('Are you sure you want to delete this schedule?'))) {
     router.delete(`/dashboard/schdule/${id}`, {
       preserveScroll: true,
     })
@@ -68,7 +71,7 @@ const breadcrumbItems = [
 
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Schedules Management" title="Schedules" description="Read, create, update, and delete schedules records" />
+      <PageHero eyebrow="Schedules Management" :title="$t('Schedules')" :description="$t('Read, create, update, and delete schedules records')" />
 
       <!-- CARD -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800">
@@ -84,7 +87,7 @@ const breadcrumbItems = [
               <input
                 v-model="filters.search"
                 type="text"
-                placeholder="Search schedules..."
+                :placeholder="$t('Search schedules...')"
                 class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm w-[25%] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
               />
 
@@ -93,7 +96,7 @@ const breadcrumbItems = [
                 v-model="filters.class_type_id"
                 class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
               >
-                <option value="">All Class Types</option>
+                <option value="">{{ $t('All Class Types') }}</option>
                 <option
                   v-for="ct in classTypes"
                   :key="ct.class_type_id"
@@ -108,7 +111,7 @@ const breadcrumbItems = [
                 v-model="filters.term_id"
                 class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
               >
-                <option value="">All Terms</option>
+                <option value="">{{ $t('All Terms') }}</option>
                 <option
                   v-for="t in terms"
                   :key="t.id"
@@ -123,7 +126,7 @@ const breadcrumbItems = [
                 v-model="filters.time_id"
                 class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
               >
-                <option value="">All Times</option>
+                <option value="">{{ $t('All Times') }}</option>
                 <option
                   v-for="t in times"
                   :key="t.id"
@@ -138,11 +141,11 @@ const breadcrumbItems = [
                 v-model="filters.per_page"
                 class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
               >
-                <option :value="5">Show 5</option>
-                <option :value="7">Show 7</option>
-                <option :value="10">Show 10</option>
-                <option :value="20">Show 20</option>
-                <option :value="50">Show 50</option>
+                <option :value="5">{{ $t('Show 5') }}</option>
+                <option :value="7">{{ $t('Show 7') }}</option>
+                <option :value="10">{{ $t('Show 10') }}</option>
+                <option :value="20">{{ $t('Show 20') }}</option>
+                <option :value="50">{{ $t('Show 50') }}</option>
               </select>
 
             </div>
@@ -151,7 +154,7 @@ const breadcrumbItems = [
               href="/dashboard/schdule/create"
               class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-650 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
-              Create Schedule
+              {{ $t('Create Schedule') }}
             </Link>
           </div>
 
@@ -163,11 +166,11 @@ const breadcrumbItems = [
 
             <thead>
               <tr class="bg-gray-50 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-800">
-                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">ID</th>
-                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">Class Type</th>
-                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">Term</th>
-                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">Time Slots</th>
-                <th class="px-6 py-3 text-right text-slate-600 dark:text-gray-300">Actions</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('ID') }}</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('Class Type') }}</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('Term') }}</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('Time Slots') }}</th>
+                <th class="px-6 py-3 text-right text-slate-600 dark:text-gray-300">{{ $t('Actions') }}</th>
               </tr>
             </thead>
 
@@ -198,7 +201,7 @@ const breadcrumbItems = [
                       {{ t.time_name }}
                     </span>
                     <span v-if="!schdule.times?.length" class="text-slate-400 text-xs dark:text-gray-500">
-                      No times selected
+                      {{ $t('No times selected') }}
                     </span>
                   </div>
                 </td>
@@ -209,14 +212,14 @@ const breadcrumbItems = [
                     :href="`/dashboard/schdule/${schdule.id}/edit`"
                     class="px-5 py-2 text-sm rounded-lg border border-blue-200 bg-blue-50 font-semibold text-blue-700  transition hover:bg-blue-100 inline-block dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
                   >
-                    Edit
+                    {{ $t('Edit') }}
                   </Link>
 
                   <button
                     @click="deleteSchedule(schdule.id)"
                     class="px-5 py-2 text-sm rounded-lg border border-rose-200 bg-rose-50 font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
                   >
-                    Delete
+                    {{ $t('Delete') }}
                   </button>
 
                 </td>
@@ -224,7 +227,7 @@ const breadcrumbItems = [
 
               <tr v-if="!schedules?.data?.length">
                 <td colspan="5" class="py-10 text-center text-slate-500 dark:text-gray-400">
-                  {{ filters.search ? `No results for "${filters.search}"` : 'No schedules found.' }}
+                  {{ filters.search ? $t('No results for ":search"', { search: filters.search }) : $t('No schedules found.') }}
                 </td>
               </tr>
 
@@ -237,7 +240,7 @@ const breadcrumbItems = [
         <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
 
           <p class="text-sm text-slate-500 dark:text-gray-400">
-            Showing {{ schedules.from }}–{{ schedules.to }} of {{ schedules.total }} schedules
+            {{ $t('Showing :from-:to of :total schedules', { from: schedules.from, to: schedules.to, total: schedules.total }) }}
           </p>
 
           <div class="flex flex-wrap gap-2 text-sm">

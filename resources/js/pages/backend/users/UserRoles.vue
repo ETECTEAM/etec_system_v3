@@ -66,7 +66,7 @@ const {
 </script>
 
 <template>
-  <Head title="Role & Permission" />
+  <Head :title="$t('Role & Permission')" />
 
   <DashboardLayout>
     <section class="space-y-6">
@@ -74,28 +74,28 @@ const {
 
       <!-- Top summary: title on the left, compact quick stats on the right. -->
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <PageHero eyebrow="User Management" title="Role & Permission" description="Manage role defaults and set permission access across modules." />
+        <PageHero eyebrow="User Management" :title="$t('Role & Permission')" :description="$t('Manage role defaults and set permission access across modules.')" />
 
         <div class="grid grid-cols-4 gap-3">
           <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">Total Users</p>
+            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">{{ $t('Total Users') }}</p>
             <p class="mt-1 text-xl font-bold text-slate-900 dark:text-gray-100">{{ totalUsers }}</p>
-            <p class="mt-0.5 text-[11px] text-emerald-600 dark:text-emerald-400">Across all active roles</p>
+            <p class="mt-0.5 text-[11px] text-emerald-600 dark:text-emerald-400">{{ $t('Across all active roles') }}</p>
           </div>
           <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">Active Roles</p>
+            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">{{ $t('Active Roles') }}</p>
             <p class="mt-1 text-xl font-bold text-slate-900 dark:text-gray-100">{{ activeRoles }}</p>
-            <p class="mt-0.5 text-[11px] text-slate-500 dark:text-gray-400">Available for assignment</p>
+            <p class="mt-0.5 text-[11px] text-slate-500 dark:text-gray-400">{{ $t('Available for assignment') }}</p>
           </div>
           <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">Permissions</p>
+            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">{{ $t('Permissions') }}</p>
             <p class="mt-1 text-xl font-bold text-slate-900 dark:text-gray-100">{{ permissions.length }}</p>
-            <p class="mt-0.5 text-[11px] text-blue-700 dark:text-blue-400">Registered access rules</p>
+            <p class="mt-0.5 text-[11px] text-blue-700 dark:text-blue-400">{{ $t('Registered access rules') }}</p>
           </div>
           <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">Restricted Modules</p>
+            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">{{ $t('Restricted Modules') }}</p>
             <p class="mt-1 text-xl font-bold text-slate-900 dark:text-gray-100">{{ restrictedModules }}</p>
-            <p class="mt-0.5 text-[11px] text-slate-500 dark:text-gray-400">For selected role</p>
+            <p class="mt-0.5 text-[11px] text-slate-500 dark:text-gray-400">{{ $t('For selected role') }}</p>
           </div>
         </div>
       </div>
@@ -160,8 +160,8 @@ const {
           <div class="modal-panel relative z-10 flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900" style="max-height: calc(100vh - 2rem);">
             <!-- Header -->
             <div class="flex shrink-0 items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-gray-800">
-              <h2 id="create-role-title" class="text-base font-bold text-slate-900 dark:text-gray-100">Create New Role</h2>
-              <button type="button" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300" aria-label="Close modal" @click="closeCreateModal">
+              <h2 id="create-role-title" class="text-base font-bold text-slate-900 dark:text-gray-100">{{ $t('Create New Role') }}</h2>
+              <button type="button" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300" :aria-label="$t('Close modal')" @click="closeCreateModal">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M18 6 6 18M6 6l12 12" />
                 </svg>
@@ -173,22 +173,22 @@ const {
               <div class="flex-1 overflow-y-auto px-6 py-5">
                 <!-- Role Name: server converts spaces to underscores, see helper text below the field -->
                 <div>
-                  <label for="create-role-name" class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Role Name <span class="text-red-500 dark:text-red-400">*</span></label>
-                  <input id="create-role-name" v-model="createRoleForm.name" type="text" placeholder="e.g. editor" autocomplete="off" :disabled="createRoleForm.processing" class="w-full rounded-xl border px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-800 dark:text-gray-200" :class="createRoleForm.errors.name ? 'border-red-400 focus:border-red-400 focus:ring-red-100 dark:border-red-500/60 dark:focus:border-red-500 dark:focus:ring-red-500/20' : 'border-slate-300 focus:border-blue-600 focus:ring-blue-100 dark:border-gray-600 dark:focus:border-blue-500 dark:focus:ring-blue-500/20'">
+                  <label for="create-role-name" class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Role Name') }} <span class="text-red-500 dark:text-red-400">*</span></label>
+                  <input id="create-role-name" v-model="createRoleForm.name" type="text" :placeholder="$t('e.g. editor')" autocomplete="off" :disabled="createRoleForm.processing" class="w-full rounded-xl border px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-800 dark:text-gray-200" :class="createRoleForm.errors.name ? 'border-red-400 focus:border-red-400 focus:ring-red-100 dark:border-red-500/60 dark:focus:border-red-500 dark:focus:ring-red-500/20' : 'border-slate-300 focus:border-blue-600 focus:ring-blue-100 dark:border-gray-600 dark:focus:border-blue-500 dark:focus:ring-blue-500/20'">
                   <p v-if="createRoleForm.errors.name" class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ createRoleForm.errors.name }}</p>
-                  <p class="mt-1.5 text-xs text-slate-400 dark:text-gray-500">Spaces are converted to underscores automatically, e.g. <code class="rounded bg-slate-100 px-1 py-0.5 font-mono dark:bg-gray-800">Super Editor</code> → <code class="rounded bg-slate-100 px-1 py-0.5 font-mono dark:bg-gray-800">super_editor</code></p>
+                  <p class="mt-1.5 text-xs text-slate-400 dark:text-gray-500">{{ $t('Spaces are converted to underscores automatically, e.g.') }} <code class="rounded bg-slate-100 px-1 py-0.5 font-mono dark:bg-gray-800">{{ $t('Super Editor') }}</code> → <code class="rounded bg-slate-100 px-1 py-0.5 font-mono dark:bg-gray-800">{{ $t('super_editor') }}</code></p>
                 </div>
               </div>
 
               <!-- Footer: shrink-0 keeps it always visible -->
               <div class="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 dark:border-gray-800 dark:bg-gray-800/40">
-                <button type="button" :disabled="createRoleForm.processing" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800" @click="closeCreateModal">Cancel</button>
+                <button type="button" :disabled="createRoleForm.processing" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800" @click="closeCreateModal">{{ $t('Cancel') }}</button>
                 <button type="submit" form="create-role-form" :disabled="createRoleForm.processing || !createRoleForm.name.trim()" class="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70">
                   <svg v-if="createRoleForm.processing" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  {{ createRoleForm.processing ? 'Creating...' : 'Create Role' }}
+                  {{ createRoleForm.processing ? $t('Creating...') : $t('Create Role') }}
                 </button>
               </div>
             </form>

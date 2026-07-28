@@ -5,6 +5,7 @@ import { ZiggyVue } from 'ziggy-js';
 import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import '../css/app.css'
+import { createI18n } from './i18n'
 
 const toastOptions = {
     position: 'bottom-right',
@@ -18,8 +19,11 @@ const toastOptions = {
 createInertiaApp({
     resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob('./pages/**/*.vue')),
     setup({ el, App, props, plugin }) {
+        const initialLocale = props.initialPage?.props?.locale?.current ?? 'en'
+
         createApp({ render: () => h(App, props) })
             .use(plugin)
+            .use(createI18n(initialLocale))
             .use(ZiggyVue)
             .use(Toast, toastOptions)
             .mount(el)

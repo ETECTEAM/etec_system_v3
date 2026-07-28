@@ -14,13 +14,13 @@
 <template>
     <div v-if="totalItems > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div class="text-sm text-slate-500 text-center sm:text-left">
-            Showing
+            {{ $t('Showing') }}
             <span class="font-medium text-slate-700">{{ rangeStart }}</span>
-            to
+            {{ $t('to') }}
             <span class="font-medium text-slate-700">{{ rangeEnd }}</span>
-            of
+            {{ $t('of') }}
             <span class="font-medium text-slate-700">{{ totalItems }}</span>
-            {{ itemLabel }}
+            {{ $t(itemLabel) }}
         </div>
 
         <div class="flex flex-wrap items-center justify-center gap-2">
@@ -46,7 +46,7 @@
                     <span
                         v-if="page === '...'"
                         class="px-2 py-2 text-sm text-slate-400 select-none"
-                    >&hellip;</span>
+                    >{{ $t('&hellip;') }}</span>
                     <button
                         v-else
                         type="button"

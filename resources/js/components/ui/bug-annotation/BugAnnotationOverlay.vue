@@ -186,7 +186,7 @@ onBeforeUnmount(() => {
           max="14"
           step="1"
           class="w-20 accent-blue-600"
-          title="Brush size"
+          :title="$t('Brush size')"
         />
 
         <div class="h-6 w-px bg-slate-200" />
@@ -194,7 +194,7 @@ onBeforeUnmount(() => {
         <button
           type="button"
           class="rounded-lg p-1.5 text-slate-600 transition hover:bg-slate-100"
-          title="Undo"
+          :title="$t('Undo')"
           @click="undo"
         >
           <Undo2 class="h-4 w-4" />
@@ -202,7 +202,7 @@ onBeforeUnmount(() => {
         <button
           type="button"
           class="rounded-lg p-1.5 text-slate-600 transition hover:bg-slate-100"
-          title="Clear all"
+          :title="$t('Clear all')"
           @click="clearAll"
         >
           <Trash2 class="h-4 w-4" />

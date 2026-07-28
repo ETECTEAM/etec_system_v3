@@ -3,6 +3,7 @@ export function build(ctx) {
 
   return {
     label: "My Profile",
+    labelKey: "navigation.myProfile",
     href: "/dashboard/instructor",
     match: ["/dashboard/instructor"],
     exact: false,

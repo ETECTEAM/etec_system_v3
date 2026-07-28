@@ -21,24 +21,24 @@ const showPasswordConfirmation = ref(false)
 <template>
   <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="emit('submit')">
     <label v-if="!student && !instructor" class="block">
-      <span class="mb-2 block text-sm font-semibold text-slate-700">Login Display Name</span>
-      <input v-model="form.name" placeholder="e.g. Rak Smey" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
+      <span class="mb-2 block text-sm font-semibold text-slate-700">{{ $t('Login Display Name') }}</span>
+      <input v-model="form.name" :placeholder="$t('e.g. Rak Smey')" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
       <span v-if="form.errors.name" class="text-xs text-red-600">{{ form.errors.name }}</span>
     </label>
     <label class="block">
-      <span class="mb-2 block text-sm font-semibold text-slate-700">Login Email</span>
-      <input v-model="form.email" type="email" placeholder="smey@etec.com" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
+      <span class="mb-2 block text-sm font-semibold text-slate-700">{{ $t('Login Email') }}</span>
+      <input v-model="form.email" type="email" :placeholder="$t('smey@etec.com')" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
       <span v-if="form.errors.email" class="text-xs text-red-600">{{ form.errors.email }}</span>
     </label>
     <label class="block">
-      <span class="mb-2 block text-sm font-semibold text-slate-700">Avatar</span>
+      <span class="mb-2 block text-sm font-semibold text-slate-700">{{ $t('Avatar') }}</span>
       <input type="file" accept="image/jpeg,image/png,image/webp" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" @input="form.avatar = $event.target.files[0]" />
       <span v-if="form.errors.avatar" class="text-xs text-red-600">{{ form.errors.avatar }}</span>
     </label>
     <label class="block">
       <span class="mb-2 block text-sm font-semibold text-slate-700">{{ edit ? 'New Password' : 'Password' }}</span>
       <div class="relative">
-        <input v-model="form.password" :type="showPassword ? 'text' : 'password'" placeholder="Min. 8 characters" class="w-full rounded-xl border border-slate-300 px-4 py-3 pr-11 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
+        <input v-model="form.password" :type="showPassword ? 'text' : 'password'" :placeholder="$t('Min. 8 characters')" class="w-full rounded-xl border border-slate-300 px-4 py-3 pr-11 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
         <button type="button" tabindex="-1" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600" @click="showPassword = !showPassword">
           <EyeOff v-if="showPassword" class="h-4 w-4" />
           <Eye v-else class="h-4 w-4" />
@@ -46,9 +46,9 @@ const showPasswordConfirmation = ref(false)
       </div>
     </label>
     <label class="block">
-      <span class="mb-2 block text-sm font-semibold text-slate-700">Confirm Password</span>
+      <span class="mb-2 block text-sm font-semibold text-slate-700">{{ $t('Confirm Password') }}</span>
       <div class="relative">
-        <input v-model="form.password_confirmation" :type="showPasswordConfirmation ? 'text' : 'password'" placeholder="Repeat password" class="w-full rounded-xl border border-slate-300 px-4 py-3 pr-11 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
+        <input v-model="form.password_confirmation" :type="showPasswordConfirmation ? 'text' : 'password'" :placeholder="$t('Repeat password')" class="w-full rounded-xl border border-slate-300 px-4 py-3 pr-11 text-sm focus:border-blue-900 focus:ring-1 focus:ring-blue-900 focus:outline-none" />
         <button type="button" tabindex="-1" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600" @click="showPasswordConfirmation = !showPasswordConfirmation">
           <EyeOff v-if="showPasswordConfirmation" class="h-4 w-4" />
           <Eye v-else class="h-4 w-4" />
@@ -57,172 +57,172 @@ const showPasswordConfirmation = ref(false)
     </label>
     <div class="grid gap-4 md:grid-cols-2 sm:col-span-2">
       <label class="block">
-        <span class="mb-2 block text-sm font-semibold text-slate-700">Role</span>
+        <span class="mb-2 block text-sm font-semibold text-slate-700">{{ $t('Role') }}</span>
         <SelectSearch v-model="form.role" :options="roles" />
         <span v-if="form.errors.role" class="text-xs text-red-600">{{ form.errors.role }}</span>
       </label>
       <label class="block">
-        <span class="mb-2 block text-sm font-semibold text-slate-700">Login Status</span>
-        <SelectSearch v-model="form.account_status" :options="statusOptions" placeholder="Select status" />
+        <span class="mb-2 block text-sm font-semibold text-slate-700">{{ $t('Login Status') }}</span>
+        <SelectSearch v-model="form.account_status" :options="statusOptions" :placeholder="$t('Select status')" />
       </label>
     </div>
 
     <template v-if="student">
-      <div class="sm:col-span-2 border-t pt-4 text-base font-semibold text-slate-900">Student Profile</div>
+      <div class="sm:col-span-2 border-t pt-4 text-base font-semibold text-slate-900">{{ $t('Student Profile') }}</div>
       <label class="block">
-        <span>Student Code</span>
-        <input v-model="form.student_code" placeholder="e.g. STU-001" class="input" />
+        <span>{{ $t('Student Code') }}</span>
+        <input v-model="form.student_code" :placeholder="$t('e.g. STU-001')" class="input" />
         <span v-if="form.errors.student_code" class="text-xs text-red-600">{{ form.errors.student_code }}</span>
       </label>
       <label class="block">
-        <span>Full Name</span>
-        <input v-model="form.student_full_name" placeholder="Full name" class="input" />
+        <span>{{ $t('Full Name') }}</span>
+        <input v-model="form.student_full_name" :placeholder="$t('Full name')" class="input" />
         <span v-if="form.errors.student_full_name" class="text-xs text-red-600">{{ form.errors.student_full_name }}</span>
       </label>
       <label class="block">
-        <span>First Name</span>
-        <input v-model="form.student_first_name" placeholder="First name" class="input" />
+        <span>{{ $t('First Name') }}</span>
+        <input v-model="form.student_first_name" :placeholder="$t('First name')" class="input" />
       </label>
       <label class="block">
-        <span>Last Name</span>
-        <input v-model="form.student_last_name" placeholder="Last name" class="input" />
+        <span>{{ $t('Last Name') }}</span>
+        <input v-model="form.student_last_name" :placeholder="$t('Last name')" class="input" />
       </label>
       <label class="block">
-        <span>Full Name Khmer</span>
+        <span>{{ $t('Full Name Khmer') }}</span>
         <input v-model="form.student_full_name_kh" placeholder="ឈ្មោះពេញ" class="input" />
       </label>
       <label class="block">
-        <span>Gender</span>
-        <input v-model="form.student_gender" placeholder="Male / Female" class="input" />
+        <span>{{ $t('Gender') }}</span>
+        <input v-model="form.student_gender" :placeholder="$t('Male / Female')" class="input" />
       </label>
       <label class="block">
-        <span>Date of Birth</span>
-        <input v-model="form.student_date_of_birth" type="date" placeholder="YYYY-MM-DD" class="input" />
+        <span>{{ $t('Date of Birth') }}</span>
+        <input v-model="form.student_date_of_birth" type="date" :placeholder="$t('YYYY-MM-DD')" class="input" />
       </label>
       <label class="block">
-        <span>Student Phone</span>
-        <input v-model="form.student_phone" placeholder="e.g. 012 345 678" class="input" />
+        <span>{{ $t('Student Phone') }}</span>
+        <input v-model="form.student_phone" :placeholder="$t('e.g. 012 345 678')" class="input" />
       </label>
       <label class="block">
-        <span>Contact Email</span>
-        <input v-model="form.student_email" type="email" placeholder="student@gmail.com" class="input" />
+        <span>{{ $t('Contact Email') }}</span>
+        <input v-model="form.student_email" type="email" :placeholder="$t('student@gmail.com')" class="input" />
       </label>
       <label class="block">
-        <span>Class ID</span>
-        <input v-model="form.student_class_id" type="number" placeholder="e.g. 1" class="input" />
+        <span>{{ $t('Class ID') }}</span>
+        <input v-model="form.student_class_id" type="number" :placeholder="$t('e.g. 1')" class="input" />
       </label>
       <label class="block">
-        <span>Parent Name</span>
-        <input v-model="form.parent_name" placeholder="Parent name" class="input" />
+        <span>{{ $t('Parent Name') }}</span>
+        <input v-model="form.parent_name" :placeholder="$t('Parent name')" class="input" />
       </label>
       <label class="block">
-        <span>Parent Phone</span>
-        <input v-model="form.parent_phone" placeholder="e.g. 012 345 678" class="input" />
+        <span>{{ $t('Parent Phone') }}</span>
+        <input v-model="form.parent_phone" :placeholder="$t('e.g. 012 345 678')" class="input" />
       </label>
       <label class="block">
-        <span>Student Status</span>
+        <span>{{ $t('Student Status') }}</span>
         <select v-model="form.student_status" class="input">
-          <option value="" disabled>Select status</option>
-          <option :value="true">Active</option>
-          <option :value="false">Inactive</option>
+          <option value="" disabled>{{ $t('Select status') }}</option>
+          <option :value="true">{{ $t('Active') }}</option>
+          <option :value="false">{{ $t('Inactive') }}</option>
         </select>
       </label>
       <label class="block sm:col-span-2">
-        <span>Address</span>
-        <textarea v-model="form.student_address" placeholder="Street, city, province" class="input" />
+        <span>{{ $t('Address') }}</span>
+        <textarea v-model="form.student_address" :placeholder="$t('Street, city, province')" class="input" />
       </label>
     </template>
 
     <template v-if="instructor">
-      <div class="sm:col-span-2 border-t pt-4 text-base font-semibold text-slate-900">Instructor Profile</div>
+      <div class="sm:col-span-2 border-t pt-4 text-base font-semibold text-slate-900">{{ $t('Instructor Profile') }}</div>
       <label class="block">
-        <span>Instructor Code</span>
+        <span>{{ $t('Instructor Code') }}</span>
         <input v-model="form.instructor_code" disabled class="input !bg-slate-100 !text-slate-500" />
         <span v-if="form.errors.instructor_code" class="text-xs text-red-600">{{ form.errors.instructor_code }}</span>
       </label>
       <label class="block">
-        <span>Full Name</span>
-        <input v-model="form.instructor_full_name" placeholder="Full name" class="input" />
+        <span>{{ $t('Full Name') }}</span>
+        <input v-model="form.instructor_full_name" :placeholder="$t('Full name')" class="input" />
         <span v-if="form.errors.instructor_full_name" class="text-xs text-red-600">{{ form.errors.instructor_full_name }}</span>
       </label>
       <label class="block">
-        <span>First Name</span>
-        <input v-model="form.instructor_first_name" placeholder="First name" class="input" />
+        <span>{{ $t('First Name') }}</span>
+        <input v-model="form.instructor_first_name" :placeholder="$t('First name')" class="input" />
       </label>
       <label class="block">
-        <span>Last Name</span>
-        <input v-model="form.instructor_last_name" placeholder="Last name" class="input" />
+        <span>{{ $t('Last Name') }}</span>
+        <input v-model="form.instructor_last_name" :placeholder="$t('Last name')" class="input" />
       </label>
       <label class="block">
-        <span>Full Name Khmer</span>
+        <span>{{ $t('Full Name Khmer') }}</span>
         <input v-model="form.instructor_full_name_kh" placeholder="ឈ្មោះពេញ" class="input" />
       </label>
       <label class="block">
-        <span>Gender</span>
-        <input v-model="form.instructor_gender" placeholder="Male / Female" class="input" />
+        <span>{{ $t('Gender') }}</span>
+        <input v-model="form.instructor_gender" :placeholder="$t('Male / Female')" class="input" />
       </label>
       <label class="block">
-        <span>Date of Birth</span>
-        <input v-model="form.instructor_date_of_birth" type="date" placeholder="YYYY-MM-DD" class="input" />
+        <span>{{ $t('Date of Birth') }}</span>
+        <input v-model="form.instructor_date_of_birth" type="date" :placeholder="$t('YYYY-MM-DD')" class="input" />
       </label>
       <label class="block">
-        <span>Instructor Phone</span>
-        <input v-model="form.instructor_phone" placeholder="e.g. 012 345 678" class="input" />
+        <span>{{ $t('Instructor Phone') }}</span>
+        <input v-model="form.instructor_phone" :placeholder="$t('e.g. 012 345 678')" class="input" />
       </label>
       <label class="block">
-        <span>Contact Email</span>
-        <input v-model="form.instructor_email" type="email" placeholder="instructor@gmail.com" class="input" />
+        <span>{{ $t('Contact Email') }}</span>
+        <input v-model="form.instructor_email" type="email" :placeholder="$t('instructor@gmail.com')" class="input" />
       </label>
       <label class="block">
-        <span>Specialization</span>
-        <input v-model="form.specialization" placeholder="e.g. Mathematics" class="input" />
+        <span>{{ $t('Specialization') }}</span>
+        <input v-model="form.specialization" :placeholder="$t('e.g. Mathematics')" class="input" />
       </label>
       <label class="block">
-        <span>Employment Type</span>
+        <span>{{ $t('Employment Type') }}</span>
         <select v-model="form.employment_type" class="input">
-          <option value="" disabled>Select type</option>
-          <option value="full_time">Full-time</option>
-          <option value="part_time">Part-time</option>
+          <option value="" disabled>{{ $t('Select type') }}</option>
+          <option value="full_time">{{ $t('Full-time') }}</option>
+          <option value="part_time">{{ $t('Part-time') }}</option>
         </select>
       </label>
       <label class="block">
-        <span>Shift Preference</span>
+        <span>{{ $t('Shift Preference') }}</span>
         <select v-model="form.shift_preference" class="input">
-          <option value="" disabled>Select shift</option>
-          <option value="morning_afternoon">Morning & Afternoon (Mon-Fri)</option>
-          <option value="morning_evening">Morning & Evening (Mon-Fri)</option>
-          <option value="afternoon_evening_11">Afternoon & Evening 11:00-20:30 (Mon-Fri)</option>
-          <option value="afternoon_evening_1230">Afternoon & Evening 12:30-20:30 (Mon-Fri)</option>
+          <option value="" disabled>{{ $t('Select shift') }}</option>
+          <option value="morning_afternoon">{{ $t('Morning & Afternoon (Mon-Fri)') }}</option>
+          <option value="morning_evening">{{ $t('Morning & Evening (Mon-Fri)') }}</option>
+          <option value="afternoon_evening_11">{{ $t('Afternoon & Evening 11:00-20:30 (Mon-Fri)') }}</option>
+          <option value="afternoon_evening_1230">{{ $t('Afternoon & Evening 12:30-20:30 (Mon-Fri)') }}</option>
         </select>
       </label>
       <label class="block">
-        <span>Available For Class</span>
+        <span>{{ $t('Available For Class') }}</span>
         <select v-model="form.available_for_class" class="input">
-          <option value="" disabled>Select</option>
-          <option :value="true">Yes</option>
-          <option :value="false">No</option>
+          <option value="" disabled>{{ $t('Select') }}</option>
+          <option :value="true">{{ $t('Yes') }}</option>
+          <option :value="false">{{ $t('No option') }}</option>
         </select>
       </label>
       <label class="block">
-        <span>Hire Date</span>
-        <input v-model="form.hire_date" type="date" placeholder="YYYY-MM-DD" class="input" />
+        <span>{{ $t('Hire Date') }}</span>
+        <input v-model="form.hire_date" type="date" :placeholder="$t('YYYY-MM-DD')" class="input" />
       </label>
       <label class="block">
-        <span>Instructor Status</span>
+        <span>{{ $t('Instructor Status') }}</span>
         <select v-model="form.instructor_status" class="input">
-          <option value="" disabled>Select status</option>
-          <option :value="true">Active</option>
-          <option :value="false">Inactive</option>
+          <option value="" disabled>{{ $t('Select status') }}</option>
+          <option :value="true">{{ $t('Active') }}</option>
+          <option :value="false">{{ $t('Inactive') }}</option>
         </select>
       </label>
       <label class="block sm:col-span-2">
-        <span>Address</span>
-        <textarea v-model="form.instructor_address" placeholder="Street, city, province" class="input" />
+        <span>{{ $t('Address') }}</span>
+        <textarea v-model="form.instructor_address" :placeholder="$t('Street, city, province')" class="input" />
       </label>
     </template>
 
     <div class="flex justify-end gap-3 sm:col-span-2">
-      <Link href="/dashboard/users" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700">Cancel</Link>
+      <Link href="/dashboard/users" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700">{{ $t('Cancel') }}</Link>
       <button :disabled="form.processing" class="rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white">{{ submitLabel }}</button>
     </div>
   </form>

@@ -14,24 +14,28 @@ export function build(ctx) {
 
   return {
     label: "Building Management",
+    labelKey: "navigation.buildingManagement",
     key,
     match: ["/dashboard/buildings", "/dashboard/floors", "/dashboard/rooms"],
     icon: "building_management",
     children: [
       {
         label: "Buildings",
+        labelKey: "navigation.buildings",
         href: "/dashboard/buildings",
         match: ["/dashboard/buildings"],
         exact: false,
       },
       {
         label: "Floors",
+        labelKey: "navigation.floors",
         href: "/dashboard/floors",
         match: ["/dashboard/floors"],
         exact: false,
       },
       {
         label: "Rooms",
+        labelKey: "navigation.rooms",
         href: "/dashboard/rooms",
         match: ["/dashboard/rooms"],
         exact: false,

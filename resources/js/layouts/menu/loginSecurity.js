@@ -16,6 +16,7 @@ export function build(ctx) {
   if (canManage) {
     children.push({
       label: "Lockout Settings",
+      labelKey: "navigation.lockoutSettings",
       href: "/dashboard/login-security",
       match: ["/dashboard/login-security"],
       exact: true,
@@ -25,6 +26,7 @@ export function build(ctx) {
   if (canUnblock) {
     children.push({
       label: "Blocked Accounts",
+      labelKey: "navigation.blockedAccounts",
       href: "/dashboard/login-security/blocked-accounts",
       match: ["/dashboard/login-security/blocked-accounts"],
       exact: false,
@@ -35,6 +37,7 @@ export function build(ctx) {
   if (children.length === 1) {
     return {
       label: "Login Security",
+      labelKey: "navigation.loginSecurity",
       key,
       href: children[0].href,
       match: children[0].match,
@@ -45,6 +48,7 @@ export function build(ctx) {
 
   return {
     label: "Login Security",
+    labelKey: "navigation.loginSecurity",
     key,
     match: ["/dashboard/login-security"],
     icon: "login_security",

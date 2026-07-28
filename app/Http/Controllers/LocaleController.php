@@ -10,9 +10,13 @@ class LocaleController extends Controller
     public function set(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'locale' => ['required', 'string', 'max:10'],
+            'locale' => ['required', 'string', 'in:en,km'],
         ]);
+
         session(['locale' => $validated['locale']]);
+
+        app()->setLocale($validated['locale']);
+
         return back();
     }
 }

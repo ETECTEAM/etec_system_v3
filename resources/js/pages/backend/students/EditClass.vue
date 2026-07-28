@@ -33,7 +33,6 @@ function back() {
     <div class="w-full">
         <div class="space-y-4 sm:space-y-5">
             <Breadcrumbs :items="breadcrumbItems" />
-            <PageHero/>
             <!-- Header -->
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <div class="flex items-center gap-4">
@@ -42,12 +41,12 @@ function back() {
                     </div>
                     <div>
                         <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-gray-100">
-                            Create New Class
+                            {{ $t('Create New Class') }}
                         </h1>
                     </div>
                 </div>
                 <button @click="back" class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500">
-                    <ArrowLeft class="w-4 h-4"/> Back
+                    <ArrowLeft class="w-4 h-4"/> {{ $t('Back') }}
                 </button>
             </div>
 
@@ -59,34 +58,34 @@ function back() {
                     <!-- Title -->
                     <div>
                         <label class="font-semibold mb-2 block">
-                            Class Title
+                            {{ $t('Class Title') }}
                         </label>
                         <input
                             v-model="form.title"
                             class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                            placeholder="Web Design + React.js"/>
+                            :placeholder="$t('Web Design + React.js')"/>
                     </div>
 
                     <!-- Lesson -->
 
                     <!-- <div>
                         <label class="font-semibold mb-2 block">
-                            Lesson
+                            {{ $t('Lesson') }}
                         </label>
                         <input
                             v-model="form.lesson"
                             class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                            placeholder="Bootstrap"/>
+                            :placeholder="$t('Bootstrap')"/>
                     </div> -->
 
                     <!-- Status -->
                     <div>
                         <label class="font-semibold mb-2 block">
-                            Status
+                            {{ $t('Status') }}
                         </label>
                         <select v-model="form.status" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
                             <option value="">
-                                Select Status
+                                {{ $t('Select Status') }}
                             </option>
                             <option>
                                 Physical Class
@@ -101,7 +100,7 @@ function back() {
 
                     <div>
                         <label class="font-semibold mb-2 block">
-                            Building
+                            {{ $t('Building') }}
                         </label>
 
                         <select v-model="form.building" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
@@ -120,7 +119,7 @@ function back() {
                     <!-- Floor -->
                     <div>
                         <label class="font-semibold mb-2 block">
-                            Floor
+                            {{ $t('Floor') }}
                         </label>
                         <select v-model="form.floor" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
                             <option>
@@ -138,47 +137,47 @@ function back() {
                     <!-- Room -->
                     <div>
                         <label class="font-semibold mb-2 block">
-                            Room
+                            {{ $t('Room') }}
                         </label>
-                        <input v-model="form.room" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" placeholder="B101"/>
+                        <input v-model="form.room" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" :placeholder="$t('B101')"/>
                     </div>
 
                     <!-- Term -->
                     <div>
                         <label class="font-semibold mb-2 block">
-                            Study Days
+                            {{ $t('Study Days') }}
                         </label>
-                        <input  v-model="form.term" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" placeholder="Mon & Thu"/>
+                        <input  v-model="form.term" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" :placeholder="$t('Mon & Thu')"/>
                     </div>
 
                     <!-- Time -->
                     <div>
                         <label class="font-semibold mb-2 block">
-                            Study Time
+                            {{ $t('Study Time') }}
                         </label>
-                        <input v-model="form.time" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" placeholder="09:00 AM - 10:30 AM"/>
+                        <input v-model="form.time" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" :placeholder="$t('09:00 AM - 10:30 AM')"/>
                     </div>
 
                     <!-- Capacity -->
                     <div>
                         <label class="font-semibold mb-2 block">
-                            Capacity
+                            {{ $t('Capacity') }}
                         </label>
                         <input type="number" min="1" v-model="form.capacity" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"/>
                     </div>
 
                     <div>
-                        <label class="font-semibold mb-2 block">Price</label>
+                        <label class="font-semibold mb-2 block">{{ $t('Price') }}</label>
                         <input type="number" min="1" v-model="form.price" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"/>
                     </div>
 
                     <div>
-                        <label class="font-semibold mb-2 block">Start EnRoll</label>
+                        <label class="font-semibold mb-2 block">{{ $t('Start EnRoll') }}</label>
                         <input type="date" min="1" v-model="form.startEnroll" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"/>
                     </div>
 
                     <div>
-                        <label class="font-semibold mb-2 block">Start Date</label>
+                        <label class="font-semibold mb-2 block">{{ $t('Start Date') }}</label>
                         <input type="date" min="1" v-model="form.startDate" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"/>
                     </div>
                 </div>
@@ -190,7 +189,7 @@ function back() {
                         @click="back"
                         class="inline-flex items-center justify-center gap-2 rounded-xl  bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700">
 
-                        Cancel
+                        {{ $t('Cancel') }}
 
                     </button>
 
@@ -208,7 +207,7 @@ function back() {
 
             </div>
           <button @click="back" class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500">
-            <ArrowLeft class="w-4 h-4" /> Back
+            <ArrowLeft class="w-4 h-4" /> {{ $t('Back') }}
           </button>
         </div>
 

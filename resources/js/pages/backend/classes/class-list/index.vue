@@ -7,6 +7,9 @@ import { PageHero } from '@/components/ui/page-hero';
 import { Card } from '@/components/ui/card';
 import { ActionMenu } from '@/components/ui/menu';
 import { Pagination } from '@/components/ui/pagination';
+import { useI18n } from '@/i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   classLists: Object,
@@ -26,17 +29,14 @@ const searchTimer = ref(null);
 const filteredData = computed(() => props.classLists?.data || []);
 
 const classTypeOptions = computed(() => [
-  'all',
   ...props.classTypes.map((item) => item.type_name),
 ]);
 
 const termOptions = computed(() => [
-  'all',
   ...props.terms.map((item) => item.term_name),
 ]);
 
 const timeOptions = computed(() => [
-  'all',
   ...props.times.map((item) => item.time_name),
 ]);
 
@@ -78,14 +78,14 @@ const breadcrumbItems = [
 ];
 
 const deleteItem = (item) => {
-  if (!confirm('Are you sure you want to delete this class?')) {
+  if (!confirm(t('Are you sure you want to delete this class?'))) {
     return;
   }
 
   router.delete(`/dashboard/class-list/${item.id ?? item.class_list_id}`, {
     preserveScroll: true,
     onError: () => {
-      alert('Unable to delete this class list entry.');
+      alert(t('Unable to delete this class list entry.'));
     },
   });
 };
@@ -120,7 +120,7 @@ const handlePageChange = (page) => {
 </script>
 
 <template>
-  <Head title="Class List" />
+  <Head :title="$t('Class List')" />
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
@@ -128,13 +128,13 @@ const handlePageChange = (page) => {
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <PageHero
           eyebrow="Management"
-          title="Class List"
-          description="Manage your scheduled classes, instructors, rooms, and time slots."
+          :title="$t('Class List')"
+          :description="$t('Manage your scheduled classes, instructors, rooms, and time slots.')"
         />
 
         <div class="flex flex-col items-start gap-3 sm:items-end">
           <div class="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-800 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-200">
-            Total Class: {{ totalCount }}
+            {{ $t('Total Class') }}: {{ totalCount }}
           </div>
           <!-- <Link
             href="/dashboard/class-list/create"
@@ -153,7 +153,7 @@ const handlePageChange = (page) => {
               @input="debounceSearch"
               @keyup.enter.prevent="applyFilters"
               type="search"
-              placeholder="Search by class, instructor, or time"
+              :placeholder="$t('Search by class, instructor, or time')"
               class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             />
           </div>
@@ -163,8 +163,8 @@ const handlePageChange = (page) => {
             @change="applyFilters"
             class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
           >
-            <option value="all">Type</option>
-            <option v-for="type in classTypeOptions" :key="type" :value="type">{{ type }}</option>
+            <option value="all">{{ $t('Type') }}</option>
+            <option v-for="type in classTypeOptions" :key="type" :value="type">{{ $t(type) }}</option>
           </select>
 
           <select
@@ -172,8 +172,8 @@ const handlePageChange = (page) => {
             @change="applyFilters"
             class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
           >
-            <option value="all">Term</option>
-            <option v-for="term in termOptions" :key="term" :value="term">{{ term }}</option>
+            <option value="all">{{ $t('Term') }}</option>
+            <option v-for="term in termOptions" :key="term" :value="term">{{ $t(term) }}</option>
           </select>
 
           <select
@@ -181,8 +181,8 @@ const handlePageChange = (page) => {
             @change="applyFilters"
             class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
           >
-            <option value="all">Time</option>
-            <option v-for="time in timeOptions" :key="time" :value="time">{{ time }}</option>
+            <option value="all">{{ $t('Time') }}</option>
+            <option v-for="time in timeOptions" :key="time" :value="time">{{ $t(time) }}</option>
           </select>
 
           <select
@@ -190,10 +190,10 @@ const handlePageChange = (page) => {
             @change="applyFilters"
             class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
           >
-            <option value="all">Status</option>
-            <option value="progress">progress</option>
-            <option value="completed">completed</option>
-            <option value="cancelled">cancelled</option>
+            <option value="all">{{ $t('Status') }}</option>
+            <option value="progress">{{ $t('progress') }}</option>
+            <option value="completed">{{ $t('completed') }}</option>
+            <option value="cancelled">{{ $t('cancelled') }}</option>
           </select>
         </div>
       </Card>
@@ -204,14 +204,14 @@ const handlePageChange = (page) => {
             <thead class="bg-slate-100 text-slate-700 uppercase text-xs tracking-wider dark:bg-gray-800 dark:text-gray-300">
               <tr>
                 <th class="px-4 py-4">#</th>
-                <th class="px-4 py-4">Class ID</th>
-                <th class="px-4 py-4">Teacher</th>
-                <th class="px-4 py-4">Course / Lesson</th>
-                <th class="px-4 py-4">Term & Time</th>
-                <th class="px-4 py-4">Building Floor & Room</th>
-                <th class="px-4 py-4">Students</th>
-                <th class="px-4 py-4">Status</th>
-                <th class="px-4 py-4 text-right">Actions</th>
+                <th class="px-4 py-4">{{ $t('Class ID') }}</th>
+                <th class="px-4 py-4">{{ $t('Teacher') }}</th>
+                <th class="px-4 py-4">{{ $t('Course / Lesson') }}</th>
+                <th class="px-4 py-4">{{ $t('Term & Time') }}</th>
+                <th class="px-4 py-4">{{ $t('Building Floor & Room') }}</th>
+                <th class="px-4 py-4">{{ $t('Students') }}</th>
+                <th class="px-4 py-4">{{ $t('Status') }}</th>
+                <th class="px-4 py-4 text-right">{{ $t('Actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -223,21 +223,21 @@ const handlePageChange = (page) => {
                 <td class="px-4 py-4">
                   <div class="flex items-center gap-2">
                     <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">👤</span>
-                    <span class="font-medium text-slate-900 dark:text-gray-100">{{ item.teacher?.name || item.teacher?.teacher_name || 'No teacher' }}</span>
+                    <span class="font-medium text-slate-900 dark:text-gray-100">{{ item.teacher?.name || item.teacher?.teacher_name || $t('No teacher') }}</span>
                   </div>
                 </td>
                 <td class="px-4 py-4">
-                  <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.course?.title || 'No course' }}</div>
-                  <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">Lesson: <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700 dark:bg-gray-800 dark:text-gray-300">{{ item.lesson?.title || 'No lesson' }}</span></div>
-                  <div class="mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">Type: {{ item.class_type?.type_name || 'Unknown' }}</div>
+                  <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.course?.title || $t('No course') }}</div>
+                  <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ $t('Lesson:') }} <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700 dark:bg-gray-800 dark:text-gray-300">{{ item.lesson?.title || $t('No lesson') }}</span></div>
+                  <div class="mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">{{ $t('Type') }}: {{ item.class_type?.type_name || $t('Unknown') }}</div>
                 </td>
                 <td class="px-4 py-4">
-                  <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.term?.term_name || 'No term' }}</div>
-                  <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.time?.time_name || 'No time' }}</div>
+                  <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.term?.term_name || $t('No term') }}</div>
+                  <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.time?.time_name || $t('No time') }}</div>
                 </td>
                 <td class="px-4 py-4">
-                  <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.building?.name || 'No building' }}</div>
-                  <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.floor?.name || 'No floor' }} · {{ item.room?.room_number || 'No room' }}</div>
+                  <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.building?.name || $t('No building') }}</div>
+                  <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.floor?.name || $t('No floor') }} · {{ item.room?.room_number || $t('No room') }}</div>
                 </td>
                 <td class="px-4 py-4 font-semibold text-slate-900 dark:text-gray-100">{{ item.student_count ?? 0 }}</td>
                 <td class="px-4 py-4">
@@ -247,7 +247,7 @@ const handlePageChange = (page) => {
                     item.status === 'progress' ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : '',
                     item.status === 'cancelled' ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400' : '',
                   ]">
-                    {{ item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Unknown' }}
+                    {{ item.status ? $t(item.status.charAt(0).toUpperCase() + item.status.slice(1)) : $t('Unknown') }}
                   </span>
                 </td>
                 <td class="px-4 py-4 text-right">
@@ -263,7 +263,7 @@ const handlePageChange = (page) => {
               </tr>
 
               <tr v-if="filteredData.length === 0">
-                <td colspan="9" class="px-4 py-12 text-center text-slate-500 dark:text-gray-400">No classes found.</td>
+                <td colspan="9" class="px-4 py-12 text-center text-slate-500 dark:text-gray-400">{{ $t('No classes found.') }}</td>
               </tr>
             </tbody>
           </table>
@@ -271,7 +271,7 @@ const handlePageChange = (page) => {
 
         <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
           <p class="text-sm text-slate-500 dark:text-gray-400">
-            Showing {{ classLists.from ?? 0 }}–{{ classLists.to ?? 0 }} of {{ classLists.total ?? 0 }} entries
+            {{ $t('Showing :from-:to of :total entries', { from: classLists.from ?? 0, to: classLists.to ?? 0, total: classLists.total ?? 0 }) }}
           </p>
 
           <Pagination

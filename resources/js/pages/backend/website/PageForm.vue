@@ -128,23 +128,23 @@ function submit() {
       <Breadcrumbs :items="breadcrumbs" />
       <PageHero
         eyebrow="Website Management"
-        :title="isEditing ? 'Edit Page' : 'Create Page'"
-        description="Manage page routing, status, and the hero section shown on the public website."
+        :title="isEditing ? $t('Edit Page') : $t('Create Page')"
+        :description="$t('Manage page routing, status, and the hero section shown on the public website.')"
       />
 
       <form class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]" @submit.prevent="submit">
         <div class="space-y-6">
           <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-lg font-bold text-slate-900 dark:text-gray-100">Page Details</h2>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-gray-100">{{ $t('Page Details') }}</h2>
             <div class="mt-5 space-y-5">
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Page Title</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Page Title') }}</label>
                 <input v-model="form.title" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
                 <p v-if="form.errors.title" class="mt-1 text-sm text-rose-600">{{ form.errors.title }}</p>
               </div>
 
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Page Slug</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Page Slug') }}</label>
                 <div class="flex rounded-xl border border-slate-300 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100 dark:border-gray-700 dark:focus-within:ring-blue-500/20">
                   <span class="border-r border-slate-200 px-4 py-3 text-sm text-slate-500 dark:border-gray-700 dark:text-gray-400">/</span>
                   <input v-model="form.slug" type="text" class="min-w-0 flex-1 rounded-r-xl border-0 px-4 py-3 text-sm outline-none dark:bg-gray-800 dark:text-gray-100" @blur="form.slug = slugify(form.slug)" />
@@ -154,8 +154,8 @@ function submit() {
 
               <label class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50">
                 <span>
-                  <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">Active Page</span>
-                  <span class="block text-xs text-slate-500 dark:text-gray-400">Inactive pages are not publicly accessible.</span>
+                  <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ $t('Active Page') }}</span>
+                  <span class="block text-xs text-slate-500 dark:text-gray-400">{{ $t('Inactive pages are not publicly accessible.') }}</span>
                 </span>
                 <input v-model="form.is_active" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
               </label>
@@ -164,102 +164,102 @@ function submit() {
 
           <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <div class="flex items-center justify-between gap-4">
-              <h2 class="text-lg font-bold text-slate-900 dark:text-gray-100">Hero Section</h2>
+              <h2 class="text-lg font-bold text-slate-900 dark:text-gray-100">{{ $t('Hero Section') }}</h2>
               <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-gray-300">
                 <input v-model="form.hero_is_active" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                Enable Hero
+                {{ $t('Enable Hero') }}
               </label>
             </div>
 
             <div v-if="form.hero_is_active" class="mt-5 grid gap-5 md:grid-cols-2">
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Hero Title</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Hero Title') }}</label>
                 <input v-model="form.hero_title" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Hero Subtitle</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Hero Subtitle') }}</label>
                 <input v-model="form.hero_subtitle" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
               </div>
               <div class="md:col-span-2">
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Hero Description</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Hero Description') }}</label>
                 <textarea v-model="form.hero_description" rows="3" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
               </div>
               <div class="md:col-span-2">
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Hero Background Image</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Hero Background Image') }}</label>
                 <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-blue-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200" @change="chooseHeroImage" />
-                <button v-if="imagePreview" type="button" class="mt-2 text-sm font-semibold text-rose-600 hover:text-rose-700" @click="removeHeroImage">Remove current hero image</button>
+                <button v-if="imagePreview" type="button" class="mt-2 text-sm font-semibold text-rose-600 hover:text-rose-700" @click="removeHeroImage">{{ $t('Remove current hero image') }}</button>
                 <p v-if="form.errors.hero_background_image" class="mt-1 text-sm text-rose-600">{{ form.errors.hero_background_image }}</p>
               </div>
               <div class="md:col-span-2">
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Hero Slider Images</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Hero Slider Images') }}</label>
                 <input type="file" multiple accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" :disabled="remainingSliderSlots === 0" class="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-blue-700 disabled:bg-slate-50 disabled:text-slate-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:disabled:bg-gray-800/50" @change="chooseSliderImages" />
-                <p class="mt-1 text-xs font-semibold text-slate-500 dark:text-gray-400">{{ sliderImageCount }}/{{ maxSliderImages }} slider images used</p>
+                <p class="mt-1 text-xs font-semibold text-slate-500 dark:text-gray-400">{{ $t(':count/:max slider images used', { count: sliderImageCount, max: maxSliderImages }) }}</p>
                 <p v-if="form.errors.hero_slider_images" class="mt-1 text-sm text-rose-600">{{ form.errors.hero_slider_images }}</p>
 
                 <div v-if="existingSliderImages.length || sliderImagePreviews.length" class="mt-4 grid gap-3 sm:grid-cols-2">
                   <div v-for="image in existingSliderImages" :key="image.id" class="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-gray-700 dark:bg-gray-800">
-                    <img :src="image.image_url" alt="Hero slide" class="aspect-video w-full object-cover" />
+                    <img :src="image.image_url" :alt="$t('Hero slide')" class="aspect-video w-full object-cover" />
                     <div class="flex items-center justify-between gap-3 p-3">
                       <button type="button" class="rounded-lg px-3 py-1.5 text-xs font-bold" :class="form.hero_image_states[image.id] ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600 dark:bg-gray-700 dark:text-gray-300'" @click="toggleSliderImage(image)">
-                        {{ form.hero_image_states[image.id] ? "Active" : "Inactive" }}
+                        {{ form.hero_image_states[image.id] ? $t('Active') : $t('Inactive') }}
                       </button>
-                      <button type="button" class="text-xs font-bold text-rose-600 hover:text-rose-700" @click="removeSliderImage(image)">Remove</button>
+                      <button type="button" class="text-xs font-bold text-rose-600 hover:text-rose-700" @click="removeSliderImage(image)">{{ $t('Remove') }}</button>
                     </div>
                   </div>
 
                   <div v-for="(url, index) in sliderImagePreviews" :key="url" class="overflow-hidden rounded-xl border border-blue-200 bg-blue-50 dark:border-blue-500/20 dark:bg-blue-500/10">
-                    <img :src="url" alt="New hero slide" class="aspect-video w-full object-cover" />
-                    <p class="p-3 text-xs font-bold text-blue-700 dark:text-blue-300">New slide {{ index + 1 }} - Active after save</p>
+                    <img :src="url" :alt="$t('New hero slide')" class="aspect-video w-full object-cover" />
+                    <p class="p-3 text-xs font-bold text-blue-700 dark:text-blue-300">{{ $t('New slide :number - Active after save', { number: index + 1 }) }}</p>
                   </div>
                 </div>
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Primary Button Text</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Primary Button Text') }}</label>
                 <input v-model="form.primary_button_text" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
                 <p v-if="form.errors.primary_button_text" class="mt-1 text-sm text-rose-600">{{ form.errors.primary_button_text }}</p>
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Primary Button URL</label>
-                <input v-model="form.primary_button_url" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" placeholder="/courses" />
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Primary Button URL') }}</label>
+                <input v-model="form.primary_button_url" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" :placeholder="$t('/courses')" />
                 <p v-if="form.errors.primary_button_url" class="mt-1 text-sm text-rose-600">{{ form.errors.primary_button_url }}</p>
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Secondary Button Text</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Secondary Button Text') }}</label>
                 <input v-model="form.secondary_button_text" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
                 <p v-if="form.errors.secondary_button_text" class="mt-1 text-sm text-rose-600">{{ form.errors.secondary_button_text }}</p>
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Secondary Button URL</label>
-                <input v-model="form.secondary_button_url" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" placeholder="/contact-us" />
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Secondary Button URL') }}</label>
+                <input v-model="form.secondary_button_url" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" :placeholder="$t('/contact-us')" />
                 <p v-if="form.errors.secondary_button_url" class="mt-1 text-sm text-rose-600">{{ form.errors.secondary_button_url }}</p>
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Overlay Opacity: {{ form.overlay_opacity }}%</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Overlay Opacity') }}: {{ form.overlay_opacity }}%</label>
                 <input v-model="form.overlay_opacity" type="range" min="0" max="100" class="w-full accent-blue-600" />
                 <p v-if="form.errors.overlay_opacity" class="mt-1 text-sm text-rose-600">{{ form.errors.overlay_opacity }}</p>
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Text Alignment</label>
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Text Alignment') }}</label>
                 <select v-model="form.text_alignment" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
-                  <option value="left">Left</option>
-                  <option value="center">Center</option>
-                  <option value="right">Right</option>
+                  <option value="left">{{ $t('Left') }}</option>
+                  <option value="center">{{ $t('Center') }}</option>
+                  <option value="right">{{ $t('Right') }}</option>
                 </select>
               </div>
             </div>
           </div>
 
           <div class="flex flex-wrap justify-end gap-3">
-            <Link href="/dashboard/website/pages" class="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-200">Cancel</Link>
+            <Link href="/dashboard/website/pages" class="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-200">{{ $t('Cancel') }}</Link>
             <button type="submit" :disabled="form.processing" class="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50">
-              {{ form.processing ? "Saving..." : isEditing ? "Update Page" : "Create Page" }}
+              {{ form.processing ? $t("Saving...") : isEditing ? $t("Update Page") : $t("Create Page") }}
             </button>
           </div>
         </div>
 
         <aside class="space-y-4">
           <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <p class="mb-3 text-sm font-bold text-slate-900 dark:text-gray-100">Hero Preview</p>
+            <p class="mb-3 text-sm font-bold text-slate-900 dark:text-gray-100">{{ $t('Hero Preview') }}</p>
             <div
               class="relative min-h-80 overflow-hidden rounded-xl bg-blue-700 bg-cover bg-center"
               :style="imagePreview ? { backgroundImage: `url(${imagePreview})` } : {}"
@@ -274,7 +274,7 @@ function submit() {
                 }"
               >
                 <p v-if="form.hero_subtitle" class="mb-2 text-xs font-semibold uppercase tracking-widest text-blue-100">{{ form.hero_subtitle }}</p>
-                <h3 class="max-w-sm text-3xl font-bold">{{ form.hero_title || form.title || "Hero Title" }}</h3>
+                <h3 class="max-w-sm text-3xl font-bold">{{ form.hero_title || form.title || $t('Hero Title') }}</h3>
                 <p v-if="form.hero_description" class="mt-3 max-w-sm text-sm text-blue-50">{{ form.hero_description }}</p>
                 <div class="mt-5 flex flex-wrap gap-2" :class="{ 'justify-end': form.text_alignment === 'right', 'justify-center': form.text_alignment === 'center' }">
                   <span v-if="form.primary_button_text && form.primary_button_url" class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-blue-700">{{ form.primary_button_text }}</span>

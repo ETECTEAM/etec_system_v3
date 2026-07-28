@@ -25,7 +25,7 @@ const formatDate = (dateStr) => {
 </script>
 
 <template>
-  <Head title="View Class Type" />
+  <Head :title="$t('View Class Type')" />
 
   <DashboardLayout>
     <section class="space-y-6">
@@ -33,7 +33,7 @@ const formatDate = (dateStr) => {
       
       <PageHero
         eyebrow="Class Management"
-        title="View Class Type"
+        :title="$t('View Class Type')"
         description="Review class type definitions and linked categories."
       />
 
@@ -42,18 +42,18 @@ const formatDate = (dateStr) => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div class="space-y-5">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">Type Name</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">{{ $t('Type Name') }}</p>
               <p class="mt-2 text-base font-semibold text-slate-900 dark:text-gray-100">{{ classType?.type_name }}</p>
             </div>
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">Description</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">{{ $t('Description') }}</p>
               <p class="mt-2 text-sm text-slate-600 bg-slate-50 p-4 rounded-lg dark:text-gray-300 dark:bg-gray-800">{{ classType?.description || 'No description provided.' }}</p>
             </div>
           </div>
 
           <div class="space-y-5">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">Status</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-gray-400">{{ $t('Status') }}</p>
               <div class="mt-2">
                 <span :class="classType?.is_active ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300'"
                       class="inline-flex rounded-full px-3 py-1 text-xs font-bold">
@@ -63,11 +63,11 @@ const formatDate = (dateStr) => {
             </div>
             <div class="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p class="font-semibold text-slate-400 dark:text-gray-500">Created At</p>
+                <p class="font-semibold text-slate-400 dark:text-gray-500">{{ $t('Created At') }}</p>
                 <p class="text-slate-700 dark:text-gray-300">{{ formatDate(classType?.created_at) }}</p>
               </div>
               <div>
-                <p class="font-semibold text-slate-400 dark:text-gray-500">Updated At</p>
+                <p class="font-semibold text-slate-400 dark:text-gray-500">{{ $t('Updated At') }}</p>
                 <p class="text-slate-700 dark:text-gray-300">{{ formatDate(classType?.updated_at) }}</p>
               </div>
             </div>
@@ -76,7 +76,7 @@ const formatDate = (dateStr) => {
         <div class="flex gap-3 pt-4 border-t border-slate-100 dark:border-gray-800">
           <Link href="/dashboard/class-types"
                 class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800">
-              Back to List
+              {{ $t('Back to List') }}
           </Link>
 
           <Link :href="`/dashboard/class-types/${classType.class_type_id}/edit`"

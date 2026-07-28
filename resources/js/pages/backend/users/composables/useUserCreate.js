@@ -2,15 +2,12 @@ import { computed, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { formatRole } from '../../../../lib/roleBadge'
 import { useSaveForm } from '../../../../composables/useSaveForm'
-
-const STATUS_OPTIONS = [
-  { label: 'Active', value: 'active' },
-  { label: 'Inactive', value: 'inactive' },
-]
+import { useI18n } from '../../../../i18n'
 
 // Owns the create-user form, role/status options, and the name-lock rule tied to instructor/student roles.
 export function useUserCreate() {
   const page = usePage()
+  const { t } = useI18n()
 
   // Roles the current admin is allowed to assign, provided by the backend based on their access level.
   const roleOptions = page.props.roleOptions ?? []
@@ -30,7 +27,10 @@ export function useUserCreate() {
     value: role,
   })))
 
-  const statusSelectOptions = STATUS_OPTIONS
+  const statusSelectOptions = computed(() => [
+    { label: t('Active'), value: 'active' },
+    { label: t('Inactive'), value: 'inactive' },
+  ])
 
   // Instructors and students set their own name on first login, so admins can't set it here.
   const nameLocked = computed(() => form.role === 'instructor' || form.role === 'student')

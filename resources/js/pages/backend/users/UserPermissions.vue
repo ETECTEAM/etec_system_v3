@@ -77,7 +77,7 @@ function changeMatrixPage(page) {
 </script>
 
 <template>
-  <Head title="User & Permission" />
+  <Head :title="$t('User & Permission')" />
 
   <DashboardLayout>
     <section class="space-y-6">
@@ -85,29 +85,29 @@ function changeMatrixPage(page) {
 
       <!-- Top summary: title on the left, compact quick stats on the right. -->
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <PageHero eyebrow="User Management" title="User & Permission" description="Give selected users extra permissions without changing their role." />
+        <PageHero eyebrow="User Management" :title="$t('User & Permission')" :description="$t('Give selected users extra permissions without changing their role.')" />
 
         <!-- Summary tiles: derived from users/permissions props and the current selection, not fetched separately -->
         <div class="grid grid-cols-4 gap-3">
           <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">Total Users</p>
+            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">{{ $t('Total Users') }}</p>
             <p class="mt-1 text-xl font-bold text-slate-900 dark:text-gray-100">{{ totalUsers }}</p>
-            <p class="mt-0.5 text-[11px] text-emerald-600 dark:text-emerald-400">Available for assignment</p>
+            <p class="mt-0.5 text-[11px] text-emerald-600 dark:text-emerald-400">{{ $t('Available for assignment') }}</p>
           </div>
           <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">Direct Users</p>
+            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">{{ $t('Direct Users') }}</p>
             <p class="mt-1 text-xl font-bold text-slate-900 dark:text-gray-100">{{ directPermissionUsers }}</p>
-            <p class="mt-0.5 text-[11px] text-blue-700 dark:text-blue-400">Have custom permissions</p>
+            <p class="mt-0.5 text-[11px] text-blue-700 dark:text-blue-400">{{ $t('Have custom permissions') }}</p>
           </div>
           <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">Direct Selected</p>
+            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">{{ $t('Direct Selected') }}</p>
             <p class="mt-1 text-xl font-bold text-slate-900 dark:text-gray-100">{{ selectedDirectCount }}</p>
-            <p class="mt-0.5 text-[11px] text-slate-500 dark:text-gray-400">User-specific access</p>
+            <p class="mt-0.5 text-[11px] text-slate-500 dark:text-gray-400">{{ $t('User-specific access') }}</p>
           </div>
           <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">Total Selected</p>
+            <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-gray-400">{{ $t('Total Selected') }}</p>
             <p class="mt-1 text-xl font-bold text-slate-900 dark:text-gray-100">{{ selectedTotalCount }}</p>
-            <p class="mt-0.5 text-[11px] text-slate-500 dark:text-gray-400">Role plus direct access</p>
+            <p class="mt-0.5 text-[11px] text-slate-500 dark:text-gray-400">{{ $t('Role plus direct access') }}</p>
           </div>
         </div>
       </div>

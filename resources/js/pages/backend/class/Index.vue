@@ -38,12 +38,12 @@ const filteredClasses = computed(() => {
 </script>
 
 <template>
-  <Head title="Manage Classes" />
+  <Head :title="$t('Manage Classes')" />
   <div class="p-8">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Class Management</h1>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ $t('Class Management') }}</h1>
         <div class="space-x-4">
-            <Link href="/dashboard/admin/registrations" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition shadow-sm font-medium dark:bg-gray-700 dark:hover:bg-gray-600">Manage Registrations</Link>
+            <Link href="/dashboard/admin/registrations" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition shadow-sm font-medium dark:bg-gray-700 dark:hover:bg-gray-600">{{ $t('Manage Registrations') }}</Link>
         </div>
     </div>
 
@@ -58,19 +58,19 @@ const filteredClasses = computed(() => {
           <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-600 sticky top-6 dark:bg-gray-900">
               <h2 class="text-lg font-bold mb-5 flex items-center text-gray-800 dark:text-gray-100">
                 <svg class="w-5 h-5 mr-2 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                Create New Class
+                {{ $t('Create New Class') }}
               </h2>
 
               <form @submit.prevent="submit" class="space-y-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-200">Course / Class Name *</label>
-                  <input v-model="form.class_name" type="text" class="block w-full rounded-md border-gray-300 shadow-sm border p-2.5 focus:ring-indigo-500 focus:border-indigo-500 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" required placeholder="e.g. Graphic Design - Batch 10">
+                  <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-200">{{ $t('Course / Class Name *') }}</label>
+                  <input v-model="form.class_name" type="text" class="block w-full rounded-md border-gray-300 shadow-sm border p-2.5 focus:ring-indigo-500 focus:border-indigo-500 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" required :placeholder="$t('e.g. Graphic Design - Batch 10')">
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-200">Select Time Slot *</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-200">{{ $t('Select Time Slot *') }}</label>
                   <select v-model="form.time_id" class="block w-full rounded-md border-gray-300 shadow-sm border p-2.5 focus:ring-indigo-500 focus:border-indigo-500 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" required>
-                    <option value="" disabled>Choose a time...</option>
+                    <option value="" disabled>{{ $t('Choose a time...') }}</option>
                     <option v-for="time in times" :key="time.id" :value="time.id">
                       {{ time.time_name }} ({{ time.term?.term_name }})
                     </option>
@@ -78,8 +78,8 @@ const filteredClasses = computed(() => {
                 </div>
 
                 <div>
-                   <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-200">Capacity (Max Students) *</label>
-                   <input v-model="form.capacity" type="number" min="1" class="block w-full rounded-md border-gray-300 shadow-sm border p-2.5 focus:ring-indigo-500 focus:border-indigo-500 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" required placeholder="Ex: 30">
+                   <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-200">{{ $t('Capacity (Max Students) *') }}</label>
+                   <input v-model="form.capacity" type="number" min="1" class="block w-full rounded-md border-gray-300 shadow-sm border p-2.5 focus:ring-indigo-500 focus:border-indigo-500 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" required :placeholder="$t('Ex: 30')">
                 </div>
 
                 <div class="pt-2">
@@ -88,7 +88,7 @@ const filteredClasses = computed(() => {
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    {{ form.processing ? 'Saving...' : 'Complete Setup' }}
+                    {{ form.processing ? $t('Saving...') : $t('Complete Setup') }}
                   </button>
                 </div>
               </form>
@@ -109,7 +109,7 @@ const filteredClasses = computed(() => {
                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                  <svg class="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                </div>
-               <input v-model="searchQuery" type="text" placeholder="Search by name or time..." class="w-full pl-9 border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 border bg-white dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20">
+               <input v-model="searchQuery" type="text" :placeholder="$t('Search by name or time...')" class="w-full pl-9 border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 border bg-white dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20">
             </div>
           </div>
 
@@ -117,10 +117,10 @@ const filteredClasses = computed(() => {
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
               <thead class="bg-gray-50 sticky top-0 z-10 shadow-sm dark:bg-gray-800">
                 <tr>
-                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">Course Info</th>
-                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">Schedule</th>
-                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">Enrollment Stats</th>
-                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">Created At</th>
+                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">{{ $t('Course Info') }}</th>
+                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">{{ $t('Schedule') }}</th>
+                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">{{ $t('Enrollment Stats') }}</th>
+                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">{{ $t('Created At') }}</th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-800">
@@ -174,7 +174,7 @@ const filteredClasses = computed(() => {
                     <svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>
-                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No classes found</h3>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $t('No classes found') }}</h3>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                       {{ searchQuery ? 'Try adjusting your search query.' : 'Get started by creating a new class.' }}
                     </p>

@@ -1,5 +1,8 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   modelValue: {
@@ -46,13 +49,13 @@ const filteredOptions = computed(() => {
     return props.options
   }
 
-  return props.options.filter((option) => option.label.toLowerCase().includes(keyword))
+  return props.options.filter((option) => t(option.label).toLowerCase().includes(keyword))
 })
 
 const selectedLabel = computed(() => {
   const found = props.options.find((option) => option.value === props.modelValue)
 
-  return found ? found.label : null
+  return found ? t(found.label) : null
 })
 
 async function toggleDropdown() {
@@ -122,7 +125,7 @@ onBeforeUnmount(() => {
       @click="toggleDropdown"
     >
       <span :class="selectedLabel ? 'text-slate-700 dark:text-gray-200' : 'text-slate-400 dark:text-gray-500'">
-        {{ selectedLabel || placeholder }}
+        {{ selectedLabel || t(placeholder) }}
       </span>
       <span class="text-slate-500 transition-transform duration-200 dark:text-gray-400" :class="open ? 'rotate-180' : ''">▾</span>
     </button>
@@ -136,7 +139,7 @@ onBeforeUnmount(() => {
           ref="searchInput"
           v-model="search"
           type="text"
-          :placeholder="searchPlaceholder"
+          :placeholder="t(searchPlaceholder)"
           class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
         >
       </div>
@@ -148,7 +151,7 @@ onBeforeUnmount(() => {
           class="block w-full px-4 py-2 text-left text-sm text-slate-500 transition hover:bg-slate-50 dark:text-gray-400 dark:hover:bg-gray-700"
           @click="clearSelection"
         >
-          Clear selection
+          {{ t('Clear selection') }}
         </button>
 
         <button
@@ -158,12 +161,12 @@ onBeforeUnmount(() => {
           class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
           @click="selectOption(option)"
         >
-          <span>{{ option.label }}</span>
+          <span>{{ t(option.label) }}</span>
           <span v-if="option.value === modelValue" class="text-blue-600 dark:text-blue-400">✓</span>
         </button>
 
         <div v-if="filteredOptions.length === 0" class="px-4 py-3 text-sm text-slate-400 dark:text-gray-500">
-          {{ emptyText }}
+          {{ t(emptyText) }}
         </div>
       </div>
     </div>

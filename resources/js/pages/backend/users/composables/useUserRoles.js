@@ -4,6 +4,7 @@ import { useToast } from 'vue-toastification'
 import { formatRole } from '../../../../lib/roleBadge'
 import { useConfirm } from '../../../../composables/useConfirm'
 import { useSaveForm } from '../../../../composables/useSaveForm'
+import { useI18n } from '../../../../i18n'
 
 const PREFERRED_ACTIONS = ['view', 'create', 'update', 'delete', 'manage', 'approve', 'export', 'track']
 const MATRIX_PER_PAGE = 10
@@ -28,6 +29,7 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
   const page = usePage()
   const toast = useToast()
   const { confirm } = useConfirm()
+  const { t } = useI18n()
 
   watch(() => page.props.flash, (flash) => {
     if (flash?.success) {
@@ -106,9 +108,9 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
     }
 
     const confirmed = await confirm({
-      title: 'Delete this role?',
-      message: `Delete the "${formatRole(role.name)}" role? This cannot be undone.`,
-      confirmText: 'Delete',
+      title: t('Delete this role?'),
+      message: t('Delete the ":role" role? This cannot be undone.', { role: formatRole(role.name) }),
+      confirmText: t('Delete'),
       danger: true,
     })
 

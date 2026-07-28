@@ -42,10 +42,10 @@ function submit() {
     <!-- HEADER (same as Terms) -->
     <div class="text-center mb-4">
       <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">
-        Edit Time
+        {{ $t('Edit Time') }}
       </h2>
       <p class="text-sm text-gray-500 dark:text-gray-400">
-        Update time information
+        {{ $t('Update time information') }}
       </p>
     </div>
 
@@ -58,7 +58,7 @@ function submit() {
       <!-- TIME NAME -->
       <div>
         <label class="text-sm font-medium text-gray-700 dark:text-gray-200">
-          Time Name
+          {{ $t('Time Name') }}
         </label>
 
         <input
@@ -66,7 +66,7 @@ function submit() {
           type="text"
           class="mt-2 w-full rounded-xl border px-4 py-3 text-sm
                  focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-          placeholder="Enter time name"
+          :placeholder="$t('Enter time name')"
         />
 
         <p v-if="form.errors.time_name" class="text-red-500 text-sm mt-1 dark:text-red-400">
@@ -77,7 +77,7 @@ function submit() {
       <!-- TERM SELECT -->
       <div>
         <label class="text-sm font-medium text-gray-700 dark:text-gray-200">
-          Term
+          {{ $t('Term') }}
         </label>
 
         <select
@@ -85,7 +85,7 @@ function submit() {
           class="mt-2 w-full rounded-xl border px-4 py-3 text-sm bg-gray-50
                  focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:bg-gray-800 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
         >
-          <option value="">Select Term</option>
+          <option value="">{{ $t('Select Term') }}</option>
 
           <option
             v-for="term in terms"
@@ -109,7 +109,7 @@ function submit() {
           @click="$emit('close')"
           class="rounded-xl border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 active:bg-orange-300 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800 dark:active:bg-orange-500/30"
         >
-          Cancel
+          {{ $t('Cancel') }}
         </button>
 
         <button
@@ -117,7 +117,7 @@ function submit() {
           :disabled="form.processing"
           class="rounded-xl bg-yellow-500 px-4 py-2 text-sm font-semibold text-white hover:bg-yellow-600 disabled:opacity-50 dark:bg-yellow-600 dark:hover:bg-yellow-500"
         >
-          {{ form.processing ? 'Updating...' : 'Update Time' }}
+          {{ form.processing ? $t('Updating...') : $t('Update Time') }}
         </button>
 
       </div>

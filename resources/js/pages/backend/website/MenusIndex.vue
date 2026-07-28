@@ -5,6 +5,9 @@ import { Eye, Pencil, Trash2 } from "@lucide/vue";
 import DashboardLayout from "@/layouts/DashboardLayout.vue";
 import Breadcrumbs from "@/components/ui/breadcrumbs/Breadcrumbs.vue";
 import PageHero from "@/components/ui/page-hero/PageHero.vue";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 const props = defineProps({
   menus: Object,
@@ -89,7 +92,7 @@ function toggleMenu(menu) {
 }
 
 function deleteMenu(menu) {
-  if (!window.confirm(`Delete menu "${menu.name}"? The connected page will not be deleted.`)) return;
+  if (!window.confirm(t('Delete menu ":name"? The connected page will not be deleted.', { name: menu.name }))) return;
   router.delete(`/dashboard/website/menus/${menu.id}`, { preserveScroll: true });
 }
 </script>
@@ -98,22 +101,22 @@ function deleteMenu(menu) {
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbs" />
-      <PageHero eyebrow="Website Management" title="Menu Management" description="Control public website navigation, menu status, and display order." />
+      <PageHero eyebrow="Website Management" :title="$t('Menu Management')" :description="$t('Control public website navigation, menu status, and display order.')" />
 
       <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 lg:flex-row lg:items-center lg:justify-between dark:border-gray-800">
           <input
             v-model="search"
             type="text"
-            placeholder="Search menus..."
+            :placeholder="$t('Search menus...')"
             class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:w-72 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
           />
           <div class="flex flex-wrap items-center gap-3">
             <span v-if="isSavingOrder" class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
-              Saving order...
+              {{ $t('Saving order...') }}
             </span>
             <Link href="/dashboard/website/menus/create" class="rounded-xl bg-blue-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-700">
-              Add New Menu
+              {{ $t('Add New Menu') }}
             </Link>
           </div>
         </div>
@@ -122,12 +125,12 @@ function deleteMenu(menu) {
           <table class="w-full min-w-[900px] text-sm">
             <thead>
               <tr class="border-b border-slate-200 bg-slate-50 text-left text-slate-600 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-300">
-                <th class="px-6 py-3">Order</th>
-                <th class="px-6 py-3">Menu Name</th>
-                <th class="px-6 py-3">Connected Page</th>
-                <th class="px-6 py-3">Page Slug</th>
-                <th class="px-6 py-3">Status</th>
-                <th class="px-6 py-3 text-right">Actions</th>
+                <th class="px-6 py-3">{{ $t('Order') }}</th>
+                <th class="px-6 py-3">{{ $t('Menu Name') }}</th>
+                <th class="px-6 py-3">{{ $t('Connected Page') }}</th>
+                <th class="px-6 py-3">{{ $t('Page Slug') }}</th>
+                <th class="px-6 py-3">{{ $t('Status') }}</th>
+                <th class="px-6 py-3 text-right">{{ $t('Actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -149,11 +152,11 @@ function deleteMenu(menu) {
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-3 text-slate-400">
                     <span class="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ menu.position ?? ((menus?.from ?? 1) + index) }}</span>
-                    <span class="select-none text-lg font-bold" title="Drag to reorder">↕</span>
+                    <span class="select-none text-lg font-bold" :title="$t('Drag to reorder')">↕</span>
                   </div>
                 </td>
                 <td class="px-6 py-4 font-semibold text-slate-900 dark:text-gray-100">{{ menu.name }}</td>
-                <td class="px-6 py-4 text-slate-600 dark:text-gray-300">{{ menu.page?.title ?? "Missing page" }}</td>
+                <td class="px-6 py-4 text-slate-600 dark:text-gray-300">{{ menu.page?.title ?? $t('Missing page') }}</td>
                 <td class="px-6 py-4 text-slate-500 dark:text-gray-400">/{{ menu.page?.slug }}</td>
                 <td class="px-6 py-4">
                   <button
@@ -162,7 +165,7 @@ function deleteMenu(menu) {
                     :class="menu.is_active ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-300' : 'bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-300'"
                     @click="toggleMenu(menu)"
                   >
-                    {{ menu.is_active ? "Active" : "Inactive" }}
+                    {{ menu.is_active ? $t('Active') : $t('Inactive') }}
                   </button>
                 </td>
                 <td class="px-6 py-4">
@@ -172,24 +175,24 @@ function deleteMenu(menu) {
                       :href="menu.resolved_url"
                       target="_blank"
                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
-                      title="View page"
-                      aria-label="View page"
+                      :title="$t('View page')"
+                      :aria-label="$t('View page')"
                     >
                       <Eye class="h-4 w-4" />
                     </a>
                     <Link
                       :href="`/dashboard/website/menus/${menu.id}/edit`"
                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
-                      title="Edit menu"
-                      aria-label="Edit menu"
+                      :title="$t('Edit menu')"
+                      :aria-label="$t('Edit menu')"
                     >
                       <Pencil class="h-4 w-4" />
                     </Link>
                     <button
                       type="button"
                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
-                      title="Delete menu"
-                      aria-label="Delete menu"
+                      :title="$t('Delete menu')"
+                      :aria-label="$t('Delete menu')"
                       @click="deleteMenu(menu)"
                     >
                       <Trash2 class="h-4 w-4" />
@@ -199,7 +202,7 @@ function deleteMenu(menu) {
               </tr>
               <tr v-if="!orderedMenus.length">
                 <td colspan="6" class="px-6 py-12 text-center text-slate-500 dark:text-gray-400">
-                  No menu items found. Create your first menu to display navigation on the public website.
+                  {{ $t('No menu items found. Create your first menu to display navigation on the public website.') }}
                 </td>
               </tr>
             </tbody>
@@ -207,7 +210,7 @@ function deleteMenu(menu) {
         </div>
 
         <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
-          <p class="text-sm text-slate-500 dark:text-gray-400">Showing {{ menus.from ?? 0 }}-{{ menus.to ?? 0 }} of {{ menus.total ?? 0 }} menus</p>
+          <p class="text-sm text-slate-500 dark:text-gray-400">{{ $t('Showing :from-:to of :total menus', { from: menus.from ?? 0, to: menus.to ?? 0, total: menus.total ?? 0 }) }}</p>
           <div class="flex flex-wrap gap-2 text-sm">
             <Link
               v-for="link in menus.links"

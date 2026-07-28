@@ -8,6 +8,9 @@ import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
 import { Skeleton } from '../../../components/ui/skeleton'
 import { getEcho } from '@/echo'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const notifications = ref([])
 const unreadCount = ref(0)
@@ -16,11 +19,11 @@ const actioningId = ref(null)
 const markingAll = ref(false)
 const activeTab = ref('all')
 
-const tabs = [
-  { key: 'all', label: 'All' },
-  { key: 'unread', label: 'Unread' },
-  { key: 'pending', label: 'Pending Approval' },
-]
+const tabs = computed(() => [
+  { key: 'all', label: t('All') },
+  { key: 'unread', label: t('Unread') },
+  { key: 'pending', label: t('Pending Approval') },
+])
 
 const CODE_PATTERN = /^(.*verification code:\s*)(\d+)\s*$/i
 
@@ -170,7 +173,7 @@ function formatTimestamp(value) {
   const diffMs = Date.now() - date.getTime()
   const diffMinutes = Math.round(diffMs / 60000)
 
-  if (diffMinutes < 1) return 'Just now'
+  if (diffMinutes < 1) return t('Just now')
   if (diffMinutes < 60) return `${diffMinutes}m ago`
 
   const diffHours = Math.round(diffMinutes / 60)
@@ -179,14 +182,27 @@ function formatTimestamp(value) {
   return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-const breadcrumbItems = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Notifications', current: true },
-]
+const heroDescription = computed(() => {
+  if (!unreadCount.value) {
+    return t('You are all caught up.')
+  }
+
+  return t(
+    unreadCount.value === 1
+      ? 'You have :count unread notification.'
+      : 'You have :count unread notifications.',
+    { count: unreadCount.value },
+  )
+})
+
+const breadcrumbItems = computed(() => [
+  { label: t('Dashboard'), href: '/dashboard' },
+  { label: t('Notifications'), current: true },
+])
 </script>
 
 <template>
-  <Head title="Notifications" />
+  <Head :title="t('Notifications')" />
 
   <DashboardLayout>
     <section class="space-y-6">
@@ -194,9 +210,9 @@ const breadcrumbItems = [
 
       <div class="flex flex-wrap items-start justify-between gap-4">
         <PageHero
-          eyebrow="Activity"
-          title="Notifications"
-          :description="unreadCount ? `You have ${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}.` : 'You are all caught up.'"
+          :eyebrow="t('Activity')"
+          :title="t('Notifications')"
+          :description="heroDescription"
         />
         <button
           type="button"
@@ -205,7 +221,7 @@ const breadcrumbItems = [
           @click="markAllRead"
         >
           <Check class="h-3.5 w-3.5" />
-          {{ markingAll ? 'Marking...' : 'Mark all as read' }}
+          {{ markingAll ? t('Marking...') : t('Mark all as read') }}
         </button>
       </div>
 
@@ -244,7 +260,7 @@ const breadcrumbItems = [
         </div>
 
         <div v-else-if="filteredNotifications.length === 0" class="py-8 text-center text-sm text-slate-500 dark:text-gray-400">
-          No notifications found.
+          {{ t('No notifications found.') }}
         </div>
 
         <div v-else class="divide-y divide-slate-100 dark:divide-gray-800">
@@ -280,7 +296,7 @@ const breadcrumbItems = [
                   <button
                     type="button"
                     class="rounded p-0.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-50"
-                    :title="copiedId === n.id ? 'Copied!' : 'Copy code'"
+                    :title="copiedId === n.id ? t('Copied!') : t('Copy code')"
                     @click.stop="copyCode(splitMessage(n.message).code, n.id)"
                   >
                     <Check v-if="copiedId === n.id" class="h-3 w-3 text-green-600 dark:text-green-400" />
@@ -299,27 +315,27 @@ const breadcrumbItems = [
                   :disabled="actioningId === n.id"
                   @click.stop="actOnNotification(n, 'reject')"
                 >
-                  Reject
+                  {{ $t('Reject') }}
                 </button>
               </template>
               <span
                 v-else-if="n.approval_status === 'approved'"
                 class="rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 dark:bg-green-500/10 dark:text-green-400"
               >
-                Approved
+                {{ $t('Approved') }}
               </span>
               <span
                 v-else-if="n.approval_status === 'rejected'"
                 class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 dark:bg-red-500/10 dark:text-red-400"
               >
-                Rejected
+                {{ $t('Rejected') }}
               </span>
 
               <button
                 type="button"
                 class="rounded-lg border border-slate-200 p-1.5 text-slate-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:border-gray-700 dark:text-gray-500 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                 :disabled="actioningId === n.id"
-                title="Delete notification"
+                :title="t('Delete notification')"
                 @click.stop="deleteNotification(n)"
               >
                 <Trash2 class="h-3.5 w-3.5" />

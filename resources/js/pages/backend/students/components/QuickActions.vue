@@ -19,7 +19,7 @@ const emit = defineEmits(["add-student", "record-deposit"]);
       ]"
     >
       <UserPlus class="h-4 w-4" />
-      Add Student
+      {{ $t('Add Student') }}
     </button>
 
     <!-- Record Deposit -->

@@ -2,16 +2,13 @@ import { computed, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { formatRole } from '../../../../lib/roleBadge'
 import { useSaveForm } from '../../../../composables/useSaveForm'
-
-const STATUS_OPTIONS = [
-  { label: 'Active', value: 'active' },
-  { label: 'Inactive', value: 'inactive' },
-]
+import { useI18n } from '../../../../i18n'
 
 // Owns the edit-user form (account fields + every student/instructor profile field), role/status options,
 // and the name-lock rule tied to instructor/student roles.
 export function useUserEdit() {
   const page = usePage()
+  const { t } = useI18n()
   const user = page.props.user
   const roleOptions = page.props.roleOptions ?? []
   const s = user.student ?? {}
@@ -62,7 +59,10 @@ export function useUserEdit() {
   // Map raw role slugs to the label/value pairs SelectSearch expects.
   const roleSelectOptions = computed(() => roleOptions.map((role) => ({ label: formatRole(role), value: role })))
 
-  const statusSelectOptions = STATUS_OPTIONS
+  const statusSelectOptions = computed(() => [
+    { label: t('Active'), value: 'active' },
+    { label: t('Inactive'), value: 'inactive' },
+  ])
 
   // Instructors and students set their own name on first login, so admins can't edit it here.
   const nameLocked = computed(() => form.role === 'instructor' || form.role === 'student')

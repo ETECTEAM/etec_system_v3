@@ -49,14 +49,14 @@ const breadcrumbItems = [
 </script>
 
 <template>
-  <Head title="Account Security" />
+  <Head :title="$t('Account Security')" />
 
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
       <PageHero
         eyebrow="Security"
-        title="Account Security"
+        :title="$t('Account Security')"
         description="Add a personal recovery email so password-reset links go somewhere only you can reach, separate from your login email."
       />
 
@@ -66,7 +66,7 @@ const breadcrumbItems = [
             <Mail class="h-5 w-5" />
           </span>
           <div>
-            <h3 class="text-base font-bold text-slate-900 dark:text-gray-100">Recovery email</h3>
+            <h3 class="text-base font-bold text-slate-900 dark:text-gray-100">{{ $t('Recovery email') }}</h3>
             <p class="mt-1 max-w-md text-sm text-slate-500 italic dark:text-gray-400">
               Login email: <span class="font-semibold not-italic">{{ props.loginEmail }}</span>
             </p>
@@ -85,7 +85,7 @@ const breadcrumbItems = [
                 <span v-if="props.recoveryVerified" class="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
                   <CheckCircle2 class="h-3.5 w-3.5" /> Verified
                 </span>
-                <span v-else>Pending verification - check that inbox for a link.</span>
+                <span v-else>{{ $t('Pending verification - check that inbox for a link.') }}</span>
               </p>
             </div>
           </div>
@@ -103,12 +103,12 @@ const breadcrumbItems = [
         <form @submit.prevent="submit" class="space-y-4">
           <div>
             <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-200">
-              {{ props.recoveryEmail ? 'Change recovery email' : 'Add recovery email' }}
+              {{ props.recoveryEmail ? $t('Change recovery email') : $t('Add recovery email') }}
             </label>
             <input
               v-model="form.recovery_email"
               type="email"
-              placeholder="you@personal-email.com"
+              :placeholder="$t('you@personal-email.com')"
               class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             >
             <p v-if="form.errors.recovery_email" class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ form.errors.recovery_email }}</p>
@@ -121,7 +121,7 @@ const breadcrumbItems = [
               class="flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
               <Save class="h-4 w-4" />
-              {{ form.processing ? 'Saving...' : 'Save recovery email' }}
+              {{ form.processing ? $t('Saving...') : $t('Save recovery email') }}
             </button>
           </div>
         </form>

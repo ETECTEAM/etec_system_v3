@@ -4,8 +4,10 @@ import { Head, Link, router, useForm, usePage } from "@inertiajs/vue3";
 import { Card } from "../../../components/ui/card";
 import { PageHero } from "../../../components/ui/page-hero";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
+import { useI18n } from "@/i18n";
 
 const page = usePage();
+const { t } = useI18n();
 
 const buildings = computed(() => page.props.buildings ?? []);
 const summary = computed(
@@ -126,7 +128,7 @@ const roomContext = ref({
 function deleteBuilding(building) {
     if (
         !window.confirm(
-            `Delete building "${building.name}" and all its floors and rooms?`,
+            t('Delete building ":name" and all its floors and rooms?', { name: building.name }),
         )
     ) {
         return;
@@ -218,7 +220,7 @@ function submitAutoFloor() {
 
 function deleteFloor(building, floor) {
     if (
-        !window.confirm(`Delete floor "${floor.name}" and all rooms inside it?`)
+        !window.confirm(t('Delete floor ":name" and all rooms inside it?', { name: floor.name }))
     ) {
         return;
     }
@@ -309,7 +311,7 @@ function submitRoom() {
 }
 
 function deleteRoom(building, floor, room) {
-    if (!window.confirm(`Delete room "${room.room_number}"?`)) {
+    if (!window.confirm(t('Delete room ":number"?', { number: room.room_number }))) {
         return;
     }
 
@@ -452,7 +454,7 @@ function statusClass(status) {
 }
 </script>
 <template>
-    <Head title="Buildings" />
+    <Head :title="$t('Buildings')" />
 
     <DashboardLayout>
         <section class="space-y-6">
@@ -497,7 +499,7 @@ function statusClass(status) {
                         <!-- Building Dropdown -->
                         <div class="space-y-1.5 text-left">
                             <label for="building-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">
-                                Building
+                                {{ $t('Building') }}
                             </label>
                             <div class="relative">
                                 <select
@@ -505,7 +507,7 @@ function statusClass(status) {
                                     v-model="selectedBuildingId"
                                     class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                 >
-                                    <option value="">All Buildings</option>
+                                    <option value="">{{ $t('All Buildings') }}</option>
                                     <option
                                         v-for="b in buildings"
                                         :key="b.id"
@@ -525,7 +527,7 @@ function statusClass(status) {
                         <!-- Floor Dropdown -->
                         <div class="space-y-1.5 text-left">
                             <label for="floor-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">
-                                Floor
+                                {{ $t('Floor') }}
                             </label>
                             <div class="relative">
                                 <select
@@ -534,13 +536,13 @@ function statusClass(status) {
                                     :disabled="!selectedBuildingId"
                                     class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-800/50 dark:disabled:text-gray-500"
                                 >
-                                    <option value="">All Floors</option>
+                                    <option value="">{{ $t('All Floors') }}</option>
                                     <option
                                         v-for="f in filterFloors"
                                         :key="f.id"
                                         :value="f.id"
                                     >
-                                        {{ f.name }} (Lvl {{ f.level ?? 'N/A' }})
+                                        {{ f.name }} ({{ $t('Lvl') }} {{ f.level ?? $t('N/A') }})
                                     </option>
                                 </select>
                                 <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400 dark:text-gray-500">
@@ -554,7 +556,7 @@ function statusClass(status) {
                         <!-- Room Dropdown -->
                         <div class="space-y-1.5 text-left">
                             <label for="room-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">
-                                Room
+                                {{ $t('Room') }}
                             </label>
                             <div class="relative">
                                 <select
@@ -563,13 +565,13 @@ function statusClass(status) {
                                     :disabled="!selectedFloorId"
                                     class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-800/50 dark:disabled:text-gray-500"
                                 >
-                                    <option value="">All Rooms</option>
+                                    <option value="">{{ $t('All Rooms') }}</option>
                                     <option
                                         v-for="r in filterRooms"
                                         :key="r.id"
                                         :value="r.id"
                                     >
-                                        Room {{ r.room_number }}
+                                        {{ $t('Room') }} {{ r.room_number }}
                                     </option>
                                 </select>
                                 <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400 dark:text-gray-500">
@@ -589,14 +591,14 @@ function statusClass(status) {
                             @click="resetFilters"
                             class="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                         >
-                            Reset
+                            {{ $t('Reset') }}
                         </button>
 
                         <Link
                             href="/dashboard/buildings/create"
                             class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 whitespace-nowrap dark:bg-blue-600 dark:hover:bg-blue-500"
                         >
-                            Add Building
+                            {{ $t('Add Building') }}
                         </Link>
                     </div>
 
@@ -607,10 +609,10 @@ function statusClass(status) {
             <Card v-if="filteredBuildings.length === 0" card-class="border-dashed">
                     <div class="rounded-2xl bg-slate-50 p-10 text-center dark:bg-gray-800/40">
                         <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">
-                            {{ summary.buildings === 0 ? "No buildings yet" : "No matching buildings" }}
+                            {{ summary.buildings === 0 ? $t("No buildings yet") : $t("No matching buildings") }}
                         </h3>
                         <p class="mt-2 text-sm text-slate-500 dark:text-gray-400">
-                            {{ summary.buildings === 0 ? "Use the Add Building button to create the first building." : "Try adjusting or resetting your filter selections." }}
+                            {{ summary.buildings === 0 ? $t("Use the Add Building button to create the first building.") : $t("Try adjusting or resetting your filter selections.") }}
                         </p>
                     </div>
                 </Card>
@@ -655,28 +657,28 @@ function statusClass(status) {
                                     :href="`/dashboard/buildings/edit/${building.id}`"
                                     class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                                 >
-                                    Edit Building
+                                    {{ $t('Edit Building') }}
                                 </Link>
                                 <button
                                     type="button"
                                     class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
                                     @click="openFloorCreate(building)"
                                 >
-                                    Add Floor
+                                    {{ $t('Add Floor') }}
                                 </button>
                                 <button
                                     type="button"
                                     class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
                                     @click="openFloorAuto(building)"
                                 >
-                                    Auto Floor
+                                    {{ $t('Auto Floor') }}
                                 </button>
                                 <button
                                     type="button"
                                     class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
                                     @click="deleteBuilding(building)"
                                 >
-                                    Delete
+                                    {{ $t('Delete') }}
                                 </button>
                             </div>
                         </div>
@@ -685,12 +687,12 @@ function statusClass(status) {
                             <span
                                 class="rounded-full bg-white px-3 py-1 font-medium text-slate-700 ring-1 ring-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
                             >
-                                {{ building.floors_count }} floors
+                                {{ $t(':count floors', { count: building.floors_count }) }}
                             </span>
                             <span
                                 class="rounded-full bg-white px-3 py-1 font-medium text-slate-700 ring-1 ring-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
                             >
-                                {{ building.rooms_count }} rooms
+                                {{ $t(':count rooms', { count: building.rooms_count }) }}
                             </span>
                         </div>
                     </div>
@@ -706,8 +708,8 @@ function statusClass(status) {
                                 >
                                     {{
                                         floorContext.mode === "edit"
-                                            ? "Edit Floor"
-                                            : `Add Floor to ${building.name}`
+                                            ? $t("Edit Floor")
+                                            : $t("Add Floor to :name", { name: building.name })
                                     }}
                                 </h3>
                                 <button
@@ -715,7 +717,7 @@ function statusClass(status) {
                                     class="text-sm font-semibold text-slate-500 transition hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200"
                                     @click="closeFloorForm"
                                 >
-                                    Cancel
+                                    {{ $t('Cancel') }}
                                 </button>
                             </div>
 
@@ -726,13 +728,13 @@ function statusClass(status) {
                                 <div>
                                     <label
                                         class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                        >Floor Name</label
+                                        >{{ $t('Floor Name') }}</label
                                     >
                                     <input
                                         v-model="floorForm.name"
                                         type="text"
                                         class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                                        placeholder="Ground Floor"
+                                        :placeholder="$t('Ground Floor')"
                                     />
                                     <p
                                         v-if="floorForm.errors.name"
@@ -745,7 +747,7 @@ function statusClass(status) {
                                 <div>
                                     <label
                                         class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                        >Level</label
+                                        >{{ $t('Level') }}</label
                                     >
                                     <input
                                         v-model="floorForm.level"
@@ -769,8 +771,8 @@ function statusClass(status) {
                                     >
                                         {{
                                             floorContext.mode === "edit"
-                                                ? "Save Floor"
-                                                : "Create Floor"
+                                                ? $t("Save Floor")
+                                                : $t("Create Floor")
                                         }}
                                     </button>
                                 </div>
@@ -788,14 +790,14 @@ function statusClass(status) {
                                 <h3
                                     class="text-lg font-semibold text-slate-900 dark:text-gray-100"
                                 >
-                                    Auto Floor for {{ building.name }}
+                                    {{ $t('Auto Floor for :name', { name: building.name }) }}
                                 </h3>
                                 <button
                                     type="button"
                                     class="text-sm font-semibold text-slate-500 transition hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200"
                                     @click="closeFloorForm"
                                 >
-                                    Cancel
+                                    {{ $t('Cancel') }}
                                 </button>
                             </div>
 
@@ -806,13 +808,13 @@ function statusClass(status) {
                                 <div>
                                     <label
                                         class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                        >Start Floor</label
+                                        >{{ $t('Start Floor') }}</label
                                     >
                                     <input
                                         v-model="autoFloorForm.start_name"
                                         type="text"
                                         class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
-                                        placeholder="A-001"
+                                        :placeholder="$t('A-001')"
                                     />
                                     <p
                                         v-if="autoFloorForm.errors.start_name"
@@ -825,7 +827,7 @@ function statusClass(status) {
                                 <div>
                                     <label
                                         class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                        >How Many Floors</label
+                                        >{{ $t('How Many Floors') }}</label
                                     >
                                     <input
                                         v-model="autoFloorForm.total_floors"
@@ -845,13 +847,13 @@ function statusClass(status) {
                                 <div>
                                     <label
                                         class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                        >Start Level</label
+                                        >{{ $t('Start Level') }}</label
                                     >
                                     <input
                                         v-model="autoFloorForm.start_level"
                                         type="number"
                                         class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
-                                        placeholder="Optional"
+                                        :placeholder="$t('Optional')"
                                     />
                                     <p
                                         v-if="autoFloorForm.errors.start_level"
@@ -871,19 +873,18 @@ function statusClass(status) {
                                             <h4
                                                 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-gray-400"
                                             >
-                                                Preview
+                                                {{ $t('Preview') }}
                                             </h4>
                                             <p
                                                 class="mt-1 text-sm text-slate-600 dark:text-gray-300"
                                             >
-                                                Supports both `A, B, C` and
-                                                `A-001, A-002, A-003` styles.
+                                                {{ $t('Supports both `A, B, C` and `A-001, A-002, A-003` styles.') }}
                                             </p>
                                         </div>
                                         <span
                                             class="rounded-full bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
                                         >
-                                            {{ generatedFloors.length }} floors
+                                            {{ $t(':count floors', { count: generatedFloors.length }) }}
                                         </span>
                                     </div>
 
@@ -899,7 +900,7 @@ function statusClass(status) {
                                                     floorPreview.level !== null
                                                 "
                                             >
-                                                / Level
+                                                / {{ $t('Level') }}
                                                 {{ floorPreview.level }}</span
                                             >
                                         </span>
@@ -907,8 +908,7 @@ function statusClass(status) {
                                             v-if="generatedFloors.length === 0"
                                             class="text-sm text-slate-500 dark:text-gray-400"
                                         >
-                                            Type a valid start floor like `A` or
-                                            `A-001`.
+                                            {{ $t('Type a valid start floor like `A` or `A-001`.') }}
                                         </span>
                                     </div>
                                 </div>
@@ -924,8 +924,8 @@ function statusClass(status) {
                                     >
                                         {{
                                             autoFloorForm.processing
-                                                ? "Generating..."
-                                                : "Create Auto Floors"
+                                                ? $t("Generating...")
+                                                : $t("Create Auto Floors")
                                         }}
                                     </button>
                                 </div>
@@ -936,7 +936,7 @@ function statusClass(status) {
                             v-if="building.floors.length === 0"
                             class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-sm text-slate-500 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-400"
                         >
-                            No floors in this building yet.
+                            {{ $t('No floors in this building yet.') }}
                         </div>
 
                         <div
@@ -960,12 +960,11 @@ function statusClass(status) {
                                             <span
                                                 class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
                                             >
-                                                Level {{ floor.level ?? "N/A" }}
+                                                {{ $t('Level') }} {{ floor.level ?? $t("N/A") }}
                                             </span>
                                         </div>
                                         <p class="mt-2 text-sm text-slate-500 dark:text-gray-400">
-                                            {{ floor.rooms_count }} rooms on
-                                            this floor
+                                            {{ $t(':count rooms on this floor', { count: floor.rooms_count }) }}
                                         </p>
                                     </div>
 
@@ -977,7 +976,7 @@ function statusClass(status) {
                                                 openFloorEdit(building, floor)
                                             "
                                         >
-                                            Edit Floor
+                                            {{ $t('Edit Floor') }}
                                         </button>
                                         <button
                                             type="button"
@@ -986,7 +985,7 @@ function statusClass(status) {
                                                 openRoomCreate(building, floor)
                                             "
                                         >
-                                            Add Room
+                                            {{ $t('Add Room') }}
                                         </button>
                                         <button
                                             type="button"
@@ -995,7 +994,7 @@ function statusClass(status) {
                                                 openRoomAuto(building, floor)
                                             "
                                         >
-                                            Auto Room
+                                            {{ $t('Auto Room') }}
                                         </button>
                                         <button
                                             type="button"
@@ -1004,7 +1003,7 @@ function statusClass(status) {
                                                 deleteFloor(building, floor)
                                             "
                                         >
-                                            Delete
+                                            {{ $t('Delete') }}
                                         </button>
                                     </div>
                                 </div>
@@ -1026,14 +1025,14 @@ function statusClass(status) {
                                         <h4
                                             class="text-base font-semibold text-slate-900 dark:text-gray-100"
                                         >
-                                            Update Floor
+                                            {{ $t('Update Floor') }}
                                         </h4>
                                         <button
                                             type="button"
                                             class="text-sm font-semibold text-slate-500 transition hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200"
                                             @click="closeFloorForm"
                                         >
-                                            Cancel
+                                            {{ $t('Cancel') }}
                                         </button>
                                     </div>
 
@@ -1044,7 +1043,7 @@ function statusClass(status) {
                                         <div>
                                             <label
                                                 class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                                >Floor Name</label
+                                                >{{ $t('Floor Name') }}</label
                                             >
                                             <input
                                                 v-model="floorForm.name"
@@ -1062,7 +1061,7 @@ function statusClass(status) {
                                         <div>
                                             <label
                                                 class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                                >Level</label
+                                                >{{ $t('Level') }}</label
                                             >
                                             <input
                                                 v-model="floorForm.level"
@@ -1083,7 +1082,7 @@ function statusClass(status) {
                                                 class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-700 dark:hover:bg-gray-600"
                                                 :disabled="floorForm.processing"
                                             >
-                                                Save Floor
+                                                {{ $t('Save Floor') }}
                                             </button>
                                         </div>
                                     </form>
@@ -1107,8 +1106,8 @@ function statusClass(status) {
                                         >
                                             {{
                                                 roomContext.mode === "edit"
-                                                    ? "Edit Room"
-                                                    : `Add Room to ${floor.name}`
+                                                    ? $t("Edit Room")
+                                                    : $t("Add Room to :name", { name: floor.name })
                                             }}
                                         </h4>
                                         <button
@@ -1116,7 +1115,7 @@ function statusClass(status) {
                                             class="text-sm font-semibold text-slate-500 transition hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200"
                                             @click="closeRoomForm"
                                         >
-                                            Cancel
+                                            {{ $t('Cancel') }}
                                         </button>
                                     </div>
 
@@ -1127,13 +1126,13 @@ function statusClass(status) {
                                         <div>
                                             <label
                                                 class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                                >Room Number</label
+                                                >{{ $t('Room Number') }}</label
                                             >
                                             <input
                                                 v-model="roomForm.room_number"
                                                 type="text"
                                                 class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                                                placeholder="A-101"
+                                                :placeholder="$t('A-101')"
                                             />
                                             <p
                                                 v-if="
@@ -1150,7 +1149,7 @@ function statusClass(status) {
                                         <div>
                                             <label
                                                 class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                                >Capacity</label
+                                                >{{ $t('Capacity') }}</label
                                             >
                                             <input
                                                 v-model="roomForm.capacity"
@@ -1171,20 +1170,20 @@ function statusClass(status) {
                                         <div>
                                             <label
                                                 class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                                >Status</label
+                                                >{{ $t('Status') }}</label
                                             >
                                             <select
                                                 v-model="roomForm.status"
                                                 class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                             >
                                                 <option value="available">
-                                                    Available
+                                                    {{ $t('Available') }}
                                                 </option>
                                                 <option value="occupied">
-                                                    Occupied
+                                                    {{ $t('Occupied') }}
                                                 </option>
                                                 <option value="maintenance">
-                                                    Maintenance
+                                                    {{ $t('Maintenance') }}
                                                 </option>
                                             </select>
                                             <p
@@ -1203,8 +1202,8 @@ function statusClass(status) {
                                             >
                                                 {{
                                                     roomContext.mode === "edit"
-                                                        ? "Save Room"
-                                                        : "Create Room"
+                                                        ? $t("Save Room")
+                                                        : $t("Create Room")
                                                 }}
                                             </button>
                                         </div>
@@ -1226,14 +1225,14 @@ function statusClass(status) {
                                         <h4
                                             class="text-base font-semibold text-slate-900 dark:text-gray-100"
                                         >
-                                            Auto Room for {{ floor.name }}
+                                            {{ $t('Auto Room for :name', { name: floor.name }) }}
                                         </h4>
                                         <button
                                             type="button"
                                             class="text-sm font-semibold text-slate-500 transition hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200"
                                             @click="closeRoomForm"
                                         >
-                                            Cancel
+                                            {{ $t('Cancel') }}
                                         </button>
                                     </div>
 
@@ -1244,7 +1243,7 @@ function statusClass(status) {
                                         <div>
                                             <label
                                                 class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                                >Start Room</label
+                                                >{{ $t('Start Room') }}</label
                                             >
                                             <input
                                                 v-model="
@@ -1252,7 +1251,7 @@ function statusClass(status) {
                                                 "
                                                 type="text"
                                                 class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                                                placeholder="A-101"
+                                                :placeholder="$t('A-101')"
                                             />
                                             <p
                                                 v-if="
@@ -1271,7 +1270,7 @@ function statusClass(status) {
                                         <div>
                                             <label
                                                 class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                                >How Many Rooms</label
+                                                >{{ $t('How Many Rooms') }}</label
                                             >
                                             <input
                                                 v-model="
@@ -1299,7 +1298,7 @@ function statusClass(status) {
                                         <div>
                                             <label
                                                 class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                                >Capacity</label
+                                                >{{ $t('Capacity') }}</label
                                             >
                                             <input
                                                 v-model="autoRoomForm.capacity"
@@ -1324,20 +1323,20 @@ function statusClass(status) {
                                         <div>
                                             <label
                                                 class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                                >Status</label
+                                                >{{ $t('Status') }}</label
                                             >
                                             <select
                                                 v-model="autoRoomForm.status"
                                                 class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                             >
                                                 <option value="available">
-                                                    Available
+                                                    {{ $t('Available') }}
                                                 </option>
                                                 <option value="occupied">
-                                                    Occupied
+                                                    {{ $t('Occupied') }}
                                                 </option>
                                                 <option value="maintenance">
-                                                    Maintenance
+                                                    {{ $t('Maintenance') }}
                                                 </option>
                                             </select>
                                             <p
@@ -1360,15 +1359,12 @@ function statusClass(status) {
                                                     <h5
                                                         class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-gray-400"
                                                     >
-                                                        Preview
+                                                        {{ $t('Preview') }}
                                                     </h5>
                                                     <p
                                                         class="mt-1 text-sm text-slate-600 dark:text-gray-300"
                                                     >
-                                                        Example: `A-101` with
-                                                        `3` rooms becomes
-                                                        `A-101`, `A-102`,
-                                                        `A-103`.
+                                                        {{ $t('Example: `A-101` with `3` rooms becomes `A-101`, `A-102`, `A-103`.') }}
                                                     </p>
                                                 </div>
                                                 <span
@@ -1377,7 +1373,7 @@ function statusClass(status) {
                                                     {{
                                                         generatedRooms.length
                                                     }}
-                                                    rooms
+                                                    {{ $t('rooms') }}
                                                 </span>
                                             </div>
 
@@ -1398,8 +1394,7 @@ function statusClass(status) {
                                                     "
                                                     class="text-sm text-slate-500 dark:text-gray-400"
                                                 >
-                                                    Type a valid start room like
-                                                    `A-101`.
+                                                    {{ $t('Type a valid start room like `A-101`.') }}
                                                 </span>
                                             </div>
                                         </div>
@@ -1415,8 +1410,8 @@ function statusClass(status) {
                                             >
                                                 {{
                                                     autoRoomForm.processing
-                                                        ? "Generating..."
-                                                        : "Create Auto Rooms"
+                                                        ? $t("Generating...")
+                                                        : $t("Create Auto Rooms")
                                                 }}
                                             </button>
                                         </div>
@@ -1427,7 +1422,7 @@ function statusClass(status) {
                                     v-if="floor.rooms.length === 0"
                                     class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm text-slate-500 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-400"
                                 >
-                                    No rooms on this floor yet.
+                                    {{ $t('No rooms on this floor yet.') }}
                                 </div>
 
                                 <div
@@ -1455,14 +1450,14 @@ function statusClass(status) {
                                                         ),
                                                     ]"
                                                 >
-                                                    {{ room.status }}
+                                                    {{ $t(room.status) }}
                                                 </span>
                                             </div>
                                             <p
                                                 class="mt-2 text-sm text-slate-500 dark:text-gray-400"
                                             >
-                                                Capacity:
-                                                {{ room.capacity ?? "N/A" }}
+                                                {{ $t('Capacity') }}:
+                                                {{ room.capacity ?? $t("N/A") }}
                                             </p>
                                         </div>
 
@@ -1478,7 +1473,7 @@ function statusClass(status) {
                                                     )
                                                 "
                                             >
-                                                Edit Room
+                                                {{ $t('Edit Room') }}
                                             </button>
                                             <button
                                                 type="button"
@@ -1491,7 +1486,7 @@ function statusClass(status) {
                                                     )
                                                 "
                                             >
-                                                Delete
+                                                {{ $t('Delete') }}
                                             </button>
                                         </div>
                                     </div>
@@ -1512,14 +1507,14 @@ function statusClass(status) {
                                             <h5
                                                 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-gray-400"
                                             >
-                                                Room Editor
+                                                {{ $t('Room Editor') }}
                                             </h5>
                                             <button
                                                 type="button"
                                                 class="text-sm font-semibold text-slate-500 transition hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200"
                                                 @click="closeRoomForm"
                                             >
-                                                Cancel
+                                                {{ $t('Cancel') }}
                                             </button>
                                         </div>
 
@@ -1530,7 +1525,7 @@ function statusClass(status) {
                                             <div>
                                                 <label
                                                     class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                                    >Room Number</label
+                                                    >{{ $t('Room Number') }}</label
                                                 >
                                                 <input
                                                     v-model="
@@ -1556,7 +1551,7 @@ function statusClass(status) {
                                             <div>
                                                 <label
                                                     class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                                    >Capacity</label
+                                                    >{{ $t('Capacity') }}</label
                                                 >
                                                 <input
                                                     v-model="roomForm.capacity"
@@ -1580,20 +1575,20 @@ function statusClass(status) {
                                             <div>
                                                 <label
                                                     class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300"
-                                                    >Status</label
+                                                    >{{ $t('Status') }}</label
                                                 >
                                                 <select
                                                     v-model="roomForm.status"
                                                     class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                                 >
                                                     <option value="available">
-                                                        Available
+                                                        {{ $t('Available') }}
                                                     </option>
                                                     <option value="occupied">
-                                                        Occupied
+                                                        {{ $t('Occupied') }}
                                                     </option>
                                                     <option value="maintenance">
-                                                        Maintenance
+                                                        {{ $t('Maintenance') }}
                                                     </option>
                                                 </select>
                                                 <p

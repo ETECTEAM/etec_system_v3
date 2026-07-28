@@ -23,7 +23,7 @@ defineProps({
       <div class="flex items-center justify-between">
         <div>
           <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">
-            Total Students
+            {{ $t('Total Students') }}
           </p>
           <p class="mt-1 text-2xl font-bold text-slate-900 dark:text-gray-100">
             {{ depositSummary?.total_students ?? 0 }}
@@ -44,7 +44,7 @@ defineProps({
       <div class="flex items-center justify-between">
         <div>
           <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">
-            Paid Students
+            {{ $t('Paid Students') }}
           </p>
           <p class="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-400">
             {{ depositSummary?.paid_students ?? 0 }}
@@ -65,7 +65,7 @@ defineProps({
       <div class="flex items-center justify-between">
         <div>
           <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">
-            Unpaid Students
+            {{ $t('Unpaid Students') }}
           </p>
           <p class="mt-1 text-2xl font-bold text-red-700 dark:text-red-400">
             {{
@@ -88,7 +88,7 @@ defineProps({
       <div class="flex items-center justify-between">
         <div>
           <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">
-            Total Collected
+            {{ $t('Total Collected') }}
           </p>
           <p class="mt-1 text-2xl font-bold text-slate-900 dark:text-gray-100">
             ${{ depositSummary?.total_deposit_collected?.toFixed(2) ?? "0.00" }}

@@ -38,15 +38,15 @@ const deleteClass = (id) => {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>ID</TableHead>
-          <TableHead>Class</TableHead>
-          <TableHead>Lesson</TableHead>
-          <TableHead>Building</TableHead>
-          <TableHead>Room</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Students</TableHead>
-          <TableHead>Time</TableHead>
-          <TableHead class="text-center">Action</TableHead>
+          <TableHead>{{ $t('ID') }}</TableHead>
+          <TableHead>{{ $t('Class') }}</TableHead>
+          <TableHead>{{ $t('Lesson') }}</TableHead>
+          <TableHead>{{ $t('Building') }}</TableHead>
+          <TableHead>{{ $t('Room') }}</TableHead>
+          <TableHead>{{ $t('Status') }}</TableHead>
+          <TableHead>{{ $t('Students') }}</TableHead>
+          <TableHead>{{ $t('Time') }}</TableHead>
+          <TableHead class="text-center">{{ $t('Action') }}</TableHead>
         </TableRow>
       </TableHeader>
 

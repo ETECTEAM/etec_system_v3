@@ -4,15 +4,15 @@
 
             <!-- Breadcrumb -->
             <nav class="flex items-center gap-1.5 text-sm text-slate-400 mb-4">
-                <span>Dashboard</span>
+                <span>{{ $t('Dashboard') }}</span>
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                <span>Course</span>
+                <span>{{ $t('Course') }}</span>
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                <span class="text-slate-600 font-medium">Categories</span>
+                <span class="text-slate-600 font-medium">{{ $t('Categories') }}</span>
             </nav>
 
             <!-- Header -->
@@ -25,8 +25,8 @@
                         </svg>
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Categories</h1>
-                        <p class="text-sm text-slate-500 mt-0.5">Organize all learning categories</p>
+                        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ $t('Categories') }}</h1>
+                        <p class="text-sm text-slate-500 mt-0.5">{{ $t('Organize all learning categories') }}</p>
                     </div>
                 </div>
 
@@ -35,22 +35,22 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
-                    New Category
+                    {{ $t('New Category') }}
                 </Link>
             </div>
 
             <!-- Stats strip -->
             <div class="grid grid-cols-3 gap-3 mb-6">
                 <div class="bg-white rounded-xl border border-slate-200 px-4 py-3.5">
-                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Total</p>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">{{ $t('Total') }}</p>
                     <p class="text-xl font-bold text-slate-900 mt-1">{{ categories.length }}</p>
                 </div>
                 <div class="bg-white rounded-xl border border-slate-200 px-4 py-3.5">
-                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Active</p>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">{{ $t('Active') }}</p>
                     <p class="text-xl font-bold text-emerald-600 mt-1">{{ activeCount }}</p>
                 </div>
                 <div class="bg-white rounded-xl border border-slate-200 px-4 py-3.5">
-                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Sub-categories</p>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">{{ $t('Sub-categories') }}</p>
                     <p class="text-xl font-bold text-slate-900 mt-1">{{ totalSubCategories }}</p>
                 </div>
             </div>
@@ -59,7 +59,7 @@
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
                 <div class="w-full sm:max-w-sm">
                     <div class="relative">
-                        <input v-model="search" type="text" placeholder="Search by name or slug..."
+                        <input v-model="search" type="text" :placeholder="$t('Search by name or slug...')"
                             class="w-full rounded-xl border border-slate-200 pl-9 pr-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                             @input="resetPagination" />
                         <svg class="absolute left-3 top-3 w-4 h-4 text-slate-400" fill="none" stroke="currentColor"
@@ -78,17 +78,17 @@
                         <thead class="bg-slate-50/80 border-b border-slate-200">
                             <tr>
                                 <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5 w-12">
-                                    No</th>
+                                    {{ $t('No') }}</th>
                                 <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">
-                                    Category</th>
+                                    {{ $t('Category') }}</th>
                                 <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">
-                                    Slug</th>
+                                    {{ $t('Slug') }}</th>
                                 <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">
-                                    Sub Categories</th>
+                                    {{ $t('Sub Categories') }}</th>
                                 <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">
-                                    Status</th>
+                                    {{ $t('Status') }}</th>
                                 <th class="text-right text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">
-                                    Actions</th>
+                                    {{ $t('Actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -113,7 +113,7 @@
                                         :class="category.status === 'active' ? 'text-emerald-700' : 'text-rose-700'">
                                         <span class="w-1.5 h-1.5 rounded-full"
                                             :class="category.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'"></span>
-                                        {{ category.status === 'active' ? 'Active' : 'Inactive' }}
+                                        {{ category.status === 'active' ? $t('Active') : $t('Inactive') }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3.5 text-right">
@@ -124,7 +124,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                             </svg>
-                                            Edit
+                                            {{ $t('Edit') }}
                                         </Link>
                                         <button @click="confirmDelete(category)"
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 transition">
@@ -132,7 +132,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
-                                            Delete
+                                            {{ $t('Delete') }}
                                         </button>
                                     </div>
                                 </td>
@@ -146,11 +146,11 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                     </svg>
-                                    <p class="text-sm font-medium text-slate-600">No categories yet</p>
-                                    <p class="text-xs text-slate-400 mt-1">Create your first category to start organizing courses</p>
+                                    <p class="text-sm font-medium text-slate-600">{{ $t('No categories yet') }}</p>
+                                    <p class="text-xs text-slate-400 mt-1">{{ $t('Create your first category to start organizing courses') }}</p>
                                     <Link href="/dashboard/course/categories/create"
                                         class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700">
-                                        + New Category
+                                        + {{ $t('New Category') }}
                                     </Link>
                                 </td>
                             </tr>
@@ -163,11 +163,11 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
-                                    <p class="text-sm font-medium text-slate-600">No results for "{{ search }}"</p>
-                                    <p class="text-xs text-slate-400 mt-1">Try a different name or clear the search</p>
+                                    <p class="text-sm font-medium text-slate-600">{{ $t('No results for ":search"', { search }) }}</p>
+                                    <p class="text-xs text-slate-400 mt-1">{{ $t('Try a different name or clear the search') }}</p>
                                     <button @click="search = ''"
                                         class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700">
-                                        Clear search
+                                        {{ $t('Clear search') }}
                                     </button>
                                 </td>
                             </tr>
@@ -194,25 +194,25 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-lg font-semibold text-slate-900">Delete category</h3>
+                        <h3 class="text-lg font-semibold text-slate-900">{{ $t('Delete category') }}</h3>
                         <p class="text-sm text-slate-600 mt-1">
-                            Are you sure you want to delete "<span class="font-medium text-slate-900">{{ deleteItem?.name }}</span>"?
-                            This action cannot be undone.
+                            {{ $t('Are you sure you want to delete') }} "<span class="font-medium text-slate-900">{{ deleteItem?.name }}</span>"?
+                            {{ $t('This action cannot be undone.') }}
                         </p>
                         <p v-if="deleteItem?.sub_categories?.length > 0"
                             class="text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mt-3">
-                            This category has {{ deleteItem.sub_categories.length }} sub-category(ies) that will also be deleted.
+                            {{ $t('This category has :count sub-category(ies) that will also be deleted.', { count: deleteItem.sub_categories.length }) }}
                         </p>
                     </div>
                 </div>
                 <div class="flex justify-end gap-3 border-t border-slate-100 pt-4">
                     <button @click="showDeleteModal = false"
                         class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-xl transition">
-                        Cancel
+                        {{ $t('Cancel') }}
                     </button>
                     <button @click="deleteCategory"
                         class="px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition">
-                        Delete category
+                        {{ $t('Delete category') }}
                     </button>
                 </div>
             </div>

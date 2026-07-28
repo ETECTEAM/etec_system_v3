@@ -34,14 +34,14 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from '../../../../
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead class="w-16">No</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Roles</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Created By</TableHead>
-            <TableHead>Created At</TableHead>
-            <TableHead class="text-right">Actions</TableHead>
+            <TableHead class="w-16">{{ $t('No') }}</TableHead>
+            <TableHead>{{ $t('Name') }}</TableHead>
+            <TableHead>{{ $t('Email') }}</TableHead>
+            <TableHead>{{ $t('Roles') }}</TableHead>
+            <TableHead>{{ $t('Status') }}</TableHead>
+            <TableHead>{{ $t('Created By') }}</TableHead>
+            <TableHead>{{ $t('Created At') }}</TableHead>
+            <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
           </TableRow>
         </TableHeader>
 

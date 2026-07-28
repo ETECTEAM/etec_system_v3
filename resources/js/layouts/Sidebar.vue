@@ -4,6 +4,7 @@ import { Link, usePage } from "@inertiajs/vue3";
 import { Pen } from "@lucide/vue";
 import { menuDomains } from "./menu";
 import BugAnnotationOverlay from "../components/ui/bug-annotation/BugAnnotationOverlay.vue";
+import { useI18n } from "@/i18n";
 
 const props = defineProps({
   open: {
@@ -19,6 +20,7 @@ const props = defineProps({
 const emit = defineEmits(["close"]);
 
 const page = usePage();
+const { t } = useI18n();
 
 const currentPath = computed(() => page.url ?? "/");
 const roles = computed(() => page.props.auth?.roles ?? []);
@@ -53,6 +55,7 @@ const menuItems = computed(() => {
   const base = [
     {
       label: "Dashboard",
+      labelKey: "navigation.dashboard",
       href: "/dashboard",
       match: ["/dashboard"],
       exact: true,
@@ -70,6 +73,10 @@ const menuItems = computed(() => {
 
   return [...singleItems, ...dropdownItems];
 });
+
+function menuLabel(item) {
+  return item.labelKey ? t(item.labelKey) : item.label;
+}
 
 function isActive(item) {
   const pathOnly = currentPath.value.split("?")[0].replace(/\/+$/, "") || "/";
@@ -154,9 +161,9 @@ function toggleDrawing(event) {
         >
           <div v-if="!props.collapsed">
             <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-gray-500">
-              ETEC
+              {{ t("app.brand") }}
             </p>
-            <p class="text-base font-semibold text-slate-900 dark:text-gray-100">Control Center</p>
+            <p class="text-base font-semibold text-slate-900 dark:text-gray-100">{{ t("app.controlCenter") }}</p>
           </div>
           <button
             type="button"
@@ -171,14 +178,14 @@ function toggleDrawing(event) {
 
         <nav class="mt-6 flex-1 overflow-y-auto">
           <p v-if="!props.collapsed" class="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-gray-500">
-            Navigation
+            {{ t("navigation.navigation") }}
           </p>
           <ul class="space-y-1.5">
             <li v-for="item in menuItems" :key="item.href ?? item.key">
               <template v-if="item.children">
                 <button
                   type="button"
-                  :title="props.collapsed ? item.label : ''"
+                  :title="props.collapsed ? menuLabel(item) : ''"
                   :class="[
                     'flex w-full items-center rounded-xl text-sm font-semibold transition',
                     props.collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2',
@@ -220,7 +227,7 @@ function toggleDrawing(event) {
                       <line x1="9" y1="3" x2="9" y2="21" />
                     </svg>
 
-                    <span v-if="!props.collapsed">{{ item.label }}</span>
+                    <span v-if="!props.collapsed">{{ menuLabel(item) }}</span>
                   </span>
 
                   <svg v-if="!props.collapsed" class="h-4 w-4 text-slate-400 transition dark:text-gray-500" :class="openMenus[item.key] ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
@@ -239,7 +246,7 @@ function toggleDrawing(event) {
                       :class="isActive(child) ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100'"
                       @click="emit('close')"
                     >
-                      <span>{{ child.label }}</span>
+                      <span>{{ menuLabel(child) }}</span>
                       <span class="text-xs text-slate-400 dark:text-gray-500">›</span>
                     </Link>
                   </li>
@@ -249,7 +256,7 @@ function toggleDrawing(event) {
               <Link
                 v-else
                 :href="item.href"
-                :title="props.collapsed ? item.label : ''"
+                :title="props.collapsed ? menuLabel(item) : ''"
                 :class="[
                   'flex items-center rounded-xl text-sm font-semibold transition',
                   props.collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2',
@@ -269,7 +276,7 @@ function toggleDrawing(event) {
                   <svg v-else class="h-4 w-4 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                   </svg>
-                  <span v-if="!props.collapsed">{{ item.label }}</span>
+                  <span v-if="!props.collapsed">{{ menuLabel(item) }}</span>
                 </span>
                 <span v-if="!props.collapsed" class="text-xs text-slate-400 dark:text-gray-500">›</span>
               </Link>
@@ -280,7 +287,7 @@ function toggleDrawing(event) {
         <div class="mt-4 border-t border-slate-200 pt-4 dark:border-gray-700">
           <button
             type="button"
-            :title="props.collapsed ? 'Draw on page' : ''"
+            :title="props.collapsed ? t('common.drawOnPage') : ''"
             :class="[
               'flex w-full items-center gap-2 rounded-xl border text-sm font-semibold transition',
               props.collapsed ? 'justify-center px-2 py-3' : 'px-3 py-2',
@@ -291,7 +298,7 @@ function toggleDrawing(event) {
             @click="toggleDrawing"
           >
             <Pen class="h-4 w-4" />
-            <span v-if="!props.collapsed">{{ isDrawing ? "Stop Drawing" : "Draw on Page" }}</span>
+            <span v-if="!props.collapsed">{{ isDrawing ? t("common.stopDrawing") : t("common.drawOnPage") }}</span>
           </button>
         </div>
       </div>

@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/table";
 import { ActionMenu } from "@/components/ui/menu";
 import { Pagination } from "@/components/ui/pagination";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 const props = defineProps({
     classTypes: Object,
@@ -52,14 +55,14 @@ const handleAction = (action, item) => {
             router.visit(`/dashboard/class-types/${item.class_type_id}/edit`);
             break;
         case "delete":
-            if (confirm("Are you sure you want to delete this class type?")) {
+            if (confirm(t("Are you sure you want to delete this class type?"))) {
                 router.delete(`/dashboard/class-types/${item.class_type_id}`, {
                     preserveScroll: true,
                     onSuccess: () => {},
                     onError: (errors) => {
                         console.error("Delete failed", errors);
                         alert(
-                            "Could not delete the class type. It may be in use.",
+                            t("Could not delete the class type. It may be in use."),
                         );
                     },
                 });
@@ -82,7 +85,7 @@ const handlePageChange = (page) => {
 </script>
 
 <template>
-    <Head title="Class Types" />
+    <Head :title="$t('Class Types')" />
     <DashboardLayout>
         <section class="space-y-6">
             <Breadcrumbs :items="breadcrumbItems" />
@@ -92,15 +95,15 @@ const handlePageChange = (page) => {
             >
                 <PageHero
                     eyebrow="Management"
-                    title="Class Types"
-                    description="Manage your class categories."
+                    :title="$t('Class Types')"
+                    :description="$t('Manage your class categories.')"
                 />
 
                 <Link
                     href="/dashboard/class-types/create"
                     class="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
                 >
-                    + Add New Class Type
+                    {{ $t('Add New Class Type') }}
                 </Link>
             </div>
 
@@ -109,16 +112,16 @@ const handlePageChange = (page) => {
             >
                 <input
                     v-model="search"
-                    placeholder="Search by name..."
+                    :placeholder="$t('Search by name...')"
                     class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                 />
                 <select
                     v-model="statusFilter"
                     class="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                 >
-                    <option value="all">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="all">{{ $t('All Status') }}</option>
+                    <option value="active">{{ $t('Active') }}</option>
+                    <option value="inactive">{{ $t('Inactive') }}</option>
                 </select>
             </div>
 
@@ -126,10 +129,10 @@ const handlePageChange = (page) => {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>ID</TableHead>
-                            <TableHead>Type Name</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead class="text-right">Actions</TableHead>
+                            <TableHead>{{ $t('ID') }}</TableHead>
+                            <TableHead>{{ $t('Type Name') }}</TableHead>
+                            <TableHead>{{ $t('Status') }}</TableHead>
+                            <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -150,7 +153,7 @@ const handlePageChange = (page) => {
                                     "
                                     class="px-2 py-0.5 rounded text-xs font-semibold"
                                 >
-                                    {{ item.is_active ? "Active" : "Inactive" }}
+                                    {{ item.is_active ? $t("Active") : $t("Inactive") }}
                                 </span>
                             </TableCell>
                             <TableCell class="text-right">
@@ -171,7 +174,7 @@ const handlePageChange = (page) => {
                             <TableCell
                                 colspan="4"
                                 class="text-center py-8 text-slate-400 dark:text-gray-500"
-                                >No class types found.</TableCell
+                                >{{ $t('No class types found.') }}</TableCell
                             >
                         </TableRow>
                     </TableBody>
@@ -181,10 +184,7 @@ const handlePageChange = (page) => {
                     class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40"
                 >
                     <p class="text-sm text-slate-500 dark:text-gray-400">
-                        Showing {{ classTypes.from ?? 0 }}–{{
-                            classTypes.to ?? 0
-                        }}
-                        of {{ classTypes.total ?? 0 }} entries
+                        {{ $t('Showing :from-:to of :total entries', { from: classTypes.from ?? 0, to: classTypes.to ?? 0, total: classTypes.total ?? 0 }) }}
                     </p>
 
                     <Pagination

@@ -17,12 +17,14 @@ export function build(ctx) {
 
   return {
     label: "Course Management",
+    labelKey: "navigation.courseManagement",
     key,
     match: ["/dashboard/course"],
     icon: "course",
     children: [
       {
         label: "Categories",
+        labelKey: "navigation.categories",
         href: "/dashboard/course/categories",
         match: ["/dashboard/course/categories"],
         exact: false,
@@ -30,6 +32,7 @@ export function build(ctx) {
       },
       {
         label: "Sub Categories",
+        labelKey: "navigation.subCategories",
         href: "/dashboard/course/subcategories",
         match: ["/dashboard/course/subcategories"],
         exact: false,
@@ -37,6 +40,7 @@ export function build(ctx) {
       },
       {
         label: "Tracks",
+        labelKey: "navigation.tracks",
         href: "/dashboard/course/tracks",
         match: ["/dashboard/course/tracks"],
         exact: false,
@@ -44,6 +48,7 @@ export function build(ctx) {
       },
       {
         label: "Courses",
+        labelKey: "navigation.courses",
         href: "/dashboard/course/courses",
         match: ["/dashboard/course/courses"],
         exact: false,
@@ -51,6 +56,7 @@ export function build(ctx) {
       },
       {
         label: "Lessons",
+        labelKey: "navigation.lessons",
         href: "/dashboard/course/lessons",
         match: ["/dashboard/course/lessons"],
         exact: false,

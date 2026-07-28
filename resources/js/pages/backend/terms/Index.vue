@@ -6,12 +6,14 @@ import Edit from './Edit.vue'
 import Create from './Create.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
+import { useI18n } from '../../../i18n'
 
 const props = defineProps({
   terms: Object,
   filters: Object,
 })
 
+const { t } = useI18n()
 const search = ref(props.filters.search ?? '')
 let timeout = null
 
@@ -34,7 +36,7 @@ watch(search, (value) => {
 })
 
 function deleteTerm(id) {
-if(confirm('Are you sur want to delete !?')){
+if(confirm(t('Are you sure you want to delete this term?'))){
   router.delete(`/dashboard/terms/${id}`, {
     preserveScroll: true
   })
@@ -88,7 +90,7 @@ const breadcrumbItems = [
 
       <!-- Breadcrumb (optional) -->
         <Breadcrumbs :items="breadcrumbItems" />
-        <PageHero eyebrow="Terms Management" title="Terms" description="Read, create, update, and delete terms records " />
+        <PageHero eyebrow="Terms Management" :title="$t('Terms')" :description="$t('Read, create, update, and delete terms records.')" />
 
 
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800">
@@ -103,7 +105,7 @@ const breadcrumbItems = [
               <input
                 v-model="search"
                 type="text"
-                placeholder="Search terms..."
+                :placeholder="$t('Search terms...')"
                 class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
               >
 
@@ -113,7 +115,7 @@ const breadcrumbItems = [
               @click="openCreateModal"
               class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-650 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
-              Create Term
+              {{ $t('Create Term') }}
             </button>
           </div>
 
@@ -125,9 +127,9 @@ const breadcrumbItems = [
 
             <thead>
               <tr class="bg-gray-50 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-800">
-                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">ID</th>
-                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">Term Name</th>
-                <th class="px-6 py-3 text-right text-slate-600 dark:text-gray-300">Actions</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('ID') }}</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('Term Name') }}</th>
+                <th class="px-6 py-3 text-right text-slate-600 dark:text-gray-300">{{ $t('Actions') }}</th>
               </tr>
             </thead>
 
@@ -151,14 +153,14 @@ const breadcrumbItems = [
                     @click="openEditModal(term)"
                     class="px-5 py-2 text-sm rounded-lg border border-blue-200 bg-blue-50 font-semibold text-blue-700  transition hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
                   >
-                    Edit
+                    {{ $t('Edit') }}
                   </button>
 
                   <button
                     @click="deleteTerm(term.id)"
                     class="px-5 py-2 text-sm rounded-lg border border-rose-200 bg-rose-50 font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
                   >
-                    Delete
+                    {{ $t('Delete') }}
                   </button>
 
                 </td>
@@ -167,7 +169,7 @@ const breadcrumbItems = [
               <!-- Empty -->
               <tr v-if="!terms?.data?.length">
                 <td colspan="3" class="py-10 text-center text-slate-500 dark:text-gray-400">
-                  {{ search ? `No results for "${search}"` : 'No terms found.' }}
+                  {{ search ? $t('No results for ":search"', { search }) : $t('No terms found.') }}
                 </td>
               </tr>
 
@@ -179,7 +181,7 @@ const breadcrumbItems = [
         <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
 
           <p class="text-sm text-slate-500 dark:text-gray-400">
-            Showing {{ terms.from }}–{{ terms.to }} of {{ terms.total }} terms
+            {{ $t('Showing :from-:to of :total terms', { from: terms.from, to: terms.to, total: terms.total }) }}
           </p>
 
           <div class="flex flex-wrap gap-2 text-sm">

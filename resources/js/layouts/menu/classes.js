@@ -12,12 +12,14 @@ export function isRoute(path) {
 export function build() {
   return {
     label: "Class Management",
+    labelKey: "navigation.classManagement",
     key,
     match: ["/class-types", "/dashboard/class-types", "/dashboard/class-list"],
     icon: "classes",
     children: [
       {
         label: "Class Type",
+        labelKey: "navigation.classType",
         href: "/dashboard/class-types",
         match: ["/dashboard/class-types", "/class-types"],
         exact: false,
@@ -27,6 +29,7 @@ export function build() {
       },
       {
         label: "Class List",
+        labelKey: "navigation.classList",
         href: "/dashboard/class-list",
         match: ["/dashboard/class-list"],
         exact: false,

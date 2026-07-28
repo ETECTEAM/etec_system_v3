@@ -4,11 +4,48 @@
 
 :root {
     --font-sans: 'Poppins', 'Siemreap', sans-serif;
+    --font-khmer: 'Siemreap', 'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif;
 }
 
 html,
 body {
     font-family: var(--font-sans);
+}
+
+html[lang="km"],
+html[lang="km"] body,
+html[lang="km"] button,
+html[lang="km"] input,
+html[lang="km"] select,
+html[lang="km"] textarea {
+    font-family: var(--font-khmer);
+}
+
+html[lang="km"] body,
+html[lang="km"] h1,
+html[lang="km"] h2,
+html[lang="km"] h3,
+html[lang="km"] h4,
+html[lang="km"] h5,
+html[lang="km"] h6,
+html[lang="km"] p,
+html[lang="km"] span,
+html[lang="km"] label,
+html[lang="km"] a,
+html[lang="km"] button,
+html[lang="km"] input,
+html[lang="km"] select,
+html[lang="km"] textarea,
+html[lang="km"] th,
+html[lang="km"] td,
+html[lang="km"] li {
+    line-height: 1.5;
+    letter-spacing: 0;
+}
+
+html[lang="km"] [class*="uppercase"],
+html[lang="km"] .uppercase {
+    text-transform: none;
 }
 
 /*

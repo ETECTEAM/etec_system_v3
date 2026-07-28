@@ -131,7 +131,7 @@ onUnmounted(() => {
                                 </h3>
                                 <p class="text-sm text-slate-500 mt-0.5 dark:text-gray-400">
                                     <span class="tabular-nums">#{{ classData?.id }}</span>
-                                    <span class="mx-1.5 text-slate-300 dark:text-gray-600">&middot;</span>
+                                    <span class="mx-1.5 text-slate-300 dark:text-gray-600">{{ $t('&middot;') }}</span>
                                     <span class="tabular-nums">{{ classData?.students }} / {{ classData?.capacity }} students</span>
                                 </p>
                             </div>
@@ -140,7 +140,7 @@ onUnmounted(() => {
                             type="button"
                             @click="emit('close')"
                             class="shrink-0 p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-800 dark:active:bg-gray-700"
-                            aria-label="Close dialog"
+                            :aria-label="$t('Close dialog')"
                         >
                             <X class="w-5 h-5" />
                         </button>

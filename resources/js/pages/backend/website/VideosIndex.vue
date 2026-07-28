@@ -5,6 +5,9 @@ import { Pencil, Play, Star, Trash2 } from "@lucide/vue";
 import DashboardLayout from "@/layouts/DashboardLayout.vue";
 import Breadcrumbs from "@/components/ui/breadcrumbs/Breadcrumbs.vue";
 import PageHero from "@/components/ui/page-hero/PageHero.vue";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 const props = defineProps({
   videos: Object,
@@ -40,7 +43,7 @@ function toggleVideo(video) {
 }
 
 function deleteVideo(video) {
-  if (!window.confirm(`Delete video "${video.title}"?`)) return;
+  if (!window.confirm(t('Delete video ":title"?', { title: video.title }))) return;
   router.delete(`/dashboard/website/videos/${video.id}`, { preserveScroll: true });
 }
 </script>
@@ -49,7 +52,7 @@ function deleteVideo(video) {
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbs" />
-      <PageHero eyebrow="Website Management" title="Video Management" description="Manage website videos, viewer thumbnails, playback details, and publishing status." />
+      <PageHero eyebrow="Website Management" :title="$t('Video Management')" :description="$t('Manage website videos, viewer thumbnails, playback details, and publishing status.')" />
 
       <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 lg:flex-row lg:items-center lg:justify-between dark:border-gray-800">
@@ -57,21 +60,21 @@ function deleteVideo(video) {
             <input
               v-model="search"
               type="text"
-              placeholder="Search videos..."
+              :placeholder="$t('Search videos...')"
               class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:w-72 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
             />
             <select
               v-model="status"
               class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
             >
-              <option value="">All videos</option>
-              <option value="active">Active videos</option>
-              <option value="inactive">Inactive videos</option>
-              <option value="featured">Featured videos</option>
+              <option value="">{{ $t('All videos') }}</option>
+              <option value="active">{{ $t('Active videos') }}</option>
+              <option value="inactive">{{ $t('Inactive videos') }}</option>
+              <option value="featured">{{ $t('Featured videos') }}</option>
             </select>
           </div>
           <Link href="/dashboard/website/videos/create" class="rounded-xl bg-blue-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-700">
-            Add New Video
+            {{ $t('Add New Video') }}
           </Link>
         </div>
 
@@ -79,14 +82,14 @@ function deleteVideo(video) {
           <table class="w-full min-w-[980px] text-sm">
             <thead>
               <tr class="border-b border-slate-200 bg-slate-50 text-left text-slate-600 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-300">
-                <th class="px-6 py-3">Video</th>
-                <th class="px-6 py-3">Duration</th>
-                <th class="px-6 py-3">Views</th>
-                <th class="px-6 py-3">Order</th>
-                <th class="px-6 py-3">Featured</th>
-                <th class="px-6 py-3">Status</th>
-                <th class="px-6 py-3">Created Date</th>
-                <th class="px-6 py-3 text-right">Actions</th>
+                <th class="px-6 py-3">{{ $t('Video') }}</th>
+                <th class="px-6 py-3">{{ $t('Duration') }}</th>
+                <th class="px-6 py-3">{{ $t('Views') }}</th>
+                <th class="px-6 py-3">{{ $t('Order') }}</th>
+                <th class="px-6 py-3">{{ $t('Featured') }}</th>
+                <th class="px-6 py-3">{{ $t('Status') }}</th>
+                <th class="px-6 py-3">{{ $t('Created Date') }}</th>
+                <th class="px-6 py-3 text-right">{{ $t('Actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -102,17 +105,17 @@ function deleteVideo(video) {
                     </div>
                     <div class="min-w-0">
                       <p class="truncate font-semibold text-slate-900 dark:text-gray-100">{{ video.title }}</p>
-                      <p class="mt-1 line-clamp-2 max-w-md text-xs text-slate-500 dark:text-gray-400">{{ video.description || "No description" }}</p>
+                      <p class="mt-1 line-clamp-2 max-w-md text-xs text-slate-500 dark:text-gray-400">{{ video.description || $t('No description') }}</p>
                     </div>
                   </div>
                 </td>
-                <td class="px-6 py-4 text-slate-600 dark:text-gray-300">{{ video.duration || "Not set" }}</td>
+                <td class="px-6 py-4 text-slate-600 dark:text-gray-300">{{ video.duration || $t('Not set') }}</td>
                 <td class="px-6 py-4 text-slate-600 dark:text-gray-300">{{ video.views_count }}</td>
                 <td class="px-6 py-4 text-slate-600 dark:text-gray-300">{{ video.sort_order }}</td>
                 <td class="px-6 py-4">
                   <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold" :class="video.is_featured ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300' : 'bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300'">
                     <Star class="h-3.5 w-3.5" />
-                    {{ video.is_featured ? "Featured" : "Standard" }}
+                    {{ video.is_featured ? $t('Featured') : $t('Standard') }}
                   </span>
                 </td>
                 <td class="px-6 py-4">
@@ -122,7 +125,7 @@ function deleteVideo(video) {
                     :class="video.is_active ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-300' : 'bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-300'"
                     @click="toggleVideo(video)"
                   >
-                    {{ video.is_active ? "Active" : "Inactive" }}
+                    {{ video.is_active ? $t('Active') : $t('Inactive') }}
                   </button>
                 </td>
                 <td class="px-6 py-4 text-slate-500 dark:text-gray-400">{{ video.created_at }}</td>
@@ -133,24 +136,24 @@ function deleteVideo(video) {
                       target="_blank"
                       rel="noreferrer"
                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
-                      title="Open video"
-                      aria-label="Open video"
+                      :title="$t('Open video')"
+                      :aria-label="$t('Open video')"
                     >
                       <Play class="h-4 w-4" />
                     </a>
                     <Link
                       :href="`/dashboard/website/videos/${video.id}/edit`"
                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
-                      title="Edit video"
-                      aria-label="Edit video"
+                      :title="$t('Edit video')"
+                      :aria-label="$t('Edit video')"
                     >
                       <Pencil class="h-4 w-4" />
                     </Link>
                     <button
                       type="button"
                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
-                      title="Delete video"
-                      aria-label="Delete video"
+                      :title="$t('Delete video')"
+                      :aria-label="$t('Delete video')"
                       @click="deleteVideo(video)"
                     >
                       <Trash2 class="h-4 w-4" />
@@ -160,7 +163,7 @@ function deleteVideo(video) {
               </tr>
               <tr v-if="!videos.data?.length">
                 <td colspan="8" class="px-6 py-12 text-center text-slate-500 dark:text-gray-400">
-                  No videos found.
+                  {{ $t('No videos found.') }}
                 </td>
               </tr>
             </tbody>
@@ -168,7 +171,7 @@ function deleteVideo(video) {
         </div>
 
         <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
-          <p class="text-sm text-slate-500 dark:text-gray-400">Showing {{ videos.from ?? 0 }}-{{ videos.to ?? 0 }} of {{ videos.total ?? 0 }} videos</p>
+          <p class="text-sm text-slate-500 dark:text-gray-400">{{ $t('Showing :from-:to of :total videos', { from: videos.from ?? 0, to: videos.to ?? 0, total: videos.total ?? 0 }) }}</p>
           <div class="flex flex-wrap gap-2 text-sm">
             <Link
               v-for="link in videos.links"

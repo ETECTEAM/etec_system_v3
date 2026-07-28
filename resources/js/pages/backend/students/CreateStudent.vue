@@ -47,7 +47,7 @@ function classList() {
     <div class="w-full">
       <div class="space-y-4 sm:space-y-5">
         <Breadcrumbs :items="breadcrumbItems" />
-        <PageHero title="Add Student" />
+        <PageHero :title="$t('Add Student')" />
 
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-center gap-4">
@@ -78,7 +78,7 @@ function classList() {
               @click="classList"
               class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
-              Class List
+              {{ $t('Class List') }}
             </button>
           </div>
         </div>
@@ -90,13 +90,13 @@ function classList() {
           <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
             <div>
               <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">
-                Student Name
+                {{ $t('Student Name') }}
               </label>
               <input
                 v-model="form.name"
                 type="text"
                 class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
-                placeholder="Enter student name"
+                :placeholder="$t('Enter student name')"
               />
               <p v-if="form.errors.name" class="mt-1 text-xs text-red-600">
                 {{ form.errors.name }}
@@ -105,15 +105,15 @@ function classList() {
 
             <div>
               <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">
-                Gender
+                {{ $t('Gender') }}
               </label>
               <select
                 v-model="form.gender"
                 class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
               >
-                <option value="">Select gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
+                <option value="">{{ $t('Select gender') }}</option>
+                <option value="male">{{ $t('Male') }}</option>
+                <option value="female">{{ $t('Female') }}</option>
               </select>
               <p v-if="form.errors.gender" class="mt-1 text-xs text-red-600">
                 {{ form.errors.gender }}
@@ -128,7 +128,7 @@ function classList() {
                 v-model="form.phone"
                 type="text"
                 class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
-                placeholder="Enter phone number"
+                :placeholder="$t('Enter phone number')"
               />
               <p v-if="form.errors.phone" class="mt-1 text-xs text-red-600">
                 {{ form.errors.phone }}
@@ -143,7 +143,7 @@ function classList() {
               class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
               <Save class="h-4 w-4" />
-              {{ form.processing ? "Saving..." : "Save Student" }}
+              {{ form.processing ? $t("Saving...") : $t("Save Student") }}
             </button>
           </div>
         </form>

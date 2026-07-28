@@ -4,15 +4,15 @@
 
             <!-- Breadcrumb -->
             <nav class="flex items-center gap-1.5 text-sm text-slate-400 mb-4">
-                <span>Dashboard</span>
+                <span>{{ $t('Dashboard') }}</span>
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                <span>Course</span>
+                <span>{{ $t('Course') }}</span>
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                <span class="text-slate-600 font-medium">Lessons</span>
+                <span class="text-slate-600 font-medium">{{ $t('Lessons') }}</span>
             </nav>
 
             <!-- Header -->
@@ -27,8 +27,8 @@
                         </svg>
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Lessons</h1>
-                        <p class="text-sm text-slate-500 mt-0.5">Read, create, update, and delete lesson records</p>
+                        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ $t('Lessons') }}</h1>
+                        <p class="text-sm text-slate-500 mt-0.5">{{ $t('Read, create, update, and delete lesson records') }}</p>
                     </div>
                 </div>
 
@@ -37,18 +37,18 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
-                    Add Lesson
+                    {{ $t('Add Lesson') }}
                 </Link>
             </div>
 
             <!-- Stats strip -->
             <div class="grid grid-cols-2 gap-3 mb-6">
                 <div class="bg-white rounded-xl border border-slate-200 px-4 py-3.5">
-                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Total</p>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">{{ $t('Total') }}</p>
                     <p class="text-xl font-bold text-slate-900 mt-1">{{ lessons.length }}</p>
                 </div>
                 <div class="bg-white rounded-xl border border-slate-200 px-4 py-3.5">
-                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Active</p>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">{{ $t('Active') }}</p>
                     <p class="text-xl font-bold text-emerald-600 mt-1">{{ activeCount }}</p>
                 </div>
             </div>
@@ -57,7 +57,7 @@
             <div class="bg-white border border-slate-200 rounded-xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <!-- Search -->
                 <div class="relative">
-                    <input v-model="filters.search" type="text" placeholder="Search lessons..."
+                    <input v-model="filters.search" type="text" :placeholder="$t('Search lessons...')"
                         class="w-full rounded-lg border border-slate-200 pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                         @input="applyFilters" />
                     <svg class="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +69,7 @@
                 <select v-model="filters.course_id"
                     class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                     @change="applyFilters">
-                    <option value="">All Courses</option>
+                    <option value="">{{ $t('All Courses') }}</option>
                     <option v-for="course in allCourses" :key="course.id" :value="course.id">{{ course.title }}</option>
                 </select>
 
@@ -77,9 +77,9 @@
                 <select v-model="filters.status"
                     class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                     @change="applyFilters">
-                    <option value="">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="">{{ $t('All Status') }}</option>
+                    <option value="active">{{ $t('Active') }}</option>
+                    <option value="inactive">{{ $t('Inactive') }}</option>
                 </select>
 
                 <!-- Reset Button -->
@@ -89,14 +89,14 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Reset Filters
+                    {{ $t('Reset Filters') }}
                 </button>
             </div>
 
             <!-- Results Count -->
             <div class="mb-3 text-sm text-slate-500">
-                Showing <strong class="text-slate-700">{{ paginatedLessons.length }}</strong> of
-                <strong class="text-slate-700">{{ filteredLessons.length }}</strong> lessons
+                {{ $t('Showing') }} <strong class="text-slate-700">{{ paginatedLessons.length }}</strong> {{ $t('of') }}
+                <strong class="text-slate-700">{{ filteredLessons.length }}</strong> {{ $t('lessons') }}
             </div>
 
             <!-- Lessons Table -->
@@ -105,13 +105,13 @@
                     <table class="w-full min-w-[640px]">
                         <thead class="bg-slate-50/80 border-b border-slate-200">
                             <tr>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5 w-12">No</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">Title</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">Course</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">Order</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">Duration</th>
-                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">Status</th>
-                                <th class="text-right text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">Actions</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5 w-12">{{ $t('No') }}</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">{{ $t('Title') }}</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">{{ $t('Course') }}</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">{{ $t('Order') }}</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">{{ $t('Duration') }}</th>
+                                <th class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">{{ $t('Status') }}</th>
+                                <th class="text-right text-xs font-semibold uppercase tracking-wider text-slate-500 px-4 py-3.5">{{ $t('Actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -123,12 +123,12 @@
                                 </td>
                                 <td class="px-4 py-3.5 text-sm text-slate-600">{{ lesson.course?.title }}</td>
                                 <td class="px-4 py-3.5 text-sm text-slate-600">{{ lesson.order_number || 0 }}</td>
-                                <td class="px-4 py-3.5 text-sm text-slate-600">{{ lesson.duration || 0 }} min</td>
+                                <td class="px-4 py-3.5 text-sm text-slate-600">{{ lesson.duration || 0 }} {{ $t('min') }}</td>
                                 <td class="px-4 py-3.5">
                                     <span class="inline-flex items-center gap-1.5 text-xs font-medium"
                                         :class="lesson.status === 'active' ? 'text-emerald-700' : 'text-rose-700'">
                                         <span class="w-1.5 h-1.5 rounded-full" :class="lesson.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'"></span>
-                                        {{ lesson.status === 'active' ? 'Active' : 'Inactive' }}
+                                        {{ lesson.status === 'active' ? $t('Active') : $t('Inactive') }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3.5 text-right">
@@ -139,7 +139,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                             </svg>
-                                            Edit
+                                            {{ $t('Edit') }}
                                         </Link>
                                         <button @click="confirmDelete(lesson)"
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 transition">
@@ -147,7 +147,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
-                                            Delete
+                                            {{ $t('Delete') }}
                                         </button>
                                     </div>
                                 </td>
@@ -161,11 +161,11 @@
                                             d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <p class="text-sm font-medium text-slate-600">No lessons yet</p>
-                                    <p class="text-xs text-slate-400 mt-1">Create your first lesson to get started</p>
+                                    <p class="text-sm font-medium text-slate-600">{{ $t('No lessons yet') }}</p>
+                                    <p class="text-xs text-slate-400 mt-1">{{ $t('Create your first lesson to get started') }}</p>
                                     <Link href="/dashboard/course/lessons/create"
                                         class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700">
-                                        + Add Lesson
+                                        + {{ $t('Add Lesson') }}
                                     </Link>
                                 </td>
                             </tr>
@@ -176,10 +176,10 @@
                                     <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
-                                    <p class="text-sm font-medium text-slate-600">No lessons match your filters</p>
-                                    <p class="text-xs text-slate-400 mt-1">Try adjusting or clearing your filters</p>
+                                    <p class="text-sm font-medium text-slate-600">{{ $t('No lessons match your filters') }}</p>
+                                    <p class="text-xs text-slate-400 mt-1">{{ $t('Try adjusting or clearing your filters') }}</p>
                                     <button @click="resetFilters" class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700">
-                                        Reset Filters
+                                        {{ $t('Reset Filters') }}
                                     </button>
                                 </td>
                             </tr>
@@ -206,21 +206,21 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-lg font-semibold text-slate-900">Delete lesson</h3>
+                        <h3 class="text-lg font-semibold text-slate-900">{{ $t('Delete lesson') }}</h3>
                         <p class="text-sm text-slate-600 mt-1">
-                            Are you sure you want to delete "<span class="font-medium text-slate-900">{{ deleteItem?.title }}</span>"?
-                            This action cannot be undone.
+                            {{ $t('Are you sure you want to delete') }} "<span class="font-medium text-slate-900">{{ deleteItem?.title }}</span>"?
+                            {{ $t('This action cannot be undone.') }}
                         </p>
                     </div>
                 </div>
                 <div class="flex justify-end gap-3 border-t border-slate-100 pt-4">
                     <button @click="showDeleteModal = false"
                         class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-xl transition">
-                        Cancel
+                        {{ $t('Cancel') }}
                     </button>
                     <button @click="deleteLesson"
                         class="px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition">
-                        Delete lesson
+                        {{ $t('Delete lesson') }}
                     </button>
                 </div>
             </div>

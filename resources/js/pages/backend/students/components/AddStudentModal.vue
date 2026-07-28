@@ -39,12 +39,12 @@ function submit() {
 <template>
   <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4">
     <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
-      <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">Add Student</h3>
+      <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Add Student') }}</h3>
 
       <div class="mt-4">
-        <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Student</label>
+        <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Student') }}</label>
         <select v-model="form.student_id" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">Select Student</option>
+          <option value="">{{ $t('Select Student') }}</option>
           <option v-for="student in students" :key="student.id" :value="student.id">
             {{ student.phone ? `${student.name} - ${student.phone}` : student.name }}
           </option>
@@ -54,10 +54,10 @@ function submit() {
 
       <div class="mt-6 flex justify-end gap-3">
         <button type="button" @click="close" class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-          Cancel
+          {{ $t('Cancel') }}
         </button>
         <button type="button" @click="submit" :disabled="form.processing" class="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500">
-          {{ form.processing ? "Adding..." : "Add Student" }}
+          {{ form.processing ? $t("Adding...") : $t("Add Student") }}
         </button>
       </div>
     </div>

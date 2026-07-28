@@ -3,12 +3,14 @@ import axios from 'axios'
 import { router, usePage } from '@inertiajs/vue3'
 import { useToast } from 'vue-toastification'
 import { useConfirm } from '../../../../composables/useConfirm'
+import { useI18n } from '../../../../i18n'
 
 // Owns user-list data fetching (axios, not Inertia props), delete confirmation, and flash-message toasts.
 // search/selectedRole are UI state owned by the component and passed in by ref, since typing in either refetches page 1.
 export function useUserIndex({ search, selectedRole }) {
   const toast = useToast()
   const { confirm } = useConfirm()
+  const { t } = useI18n()
   const page = usePage()
 
   const canCreateUser = page.props.canCreateUser ?? false
@@ -78,9 +80,9 @@ export function useUserIndex({ search, selectedRole }) {
 
   async function deleteUser(id) {
     const confirmed = await confirm({
-      title: 'Delete this user?',
-      message: 'This will permanently remove the account. This action cannot be undone.',
-      confirmText: 'Delete',
+      title: t('Delete this user?'),
+      message: t('This will permanently remove the account. This action cannot be undone.'),
+      confirmText: t('Delete'),
       danger: true,
     })
 

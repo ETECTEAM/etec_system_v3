@@ -135,14 +135,14 @@ function onSearch() {
       >
         <div>
           <Breadcrumbs :items="breadcrumbItems" class="mb-4" />
-          <PageHero title="Class List" />
+          <PageHero :title="$t('Class List')" />
         </div>
 
         <button
           @click="goCreateClass"
           class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
         >
-          <Plus class="w-4 h-4" /> Add EnRoll
+          <Plus class="w-4 h-4" /> {{ $t('Add Enroll') }}
         </button>
       </div>
 
@@ -156,7 +156,7 @@ function onSearch() {
       >
         <!-- Title -->
         <div>
-          <h1 class="text-xl font-bold text-slate-800 dark:text-gray-100">All Class</h1>
+          <h1 class="text-xl font-bold text-slate-800 dark:text-gray-100">{{ $t('All Class') }}</h1>
         </div>
 
         <!-- Actions -->
@@ -169,7 +169,7 @@ function onSearch() {
             <input
               v-model="search"
               type="text"
-              placeholder="Search student..."
+              :placeholder="$t('Search student...')"
               class="w-full rounded-xl border border-slate-300 py-2 pl-10 pr-4 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
             />
           </div>
@@ -180,7 +180,7 @@ function onSearch() {
             class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
           >
             <RotateCcw class="h-4 w-4" />
-            Reset
+            {{ $t('Reset') }}
           </button>
 
           <!-- Card -->
@@ -194,7 +194,7 @@ function onSearch() {
             ]"
           >
             <LayoutGrid class="h-4 w-4" />
-            Card
+            {{ $t('Card') }}
           </button>
 
           <!-- Table -->
@@ -208,7 +208,7 @@ function onSearch() {
             ]"
           >
             <Table2 class="h-4 w-4" />
-            Table
+            {{ $t('Table') }}
           </button>
         </div>
       </div>

@@ -281,15 +281,15 @@ function submit() {
   <div class="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-slate-200 p-4 sm:p-6 lg:p-8 dark:bg-gray-900 dark:border-gray-800">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
       <div>
-        <label class="font-semibold mb-2 block">Class Title</label>
-        <input v-model="form.title" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" placeholder="Web Design + React.js" />
+        <label class="font-semibold mb-2 block">{{ $t('Class Title') }}</label>
+        <input v-model="form.title" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" :placeholder="$t('Web Design + React.js')" />
         <p v-if="form.errors.title" class="mt-1 text-xs text-red-600">{{ form.errors.title }}</p>
       </div>
 
       <div>
-        <label class="font-semibold mb-2 block">Status</label>
+        <label class="font-semibold mb-2 block">{{ $t('Status') }}</label>
         <select v-model="form.class_type" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">Select Status</option>
+          <option value="">{{ $t('Select Status') }}</option>
           <option v-for="type in options.classTypes" :key="type" :value="type">{{ classTypeLabel(type) }}</option>
         </select>
         <p v-if="form.errors.class_type" class="mt-1 text-xs text-red-600">{{ form.errors.class_type }}</p>
@@ -299,15 +299,15 @@ function submit() {
       <input v-model="form.status" type="hidden" />
 
       <div>
-        <label class="font-semibold mb-2 block">Building</label>
+        <label class="font-semibold mb-2 block">{{ $t('Building') }}</label>
         <select v-model.number="form.building_id" :disabled="form.class_type === 'online'" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">Select Building</option>
+          <option value="">{{ $t('Select Building') }}</option>
           <option v-for="building in options.buildings" :key="building.id" :value="building.id">{{ building.name }}</option>
         </select>
       </div>
 
       <div>
-        <label class="font-semibold mb-2 block">Floor</label>
+        <label class="font-semibold mb-2 block">{{ $t('Floor') }}</label>
         <select v-model.number="form.floor_id" :disabled="form.class_type === 'online' || loading.floors || !form.building_id" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
           <option value="">{{ loading.floors ? "Loading..." : "Select Floor" }}</option>
           <option v-for="floor in floors" :key="floor.id" :value="floor.id">{{ floor.name }}</option>
@@ -315,7 +315,7 @@ function submit() {
       </div>
 
       <div>
-        <label class="font-semibold mb-2 block">Room</label>
+        <label class="font-semibold mb-2 block">{{ $t('Room') }}</label>
         <select v-model.number="form.room_id" :disabled="form.class_type === 'online' || loading.rooms || !form.floor_id" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
           <option value="">{{ loading.rooms ? "Loading..." : "Select Room" }}</option>
           <option v-for="room in rooms" :key="room.id" :value="room.id">{{ room.room_number }}</option>
@@ -324,26 +324,26 @@ function submit() {
       </div>
 
       <div>
-        <label class="font-semibold mb-2 block">Study Term</label>
+        <label class="font-semibold mb-2 block">{{ $t('Study Term') }}</label>
         <select v-model="selectedTerm" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">Select Term</option>
+          <option value="">{{ $t('Select Term') }}</option>
           <option v-for="term in terms" :key="term.id" :value="term.id">{{ term.term_name }}</option>
         </select>
       </div>
 
       <div>
-        <label class="font-semibold mb-2 block">Study Days</label>
+        <label class="font-semibold mb-2 block">{{ $t('Study Days') }}</label>
         <select v-model="selectedStudyDays" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">Select Study Days</option>
+          <option value="">{{ $t('Select Study Days') }}</option>
           <option v-for="day in studyDayOptions" :key="day.value" :value="day.value">{{ day.label }}</option>
         </select>
         <p v-if="form.errors.study_days" class="mt-1 text-xs text-red-600">{{ form.errors.study_days }}</p>
       </div>
 
       <div>
-        <label class="font-semibold mb-2 block">Study Time</label>
+        <label class="font-semibold mb-2 block">{{ $t('Study Time') }}</label>
         <select v-model="selectedTime" :disabled="!selectedTerm" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">Select Time</option>
+          <option value="">{{ $t('Select Time') }}</option>
           <option v-for="time in filteredTimes" :key="time.id" :value="time.id">{{ time.time_name }}</option>
         </select>
         <p v-if="form.errors.start_time" class="mt-1 text-xs text-red-600">{{ form.errors.start_time }}</p>
@@ -351,24 +351,24 @@ function submit() {
       </div>
 
       <div>
-        <label class="font-semibold mb-2 block">Capacity</label>
+        <label class="font-semibold mb-2 block">{{ $t('Capacity') }}</label>
         <input type="number" min="1" v-model="form.capacity" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
         <p v-if="form.errors.capacity" class="mt-1 text-xs text-red-600">{{ form.errors.capacity }}</p>
       </div>
 
       <div>
-        <label class="font-semibold mb-2 block">Price</label>
+        <label class="font-semibold mb-2 block">{{ $t('Price') }}</label>
         <input type="number" min="0" step="0.01" v-model="form.price" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
         <p v-if="form.errors.price" class="mt-1 text-xs text-red-600">{{ form.errors.price }}</p>
       </div>
 
       <div>
-        <label class="font-semibold mb-2 block">Start EnRoll</label>
+        <label class="font-semibold mb-2 block">{{ $t('Start EnRoll') }}</label>
         <input type="date" v-model="form.enrollment_start_date" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
       </div>
 
       <div>
-        <label class="font-semibold mb-2 block">Start Date</label>
+        <label class="font-semibold mb-2 block">{{ $t('Start Date') }}</label>
         <input type="date" v-model="form.start_date" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
         <p v-if="form.errors.start_date" class="mt-1 text-xs text-red-600">{{ form.errors.start_date }}</p>
       </div>
@@ -376,12 +376,12 @@ function submit() {
 
     <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-4 mt-6 sm:mt-8 lg:mt-10">
       <button @click="back" type="button" class="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700">
-        Cancel
+        {{ $t('Cancel') }}
       </button>
 
       <button @click="submit" type="button" :disabled="form.processing" class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500">
         <Save class="w-4 h-4" />
-        {{ form.processing ? "Saving..." : submitLabel }}
+        {{ form.processing ? $t("Saving...") : $t(submitLabel) }}
       </button>
     </div>
   </div>
