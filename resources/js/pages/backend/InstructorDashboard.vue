@@ -128,7 +128,18 @@ const classes = [
 
       <!-- My Classes -->
       <div v-if="instructorData">
-        <h2 class="text-lg font-bold text-slate-900 dark:text-gray-100">{{ $t('My Classes') }}</h2>
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold text-slate-900 dark:text-gray-100">{{ $t('My Classes') }}</h2>
+          <Link
+            href="/dashboard/instructor/classes/create"
+            class="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-900 px-4 text-sm font-semibold text-white transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            {{ $t('Create Class') }}
+          </Link>
+        </div>
 
         <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card v-for="cls in classes" :key="cls.classId" padding="p-5">
