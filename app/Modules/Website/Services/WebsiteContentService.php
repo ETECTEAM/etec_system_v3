@@ -132,7 +132,7 @@ class WebsiteContentService
 
         if ($category = trim((string) ($filters['category'] ?? ''))) {
             $query->whereHas('track.subCategory.category', function ($categoryQuery) use ($category): void {
-                $categoryQuery->where('slug', $category)->orWhere('name', $category);
+                $categoryQuery->where('name', $category);
             });
         }
 
@@ -177,7 +177,6 @@ class WebsiteContentService
             ->map(fn (Category $category): array => [
                 'id' => $category->id,
                 'name' => $category->name,
-                'slug' => $category->slug,
                 'sub_categories' => $category->subCategories
                     ->map(fn ($subCategory): array => [
                         'id' => $subCategory->id,

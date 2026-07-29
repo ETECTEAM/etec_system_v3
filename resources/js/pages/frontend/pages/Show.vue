@@ -80,7 +80,7 @@ const hasMoreCourses = computed(() => {
 });
 const categoryOptions = computed(() => props.courseFilters?.categories ?? []);
 const selectedCategoryData = computed(() =>
-  categoryOptions.value.find((category) => category.slug === selectedCategory.value || category.name === selectedCategory.value) ?? null
+  categoryOptions.value.find((category) => category.name === selectedCategory.value) ?? null
 );
 const allSubCategoryOptions = computed(() => {
   const subCategories = new Map();
@@ -269,7 +269,7 @@ watch([courseSearch, selectedCategory, selectedSubCategory], () => {
               Category
               <select v-model="selectedCategory" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-normal outline-none transition focus:border-[#1e5aa8] focus:ring-4 focus:ring-[#1e5aa8]/10">
                 <option value="">All categories</option>
-                <option v-for="category in categoryOptions" :key="category.id" :value="category.slug">{{ category.name }}</option>
+                <option v-for="category in categoryOptions" :key="category.id" :value="category.name">{{ category.name }}</option>
               </select>
             </label>
 
