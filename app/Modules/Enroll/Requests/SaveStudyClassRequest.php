@@ -2,6 +2,8 @@
 
 namespace App\Modules\Enroll\Requests;
 
+use App\Models\Course;
+use App\Models\Room;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -11,6 +13,25 @@ class SaveStudyClassRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user() !== null;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $course = $this->input('course_id')
+            ? Course::query()->find($this->input('course_id'))
+            : null;
+
+        $room = $this->input('room_id')
+            ? Room::query()->find($this->input('room_id'))
+            : null;
+
+        $this->merge([
+            'title' => $course?->title ?? $this->input('title'),
+            'price' => $course?->price ?? $this->input('price'),
+            'capacity' => $this->input('class_type') === 'physical'
+                ? ($room?->capacity ?? $this->input('capacity'))
+                : $this->input('capacity'),
+        ]);
     }
 
     public function rules(): array

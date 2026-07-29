@@ -1,7 +1,7 @@
 <script setup>
 import { router } from "@inertiajs/vue3";
 import { ArrowLeft } from "@lucide/vue";
-import { ref } from "vue";
+import { nextTick, ref } from "vue";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
@@ -12,6 +12,7 @@ import DepositTable from "./components/DepositTable.vue";
 import DepositSummaryCard from "./components/DepositSummaryCard.vue";
 import QuickActions from "./components/QuickActions.vue";
 import RecordDepositModal from "./components/RecordDepositModal.vue";
+import ReceiptPrint from "./components/ReceiptPrint.vue";
 
 const props = defineProps({
   classData: {
@@ -29,6 +30,7 @@ const props = defineProps({
 });
 
 const depositEnrollment = ref(null);
+const receiptStudent = ref(null);
 
 function openDeposit(enrollment) {
   depositEnrollment.value = enrollment;
@@ -36,6 +38,12 @@ function openDeposit(enrollment) {
 
 function addStudent() {
   router.get(`/dashboard/students/${props.classData.id}/students/create`);
+}
+
+async function printReceipt(student) {
+  receiptStudent.value = student;
+  await nextTick();
+  window.print();
 }
 
 const breadcrumbItems = [
@@ -80,7 +88,11 @@ function goBack() {
 
         <!-- Student Deposit Table -->
         <div class="mt-6">
-          <DepositTable :students="students" @record-deposit="openDeposit" />
+          <DepositTable
+            :students="students"
+            @record-deposit="openDeposit"
+            @print-receipt="printReceipt"
+          />
         </div>
 
         <RecordDepositModal
@@ -88,6 +100,8 @@ function goBack() {
           :enrollment="depositEnrollment"
           @close="depositEnrollment = null"
         />
+
+        <ReceiptPrint :classData="classData" :student="receiptStudent" />
       </template>
     </div>
   </DashboardLayout>

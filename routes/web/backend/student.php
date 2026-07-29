@@ -11,6 +11,8 @@ Route::middleware('auth')->prefix('/dashboard/students')->group(function (): voi
     Route::get('/view/{studyClass}', [EnRollController::class, 'show'])->name('students.show');
     Route::get('/edit/{studyClass}', [EnRollController::class, 'edit'])->name('students.edit');
     Route::put('/{studyClass}', [EnRollController::class, 'update'])->name('students.update');
+    Route::delete('/{studyClass}', [EnRollController::class, 'destroy'])->name('students.destroy');
+    Route::post('/{studyClass}/status', [EnRollController::class, 'updateStatus'])->name('students.status');
 
     Route::get('/buildings/{building}/floors', [EnRollController::class, 'floors'])->name('students.floors');
     Route::get('/floors/{floor}/rooms', [EnRollController::class, 'rooms'])->name('students.rooms');

@@ -15,7 +15,7 @@ const props = defineProps({
     default: () => [],
   },
 });
-const emit = defineEmits(["record-deposit"]);
+const emit = defineEmits(["record-deposit", "print-receipt"]);
 
 const search = ref("");
 function refresh() {
@@ -45,6 +45,16 @@ function statusBadge(status) {
     default:
       return "bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300";
   }
+}
+
+function formatGender(value) {
+  if (!value) return "—";
+
+  const normalized = String(value).toLowerCase();
+  if (normalized === "male") return "Male";
+  if (normalized === "female") return "Female";
+
+  return value;
 }
 </script>
 
@@ -115,7 +125,7 @@ function statusBadge(status) {
             <TableCell class="whitespace-nowrap font-medium text-slate-900 dark:text-gray-100">
               {{ student.name }}
             </TableCell>
-            <TableCell>{{ student.gender }}</TableCell>
+            <TableCell>{{ formatGender(student.gender) }}</TableCell>
             <TableCell class="whitespace-nowrap">
               {{ student.phone ?? "—" }}
             </TableCell>
@@ -145,12 +155,14 @@ function statusBadge(status) {
                   <Eye class="h-4 w-4" />
                 </button>
                 <button
+                  @click="emit('record-deposit', student)"
                   class="rounded-lg bg-amber-50 p-2 text-amber-600 transition-colors hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
                   :title="$t('Edit Deposit')"
                 >
                   <Pencil class="h-4 w-4" />
                 </button>
                 <button
+                  @click="emit('print-receipt', student)"
                   class="rounded-lg bg-slate-50 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                   :title="$t('Print Receipt')"
                 >

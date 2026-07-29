@@ -11,7 +11,7 @@ const props = defineProps({
   },
   options: {
     type: Object,
-    required: true,
+    default: () => ({}),
   },
   mode: {
     type: String,
@@ -19,11 +19,27 @@ const props = defineProps({
   },
 });
 
-const floors = ref([...(props.options.floors ?? [])]);
-const rooms = ref([...(props.options.rooms ?? [])]);
-const lessons = ref([...(props.options.lessons ?? [])]);
-const terms = ref([...(props.options.terms ?? [])]);
-const times = ref([...(props.options.times ?? [])]);
+const options = computed(() => ({
+  courses: props.options?.courses ?? [],
+  teachers: props.options?.teachers ?? [],
+  buildings: props.options?.buildings ?? [],
+  floors: props.options?.floors ?? [],
+  rooms: props.options?.rooms ?? [],
+  lessons: props.options?.lessons ?? [],
+  terms: props.options?.terms ?? [],
+  times: props.options?.times ?? [],
+  classTypes: props.options?.classTypes ?? [
+    { value: "physical", label: "Physical Class" },
+    { value: "online", label: "Online Class" },
+  ],
+  studyDays: props.options?.studyDays ?? [],
+}));
+
+const floors = ref([...options.value.floors]);
+const rooms = ref([...options.value.rooms]);
+const lessons = ref([...options.value.lessons]);
+const terms = ref([...options.value.terms]);
+const times = ref([...options.value.times]);
 const loading = ref({
   floors: false,
   rooms: false,
@@ -32,18 +48,6 @@ const loading = ref({
 
 const selectedTerm = ref("");
 const selectedTime = ref("");
-const selectedStudyDays = ref((props.classData?.study_days ?? []).join(","));
-
-const studyDayOptions = computed(() => {
-  const days = props.options.studyDays ?? [];
-
-  return [
-    ...days.map((day) => ({ label: day, value: day })),
-    { label: "Mon & Thu", value: "Monday,Thursday" },
-    { label: "Tue & Fri", value: "Tuesday,Friday" },
-    { label: "Sat & Sun", value: "Saturday,Sunday" },
-  ];
-});
 
 const dayMap = {
   Mon: "Monday",
@@ -67,14 +71,16 @@ const dayMap = {
 
 const form = useForm({
   title: props.classData?.title ?? "",
-  course_id: props.classData?.course_id ?? props.options.courses?.[0]?.id ?? "",
+  course_id: props.classData?.course_id ?? "",
   lesson_id: props.classData?.lesson_id ?? "",
   teacher_id: props.classData?.teacher_id ?? "",
   building_id: props.classData?.building_id ?? "",
   floor_id: props.classData?.floor_id ?? "",
   room_id: props.classData?.room_id ?? "",
+  term_id: props.classData?.term_id ?? "",
+  time_id: props.classData?.time_id ?? "",
   class_type: props.classData?.class_type ?? "physical",
-  status: props.classData?.status ?? "upcoming",
+  status: props.classData?.status ?? "active",
   study_days: props.classData?.study_days ?? [],
   start_time: props.classData?.start_time ?? "",
   end_time: props.classData?.end_time ?? "",
@@ -89,6 +95,14 @@ const submitLabel = computed(() => (props.mode === "edit" ? "Update Class" : "Sa
 
 const filteredTimes = computed(() =>
   times.value.filter((time) => !selectedTerm.value || String(time.term_id) === String(selectedTerm.value))
+);
+
+const selectedCourse = computed(() =>
+  options.value.courses.find((course) => String(course.id) === String(form.course_id))
+);
+
+const selectedRoom = computed(() =>
+  rooms.value.find((room) => String(room.id) === String(form.room_id))
 );
 
 function parseTimeText(value) {
@@ -142,12 +156,16 @@ function findSelectedTime() {
 }
 
 const matchedTime = findSelectedTime();
-selectedTerm.value = matchedTime?.term_id ?? "";
-selectedTime.value = matchedTime?.id ?? "";
+selectedTerm.value = props.classData?.term_id ?? matchedTime?.term_id ?? "";
+selectedTime.value = props.classData?.time_id ?? matchedTime?.id ?? "";
+form.term_id = selectedTerm.value;
+form.time_id = selectedTime.value;
 
 watch(
   selectedTime,
   (timeId) => {
+    form.time_id = timeId ?? "";
+
     const time = times.value.find((item) => String(item.id) === String(timeId));
     if (!time) {
       form.start_time = "";
@@ -156,25 +174,17 @@ watch(
     }
 
     const parsed = parseTimeOption(time);
-    if (parsed.studyDays.length) {
-      selectedStudyDays.value = parsed.studyDays.join(",");
-    }
+    form.study_days = parsed.studyDays;
     form.start_time = parsed.startTime;
     form.end_time = parsed.endTime;
   }
 );
 
 watch(
-  selectedStudyDays,
-  (value) => {
-    form.study_days = value ? value.split(",") : [];
-  },
-  { immediate: true }
-);
-
-watch(
   selectedTerm,
   (termId, oldTermId) => {
+    form.term_id = termId ?? "";
+
     if (oldTermId === undefined) return;
 
     const currentTime = times.value.find((time) => String(time.id) === String(selectedTime.value));
@@ -192,6 +202,10 @@ watch(
     }
 
     lessons.value = [];
+    const course = options.value.courses.find((item) => String(item.id) === String(courseId));
+    form.title = course?.title ?? "";
+    form.price = course?.price ?? 0;
+
     if (!courseId) return;
 
     loading.value.lessons = true;
@@ -201,6 +215,14 @@ watch(
     } finally {
       loading.value.lessons = false;
     }
+  }
+);
+
+watch(
+  () => form.room_id,
+  () => {
+    if (form.class_type === "online") return;
+    form.capacity = selectedRoom.value?.capacity ?? "";
   }
 );
 
@@ -255,12 +277,18 @@ watch(
       form.room_id = "";
       floors.value = [];
       rooms.value = [];
+      form.capacity = props.classData?.capacity ?? form.capacity ?? 20;
     }
   }
 );
 
 function classTypeLabel(type) {
+  if (typeof type === "object") return type.label;
   return type === "online" ? "Online Class" : "Physical Class";
+}
+
+function classTypeValue(type) {
+  return typeof type === "object" ? type.value : type;
 }
 
 function back() {
@@ -281,21 +309,25 @@ function submit() {
   <div class="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-slate-200 p-4 sm:p-6 lg:p-8 dark:bg-gray-900 dark:border-gray-800">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
       <div>
-        <label class="font-semibold mb-2 block">{{ $t('Class Title') }}</label>
-        <input v-model="form.title" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" :placeholder="$t('Web Design + React.js')" />
-        <p v-if="form.errors.title" class="mt-1 text-xs text-red-600">{{ form.errors.title }}</p>
+        <label class="font-semibold mb-2 block">{{ $t('Course') }}</label>
+        <select v-model.number="form.course_id" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
+          <option value="">{{ $t('Select Course') }}</option>
+          <option v-for="course in options.courses" :key="course.id" :value="course.id">{{ course.title }}</option>
+        </select>
+        <p v-if="form.errors.course_id || form.errors.title" class="mt-1 text-xs text-red-600">
+          {{ form.errors.course_id || form.errors.title }}
+        </p>
       </div>
 
       <div>
         <label class="font-semibold mb-2 block">{{ $t('Status') }}</label>
         <select v-model="form.class_type" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
           <option value="">{{ $t('Select Status') }}</option>
-          <option v-for="type in options.classTypes" :key="type" :value="type">{{ classTypeLabel(type) }}</option>
+          <option v-for="type in options.classTypes" :key="classTypeValue(type)" :value="classTypeValue(type)">{{ classTypeLabel(type) }}</option>
         </select>
         <p v-if="form.errors.class_type" class="mt-1 text-xs text-red-600">{{ form.errors.class_type }}</p>
       </div>
 
-      <input v-model="form.course_id" type="hidden" />
       <input v-model="form.status" type="hidden" />
 
       <div>
@@ -332,15 +364,6 @@ function submit() {
       </div>
 
       <div>
-        <label class="font-semibold mb-2 block">{{ $t('Study Days') }}</label>
-        <select v-model="selectedStudyDays" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">{{ $t('Select Study Days') }}</option>
-          <option v-for="day in studyDayOptions" :key="day.value" :value="day.value">{{ day.label }}</option>
-        </select>
-        <p v-if="form.errors.study_days" class="mt-1 text-xs text-red-600">{{ form.errors.study_days }}</p>
-      </div>
-
-      <div>
         <label class="font-semibold mb-2 block">{{ $t('Study Time') }}</label>
         <select v-model="selectedTime" :disabled="!selectedTerm" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
           <option value="">{{ $t('Select Time') }}</option>
@@ -352,13 +375,13 @@ function submit() {
 
       <div>
         <label class="font-semibold mb-2 block">{{ $t('Capacity') }}</label>
-        <input type="number" min="1" v-model="form.capacity" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
+        <input type="number" min="1" v-model="form.capacity" :readonly="form.class_type !== 'online'" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" :class="form.class_type !== 'online' ? 'bg-slate-50 text-slate-500 dark:bg-gray-800/60 dark:text-gray-400' : ''" />
         <p v-if="form.errors.capacity" class="mt-1 text-xs text-red-600">{{ form.errors.capacity }}</p>
       </div>
 
       <div>
         <label class="font-semibold mb-2 block">{{ $t('Price') }}</label>
-        <input type="number" min="0" step="0.01" v-model="form.price" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
+        <input type="number" min="0" step="0.01" v-model="form.price" readonly class="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-500 dark:border-gray-600 dark:bg-gray-800/60 dark:text-gray-400" />
         <p v-if="form.errors.price" class="mt-1 text-xs text-red-600">{{ form.errors.price }}</p>
       </div>
 

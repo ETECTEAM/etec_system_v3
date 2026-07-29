@@ -22,11 +22,16 @@ import DashboardLayout from "@/layouts/DashboardLayout.vue";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHero } from "@/components/ui/page-hero";
 import { useI18n } from "@/i18n";
+import ClassForm from "./components/ClassForm.vue";
 
 const toast = useToast();
 const { t } = useI18n();
 
 const props = defineProps({
+    options: {
+        type: Object,
+        default: () => ({}),
+    },
     courses: { type: Array, default: () => [] },
     lessons: { type: Array, default: () => [] },
     teachers: { type: Array, default: () => [] },
@@ -45,6 +50,30 @@ const props = defineProps({
         ],
     },
 });
+
+const normalizedOptions = computed(() => ({
+    courses: props.options?.courses ?? props.courses ?? [],
+    lessons: props.options?.lessons ?? props.lessons ?? [],
+    teachers: props.options?.teachers ?? props.teachers ?? [],
+    buildings: props.options?.buildings ?? props.buildings ?? [],
+    floors: props.options?.floors ?? props.floors ?? [],
+    rooms: props.options?.rooms ?? props.rooms ?? [],
+    terms: props.options?.terms ?? props.terms ?? [],
+    times: props.options?.times ?? props.times ?? [],
+    classTypes: props.options?.classTypes ?? [
+        { value: "physical", label: "Physical Class" },
+        { value: "online", label: "Online Class" },
+    ],
+    studyDays: props.options?.studyDays ?? [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ],
+}));
 
 // ─── Form ───────────────────────────────────────────────────────────────
 const form = useForm({
@@ -232,170 +261,7 @@ const visibleInputClass =
                 </button>
             </div>
 
-            <form @submit.prevent="submit" :class="formCardClass">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
-
-                    <!-- Title -->
-                    <div>
-                        <label :class="fieldLabelClass">
-                            {{ $t('Class Title') }}
-                        </label>
-                        <input
-                            v-model="form.title"
-                            :class="visibleInputClass"
-                            :placeholder="$t('Web Design + React.js')"/>
-                    </div>
-
-                    <!-- Lesson -->
-
-                    <!-- <div>
-                        <label class="font-semibold mb-2 block">
-                            {{ $t('Lesson') }}
-                        </label>
-                        <input
-                            v-model="form.lesson"
-                            class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                            :placeholder="$t('Bootstrap')"/>
-                    </div> -->
-
-                    <!-- Status -->
-                    <div>
-                        <label :class="fieldLabelClass">
-                            {{ $t('Status') }}
-                        </label>
-                        <select v-model="form.status" :class="visibleInputClass">
-                            <option value="">
-                                {{ $t('Select Status') }}
-                            </option>
-                            <option value="Physical Class">
-                                {{ $t('Physical Class') }}
-                            </option>
-                            <option value="Online Class">
-                                {{ $t('Online Class') }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <!-- Building -->
-
-                    <div>
-                        <label :class="fieldLabelClass">
-                            {{ $t('Building') }}
-                        </label>
-
-                        <select v-model="form.building" :class="visibleInputClass">
-                            <option>
-                                Building A
-                            </option>
-                            <option>
-                                Building B
-                            </option>
-                            <option>
-                                Building C
-                            </option>
-                        </select>
-                    </div>
-
-                    <!-- Floor -->
-                    <div>
-                        <label :class="fieldLabelClass">
-                            {{ $t('Floor') }}
-                        </label>
-                        <select v-model="form.floor" :class="visibleInputClass">
-                            <option>
-                                Floor 1
-                            </option>
-                            <option>
-                                Floor 2
-                            </option>
-                            <option>
-                                Floor 3
-                            </option>
-                        </select>
-                    </div>
-
-                    <!-- Room -->
-                    <div>
-                        <label :class="fieldLabelClass">
-                            {{ $t('Room') }}
-                        </label>
-                        <input v-model="form.room" :class="visibleInputClass" :placeholder="$t('B101')"/>
-                    </div>
-
-                    <!-- Term -->
-                    <div>
-                        <label :class="fieldLabelClass">
-                            {{ $t('Study Days') }}
-                        </label>
-                        <input  v-model="form.term" :class="visibleInputClass" :placeholder="$t('Mon & Thu')"/>
-                    </div>
-
-                    <!-- Time -->
-                    <div>
-                        <label :class="fieldLabelClass">
-                            {{ $t('Study Time') }}
-                        </label>
-                        <input v-model="form.time" :class="visibleInputClass" :placeholder="$t('09:00 AM - 10:30 AM')"/>
-                    </div>
-
-                    <!-- Capacity -->
-                    <div>
-                        <label :class="fieldLabelClass">
-                            {{ $t('Capacity') }}
-                        </label>
-                        <input type="number" min="1" v-model="form.capacity" :class="visibleInputClass"/>
-                    </div>
-
-                    <div>
-                        <label :class="fieldLabelClass">{{ $t('Price') }}</label>
-                        <input type="number" min="1" v-model="form.price" :class="visibleInputClass"/>
-                    </div>
-
-                    <div>
-                        <label :class="fieldLabelClass">{{ $t('Start EnRoll') }}</label>
-                        <input type="date" min="1" v-model="form.startEnroll" :class="visibleInputClass"/>
-                    </div>
-
-                    <div>
-                        <label :class="fieldLabelClass">{{ $t('Start Date') }}</label>
-                        <input type="date" min="1" v-model="form.startDate" :class="visibleInputClass"/>
-                    </div>
-                </div>
-                <!-- Footer -->
-
-                <div class="mt-8 flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end dark:border-gray-800">
-
-                    <button
-                        type="button"
-                        @click="back"
-                        class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
-
-                        {{ $t('Cancel') }}
-
-                    </button>
-
-                    <button
-                        type="submit"
-                        :disabled="form.processing"
-                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-500">
-
-                        <Save class="w-4 h-4"/>
-
-                        {{ form.processing ? $t('Saving...') : $t('Save Class') }}
-
-                    </button>
-
-                </div>
-
-            </form>
-
-            <!-- ── Date validation warning ─────────────────────────────── -->
-            <div
-                v-if="dateError"
-                class="rounded-xl border border-amber-200 bg-amber-50 p-4"
-            >
-                <p class="text-sm text-amber-800">{{ dateError }}</p>
-            </div>
+            <ClassForm :options="normalizedOptions" mode="create" />
 
             <!-- ── Form ────────────────────────────────────────────────── -->
             <!-- Kept for future use. Enable this template when the full create-class form is needed again. -->

@@ -3,6 +3,7 @@
 namespace App\Modules\Enroll\Queries;
 
 use App\Models\Building;
+use App\Models\ClassType;
 use App\Models\Course;
 use App\Models\CourseLesson;
 use App\Models\Floor;
@@ -33,7 +34,7 @@ class GetClassFormOptions
             'lessons' => $courseId ? $this->lessons($courseId) : [],
             'terms' => $this->terms(),
             'times' => $this->times(),
-            'classTypes' => self::CLASS_TYPES,
+            'classTypes' => $this->classTypes(),
             'statuses' => self::STATUSES,
             'studyDays' => self::STUDY_DAYS,
         ];
@@ -87,5 +88,36 @@ class GetClassFormOptions
             ->orderBy('time_name')
             ->get()
             ->all();
+    }
+
+    public function classTypes(): array
+    {
+        $types = ClassType::query()
+            ->where('is_active', true)
+            ->select('class_type_id', 'type_name')
+            ->orderBy('class_type_id')
+            ->get()
+            ->map(function (ClassType $type): ?array {
+                $name = strtolower($type->type_name);
+
+                if (str_contains($name, 'online')) {
+                    return ['value' => 'online', 'label' => $type->type_name];
+                }
+
+                if (str_contains($name, 'physical')) {
+                    return ['value' => 'physical', 'label' => $type->type_name];
+                }
+
+                return null;
+            })
+            ->filter()
+            ->unique('value')
+            ->values()
+            ->all();
+
+        return $types ?: [
+            ['value' => 'physical', 'label' => 'Physical Class'],
+            ['value' => 'online', 'label' => 'Online Class'],
+        ];
     }
 }
