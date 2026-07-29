@@ -18,7 +18,9 @@ class MenuController extends Controller
     {
         abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
 
-        $query = Menu::query()->with('page:id,title,slug,is_active');
+        $query = Menu::query()
+            ->with(['page:id,title,slug,is_active', 'parent:id,name'])
+            ->withCount('children');
 
         if ($search = $request->string('search')->toString()) {
             $query->where(fn ($q) => $q
@@ -27,12 +29,24 @@ class MenuController extends Controller
         }
 
         return Inertia::render('backend/website/MenusIndex', [
-            'menus' => $query->orderBy('position')->orderBy('id')->paginate(10)->withQueryString()->through(fn (Menu $menu): array => [
+            'menus' => $query->orderByRaw('COALESCE(parent_id, id)')
+                ->orderByRaw('parent_id IS NOT NULL')
+                ->orderBy('position')
+                ->orderBy('id')
+                ->paginate(10)
+                ->withQueryString()
+                ->through(fn (Menu $menu): array => [
                 'id' => $menu->id,
                 'name' => $menu->name,
+                'parent_id' => $menu->parent_id,
+                'children_count' => $menu->children_count,
                 'position' => $menu->position,
                 'is_active' => $menu->is_active,
                 'resolved_url' => $menu->resolved_url,
+                'parent' => $menu->parent ? [
+                    'id' => $menu->parent->id,
+                    'name' => $menu->parent->name,
+                ] : null,
                 'page' => $menu->page ? [
                     'id' => $menu->page->id,
                     'title' => $menu->page->title,
@@ -41,6 +55,7 @@ class MenuController extends Controller
                 ] : null,
             ]),
             'pages' => $this->pageOptions(),
+            'parentMenus' => $this->parentMenuOptions(),
             'filters' => ['search' => $search],
         ]);
     }
@@ -52,6 +67,7 @@ class MenuController extends Controller
         return Inertia::render('backend/website/MenuForm', [
             'menu' => null,
             'pages' => $this->pageOptions(),
+            'parentMenus' => $this->parentMenuOptions(),
         ]);
     }
 
@@ -59,7 +75,7 @@ class MenuController extends Controller
     {
         Menu::create([
             ...$request->safe()->except('position'),
-            'position' => (Menu::max('position') ?? 0) + 1,
+            'position' => (Menu::where('parent_id', $request->input('parent_id'))->max('position') ?? 0) + 1,
         ]);
 
         return redirect('/dashboard/website/menus')->with('success', 'Menu created successfully.');
@@ -69,11 +85,12 @@ class MenuController extends Controller
     {
         abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
 
-        $menu->load('page:id,title,slug,is_active');
+        $menu->load(['page:id,title,slug,is_active', 'parent:id,name']);
 
         return Inertia::render('backend/website/MenuForm', [
             'menu' => $menu,
             'pages' => $this->pageOptions(),
+            'parentMenus' => $this->parentMenuOptions($menu),
         ]);
     }
 
@@ -138,6 +155,24 @@ class MenuController extends Controller
                 'title' => $page->title,
                 'slug' => $page->slug,
                 'is_active' => $page->is_active,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function parentMenuOptions(?Menu $editing = null): array
+    {
+        return Menu::query()
+            ->whereNull('parent_id')
+            ->when($editing, fn ($query) => $query->whereKeyNot($editing->id))
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Menu $menu): array => [
+                'id' => $menu->id,
+                'name' => $menu->name,
             ])
             ->all();
     }

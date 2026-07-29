@@ -77,7 +77,7 @@ class PageController extends Controller
         $page = DB::transaction(function () use ($request): Page {
             $page = Page::create([
                 'title' => $request->validated('title'),
-                'slug' => Str::slug($request->validated('slug')),
+                'slug' => $this->uniqueSlug($request->validated('title')),
                 'is_active' => $request->boolean('is_active'),
             ]);
 
@@ -112,7 +112,7 @@ class PageController extends Controller
         DB::transaction(function () use ($request, $page): void {
             $page->update([
                 'title' => $request->validated('title'),
-                'slug' => Str::slug($request->validated('slug')),
+                'slug' => $this->uniqueSlug($request->validated('title'), $page),
                 'is_active' => $request->boolean('is_active'),
             ]);
 
@@ -153,6 +153,23 @@ class PageController extends Controller
         $page->update(['is_active' => $validated['is_active']]);
 
         return back()->with('success', $page->is_active ? 'Page activated successfully.' : 'Page deactivated successfully.');
+    }
+
+    private function uniqueSlug(string $title, ?Page $page = null): string
+    {
+        $baseSlug = Str::slug($title) ?: 'page';
+        $slug = $baseSlug;
+        $suffix = 2;
+
+        while (Page::query()
+            ->where('slug', $slug)
+            ->when($page, fn ($query) => $query->whereKeyNot($page->id))
+            ->exists()) {
+            $slug = "{$baseSlug}-{$suffix}";
+            $suffix++;
+        }
+
+        return $slug;
     }
 
     public function removeHeroImage(Request $request, Page $page): RedirectResponse

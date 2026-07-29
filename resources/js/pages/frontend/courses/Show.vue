@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
 import { CheckCircle2, Menu, X } from "@lucide/vue";
 import FrontendFooter from "@/components/frontend/FrontendFooter.vue";
+import FrontendMenuLinks from "@/components/frontend/FrontendMenuLinks.vue";
 
 const props = defineProps({
   course: {
@@ -36,10 +37,7 @@ const activeLessons = computed(() => props.course.lessons ?? []);
         </Link>
 
         <nav class="hidden items-center gap-1 lg:flex">
-          <Link href="/" class="rounded-full px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-[#1e5aa8]/10 hover:text-[#1e5aa8]">Home</Link>
-          <Link v-for="item in menus.filter((menu) => menu.slug !== 'home')" :key="item.id" :href="item.url" class="rounded-full px-4 py-2 text-sm font-bold transition hover:bg-[#1e5aa8]/10 hover:text-[#1e5aa8]" :class="['course', 'courses'].includes(item.slug) ? 'bg-[#1e5aa8]/10 text-[#1e5aa8]' : 'text-slate-700'">
-            {{ item.name }}
-          </Link>
+          <FrontendMenuLinks :menus="menus" :active-slugs="['course', 'courses']" />
         </nav>
 
         <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 lg:hidden" aria-label="Toggle menu" :aria-expanded="menuOpen" @click="menuOpen = !menuOpen">
@@ -49,10 +47,7 @@ const activeLessons = computed(() => props.course.lessons ?? []);
       </div>
 
       <nav v-if="menuOpen" class="mx-4 mb-4 grid gap-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl lg:hidden">
-        <Link href="/" class="block rounded-xl px-4 py-3 text-center text-sm font-bold text-slate-700 transition hover:bg-[#1e5aa8]/10 hover:text-[#1e5aa8]" @click="menuOpen = false">Home</Link>
-        <Link v-for="item in menus.filter((menu) => menu.slug !== 'home')" :key="item.id" :href="item.url" class="block rounded-xl px-4 py-3 text-center text-sm font-bold transition hover:bg-[#1e5aa8]/10 hover:text-[#1e5aa8]" :class="['course', 'courses'].includes(item.slug) ? 'bg-[#1e5aa8]/10 text-[#1e5aa8]' : 'text-slate-700'" @click="menuOpen = false">
-          {{ item.name }}
-        </Link>
+        <FrontendMenuLinks :menus="menus" :active-slugs="['course', 'courses']" mobile @navigate="menuOpen = false" />
       </nav>
     </header>
 

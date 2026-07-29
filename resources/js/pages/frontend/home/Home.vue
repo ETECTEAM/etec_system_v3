@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
 import { CalendarDays, ChevronLeft, ChevronRight, GraduationCap, Menu, Search, Users, X } from "@lucide/vue";
 import FrontendFooter from "@/components/frontend/FrontendFooter.vue";
+import FrontendMenuLinks from "@/components/frontend/FrontendMenuLinks.vue";
 
 const props = defineProps({
   courses: {
@@ -161,10 +162,7 @@ onBeforeUnmount(() => {
         </Link>
 
         <nav class="hidden items-center gap-1 lg:flex">
-          <Link href="/" class="rounded-full bg-[#1e5aa8]/10 px-4 py-2 text-sm font-bold text-[#1e5aa8] transition hover:bg-[#1e5aa8]/10 hover:text-[#1e5aa8]">Home</Link>
-          <Link v-for="item in menus.filter((menu) => menu.slug !== 'home')" :key="item.id" :href="item.url" class="rounded-full px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-[#1e5aa8]/10 hover:text-[#1e5aa8]">
-            {{ item.name }}
-          </Link>
+          <FrontendMenuLinks :menus="menus" home-active />
         </nav>
 
         <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 lg:hidden" aria-label="Toggle menu" @click="menuOpen = !menuOpen">
@@ -174,10 +172,7 @@ onBeforeUnmount(() => {
       </div>
 
       <nav v-if="menuOpen" class="mx-4 mb-4 grid gap-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl lg:hidden">
-        <Link href="/" class="block rounded-xl bg-[#1e5aa8]/10 px-4 py-3 text-center text-sm font-bold text-[#1e5aa8] transition hover:bg-[#1e5aa8]/10 hover:text-[#1e5aa8]">Home</Link>
-        <Link v-for="item in menus.filter((menu) => menu.slug !== 'home')" :key="item.id" :href="item.url" class="block rounded-xl px-4 py-3 text-center text-sm font-bold text-slate-700 transition hover:bg-[#1e5aa8]/10 hover:text-[#1e5aa8]">
-          {{ item.name }}
-        </Link>
+        <FrontendMenuLinks :menus="menus" home-active mobile @navigate="menuOpen = false" />
       </nav>
     </header>
 

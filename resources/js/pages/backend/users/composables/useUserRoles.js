@@ -1,6 +1,5 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
-import { useToast } from 'vue-toastification'
 import { formatRole } from '../../../../lib/roleBadge'
 import { useConfirm } from '../../../../composables/useConfirm'
 import { useSaveForm } from '../../../../composables/useSaveForm'
@@ -27,17 +26,8 @@ function sameItems(a, b) {
 // selectedRoleId/userSearch/permissionSearch/matrixPage/showCreateModal/showOnlyChecked are UI state owned by the component, passed in by ref.
 export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, matrixPage, showCreateModal, showOnlyChecked }) {
   const page = usePage()
-  const toast = useToast()
   const { confirm } = useConfirm()
   const { t } = useI18n()
-
-  watch(() => page.props.flash, (flash) => {
-    if (flash?.success) {
-      toast.success(flash.success)
-    } else if (flash?.error) {
-      toast.error(flash.error)
-    }
-  }, { deep: true })
 
   const isSuperAdmin = computed(() => (page.props.auth?.roles ?? []).includes('super_admin'))
   const roles = computed(() => page.props.roles ?? [])

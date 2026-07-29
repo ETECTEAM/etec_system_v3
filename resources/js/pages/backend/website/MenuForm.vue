@@ -14,11 +14,16 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  parentMenus: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const isEditing = computed(() => Boolean(props.menu));
 const form = useForm({
   name: props.menu?.name ?? "",
+  parent_id: props.menu?.parent_id ?? "",
   page_id: props.menu?.page_id ?? props.menu?.page?.id ?? "",
   is_active: props.menu?.is_active ?? true,
 });
@@ -67,6 +72,18 @@ function submit() {
               </option>
             </select>
             <p v-if="form.errors.page_id" class="mt-1 text-sm text-rose-600">{{ form.errors.page_id }}</p>
+          </div>
+
+          <div>
+            <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Base Menu') }}</label>
+            <select v-model="form.parent_id" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+              <option value="">{{ $t('Top-level menu') }}</option>
+              <option v-for="parent in parentMenus" :key="parent.id" :value="parent.id">
+                {{ parent.name }}
+              </option>
+            </select>
+            <p class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ $t('Choose a base menu when this item should appear as a submenu.') }}</p>
+            <p v-if="form.errors.parent_id" class="mt-1 text-sm text-rose-600">{{ form.errors.parent_id }}</p>
           </div>
 
           <label class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50">

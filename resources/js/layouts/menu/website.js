@@ -23,20 +23,20 @@ export function build(ctx) {
         isActive: (path) => path.startsWith("/dashboard/website/school-settings"),
       },
       {
-        label: "Menu Management",
-        labelKey: "navigation.menuManagement",
-        href: "/dashboard/website/menus",
-        match: ["/dashboard/website/menus"],
-        exact: false,
-        isActive: (path) => path.startsWith("/dashboard/website/menus"),
-      },
-      {
         label: "Page Management",
         labelKey: "navigation.pageManagement",
         href: "/dashboard/website/pages",
         match: ["/dashboard/website/pages"],
         exact: false,
         isActive: (path) => path.startsWith("/dashboard/website/pages"),
+      },
+      {
+        label: "Menu Management",
+        labelKey: "navigation.menuManagement",
+        href: "/dashboard/website/menus",
+        match: ["/dashboard/website/menus"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/website/menus"),
       },
       {
         label: "Video Management",

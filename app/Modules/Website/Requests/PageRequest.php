@@ -38,13 +38,7 @@ class PageRequest extends FormRequest
 
         return [
             'title' => ['required', 'string', 'max:255'],
-            'slug' => [
-                'required',
-                'string',
-                'max:255',
-                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
-                Rule::unique('pages', 'slug')->ignore($pageId),
-            ],
+            'slug' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
             'hero_is_active' => ['boolean'],
             'hero_title' => ['nullable', 'string', 'max:255'],

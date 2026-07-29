@@ -73,7 +73,7 @@ onMounted(() => {
   fetchNotifications()
 
   notificationsChannel = getEcho()
-    .private('admin-notifications')
+    ?.private('admin-notifications')
     .listen('.notifications.updated', fetchNotifications)
 })
 

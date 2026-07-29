@@ -76,7 +76,7 @@ onMounted(() => {
     pollTimer = setInterval(fetchNotifications, NOTIFICATIONS_POLL_MS)
 
     notificationsChannel = getEcho()
-      .private('admin-notifications')
+      ?.private('admin-notifications')
       .listen('.notifications.updated', fetchNotifications)
   }
 

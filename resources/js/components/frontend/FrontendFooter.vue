@@ -32,9 +32,14 @@ const currentYear = computed(() => new Date().getFullYear());
       <div>
         <h4 class="font-black text-white">Quick Links</h4>
         <nav class="mt-3 grid gap-2">
-          <Link v-for="item in menus" :key="item.id" :href="item.url" class="hover:text-[#f4a261]">
-            {{ item.name }}
-          </Link>
+          <div v-for="item in menus" :key="item.id" class="grid gap-1">
+            <Link :href="item.url" class="hover:text-[#f4a261]">
+              {{ item.name }}
+            </Link>
+            <Link v-for="child in item.children ?? []" :key="child.id" :href="child.url" class="pl-3 text-sm text-slate-400 hover:text-[#f4a261]">
+              {{ child.name }}
+            </Link>
+          </div>
         </nav>
       </div>
     </div>

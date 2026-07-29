@@ -30,7 +30,14 @@ class WebsiteContentService
     public function publicMenus(): array
     {
         return Menu::query()
-            ->with('page:id,title,slug,is_active')
+            ->with([
+                'page:id,title,slug,is_active',
+                'children' => fn ($query) => $query
+                    ->with('page:id,title,slug,is_active')
+                    ->where('is_active', true)
+                    ->whereHas('page', fn ($pageQuery) => $pageQuery->where('is_active', true)),
+            ])
+            ->whereNull('parent_id')
             ->where('is_active', true)
             ->whereHas('page', fn ($query) => $query->where('is_active', true))
             ->orderBy('position')
@@ -42,6 +49,13 @@ class WebsiteContentService
                 'position' => $menu->position,
                 'url' => $menu->resolved_url,
                 'slug' => $menu->page?->slug,
+                'children' => $menu->children->map(fn (Menu $child): array => [
+                    'id' => $child->id,
+                    'name' => $child->name,
+                    'position' => $child->position,
+                    'url' => $child->resolved_url,
+                    'slug' => $child->page?->slug,
+                ])->values()->all(),
             ])
             ->values()
             ->all();

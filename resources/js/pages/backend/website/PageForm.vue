@@ -61,10 +61,9 @@ function slugify(value) {
 watch(
   () => form.title,
   (title) => {
-    if (!isEditing.value && !form.slug) {
-      form.slug = slugify(title);
-    }
+    form.slug = slugify(title);
   },
+  { immediate: true },
 );
 
 watch(
@@ -114,7 +113,7 @@ function submit() {
     ? `/dashboard/website/pages/${props.pageData.id}`
     : "/dashboard/website/pages";
 
-  form.slug = slugify(form.slug || form.title);
+  form.slug = slugify(form.title);
   form.post(url, {
     forceFormData: true,
     preserveScroll: true,
@@ -147,8 +146,9 @@ function submit() {
                 <label class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Page Slug') }}</label>
                 <div class="flex rounded-xl border border-slate-300 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100 dark:border-gray-700 dark:focus-within:ring-blue-500/20">
                   <span class="border-r border-slate-200 px-4 py-3 text-sm text-slate-500 dark:border-gray-700 dark:text-gray-400">/</span>
-                  <input v-model="form.slug" type="text" class="min-w-0 flex-1 rounded-r-xl border-0 px-4 py-3 text-sm outline-none dark:bg-gray-800 dark:text-gray-100" @blur="form.slug = slugify(form.slug)" />
+                  <input :value="form.slug" type="text" readonly class="min-w-0 flex-1 rounded-r-xl border-0 bg-slate-50 px-4 py-3 text-sm text-slate-500 outline-none dark:bg-gray-800/60 dark:text-gray-400" />
                 </div>
+                <p class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ $t('Slug is generated from the page title.') }}</p>
                 <p v-if="form.errors.slug" class="mt-1 text-sm text-rose-600">{{ form.errors.slug }}</p>
               </div>
 

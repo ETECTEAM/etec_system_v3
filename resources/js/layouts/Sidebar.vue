@@ -1,8 +1,9 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import { Link, usePage } from "@inertiajs/vue3";
+import { usePage } from "@inertiajs/vue3";
 import { Pen } from "@lucide/vue";
 import { menuDomains } from "./menu";
+import SidebarMenuTree from "./SidebarMenuTree.vue";
 import BugAnnotationOverlay from "../components/ui/bug-annotation/BugAnnotationOverlay.vue";
 import { useI18n } from "@/i18n";
 
@@ -74,8 +75,8 @@ const menuItems = computed(() => {
   return [...singleItems, ...dropdownItems];
 });
 
-function menuLabel(item) {
-  return item.labelKey ? t(item.labelKey) : item.label;
+function itemKey(item, parentKey = "root") {
+  return `${parentKey}:${item.key ?? item.href ?? item.labelKey ?? item.label}`;
 }
 
 function isActive(item) {
@@ -113,13 +114,26 @@ function toggleMenu(key) {
   openMenus.value[key] = !openMenus.value[key];
 }
 
-watch(currentPath, (path) => {
-  for (const domain of menuDomains) {
-    if (domain.key && domain.isRoute?.(path)) {
-      openMenus.value[domain.key] = true;
+function openActiveMenus(items = menuItems.value, parentKey = "root") {
+  for (const item of items) {
+    if (!item.children) continue;
+
+    const key = itemKey(item, parentKey);
+
+    if (isChildActive(item.children)) {
+      openMenus.value[key] = true;
+      openActiveMenus(item.children, key);
     }
   }
+}
+
+watch(currentPath, () => {
+  openActiveMenus();
 });
+
+watch(menuItems, () => {
+  openActiveMenus();
+}, { immediate: true });
 
 const isDrawing = ref(false);
 
@@ -180,108 +194,16 @@ function toggleDrawing(event) {
           <p v-if="!props.collapsed" class="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-gray-500">
             {{ t("navigation.navigation") }}
           </p>
-          <ul class="space-y-1.5">
-            <li v-for="item in menuItems" :key="item.href ?? item.key">
-              <template v-if="item.children">
-                <button
-                  type="button"
-                  :title="props.collapsed ? menuLabel(item) : ''"
-                  :class="[
-                    'flex w-full items-center rounded-xl text-sm font-semibold transition',
-                    props.collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2',
-                    isChildActive(item.children) ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100',
-                  ]"
-                  @click="toggleMenu(item.key)"
-                >
-                  <span class="flex flex-1 items-center gap-2 text-left">
-                    <svg v-if="item.icon === 'course'" class="h-4 w-4 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
-                      <path d="M8 7h8" />
-                      <path d="M8 11h6" />
-                      <path d="M8 15h4" />
-                    </svg>
-
-                    <svg v-else-if="item.icon === 'classes'" class="h-4 w-4 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
-                      <path d="M8 7h8" />
-                      <path d="M8 11h6" />
-                      <path d="M8 15h4" />
-                      <path d="M6 6h10M6 10h10" />
-                    </svg>
-
-                    <svg v-else-if="item.icon === 'user'" class="h-4 w-4 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M16 19a4 4 0 0 0-8 0" />
-                      <circle cx="12" cy="7" r="3" />
-                      <path d="M20 8v6" />
-                      <path d="M23 11h-6" />
-                    </svg>
-
-                    <svg v-else-if="item.icon === 'building_management'" class="h-4 w-4 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
-                      <line x1="9" y1="22" x2="9" y2="16" />
-                      <line x1="15" y1="22" x2="15" y2="16" />
-                    </svg>
-
-                    <svg v-else class="h-4 w-4 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                      <line x1="9" y1="3" x2="9" y2="21" />
-                    </svg>
-
-                    <span v-if="!props.collapsed">{{ menuLabel(item) }}</span>
-                  </span>
-
-                  <svg v-if="!props.collapsed" class="h-4 w-4 text-slate-400 transition dark:text-gray-500" :class="openMenus[item.key] ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
-                  </svg>
-                </button>
-
-                <ul
-                  v-if="openMenus[item.key] && !props.collapsed"
-                  class="ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3 dark:border-gray-700"
-                >
-                  <li v-for="child in item.children" :key="child.href ?? child.key">
-                    <Link
-                      :href="child.href"
-                      class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition"
-                      :class="isActive(child) ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100'"
-                      @click="emit('close')"
-                    >
-                      <span>{{ menuLabel(child) }}</span>
-                      <span class="text-xs text-slate-400 dark:text-gray-500">›</span>
-                    </Link>
-                  </li>
-                </ul>
-              </template>
-
-              <Link
-                v-else
-                :href="item.href"
-                :title="props.collapsed ? menuLabel(item) : ''"
-                :class="[
-                  'flex items-center rounded-xl text-sm font-semibold transition',
-                  props.collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2',
-                  isActive(item) ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100',
-                ]"
-                @click="emit('close')"
-              >
-                <span class="flex items-center gap-2">
-                  <svg v-if="item.icon === 'notification'" class="h-4 w-4 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                  </svg>
-                  <svg v-else-if="item.icon === 'home'" class="h-4 w-4 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                    <polyline points="9 22 9 12 15 12 15 22" />
-                  </svg>
-                  <svg v-else class="h-4 w-4 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  </svg>
-                  <span v-if="!props.collapsed">{{ menuLabel(item) }}</span>
-                </span>
-                <span v-if="!props.collapsed" class="text-xs text-slate-400 dark:text-gray-500">›</span>
-              </Link>
-            </li>
-          </ul>
+          <SidebarMenuTree
+            :items="menuItems"
+            :open-menus="openMenus"
+            :collapsed="props.collapsed"
+            :is-active="isActive"
+            :is-child-active="isChildActive"
+            :item-key="itemKey"
+            @close="emit('close')"
+            @toggle="toggleMenu"
+          />
         </nav>
 
         <div class="mt-4 border-t border-slate-200 pt-4 dark:border-gray-700">

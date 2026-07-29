@@ -4,6 +4,7 @@ import { Link, usePage } from "@inertiajs/vue3";
 import axios from "axios";
 import { Mail, MapPin, Menu, Phone, Search, X } from "@lucide/vue";
 import FrontendFooter from "@/components/frontend/FrontendFooter.vue";
+import FrontendMenuLinks from "@/components/frontend/FrontendMenuLinks.vue";
 
 const props = defineProps({
   pageData: {
@@ -215,10 +216,7 @@ watch([courseSearch, selectedCategory, selectedSubCategory], () => {
         </Link>
 
         <nav class="hidden items-center gap-1 lg:flex">
-          <Link href="/" class="rounded-full px-4 py-2 text-sm font-bold transition hover:bg-[#1e5aa8]/10 hover:text-[#1e5aa8]" :class="activeSlug === 'home' ? 'bg-[#1e5aa8]/10 text-[#1e5aa8]' : 'text-slate-700'">Home</Link>
-          <Link v-for="menu in menus.filter((item) => item.slug !== 'home')" :key="menu.id" :href="menu.url" class="rounded-full px-4 py-2 text-sm font-bold transition hover:bg-[#1e5aa8]/10 hover:text-[#1e5aa8]" :class="menu.slug === activeSlug ? 'bg-[#1e5aa8]/10 text-[#1e5aa8]' : 'text-slate-700'">
-            {{ menu.name }}
-          </Link>
+          <FrontendMenuLinks :menus="menus" :active-slug="activeSlug" :home-active="activeSlug === 'home'" />
         </nav>
 
         <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 lg:hidden" aria-label="Toggle menu" @click="menuOpen = !menuOpen">
@@ -228,10 +226,7 @@ watch([courseSearch, selectedCategory, selectedSubCategory], () => {
       </div>
 
       <nav v-if="menuOpen" class="mx-4 mb-4 grid gap-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl lg:hidden">
-        <Link href="/" class="block rounded-xl px-4 py-3 text-center text-sm font-bold transition hover:bg-[#1e5aa8]/10 hover:text-[#1e5aa8]" :class="activeSlug === 'home' ? 'bg-[#1e5aa8]/10 text-[#1e5aa8]' : 'text-slate-700'">Home</Link>
-        <Link v-for="menu in menus.filter((item) => item.slug !== 'home')" :key="menu.id" :href="menu.url" class="block rounded-xl px-4 py-3 text-center text-sm font-bold transition hover:bg-[#1e5aa8]/10 hover:text-[#1e5aa8]" :class="menu.slug === activeSlug ? 'bg-[#1e5aa8]/10 text-[#1e5aa8]' : 'text-slate-700'">
-          {{ menu.name }}
-        </Link>
+        <FrontendMenuLinks :menus="menus" :active-slug="activeSlug" :home-active="activeSlug === 'home'" mobile @navigate="menuOpen = false" />
       </nav>
     </header>
 

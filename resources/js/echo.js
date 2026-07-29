@@ -8,6 +8,10 @@ let echoInstance = null
 export function getEcho() {
   if (echoInstance) return echoInstance
 
+  if (!import.meta.env.VITE_REVERB_APP_KEY) {
+    return null
+  }
+
   window.Pusher = Pusher
 
   echoInstance = new Echo({

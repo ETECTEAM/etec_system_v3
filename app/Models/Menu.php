@@ -4,11 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Menu extends Model
 {
     protected $fillable = [
         'name',
+        'parent_id',
         'page_id',
         'position',
         'is_active',
@@ -16,6 +18,7 @@ class Menu extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'parent_id' => 'integer',
         'position' => 'integer',
     ];
 
@@ -26,6 +29,16 @@ class Menu extends Model
     public function page(): BelongsTo
     {
         return $this->belongsTo(Page::class);
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Menu::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(Menu::class, 'parent_id')->orderBy('position')->orderBy('id');
     }
 
     public function getResolvedUrlAttribute(): ?string
