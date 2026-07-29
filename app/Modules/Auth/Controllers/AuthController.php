@@ -7,14 +7,18 @@ use App\Http\Controllers\Controller;
 use App\Models\InstructorData;
 use App\Models\User;
 use App\Modules\Auth\Events\PendingUserRegistered;
+use App\Modules\Auth\Notifications\PasswordChangedNotification;
 use App\Modules\Instructor\Services\InstructorService;
 use App\Modules\User\Services\UserService;
+use App\Modules\Auth\Requests\ForgotPasswordRequest;
 use App\Modules\Auth\Requests\LoginWebRequest;
 use App\Modules\Auth\Requests\RegisterWebRequest;
+use App\Modules\Auth\Requests\ResetPasswordRequest;
 use App\Modules\Auth\Requests\VerifyCodeRequest;
 use App\Modules\Auth\Responses\VerificationResponse;
 use App\Modules\Auth\Services\AuthAuditService;
 use App\Modules\Auth\Services\AuthService;
+use App\Modules\Auth\Services\LoginLockoutService;
 use App\Modules\Auth\Services\OtpService;
 use App\Modules\User\Services\UserApprovalService;
 use Illuminate\Http\JsonResponse;
@@ -23,6 +27,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -38,6 +46,7 @@ class AuthController extends Controller
         private readonly OtpService $otpService,
         private readonly UserApprovalService $approvalService,
         private readonly AuthAuditService $auditService,
+        private readonly LoginLockoutService $lockoutService,
     ) {}
 
     public function showLogin(): Response
@@ -45,6 +54,7 @@ class AuthController extends Controller
         return Inertia::render('auth/Login');
     }
 
+    // Instructor signup lives here, not /register (the frontend student flow).
     public function showRegister(): Response
     {
         return Inertia::render('auth/Register');
@@ -65,10 +75,7 @@ class AuthController extends Controller
                 'status' => 'pending',
             ]);
 
-            // Create instructor role if not exists
             Role::findOrCreate('instructor', 'web');
-
-            // Assign Spatie role instructor
             $user->syncRoles(['instructor']);
 
             InstructorData::create([
@@ -88,6 +95,7 @@ class AuthController extends Controller
 
         $this->auditService->log($user, 'user.registered', $request->ip());
 
+        // Status gates access until verified.
         Auth::login($user);
         $request->session()->regenerate();
 
@@ -98,19 +106,19 @@ class AuthController extends Controller
         }
 
         $request->session()->put('pending_verification_user_id', $user->id);
-
         PendingUserRegistered::dispatch($user, $otp, $plainCode);
 
         return redirect('/code-verify')
             ->with('success', 'Registration received. Enter your verification code to activate your account.');
     }
 
+    // Reused by both registration and pending-status login, so no guest restriction.
     public function showVerifyCode(Request $request): Response|RedirectResponse
     {
         $pendingUserId = $request->session()->get('pending_verification_user_id');
         $user = $pendingUserId ? User::query()->find($pendingUserId) : null;
 
-        // If the session expired but the pending user is logged in, rebuild it.
+        // Session expired but still logged in as the pending user - rebuild it.
         if (! $user && $request->user() && $request->user()->status !== UserStatus::Active) {
             $user = $request->user();
             $request->session()->put('pending_verification_user_id', $user->id);
@@ -134,6 +142,7 @@ class AuthController extends Controller
         ]);
     }
 
+    // Rate-limited to slow code-guessing.
     public function verifyCodeApi(VerifyCodeRequest $request): JsonResponse
     {
         $data = $request->toData();
@@ -174,50 +183,171 @@ class AuthController extends Controller
 
         Auth::login($user);
         $request->session()->regenerate();
-
         $request->session()->forget('pending_verification_user_id');
 
         return VerificationResponse::verified($this->redirectPathFor($user));
     }
 
-    public function loginWeb(LoginWebRequest $request): RedirectResponse
-{
-    $data = $request->toData();
+    public function loginWeb(LoginWebRequest $request): RedirectResponse|JsonResponse
+    {
+        $data = $request->toData();
+        $loginKey = Str::lower($data->login); // convert email uppercase to lowercase
+        // dd($loginKey);
 
-    $user = $this->authService->findUserForLogin($data->login);
+        // Account-wide ban, independent of IP - checked first so a banned
+        // account can't burn through attempts from a new IP.
+        if ($this->lockoutService->isBanned($loginKey)) {
+            return $this->bannedResponse($request, $loginKey);
+        }
 
-    if (! $user) {
-        $this->auditService->log(null, 'login.failed', $request->ip(), [
-            'reason' => 'email_not_found',
-            'login' => $data->login,
-        ]);
+        // Once an account has ever tripped a lockout, every wrong attempt
+        // escalates immediately (iPhone-style); only the first-ever lockout
+        // needs a burst of free attempts. See hasOffenseHistory().
+        $hasOffenseHistory = $this->lockoutService->hasOffenseHistory($loginKey);
 
-        throw ValidationException::withMessages([
-            'login' => ['Email not found.'],
-        ]);
-    }
+        // login+IP bucket only matters pre-first-lockout; once the account-wide
+        // ban is active, rotating IPs no longer helps an attacker.
+        $limiterKey = $loginKey.'|'.$request->ip();
 
-        if (! Hash::check($data->password, $user->password)) {
+        if (! $hasOffenseHistory) {
+            $freeAttempts = $this->lockoutService->freeAttempts();
+
+            if (RateLimiter::tooManyAttempts($limiterKey, $freeAttempts)) {
+                $seconds = RateLimiter::availableIn($limiterKey);
+
+                throw ValidationException::withMessages([
+                    'login' => ["Too many login attempts. Please try again in {$seconds} seconds."],
+                ]);
+            }
+        }
+
+        $user = $this->authService->findUserForLogin($data->login);
+
+        // Hash::check() always runs, against a dummy hash if no user, so a
+        // nonexistent login takes as long as a real one (no timing leak).
+        $dummyHash = config('auth.dummy_password_hash');
+        $passwordMatches = Hash::check($data->password, $user?->password ?? $dummyHash);
+
+        if (! $user || ! $passwordMatches) {
+            if ($hasOffenseHistory) {
+                $this->lockoutService->registerFailure($loginKey);
+            } else {
+                RateLimiter::hit($limiterKey, 60);
+
+                if (RateLimiter::attempts($limiterKey) >= $this->lockoutService->freeAttempts()) {
+                    $this->lockoutService->registerFailure($loginKey);
+                }
+            }
+
+            // Generic message for both cases; real reason only goes to the audit log.
             $this->auditService->log($user, 'login.failed', $request->ip(), [
-                'reason' => 'invalid_password',
+                'reason' => $user ? 'invalid_password' : 'email_not_found',
+                'login' => $data->login,
             ]);
+
+            if ($this->lockoutService->isBanned($loginKey)) {
+                return $this->bannedResponse($request, $loginKey);
+            }
 
             throw ValidationException::withMessages([
                 'login' => ['These credentials do not match our records.'],
             ]);
         }
 
+        // Status only revealed after password check, so it can't be probed without valid credentials.
         if ($user->status === UserStatus::Inactive) {
             throw ValidationException::withMessages(['login' => ['Your account is inactive. Please contact administrator.']]);
         }
+
+        if ($user->status === UserStatus::Rejected) {
+            throw ValidationException::withMessages(['login' => ['Your registration was rejected. Please contact support.']]);
+        }
+
+        // Non-active (e.g. pending) still needs OTP/approval instead of logging in.
+        if ($user->status !== UserStatus::Active) {
+            $request->session()->put('pending_verification_user_id', $user->id);
+
+            return redirect('/code-verify')
+                ->with('success', 'Please verify your account before logging in.');
+        }
+
+        RateLimiter::clear($limiterKey);
+        $this->lockoutService->clear($loginKey);
 
         Auth::login($user, $data->remember);
         $user->forceFill(['last_login_at' => now()])->save();
         $request->session()->regenerate();
 
-    return redirect($this->redirectPathFor($user))
-        ->with('success', 'Logged in successfully.');
-}
+        return redirect($this->redirectPathFor($user))
+            ->with('success', 'Logged in successfully.');
+    }
+
+    public function showForgotPassword(): Response
+    {
+        return Inertia::render('auth/ForgotPassword');
+    }
+
+    public function sendResetLink(ForgotPasswordRequest $request): RedirectResponse
+    {
+        $data = $request->toData();
+
+        $status = Password::sendResetLink(['email' => $data->email]);
+
+        // Same generic outcome either way, so this can't be used to enumerate accounts.
+        if (! in_array($status, [Password::RESET_LINK_SENT, Password::INVALID_USER], true)) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
+        }
+
+        return redirect('/forgot-password')
+            ->with('success', 'If an account exists for that email, a password reset link has been sent.');
+    }
+
+    public function showResetPassword(Request $request, string $token): Response
+    {
+        return Inertia::render('auth/ResetPassword', [
+            'token' => $token,
+            'email' => $request->query('email', ''),
+        ]);
+    }
+
+    public function resetPassword(ResetPasswordRequest $request): RedirectResponse
+    {
+        $data = $request->toData();
+        $resetUser = null;
+
+        $status = Password::reset(
+            [
+                'email' => $data->email,
+                'password' => $data->password,
+                'password_confirmation' => $data->passwordConfirmation,
+                'token' => $data->token,
+            ],
+            function (User $user) use ($data, &$resetUser): void {
+                $user->forceFill(['password' => $data->password])->save();
+                $resetUser = $user;
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
+        }
+
+        // Reaching this required a verified recovery email, so clear lockout
+        // history and kill every other session for this account.
+        $this->lockoutService->clear(Str::lower($data->email));
+        DB::table('sessions')->where('user_id', $resetUser->id)->delete();
+
+        if ($resetUser->recovery_email) {
+            Notification::route('mail', $resetUser->recovery_email)
+                ->notify(new PasswordChangedNotification($resetUser->email));
+        }
+
+        return redirect('/login')->with('success', 'Your password has been reset. Please sign in.');
+    }
 
     public function logoutWeb(Request $request): RedirectResponse
     {
@@ -235,5 +365,31 @@ class AuthController extends Controller
         }
 
         return '/login';
+    }
+
+    // Shared by the upfront isBanned() check and the failure branch that just
+    // tripped it, so both report the same message immediately.
+    private function bannedResponse(Request $request, string $loginKey): RedirectResponse|JsonResponse
+    {
+        $seconds = $this->lockoutService->secondsRemaining($loginKey);
+
+        // Past the last tier the account is hard-blocked, not timed.
+        $isHardBlock = $this->lockoutService->isHardBlocked($loginKey);
+        $message = $isHardBlock
+            ? 'Your account has been blocked due to repeated failed login attempts. Contact an administrator or wait for it to reset automatically.'
+            : "Too many failed login attempts. Please try again in {$seconds} seconds.";
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'retry_after' => $seconds,
+                'is_hard_block' => $isHardBlock,
+            ], 429, ['Retry-After' => (string) $seconds]);
+        }
+
+        return back()
+            ->withErrors(['login' => $message])
+            ->with(['error' => $message, 'retryAfter' => $seconds, 'isHardBlock' => $isHardBlock])
+            ->header('Retry-After', (string) $seconds);
     }
 }

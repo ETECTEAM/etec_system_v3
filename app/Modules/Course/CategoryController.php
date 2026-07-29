@@ -7,7 +7,6 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
@@ -36,7 +35,6 @@ class CategoryController extends Controller
 
         Category::create([
             'name' => $validated['name'],
-            'slug' => Str::slug($validated['name']),
             'status' => $validated['status'] ?? 'active'  // Change: use 'status'
         ]);
 
@@ -59,7 +57,6 @@ class CategoryController extends Controller
 
         $category->update([
             'name' => $validated['name'],
-            'slug' => Str::slug($validated['name']),
             'status' => $validated['status'] ?? 'active'  // Change: use 'status'
         ]);
 

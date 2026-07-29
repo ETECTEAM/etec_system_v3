@@ -35,13 +35,13 @@ const confirmDelete = () => {
 </script>
 
 <template>
-  <Head title="Delete Class" />
+  <Head :title="$t('Delete Class')" />
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
       <PageHero
         eyebrow="Management"
-        title="Delete Class"
+        :title="$t('Delete Class')"
         description="Confirm permanent removal of this class entry."
       />
 
@@ -52,11 +52,11 @@ const confirmDelete = () => {
             This action cannot be undone.
           </p>
           <div class="rounded-2xl bg-slate-50 p-4 dark:bg-gray-800">
-            <div class="text-xs uppercase text-slate-400 dark:text-gray-500">Class type</div>
+            <div class="text-xs uppercase text-slate-400 dark:text-gray-500">{{ $t('Class type') }}</div>
             <div class="mt-1 font-semibold text-slate-900 dark:text-gray-100">{{ props.classList?.class_type?.type_name || '—' }}</div>
           </div>
           <div class="rounded-2xl bg-slate-50 p-4 dark:bg-gray-800">
-            <div class="text-xs uppercase text-slate-400 dark:text-gray-500">Schedule</div>
+            <div class="text-xs uppercase text-slate-400 dark:text-gray-500">{{ $t('Schedule') }}</div>
             <div class="mt-1 text-slate-900 dark:text-gray-100">{{ props.classList?.term?.term_name || '—' }} · {{ props.classList?.time?.time_name || '—' }}</div>
           </div>
         </div>
@@ -66,7 +66,7 @@ const confirmDelete = () => {
             href="/dashboard/class-list"
             class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
           >
-            Cancel
+            {{ $t('Cancel') }}
           </Link>
           <button
             @click="confirmDelete"

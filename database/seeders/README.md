@@ -36,3 +36,8 @@ Run one core seeder only:
 ```bash
 php artisan db:seed --class="Database\Seeders\Core\UserSeeder"
 ```
+
+Run enroll and student enroll only
+```bash
+php artisan db:seed --class="Database\\Seeders\\Enroll\\StudyClassAndEnrollmentSeeder"
+```

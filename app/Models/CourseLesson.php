@@ -18,8 +18,13 @@ class CourseLesson extends Model
         'content',
         'video_url',
         'duration',
-        'order',
+        'order_number',
         'status'
+    ];
+
+    protected $casts = [
+        'duration' => 'integer',
+        'order_number' => 'integer',
     ];
 
     public function course()

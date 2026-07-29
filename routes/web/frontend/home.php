@@ -8,30 +8,26 @@
 |
 | These routes handle the web-based home page functionality for the frontend
 | interface, including displaying the main home view and related operations.
-| Guest-only access and request throttling are applied where appropriate.
 |
 */
 
 // Import necessary classes for route definitions and controller handling.
 use Inertia\Inertia;
-
-// Import Auth facade for checking user authentication status.
-use Illuminate\Support\Facades\Auth;
+use App\Models\Page;
+use App\Modules\Website\Services\WebsiteContentService;
 
 // Import Route facade for defining web routes.
 use Illuminate\Support\Facades\Route;
 
-// Display the main home view for guest users or redirect authenticated users to the dashboard.
-Route::get('/', function () {
-    if (Auth::check() && Auth::user()->can('dashboard.view')) {
-        return redirect('/dashboard');
-    }
+// Display the public home view.
+Route::get('/', function (WebsiteContentService $website) {
+    $homePage = Page::query()
+        ->with('hero')
+        ->where('slug', 'home')
+        ->first();
 
-    return Inertia::render('frontend/home/Home');
+    return Inertia::render('frontend/home/Home', [
+        'courses' => $website->publicCourses(6),
+        'pageData' => $homePage ? $website->presentPage($homePage) : null,
+    ]);
 });
-
-// Catch-all route to handle undefined frontend paths.
-// Keep this route last so it does not override auth routes like /login or /register.
-Route::get('/{any}', function () {
-    return Inertia::render('frontend/home/Home');
-})->where('any', '.*');

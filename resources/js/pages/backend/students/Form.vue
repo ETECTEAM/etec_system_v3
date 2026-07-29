@@ -133,9 +133,9 @@ onMounted(() => {
       <!-- Loading -->
 
       <div v-if="loading" class="text-center">
-        <h1 class="text-3xl font-bold mb-4 dark:text-gray-100">Checking Location...</h1>
+        <h1 class="text-3xl font-bold mb-4 dark:text-gray-100">{{ $t('Checking Location...') }}</h1>
 
-        <p class="dark:text-gray-400">Please wait...</p>
+        <p class="dark:text-gray-400">{{ $t('Please wait...') }}</p>
       </div>
 
       <!-- Form -->
@@ -147,29 +147,29 @@ onMounted(() => {
 
         <form @submit.prevent="submitForm" class="space-y-5">
           <div>
-            <label class="block mb-2 font-semibold dark:text-gray-200"> Student Name </label>
+            <label class="block mb-2 font-semibold dark:text-gray-200"> {{ $t('Student Name') }} </label>
 
             <input
               v-model="name"
               type="text"
-              placeholder="Enter Name"
+              :placeholder="$t('Enter Name')"
               class="w-full border rounded-xl p-4 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
             />
           </div>
 
           <div>
-            <label class="block mb-2 font-semibold dark:text-gray-200"> Course </label>
+            <label class="block mb-2 font-semibold dark:text-gray-200"> {{ $t('Course') }} </label>
 
             <select v-model="course" class="w-full border rounded-xl p-4 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-              <option value="">Select Course</option>
+              <option value="">{{ $t('Select Course') }}</option>
 
-              <option value="Vue JS">Vue JS</option>
+              <option value="Vue JS">{{ $t('Vue JS') }}</option>
 
-              <option value="Laravel">Laravel</option>
+              <option value="Laravel">{{ $t('Laravel') }}</option>
 
-              <option value="PHP">PHP</option>
+              <option value="PHP">{{ $t('PHP') }}</option>
 
-              <option value="JavaScript">JavaScript</option>
+              <option value="JavaScript">{{ $t('JavaScript') }}</option>
             </select>
           </div>
 
@@ -182,7 +182,7 @@ onMounted(() => {
               v-model="selectedTime"
               class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500"
             >
-              <option value="">Select Time</option>
+              <option value="">{{ $t('Select Time') }}</option>
 
               <option
                 v-for="time in props.times"

@@ -61,12 +61,12 @@ function submitAuto() {
 </script>
 
 <template>
-  <Head title="Create Room" />
+  <Head :title="$t('Create Room')" />
 
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Building Management" title="Create Room" description="Create one room manually or generate a sequence automatically." />
+      <PageHero eyebrow="Building Management" :title="$t('Create Room')" description="Create one room manually or generate a sequence automatically." />
 
       <div class="flex flex-wrap gap-3">
         <button
@@ -90,50 +90,50 @@ function submitAuto() {
       <div v-if="mode === 'single'" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submit">
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Floor ID</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Floor ID') }}</span>
             <input
               v-model="form.floor_id"
               type="number"
               min="1"
               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-              placeholder="Optional"
+              :placeholder="$t('Optional')"
             >
             <span v-if="form.errors.floor_id" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.floor_id }}</span>
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Room Number</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Room Number') }}</span>
             <input
               v-model="form.room_number"
               type="text"
               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-              placeholder="Example: A-101"
+              :placeholder="$t('Example: A-101')"
             >
             <span v-if="form.errors.room_number" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.room_number }}</span>
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Capacity</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Capacity') }}</span>
             <input
               v-model="form.capacity"
               type="number"
               min="1"
               @keydown="['-', 'e', 'E', '+'].includes($event.key) && $event.preventDefault()"
               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-              placeholder="Optional"
+              :placeholder="$t('Optional')"
             >
             <span v-if="form.errors.capacity" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.capacity }}</span>
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Status</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Status') }}</span>
             <select
               v-model="form.status"
               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             >
-              <option value="available">Available</option>
-              <option value="occupied">Occupied</option>
-              <option value="maintenance">Maintenance</option>
+              <option value="available">{{ $t('Available') }}</option>
+              <option value="occupied">{{ $t('Occupied') }}</option>
+              <option value="maintenance">{{ $t('Maintenance') }}</option>
             </select>
             <span v-if="form.errors.status" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.status }}</span>
           </label>
@@ -143,7 +143,7 @@ function submitAuto() {
               href="/dashboard/rooms"
               class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
             >
-              Cancel
+              {{ $t('Cancel') }}
             </Link>
 
             <button
@@ -151,7 +151,7 @@ function submitAuto() {
               :disabled="form.processing"
               class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
-              {{ form.processing ? 'Creating...' : 'Create Room' }}
+              {{ form.processing ? $t('Creating...') : $t('Create Room') }}
             </button>
           </div>
         </form>
@@ -160,30 +160,30 @@ function submitAuto() {
       <div v-else class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submitAuto">
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Floor ID</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Floor ID') }}</span>
             <input
               v-model="autoForm.floor_id"
               type="number"
               min="1"
               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-              placeholder="Optional"
+              :placeholder="$t('Optional')"
             >
             <span v-if="autoForm.errors.floor_id" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ autoForm.errors.floor_id }}</span>
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Start Room</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Start Room') }}</span>
             <input
               v-model="autoForm.start_room_number"
               type="text"
               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-              placeholder="Example: A-101"
+              :placeholder="$t('Example: A-101')"
             >
             <span v-if="autoForm.errors.start_room_number" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ autoForm.errors.start_room_number }}</span>
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">How Many Rooms</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('How Many Rooms') }}</span>
             <input
               v-model="autoForm.total_rooms"
               type="number"
@@ -195,27 +195,27 @@ function submitAuto() {
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Capacity</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Capacity') }}</span>
             <input
               v-model="autoForm.capacity"
               type="number"
               min="1"
               @keydown="['-', 'e', 'E', '+'].includes($event.key) && $event.preventDefault()"
               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-              placeholder="Optional"
+              :placeholder="$t('Optional')"
             >
             <span v-if="autoForm.errors.capacity" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ autoForm.capacity }}</span>
           </label>
 
           <label class="block sm:col-span-2">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Status</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Status') }}</span>
             <select
               v-model="autoForm.status"
               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             >
-              <option value="available">Available</option>
-              <option value="occupied">Occupied</option>
-              <option value="maintenance">Maintenance</option>
+              <option value="available">{{ $t('Available') }}</option>
+              <option value="occupied">{{ $t('Occupied') }}</option>
+              <option value="maintenance">{{ $t('Maintenance') }}</option>
             </select>
             <span v-if="autoForm.errors.status" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ autoForm.errors.status }}</span>
           </label>
@@ -223,8 +223,8 @@ function submitAuto() {
           <div class="sm:col-span-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-gray-700 dark:bg-gray-800/40">
             <div class="flex items-center justify-between gap-3">
               <div>
-                <h3 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-gray-400">Preview</h3>
-                <p class="mt-1 text-sm text-slate-600 dark:text-gray-300">Generated room numbers will auto increment from your starting room.</p>
+                <h3 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-gray-400">{{ $t('Preview') }}</h3>
+                <p class="mt-1 text-sm text-slate-600 dark:text-gray-300">{{ $t('Generated room numbers will auto increment from your starting room.') }}</p>
               </div>
               <span class="rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700">
                 {{ generatedRooms.length }} rooms
@@ -250,7 +250,7 @@ function submitAuto() {
               href="/dashboard/rooms"
               class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
             >
-              Cancel
+              {{ $t('Cancel') }}
             </Link>
 
             <button
@@ -258,7 +258,7 @@ function submitAuto() {
               :disabled="autoForm.processing || generatedRooms.length === 0"
               class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
-              {{ autoForm.processing ? 'Generating...' : 'Create Auto Rooms' }}
+              {{ autoForm.processing ? $t('Generating...') : $t('Create Auto Rooms') }}
             </button>
           </div>
         </form>

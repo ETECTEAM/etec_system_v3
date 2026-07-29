@@ -1,12 +1,15 @@
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from "vue";
-import { Head, Link, router } from "@inertiajs/vue3";
-import DashboardLayout from "@/layouts/DashboardLayout.vue";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
-import { PageHero } from "@/components/ui/page-hero";
-import { Card } from "@/components/ui/card";
-import { ActionMenu } from "@/components/ui/menu";
-import { Pagination } from "@/components/ui/pagination";
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
+import { PageHero } from '@/components/ui/page-hero';
+import { Card } from '@/components/ui/card';
+import { ActionMenu } from '@/components/ui/menu';
+import { Pagination } from '@/components/ui/pagination';
+import { useI18n } from '@/i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
     classLists: Object,
@@ -35,23 +38,85 @@ const termOptions = computed(() => [
     ...props.terms.map((item) => item.term_name),
 ]);
 
-const timeOptions = computed(() => [
-    "all",
-    ...props.times.map((item) => item.time_name),
-]);
-
+const timeOptions = computed(() => [])
 const paginationParams = () => ({
+  search: search.value,
+  status: selectedStatus.value,
+  class_type: selectedType.value,
+  term: selectedTerm.value,
+  time: selectedTime.value,
+});
+
+
+const applyFilters = () => {
+  router.get('/dashboard/class-list', paginationParams(), {
+    preserveState: true,
+    preserveScroll: true,
+  });
+};
+
+const debounceSearch = () => {
+  if (searchTimer.value) {
+    clearTimeout(searchTimer.value);
+  }
+  searchTimer.value = window.setTimeout(() => {
+    applyFilters();
+  }, 300);
+};
+
+onBeforeUnmount(() => {
+  if (searchTimer.value) {
+    clearTimeout(searchTimer.value);
+  }
+});
+
+const totalCount = computed(() => props.classLists?.total ?? 0);
+
+const breadcrumbItems = [
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Class List', current: true },
+];
+
+const deleteItem = (item) => {
+  if (!confirm(t('Are you sure you want to delete this class?'))) {
+    return;
+  }
+
+  router.delete(`/dashboard/class-list/${item.id ?? item.class_list_id}`, {
+    preserveScroll: true,
+    onError: () => {
+      alert(t('Unable to delete this class list entry.'));
+    },
+  });
+};
+
+const handleAction = (action, item) => {
+  switch (action) {
+    case 'view':
+      router.visit(`/dashboard/class-list/${item.id ?? item.class_list_id}`);
+      break;
+    case 'edit':
+      router.visit(`/dashboard/class-list/${item.id ?? item.class_list_id}/edit`);
+      break;
+    case 'delete':
+      deleteItem(item);
+      break;
+  }
+};
+
+const handlePageChange = (page) => {
+  router.get('/dashboard/class-list', {
     search: search.value,
     status: selectedStatus.value,
     class_type: selectedType.value,
     term: selectedTerm.value,
     time: selectedTime.value,
 });
+}
 
 const applyFilters = () => {
     router.get("/dashboard/class-list", paginationParams(), {
         preserveState: true,
-        preserveScroll: true,
     });
 };
 
@@ -128,39 +193,13 @@ const handlePageChange = (page) => {
 </script>
 
 <template>
-    <Head title="Class List" />
-    <DashboardLayout>
-        <section class="space-y-6">
-            <Breadcrumbs :items="breadcrumbItems" />
-
-            <div
-                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-                <PageHero
-                    eyebrow="Management"
-                    title="Class List"
-                    description="Manage your scheduled classes, instructors, rooms, and time slots."
-                />
-
-                <div class="flex flex-col items-start gap-3 sm:items-end">
-                    <div
-                        class="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-800 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-200"
-                    >
-                        Total Class: {{ totalCount }}
-                    </div>
-                    <!-- <Link
-            href="/dashboard/class-list/create"
-            class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            + Add New Class
-          </Link> -->
-                </div>
-            </div>
-
-            <Card class="p-6">
-                <div
-                    class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_200px] xl:grid-cols-[minmax(0,1fr)_repeat(4,200px)]"
-                >
+  <Head :title="$t('Class List')" />
+  <DashboardLayout>
+    <section class="space-y-6">
+      <Breadcrumbs :items="breadcrumbItems" />
+      <Card>
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_200px] xl:grid-cols-[minmax(0,1fr)_repeat(4,200px)]">
                     <div>
                         <input
                             v-model="search"
@@ -175,8 +214,7 @@ const handlePageChange = (page) => {
                     <select
                         v-model="selectedType"
                         @change="applyFilters"
-                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                    >
+                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20">
                         <option value="all">Type</option>
                         <option
                             v-for="type in classTypeOptions"
@@ -228,6 +266,7 @@ const handlePageChange = (page) => {
                         <option value="cancelled">cancelled</option>
                     </select>
                 </div>
+            </div>
             </Card>
 
             <Card class="overflow-hidden">
@@ -399,6 +438,137 @@ const handlePageChange = (page) => {
                         }}
                         of {{ classLists.total ?? 0 }} entries
                     </p>
+                </div>    
+            </Card>
+=======
+      <Card class="p-6">
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_200px] xl:grid-cols-[minmax(0,1fr)_repeat(4,200px)]">
+          <div>
+            <input
+              v-model="search"
+              @input="debounceSearch"
+              @keyup.enter.prevent="applyFilters"
+              type="search"
+              :placeholder="$t('Search by class, instructor, or time')"
+              class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+            />
+          </div>
+
+          <select
+            v-model="selectedType"
+            @change="applyFilters"
+            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+          >
+            <option value="all">{{ $t('Type') }}</option>
+            <option v-for="type in classTypeOptions" :key="type" :value="type">{{ $t(type) }}</option>
+          </select>
+
+          <select
+            v-model="selectedTerm"
+            @change="applyFilters"
+            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+          >
+            <option value="all">{{ $t('Term') }}</option>
+            <option v-for="term in termOptions" :key="term" :value="term">{{ $t(term) }}</option>
+          </select>
+
+          <select
+            v-model="selectedTime"
+            @change="applyFilters"
+            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+          >
+            <option value="all">{{ $t('Time') }}</option>
+            <option v-for="time in timeOptions" :key="time" :value="time">{{ $t(time) }}</option>
+          </select>
+
+          <select
+            v-model="selectedStatus"
+            @change="applyFilters"
+            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+          >
+            <option value="all">{{ $t('Status') }}</option>
+            <option value="progress">{{ $t('progress') }}</option>
+            <option value="completed">{{ $t('completed') }}</option>
+            <option value="cancelled">{{ $t('cancelled') }}</option>
+          </select>
+        </div>
+      </Card>
+
+      <Card class="overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-left text-sm text-slate-700 dark:text-gray-300">
+            <thead class="bg-slate-100 text-slate-700 uppercase text-xs tracking-wider dark:bg-gray-800 dark:text-gray-300">
+              <tr>
+                <th class="px-4 py-4">#</th>
+                <th class="px-4 py-4">{{ $t('Class ID') }}</th>
+                <th class="px-4 py-4">{{ $t('Teacher') }}</th>
+                <th class="px-4 py-4">{{ $t('Course / Lesson') }}</th>
+                <th class="px-4 py-4">{{ $t('Term & Time') }}</th>
+                <th class="px-4 py-4">{{ $t('Building Floor & Room') }}</th>
+                <th class="px-4 py-4">{{ $t('Students') }}</th>
+                <th class="px-4 py-4">{{ $t('Status') }}</th>
+                <th class="px-4 py-4 text-right">{{ $t('Actions') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, index) in filteredData" :key="item.id ?? item.class_list_id" class="border-t border-slate-200 hover:bg-slate-50 dark:border-gray-800 dark:hover:bg-gray-800">
+                <td class="px-4 py-4 font-semibold text-slate-900 dark:text-gray-100">{{ index + 1 }}</td>
+                <td class="px-4 py-4">
+                  <span class="inline-flex rounded-full bg-blue-800 px-3 py-1 text-xs font-semibold text-white dark:bg-blue-600">ID: {{ item.id ?? item.class_list_id }}</span>
+                </td>
+                <td class="px-4 py-4">
+                  <div class="flex items-center gap-2">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">👤</span>
+                    <span class="font-medium text-slate-900 dark:text-gray-100">{{ item.teacher?.name || item.teacher?.teacher_name || $t('No teacher') }}</span>
+                  </div>
+                </td>
+                <td class="px-4 py-4">
+                  <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.course?.title || $t('No course') }}</div>
+                  <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ $t('Lesson:') }} <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700 dark:bg-gray-800 dark:text-gray-300">{{ item.lesson?.title || $t('No lesson') }}</span></div>
+                  <div class="mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">{{ $t('Type') }}: {{ item.class_type?.type_name || $t('Unknown') }}</div>
+                </td>
+                <td class="px-4 py-4">
+                  <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.term?.term_name || $t('No term') }}</div>
+                  <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.time?.time_name || $t('No time') }}</div>
+                </td>
+                <td class="px-4 py-4">
+                  <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.building?.name || $t('No building') }}</div>
+                  <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.floor?.name || $t('No floor') }} · {{ item.room?.room_number || $t('No room') }}</div>
+                </td>
+                <td class="px-4 py-4 font-semibold text-slate-900 dark:text-gray-100">{{ item.student_count ?? 0 }}</td>
+                <td class="px-4 py-4">
+                  <span :class="[
+                    'inline-flex rounded-full px-3 py-1 text-[11px] font-semibold',
+                    item.status === 'completed' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : '',
+                    item.status === 'progress' ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : '',
+                    item.status === 'cancelled' ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400' : '',
+                  ]">
+                    {{ item.status ? $t(item.status.charAt(0).toUpperCase() + item.status.slice(1)) : $t('Unknown') }}
+                  </span>
+                </td>
+                <td class="px-4 py-4 text-right">
+                  <ActionMenu
+                    :items="[
+                      { key: 'view', label: 'View' },
+                      { key: 'edit', label: 'Edit' },
+                      { key: 'delete', label: 'Delete'},
+                    ]"
+                    @select="(action) => handleAction(action.key, item)"
+                  />
+                </td>
+              </tr>
+
+              <tr v-if="filteredData.length === 0">
+                <td colspan="9" class="px-4 py-12 text-center text-slate-500 dark:text-gray-400">{{ $t('No classes found.') }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
+          <p class="text-sm text-slate-500 dark:text-gray-400">
+            {{ $t('Showing :from-:to of :total entries', { from: classLists.from ?? 0, to: classLists.to ?? 0, total: classLists.total ?? 0 }) }}
+          </p>
 
                     <Pagination
                         v-if="classLists?.links?.length"

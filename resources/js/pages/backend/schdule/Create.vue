@@ -4,6 +4,9 @@ import { ref, computed } from 'vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
+import { useI18n } from '../../../i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   classTypes: Array,
@@ -33,13 +36,13 @@ function nextStep() {
   stepError.value = ''
   if (currentStep.value === 1) {
     if (!form.class_type_id) {
-      stepError.value = 'Please select a Class Type.'
+      stepError.value = t('Please select a Class Type.')
       return
     }
     currentStep.value = 2
   } else if (currentStep.value === 2) {
     if (!form.term_id) {
-      stepError.value = 'Please select a Term.'
+      stepError.value = t('Please select a Term.')
       return
     }
     currentStep.value = 3
@@ -59,17 +62,17 @@ function goToStep(step) {
     currentStep.value = 1
   } else if (step === 2) {
     if (!form.class_type_id) {
-      stepError.value = 'Please select a Class Type.'
+      stepError.value = t('Please select a Class Type.')
       return
     }
     currentStep.value = 2
   } else if (step === 3) {
     if (!form.class_type_id) {
-      stepError.value = 'Please select a Class Type.'
+      stepError.value = t('Please select a Class Type.')
       return
     }
     if (!form.term_id) {
-      stepError.value = 'Please select a Term.'
+      stepError.value = t('Please select a Term.')
       return
     }
     currentStep.value = 3
@@ -79,7 +82,7 @@ function goToStep(step) {
 function submit() {
   stepError.value = ''
   if (form.time_ids.length === 0) {
-    stepError.value = 'Please select at least one Time Slot.'
+    stepError.value = t('Please select at least one Time Slot.')
     return
   }
   form.post('/dashboard/schdule', {
@@ -95,12 +98,12 @@ const breadcrumbItems = [
 </script>
 
 <template>
-  <Head title="Create Schedule" />
+  <Head :title="$t('Create Schedule')" />
 
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Schedules Management" title="Create Schedule" description="Add a new schedule step-by-step." />
+      <PageHero eyebrow="Schedules Management" :title="$t('Create Schedule')" :description="$t('Add a new schedule step-by-step.')" />
 
       <!-- Constrain both stepper and form card to max-w-3xl and center them -->
       <div class=" mx-auto space-y-6">
@@ -122,7 +125,7 @@ const breadcrumbItems = [
                 <span>1</span>
               </div>
               <div :class="['text-sm font-bold transition', currentStep === 1 ? 'text-slate-900 dark:text-gray-100' : 'text-slate-400 group-hover:text-slate-500 dark:text-gray-500 dark:group-hover:text-gray-400']">
-                Class Type
+                {{ $t('Class Type') }}
               </div>
             </button>
 
@@ -144,7 +147,7 @@ const breadcrumbItems = [
                 <span>2</span>
               </div>
               <div :class="['text-sm font-bold transition', currentStep === 2 ? 'text-slate-900 dark:text-gray-100' : 'text-slate-400 group-hover:text-slate-500 dark:text-gray-500 dark:group-hover:text-gray-400']">
-                Term
+                {{ $t('Term') }}
               </div>
             </button>
 
@@ -166,7 +169,7 @@ const breadcrumbItems = [
                 <span>3</span>
               </div>
               <div :class="['text-sm font-bold transition', currentStep === 3 ? 'text-slate-900 dark:text-gray-100' : 'text-slate-400 group-hover:text-slate-500 dark:text-gray-500 dark:group-hover:text-gray-400']">
-                Time Slots
+                {{ $t('Time Slots') }}
               </div>
             </button>
           </div>
@@ -184,8 +187,8 @@ const breadcrumbItems = [
             <!-- STEP 1: CLASS TYPE -->
             <div v-if="currentStep === 1" class="space-y-4">
               <div>
-                <h3 class="text-base font-semibold text-slate-900 dark:text-gray-100">Select Class Type</h3>
-                <p class="text-sm text-slate-500 dark:text-gray-400">Choose the class type for this schedule.</p>
+                <h3 class="text-base font-semibold text-slate-900 dark:text-gray-100">{{ $t('Select Class Type') }}</h3>
+                <p class="text-sm text-slate-500 dark:text-gray-400">{{ $t('Choose the class type for this schedule.') }}</p>
               </div>
 
               <div class="grid gap-3 sm:grid-cols-2">
@@ -212,8 +215,8 @@ const breadcrumbItems = [
             <!-- STEP 2: TERM -->
             <div v-if="currentStep === 2" class="space-y-4">
               <div>
-                <h3 class="text-base font-semibold text-slate-900 dark:text-gray-100">Select Term</h3>
-                <p class="text-sm text-slate-500 dark:text-gray-400">Choose the academic term for this schedule.</p>
+                <h3 class="text-base font-semibold text-slate-900 dark:text-gray-100">{{ $t('Select Term') }}</h3>
+                <p class="text-sm text-slate-500 dark:text-gray-400">{{ $t('Choose the academic term for this schedule.') }}</p>
               </div>
 
               <div class="grid gap-3 sm:grid-cols-2">
@@ -240,12 +243,12 @@ const breadcrumbItems = [
             <!-- STEP 3: TIME SLOTS -->
             <div v-if="currentStep === 3" class="space-y-4">
               <div>
-                <h3 class="text-base font-semibold text-slate-900 dark:text-gray-100">Select Time Slots</h3>
-                <p class="text-sm text-slate-500 dark:text-gray-400">Pick the slots matching the selected term.</p>
+                <h3 class="text-base font-semibold text-slate-900 dark:text-gray-100">{{ $t('Select Time Slots') }}</h3>
+                <p class="text-sm text-slate-500 dark:text-gray-400">{{ $t('Pick the slots matching the selected term.') }}</p>
               </div>
 
               <div v-if="filteredTimes.length === 0" class="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">
-                No time slots found for this term.
+                {{ $t('No time slots found for this term.') }}
               </div>
 
               <div v-else class="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-80 overflow-y-auto bg-slate-50 shadow-inner dark:border-gray-700 dark:divide-gray-800 dark:bg-gray-800">
@@ -276,14 +279,14 @@ const breadcrumbItems = [
                   @click="prevStep"
                   class="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 cursor-pointer dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
-                  Back
+                  {{ $t('Back') }}
                 </button>
                 <Link
                   v-else
                   href="/dashboard/schdule"
                   class="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 inline-block align-middle dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
-                  Cancel
+                  {{ $t('Cancel') }}
                 </Link>
               </div>
 
@@ -294,7 +297,7 @@ const breadcrumbItems = [
                   @click="nextStep"
                   class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 cursor-pointer dark:bg-blue-600 dark:hover:bg-blue-500"
                 >
-                  Next
+                  {{ $t('Next') }}
                 </button>
                 <button
                   v-else
@@ -302,7 +305,7 @@ const breadcrumbItems = [
                   :disabled="form.processing"
                   class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer dark:bg-blue-600 dark:hover:bg-blue-500"
                 >
-                  {{ form.processing ? 'Creating...' : 'Create Schedule' }}
+                  {{ form.processing ? $t('Creating...') : $t('Create Schedule') }}
                 </button>
               </div>
             </div>

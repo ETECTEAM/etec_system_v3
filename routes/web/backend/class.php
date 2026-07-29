@@ -4,7 +4,7 @@ use App\Modules\Class\Controllers\ClassListController;
 use Illuminate\Support\Facades\Route;
 
 // Update the prefix to match your other dashboard routes
-Route::middleware(['auth'])->prefix('dashboard')->group(function () {
+Route::middleware(['auth', 'active'])->prefix('dashboard')->group(function () {
 
     Route::controller(ClassTypeController::class)->prefix('class-types')->group(function () {
         Route::get('/', 'index')->name('class-types.index');

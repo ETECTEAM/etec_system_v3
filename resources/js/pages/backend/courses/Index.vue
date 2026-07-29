@@ -9,35 +9,35 @@
                         :class="activeTab === 'categories'
                             ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'">
-                    📁 Categories
+                    📁 {{ $t('Categories') }}
                 </button>
                 <button @click="activeTab = 'subcategories'"
                         class="py-2 px-1 border-b-2 font-medium text-sm"
                         :class="activeTab === 'subcategories'
                             ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'">
-                    📂 Sub Categories
+                    📂 {{ $t('Sub Categories') }}
                 </button>
                 <button @click="activeTab = 'tracks'"
                         class="py-2 px-1 border-b-2 font-medium text-sm"
                         :class="activeTab === 'tracks'
                             ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'">
-                    📋 Tracks
+                    📋 {{ $t('Tracks') }}
                 </button>
                 <button @click="activeTab = 'courses'"
                         class="py-2 px-1 border-b-2 font-medium text-sm"
                         :class="activeTab === 'courses'
                             ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'">
-                    📖 Courses
+                    📖 {{ $t('Courses') }}
                 </button>
                 <button @click="activeTab = 'lessons'"
                         class="py-2 px-1 border-b-2 font-medium text-sm"
                         :class="activeTab === 'lessons'
                             ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'">
-                    📝 Lessons
+                    📝 {{ $t('Lessons') }}
                 </button>
             </nav>
         </div>
@@ -65,8 +65,8 @@
                 <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity dark:bg-black/70"></div>
                 <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-auto max-h-[90vh] overflow-y-auto dark:bg-gray-900">
                     <div class="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10 dark:border-gray-800 dark:bg-gray-900">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ popupTitle }}</h3>
-                        <button @click="closePopup" class="text-gray-400 hover:text-gray-600 text-2xl dark:text-gray-500 dark:hover:text-gray-300">&times;</button>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $t(popupTitle) }}</h3>
+                        <button @click="closePopup" class="text-gray-400 hover:text-gray-600 text-2xl dark:text-gray-500 dark:hover:text-gray-300">{{ $t('&times;') }}</button>
                     </div>
                     <div class="p-6">
                         <component :is="popupComponent" 

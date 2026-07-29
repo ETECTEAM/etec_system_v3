@@ -19,7 +19,7 @@ use App\Modules\Notification\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 // Define routes for notifications, protected by authentication and role-based access control.
-Route::middleware(['auth', 'role:super_admin|admin'])->group(function () {
+Route::middleware(['auth', 'active', 'role:super_admin|admin'])->group(function () {
     // Route to display the notifications page in the dashboard.
     Route::get('/dashboard/notifications', [NotificationController::class, 'showNotificationPage'])
         ->name('dashboard.notifications.index');
@@ -27,4 +27,18 @@ Route::middleware(['auth', 'role:super_admin|admin'])->group(function () {
     // Route to fetch notification data for the authenticated user.
     Route::get('/notifications/data', [NotificationController::class, 'getNotificationData'])
         ->name('notifications.data');
+
+    // Approve/reject a pending instructor registration from its dashboard notification.
+    Route::post('/notifications/{notification}/approve', [NotificationController::class, 'approve'])
+        ->name('notifications.approve');
+    Route::post('/notifications/{notification}/reject', [NotificationController::class, 'reject'])
+        ->name('notifications.reject');
+
+    // Mark a single notification as read, mark every unread notification as read, and remove a single notification.
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])
+        ->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])
+        ->name('notifications.mark-all-read');
+    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])
+        ->name('notifications.destroy');
 });

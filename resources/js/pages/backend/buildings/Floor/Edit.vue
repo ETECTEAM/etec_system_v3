@@ -29,12 +29,12 @@ function submit() {
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Building Management" title="Edit Floor" description="Update the floor name, code, or level number." />
+      <PageHero eyebrow="Building Management" :title="$t('Edit Floor')" description="Update the floor name, code, or level number." />
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submit">
           <label class="block sm:col-span-1">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Floor Name</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Floor Name') }}</span>
             <input
               v-model="form.name"
               type="text"
@@ -46,7 +46,7 @@ function submit() {
 
 
           <label class="block sm:col-span-2">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Level</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Level') }}</span>
             <input
               v-model="form.level"
               type="number"
@@ -57,7 +57,7 @@ function submit() {
 
           <div class="flex justify-end gap-3 sm:col-span-2">
             <Link href="/dashboard/floors" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
-              Cancel
+              {{ $t('Cancel') }}
             </Link>
 
             <button
@@ -65,7 +65,7 @@ function submit() {
               :disabled="form.processing"
               class="rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
-              {{ form.processing ? 'Saving changes...' : 'Save Changes' }}
+              {{ form.processing ? $t('Saving changes...') : $t('Save Changes') }}
             </button>
           </div>
         </form>

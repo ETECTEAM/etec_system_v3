@@ -1,0 +1,70 @@
+{
+  "app": {
+    "brand": "ETEC",
+    "controlCenter": "Control Center",
+    "fallbackName": "ETEC Control Center"
+  },
+  "common": {
+    "approved": "Approved",
+    "approve": "Approve",
+    "drawOnPage": "Draw on Page",
+    "guest": "Guest",
+    "language": "Language",
+    "loading": "Loading...",
+    "notSignedIn": "Not signed in",
+    "reject": "Reject",
+    "rejected": "Rejected",
+    "signOut": "Sign out",
+    "stopDrawing": "Stop Drawing",
+    "theme": "Theme",
+    "toggleSidebar": "Toggle sidebar",
+    "viewAll": "View all"
+  },
+  "locale": {
+    "en": "English",
+    "km": "Khmer"
+  },
+  "navigation": {
+    "accountSecurity": "Account Security",
+    "blockedAccounts": "Blocked Accounts",
+    "buildingManagement": "Building Management",
+    "buildings": "Buildings",
+    "categories": "Categories",
+    "classList": "Class List",
+    "classManagement": "Class Management",
+    "classType": "Class Type",
+    "courseManagement": "Course Management",
+    "courses": "Courses",
+    "dashboard": "Dashboard",
+    "enrollManagement": "Enrollment Management",
+    "floors": "Floors",
+    "lessons": "Lessons",
+    "lockoutSettings": "Lockout Settings",
+    "loginSecurity": "Login Security",
+    "menuManagement": "Menu Management",
+    "myProfile": "My Profile",
+    "navigation": "Navigation",
+    "newsManagement": "News Management",
+    "notifications": "Notifications",
+    "pageManagement": "Page Management",
+    "rolePermission": "Role & Permission",
+    "rooms": "Rooms",
+    "scheduleManagement": "Schedule Management",
+    "schedules": "Schedules",
+    "schoolSettings": "School Settings",
+    "shiftTemplates": "Shift Templates",
+    "subCategories": "Sub Categories",
+    "terms": "Terms",
+    "times": "Times",
+    "tracks": "Tracks",
+    "user": "User",
+    "userManagement": "User Management",
+    "userPermission": "User & Permission",
+    "videoManagement": "Video Management",
+    "websiteManagement": "Website Management"
+  },
+  "notifications": {
+    "empty": "No notifications yet.",
+    "title": "Notifications"
+  }
+}

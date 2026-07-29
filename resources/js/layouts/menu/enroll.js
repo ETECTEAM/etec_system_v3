@@ -2,7 +2,8 @@ export function build(ctx) {
   if (!ctx.isSuperAdmin || !ctx.canAccessNotifications) return null;
 
   return {
-    label: "EnRoll Management",
+    label: "Enrollment Management",
+    labelKey: "navigation.enrollManagement",
     key: "enroll",
     icon: "student",
     href: "/dashboard/students",

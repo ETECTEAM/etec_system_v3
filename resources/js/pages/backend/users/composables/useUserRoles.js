@@ -1,9 +1,9 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
-import { useToast } from 'vue-toastification'
 import { formatRole } from '../../../../lib/roleBadge'
 import { useConfirm } from '../../../../composables/useConfirm'
 import { useSaveForm } from '../../../../composables/useSaveForm'
+import { useI18n } from '../../../../i18n'
 
 const PREFERRED_ACTIONS = ['view', 'create', 'update', 'delete', 'manage', 'approve', 'export', 'track']
 const MATRIX_PER_PAGE = 10
@@ -26,16 +26,8 @@ function sameItems(a, b) {
 // selectedRoleId/userSearch/permissionSearch/matrixPage/showCreateModal/showOnlyChecked are UI state owned by the component, passed in by ref.
 export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, matrixPage, showCreateModal, showOnlyChecked }) {
   const page = usePage()
-  const toast = useToast()
   const { confirm } = useConfirm()
-
-  watch(() => page.props.flash, (flash) => {
-    if (flash?.success) {
-      toast.success(flash.success)
-    } else if (flash?.error) {
-      toast.error(flash.error)
-    }
-  }, { deep: true })
+  const { t } = useI18n()
 
   const isSuperAdmin = computed(() => (page.props.auth?.roles ?? []).includes('super_admin'))
   const roles = computed(() => page.props.roles ?? [])
@@ -106,9 +98,9 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
     }
 
     const confirmed = await confirm({
-      title: 'Delete this role?',
-      message: `Delete the "${formatRole(role.name)}" role? This cannot be undone.`,
-      confirmText: 'Delete',
+      title: t('Delete this role?'),
+      message: t('Delete the ":role" role? This cannot be undone.', { role: formatRole(role.name) }),
+      confirmText: t('Delete'),
       danger: true,
     })
 

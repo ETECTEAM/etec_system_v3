@@ -2,7 +2,7 @@
 import { router } from "@inertiajs/vue3";
 import { route } from "ziggy-js";
 import { Eye, Pencil, Trash2 } from "@lucide/vue";
-import { router } from "@inertiajs/vue3";
+// import { router } from "@inertiajs/vue3";
 
 import Table from "../../../../components/ui/table/Table.vue";
 import TableHeader from "../../../../components/ui/table/TableHeader.vue";
@@ -38,15 +38,15 @@ const deleteClass = (id) => {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>ID</TableHead>
-          <TableHead>Class</TableHead>
-          <TableHead>Lesson</TableHead>
-          <TableHead>Building</TableHead>
-          <TableHead>Room</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Students</TableHead>
-          <TableHead>Time</TableHead>
-          <TableHead class="text-center">Action</TableHead>
+          <TableHead>{{ $t('ID') }}</TableHead>
+          <TableHead>{{ $t('Class') }}</TableHead>
+          <TableHead>{{ $t('Lesson') }}</TableHead>
+          <TableHead>{{ $t('Building') }}</TableHead>
+          <TableHead>{{ $t('Room') }}</TableHead>
+          <TableHead>{{ $t('Status') }}</TableHead>
+          <TableHead>{{ $t('Students') }}</TableHead>
+          <TableHead>{{ $t('Time') }}</TableHead>
+          <TableHead class="text-center">{{ $t('Action') }}</TableHead>
         </TableRow>
       </TableHeader>
 

@@ -3,6 +3,7 @@ export function build(ctx) {
 
   return {
     label: "Notifications",
+    labelKey: "navigation.notifications",
     href: "/dashboard/notifications",
     match: ["/dashboard/notifications"],
     exact: false,

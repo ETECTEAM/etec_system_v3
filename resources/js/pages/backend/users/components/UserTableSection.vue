@@ -9,6 +9,9 @@ import RightClick from '@/components/ui/rightclick/RightClick.vue'
 import { SelectSearch } from '@/components/ui/select-search'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { TableSkeleton } from '@/components/ui/skeleton'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   users: {
@@ -110,7 +113,7 @@ function formatDateTime(isoString) {
 
 // Build the role filter options from the backend roles list.
 const roleOptions = computed(() => [
-  { label: 'All Roles', value: '' },
+  { label: t('All Roles'), value: '' },
   ...props.roles.map((role) => ({
     label: formatRole(role.name),
     value: role.name,
@@ -122,7 +125,7 @@ const searchError = computed(() => {
     return ''
   }
 
-  return props.search.length < 2 ? 'Type at least 2 characters to search.' : ''
+  return props.search.length < 2 ? t('Type at least 2 characters to search.') : ''
 })
 
 const contextMenu = reactive({
@@ -180,9 +183,9 @@ const contextMenuActions = [
     <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div class="min-w-0 shrink-0">
-          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-gray-500">User Directory</p>
-          <!-- <h2 class="mt-1 text-xl font-semibold text-slate-900">Users</h2> -->
-          <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">Manage registered users and their access.</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-gray-500">{{ $t('User Directory') }}</p>
+          <!-- <h2 class="mt-1 text-xl font-semibold text-slate-900">{{ $t('Users') }}</h2> -->
+          <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t('Manage registered users and their access.') }}</p>
         </div>
 
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
@@ -191,7 +194,7 @@ const contextMenuActions = [
             <input
               :value="search"
               type="text"
-              placeholder="Search..."
+              :placeholder="$t('Search...')"
               class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:w-56 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
               @input="emit('update:search', $event.target.value)"
             >
@@ -201,7 +204,7 @@ const contextMenuActions = [
             <SelectSearch
               :model-value="selectedRole"
               :options="roleOptions"
-              placeholder="All Roles"
+              :placeholder="$t('All Roles')"
               @update:model-value="emit('update:selectedRole', $event)"
             />
           </div>
@@ -212,7 +215,7 @@ const contextMenuActions = [
             class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
           >
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-            Create User
+            {{ $t('Create User') }}
           </Link>
         </div>
       </div>
@@ -224,14 +227,14 @@ const contextMenuActions = [
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead class="w-16">No</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Roles</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Created By</TableHead>
-            <TableHead>Created At</TableHead>
-            <TableHead class="text-right">Actions</TableHead>
+            <TableHead class="w-16">{{ $t('No') }}</TableHead>
+            <TableHead>{{ $t('Name') }}</TableHead>
+            <TableHead>{{ $t('Email') }}</TableHead>
+            <TableHead>{{ $t('Roles') }}</TableHead>
+            <TableHead>{{ $t('Status') }}</TableHead>
+            <TableHead>{{ $t('Created By') }}</TableHead>
+            <TableHead>{{ $t('Created At') }}</TableHead>
+            <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
           </TableRow>
         </TableHeader>
 
@@ -256,7 +259,7 @@ const contextMenuActions = [
               <TableCell class="text-slate-500 dark:text-gray-400">{{ rowNumber(index) }}</TableCell>
               <TableCell class="font-medium text-slate-900 dark:text-gray-100">
                 <span v-if="user.name">{{ user.name }}</span>
-                <span v-else class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">No Name</span>
+                <span v-else class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">{{ $t('No Name') }}</span>
               </TableCell>
               <TableCell class="text-slate-600 dark:text-gray-300">{{ user.email }}</TableCell>
               <TableCell>
@@ -275,18 +278,18 @@ const contextMenuActions = [
               </TableCell>
               <TableCell>
                 <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="user.status === 'active' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'">
-                  {{ user.status === 'active' ? 'Active' : 'Inactive' }}
+                  {{ user.status === 'active' ? $t('Active') : $t('Inactive') }}
                 </span>
               </TableCell>
-              <TableCell class="text-slate-600 dark:text-gray-300">{{ user.created_by || 'Unknown' }}</TableCell>
+              <TableCell class="text-slate-600 dark:text-gray-300">{{ user.created_by || $t('Unknown') }}</TableCell>
               <TableCell class="whitespace-nowrap text-slate-600 dark:text-gray-300">{{ formatDateTime(user.created_at) }}</TableCell>
               <TableCell class="text-right" @click.stop>
                 <div class="flex justify-end gap-2">
                   <button
                     type="button"
                     class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
-                    title="View"
-                    aria-label="View user"
+                    :title="$t('View')"
+                    :aria-label="$t('View user')"
                     @click="viewUser(user.id)"
                   >
                     <Eye class="h-4 w-4" />
@@ -296,8 +299,8 @@ const contextMenuActions = [
                     v-if="canEdit()"
                     type="button"
                     class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
-                    title="Edit"
-                    aria-label="Edit user"
+                    :title="$t('Edit')"
+                    :aria-label="$t('Edit user')"
                     @click="editUser(user.id)"
                   >
                     <Pencil class="h-4 w-4" />
@@ -307,8 +310,8 @@ const contextMenuActions = [
                     v-if="canDelete(user)"
                     type="button"
                     class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
-                    title="Delete"
-                    aria-label="Delete user"
+                    :title="$t('Delete')"
+                    :aria-label="$t('Delete user')"
                     @click="deleteUser(user.id)"
                   >
                     <Trash2 class="h-4 w-4" />
@@ -319,7 +322,7 @@ const contextMenuActions = [
 
             <TableRow v-if="hasLoaded && users.length === 0">
               <TableCell colspan="9" class="py-10 text-center text-slate-500 dark:text-gray-400">
-                {{ roles.length === 0 ? 'No roles available or roles could not be loaded.' : 'No users found.' }}
+                {{ roles.length === 0 ? $t('No roles available or roles could not be loaded.') : $t('No users found.') }}
               </TableCell>
             </TableRow>
           </template>
@@ -329,7 +332,7 @@ const contextMenuActions = [
 
     <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
       <div class="text-sm text-slate-500 dark:text-gray-400">
-        Showing {{ paginationStart() }} to {{ paginationEnd() }} of {{ pagination.total }} users
+        {{ $t('Showing :from to :to of :total users', { from: paginationStart(), to: paginationEnd(), total: pagination.total }) }}
       </div>
 
       <Pagination
@@ -344,7 +347,7 @@ const contextMenuActions = [
       :show="contextMenu.show"
       :x="contextMenu.x"
       :y="contextMenu.y"
-      :actions="contextMenuActions"
+      :actions="contextMenuActions.map((action) => ({ ...action, label: $t(action.label) }))"
       @select="handleContextMenuSelect"
       @close="closeContextMenu"
     />

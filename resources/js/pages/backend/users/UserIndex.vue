@@ -34,7 +34,7 @@ const {
 </script>
 
 <template>
-  <Head title="User" />
+  <Head :title="$t('User')" />
 
   <DashboardLayout>
     <!-- Shown until the very first fetch resolves, so a hard refresh sees the same
@@ -43,7 +43,7 @@ const {
 
     <section v-else class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Users Management" title="Users" description="View existing users and manage account roles." />
+      <PageHero eyebrow="Users Management" :title="$t('Users')" :description="$t('View existing users and manage account roles.')" />
 
       <UserTableSection
         :users="users"

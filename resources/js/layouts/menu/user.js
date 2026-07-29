@@ -9,12 +9,14 @@ export function build(ctx) {
 
   return {
     label: "User Management",
+    labelKey: "navigation.userManagement",
     key,
     match: ["/dashboard/users"],
     icon: "user",
     children: [
       {
         label: "User",
+        labelKey: "navigation.user",
         href: "/dashboard/users",
         match: ["/dashboard/users"],
         exact: false,
@@ -26,6 +28,7 @@ export function build(ctx) {
       },
       {
         label: "Role & Permission",
+        labelKey: "navigation.rolePermission",
         href: "/dashboard/users/roles",
         match: ["/dashboard/users/roles"],
         exact: false,
@@ -33,6 +36,7 @@ export function build(ctx) {
       },
       {
         label: "User & Permission",
+        labelKey: "navigation.userPermission",
         href: "/dashboard/users/permissions",
         match: ["/dashboard/users/permissions"],
         exact: false,

@@ -95,6 +95,8 @@ class CourseController extends Controller
 
     public function edit(Course $course)
     {
+        $course->load('track.subCategory.category');
+
         $categories = Category::where('status', 'active')->get();
         $subCategories = SubCategory::where('status', 'active')->get();
         $tracks = CourseTrack::where('status', 'active')->get();

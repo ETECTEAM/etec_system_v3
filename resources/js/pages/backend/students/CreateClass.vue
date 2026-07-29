@@ -4,7 +4,6 @@ import { Head, useForm, router } from "@inertiajs/vue3";
 import { route } from "ziggy-js";
 import { useToast } from "vue-toastification";
 import {
-    GraduationCap,
     ArrowLeft,
     Save,
     RefreshCw,
@@ -22,10 +21,17 @@ import {
 import DashboardLayout from "@/layouts/DashboardLayout.vue";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHero } from "@/components/ui/page-hero";
+import { useI18n } from "@/i18n";
+import ClassForm from "./components/ClassForm.vue";
 
 const toast = useToast();
+const { t } = useI18n();
 
 const props = defineProps({
+    options: {
+        type: Object,
+        default: () => ({}),
+    },
     courses: { type: Array, default: () => [] },
     lessons: { type: Array, default: () => [] },
     teachers: { type: Array, default: () => [] },
@@ -44,6 +50,30 @@ const props = defineProps({
         ],
     },
 });
+
+const normalizedOptions = computed(() => ({
+    courses: props.options?.courses ?? props.courses ?? [],
+    lessons: props.options?.lessons ?? props.lessons ?? [],
+    teachers: props.options?.teachers ?? props.teachers ?? [],
+    buildings: props.options?.buildings ?? props.buildings ?? [],
+    floors: props.options?.floors ?? props.floors ?? [],
+    rooms: props.options?.rooms ?? props.rooms ?? [],
+    terms: props.options?.terms ?? props.terms ?? [],
+    times: props.options?.times ?? props.times ?? [],
+    classTypes: props.options?.classTypes ?? [
+        { value: "physical", label: "Physical Class" },
+        { value: "online", label: "Online Class" },
+    ],
+    studyDays: props.options?.studyDays ?? [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ],
+}));
 
 // ─── Form ───────────────────────────────────────────────────────────────
 const form = useForm({
@@ -99,14 +129,14 @@ const descriptionCount = computed(() => form.description?.length ?? 0);
 
 const dateError = computed(() => {
     if (form.start_date && form.end_date && form.end_date < form.start_date) {
-        return "End date cannot be before start date.";
+        return t("End date cannot be before start date.");
     }
     if (
         form.enrollment_start &&
         form.enrollment_end &&
         form.enrollment_end < form.enrollment_start
     ) {
-        return "Enrollment end date cannot be before start date.";
+        return t("Enrollment end date cannot be before start date.");
     }
     return "";
 });
@@ -130,7 +160,7 @@ function previewFile(event, target) {
 // ─── Auto-generate course code ──────────────────────────────────────────
 function generateCode() {
     if (!form.title) {
-        toast.warning("Please enter a class title first.");
+        toast.warning(t("Please enter a class title first."));
         return;
     }
     const cleaned = form.title
@@ -159,7 +189,7 @@ function resetForm() {
     form.reset();
     thumbnailPreview.value = null;
     bannerPreview.value = null;
-    toast.info("Form has been reset.");
+    toast.info(t("Form has been reset."));
 }
 
 // ─── Submit ─────────────────────────────────────────────────────────────
@@ -169,10 +199,10 @@ function submit() {
             form.reset();
             thumbnailPreview.value = null;
             bannerPreview.value = null;
-            toast.success("Class created successfully!");
+            toast.success(t("Class created successfully!"));
         },
         onError: () => {
-            toast.error("Please fix the validation errors.");
+            toast.error(t("Please fix the validation errors."));
         },
     });
 }
@@ -199,201 +229,43 @@ const sectionTitleClass =
     "text-base font-semibold text-slate-900";
 const sectionDescClass =
     "text-sm text-slate-500";
+const formCardClass =
+    "w-full rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900";
+const fieldLabelClass =
+    "mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200";
+const visibleInputClass =
+    "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20";
 </script>
 
 <template>
-    <Head title="Create Class" />
+    <Head :title="$t('Create Class')" />
     <DashboardLayout>
     <div class="w-full">
-        <div class="space-y-4 sm:space-y-5">
-         <Breadcrumbs :items="breadcrumbItems" />
-          <PageHero/>
-            <!-- Header -->
-            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-100 flex items-center justify-center shrink-0 dark:bg-indigo-500/10">
-                        <GraduationCap class="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600 dark:text-indigo-400"/>
-                    </div>
-                    <div>
-                        <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-gray-100">
-                            Create New Class
-                        </h1>
-                    </div>
-                </div>
-                <button @click="back" class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500">
-                    <ArrowLeft class="w-4 h-4"/> Back
+        <div class="space-y-6">
+            <Breadcrumbs :items="breadcrumbItems" />
+
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <PageHero
+                    eyebrow="Class Management"
+                    :title="$t('Create New Class')"
+                    :description="$t('Create and manage class information.')"
+                />
+
+                <button
+                    type="button"
+                    @click="back"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
+                >
+                    <ArrowLeft class="h-4 w-4" />
+                    {{ $t('Back') }}
                 </button>
             </div>
 
-            <PageHero
-                title="Create New Class"
-                description="Create and manage class information."
-            />
-
-            <div class="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-slate-200 p-4 sm:p-6 lg:p-8 dark:bg-gray-900 dark:border-gray-800">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
-
-                    <!-- Title -->
-                    <div>
-                        <label class="font-semibold mb-2 block">
-                            Class Title
-                        </label>
-                        <input
-                            v-model="form.title"
-                            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                            placeholder="Web Design + React.js"/>
-                    </div>
-
-                    <!-- Lesson -->
-
-                    <!-- <div>
-                        <label class="font-semibold mb-2 block">
-                            Lesson
-                        </label>
-                        <input
-                            v-model="form.lesson"
-                            class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                            placeholder="Bootstrap"/>
-                    </div> -->
-
-                    <!-- Status -->
-                    <div>
-                        <label class="font-semibold mb-2 block">
-                            Status
-                        </label>
-                        <select v-model="form.status" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-                            <option value="">
-                                Select Status
-                            </option>
-                            <option>
-                                Physical Class
-                            </option>
-                            <option>
-                                Online Class
-                            </option>
-                        </select>
-                    </div>
-
-                    <!-- Building -->
-
-                    <div>
-                        <label class="font-semibold mb-2 block">
-                            Building
-                        </label>
-
-                        <select v-model="form.building" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-                            <option>
-                                Building A
-                            </option>
-                            <option>
-                                Building B
-                            </option>
-                            <option>
-                                Building C
-                            </option>
-                        </select>
-                    </div>
-
-                    <!-- Floor -->
-                    <div>
-                        <label class="font-semibold mb-2 block">
-                            Floor
-                        </label>
-                        <select v-model="form.floor" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-                            <option>
-                                Floor 1
-                            </option>
-                            <option>
-                                Floor 2
-                            </option>
-                            <option>
-                                Floor 3
-                            </option>
-                        </select>
-                    </div>
-
-                    <!-- Room -->
-                    <div>
-                        <label class="font-semibold mb-2 block">
-                            Room
-                        </label>
-                        <input v-model="form.room" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" placeholder="B101"/>
-                    </div>
-
-                    <!-- Term -->
-                    <div>
-                        <label class="font-semibold mb-2 block">
-                            Study Days
-                        </label>
-                        <input  v-model="form.term" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" placeholder="Mon & Thu"/>
-                    </div>
-
-                    <!-- Time -->
-                    <div>
-                        <label class="font-semibold mb-2 block">
-                            Study Time
-                        </label>
-                        <input v-model="form.time" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" placeholder="09:00 AM - 10:30 AM"/>
-                    </div>
-
-                    <!-- Capacity -->
-                    <div>
-                        <label class="font-semibold mb-2 block">
-                            Capacity
-                        </label>
-                        <input type="number" min="1" v-model="form.capacity" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"/>
-                    </div>
-
-                    <div>
-                        <label class="font-semibold mb-2 block">Price</label>
-                        <input type="number" min="1" v-model="form.price" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"/>
-                    </div>
-
-                    <div>
-                        <label class="font-semibold mb-2 block">Start EnRoll</label>
-                        <input type="date" min="1" v-model="form.startEnroll" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"/>
-                    </div>
-
-                    <div>
-                        <label class="font-semibold mb-2 block">Start Date</label>
-                        <input type="date" min="1" v-model="form.startDate" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"/>
-                    </div>
-                </div>
-                <!-- Footer -->
-
-                <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-4 mt-6 sm:mt-8 lg:mt-10">
-
-                    <button
-                        @click="back"
-                        class="inline-flex items-center justify-center gap-2 rounded-xl  bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700">
-
-                        Cancel
-
-                    </button>
-
-                    <button
-                        @click="submit"
-                        class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500">
-
-                        <Save class="w-4 h-4"/>
-
-                        Save Class
-
-                    </button>
-
-                </div>
-
-            </div>
-
-            <!-- ── Date validation warning ─────────────────────────────── -->
-            <div
-                v-if="dateError"
-                class="rounded-xl border border-amber-200 bg-amber-50 p-4"
-            >
-                <p class="text-sm text-amber-800">{{ dateError }}</p>
-            </div>
+            <ClassForm :options="normalizedOptions" mode="create" />
 
             <!-- ── Form ────────────────────────────────────────────────── -->
+            <!-- Kept for future use. Enable this template when the full create-class form is needed again. -->
+            <template v-if="false">
             <form @submit.prevent="submit" class="space-y-8">
                 <!-- ══════════════════════════════════════════════════════
                      SECTION 1 — General Information
@@ -402,7 +274,7 @@ const sectionDescClass =
                     <div class="mb-5 flex items-start gap-3">
                         <Info class="mt-0.5 h-5 w-5 text-indigo-600" />
                         <div>
-                            <h2 :class="sectionTitleClass">General Information</h2>
+                            <h2 :class="sectionTitleClass">{{ $t('General Information') }}</h2>
                             <p :class="sectionDescClass">
                                 Basic details about the class.
                             </p>
@@ -417,19 +289,19 @@ const sectionDescClass =
                             <label
                                 class="mb-1.5 block text-sm font-semibold text-slate-700"
                             >
-                                Class Title <span class="text-red-500">*</span>
+                                {{ $t('Class Title') }} <span class="text-red-500">*</span>
                             </label>
                             <div class="relative">
                                 <input
                                     v-model="form.title"
                                     type="text"
-                                    placeholder="e.g. Web Development — Batch 2026"
+                                    :placeholder="$t('e.g. Web Development — Batch 2026')"
                                     :class="inputClass('title')"
                                 />
                                 <button
                                     type="button"
                                     @click="generateCode"
-                                    title="Auto-generate course code"
+                                    :title="$t('Auto-generate course code')"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-indigo-600"
                                 >
                                     <Wand2 class="h-4 w-4" />
@@ -454,7 +326,7 @@ const sectionDescClass =
                                 <input
                                     v-model="form.course_code"
                                     type="text"
-                                    placeholder="Auto-generated"
+                                    :placeholder="$t('Auto-generated')"
                                     :class="inputClass('course_code')"
                                 />
                                 <Hash
@@ -480,7 +352,7 @@ const sectionDescClass =
                                 v-model="form.course_id"
                                 :class="inputClass('course_id')"
                             >
-                                <option value="">Select course...</option>
+                                <option value="">{{ $t('Select course...') }}</option>
                                 <option
                                     v-for="c in courses"
                                     :key="c.id"
@@ -508,7 +380,7 @@ const sectionDescClass =
                                 v-model="form.lesson_id"
                                 :class="inputClass('lesson_id')"
                             >
-                                <option value="">Select lesson...</option>
+                                <option value="">{{ $t('Select lesson...') }}</option>
                                 <option
                                     v-for="l in lessons"
                                     :key="l.id"
@@ -536,7 +408,7 @@ const sectionDescClass =
                                 v-model="form.teacher_id"
                                 :class="inputClass('teacher_id')"
                             >
-                                <option value="">Select teacher...</option>
+                                <option value="">{{ $t('Select teacher...') }}</option>
                                 <option
                                     v-for="t in teachers"
                                     :key="t.id"
@@ -558,14 +430,14 @@ const sectionDescClass =
                             <label
                                 class="mb-1.5 block text-sm font-semibold text-slate-700"
                             >
-                                Status
+                                {{ $t('Status') }}
                             </label>
                             <select
                                 v-model="form.status"
                                 :class="inputClass('status')"
                             >
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
+                                <option value="active">{{ $t('Active') }}</option>
+                                <option value="inactive">{{ $t('Inactive') }}</option>
                             </select>
                             <p
                                 v-if="form.errors.status"
@@ -580,14 +452,14 @@ const sectionDescClass =
                             <label
                                 class="mb-1.5 block text-sm font-semibold text-slate-700"
                             >
-                                Class Type
+                                {{ $t('Class Type') }}
                             </label>
                             <select
                                 v-model="form.class_type"
                                 :class="inputClass('class_type')"
                             >
-                                <option value="physical">Physical Class</option>
-                                <option value="online">Online Class</option>
+                                <option value="physical">{{ $t('Physical Class') }}</option>
+                                <option value="online">{{ $t('Online Class') }}</option>
                             </select>
                             <p
                                 v-if="form.errors.class_type"
@@ -606,7 +478,7 @@ const sectionDescClass =
                     <div class="mb-5 flex items-start gap-3">
                         <Calendar class="mt-0.5 h-5 w-5 text-indigo-600" />
                         <div>
-                            <h2 :class="sectionTitleClass">Schedule</h2>
+                            <h2 :class="sectionTitleClass">{{ $t('Schedule') }}</h2>
                             <p :class="sectionDescClass">
                                 Set the class schedule and enrollment period.
                             </p>
@@ -621,13 +493,13 @@ const sectionDescClass =
                             <label
                                 class="mb-1.5 block text-sm font-semibold text-slate-700"
                             >
-                                Study Days
+                                {{ $t('Study Days') }}
                             </label>
                             <select
                                 v-model="form.term_id"
                                 :class="inputClass('term_id')"
                             >
-                                <option value="">Select days...</option>
+                                <option value="">{{ $t('Select days...') }}</option>
                                 <option
                                     v-for="t in terms"
                                     :key="t.id"
@@ -649,13 +521,13 @@ const sectionDescClass =
                             <label
                                 class="mb-1.5 block text-sm font-semibold text-slate-700"
                             >
-                                Study Time <span class="text-red-500">*</span>
+                                {{ $t('Study Time') }} <span class="text-red-500">*</span>
                             </label>
                             <select
                                 v-model="form.time_id"
                                 :class="inputClass('time_id')"
                             >
-                                <option value="">Select time...</option>
+                                <option value="">{{ $t('Select time...') }}</option>
                                 <option
                                     v-for="t in times"
                                     :key="t.id"
@@ -677,7 +549,7 @@ const sectionDescClass =
                             <label
                                 class="mb-1.5 block text-sm font-semibold text-slate-700"
                             >
-                                Start Date
+                                {{ $t('Start Date') }}
                             </label>
                             <input
                                 v-model="form.start_date"
@@ -761,7 +633,7 @@ const sectionDescClass =
                     <div class="mb-5 flex items-start gap-3">
                         <MapPin class="mt-0.5 h-5 w-5 text-indigo-600" />
                         <div>
-                            <h2 :class="sectionTitleClass">Location</h2>
+                            <h2 :class="sectionTitleClass">{{ $t('Location') }}</h2>
                             <p :class="sectionDescClass">
                                 Select the physical location for this class.
                             </p>
@@ -776,13 +648,13 @@ const sectionDescClass =
                             <label
                                 class="mb-1.5 block text-sm font-semibold text-slate-700"
                             >
-                                Building
+                                {{ $t('Building') }}
                             </label>
                             <select
                                 v-model="form.building_id"
                                 :class="inputClass('building_id')"
                             >
-                                <option value="">Select building...</option>
+                                <option value="">{{ $t('Select building...') }}</option>
                                 <option
                                     v-for="b in buildings"
                                     :key="b.id"
@@ -804,13 +676,13 @@ const sectionDescClass =
                             <label
                                 class="mb-1.5 block text-sm font-semibold text-slate-700"
                             >
-                                Floor
+                                {{ $t('Floor') }}
                             </label>
                             <select
                                 v-model="form.floor_id"
                                 :class="inputClass('floor_id')"
                             >
-                                <option value="">Select floor...</option>
+                                <option value="">{{ $t('Select floor...') }}</option>
                                 <option
                                     v-for="f in floors"
                                     :key="f.id"
@@ -832,13 +704,13 @@ const sectionDescClass =
                             <label
                                 class="mb-1.5 block text-sm font-semibold text-slate-700"
                             >
-                                Room
+                                {{ $t('Room') }}
                             </label>
                             <select
                                 v-model="form.room_id"
                                 :class="inputClass('room_id')"
                             >
-                                <option value="">Select room...</option>
+                                <option value="">{{ $t('Select room...') }}</option>
                                 <option
                                     v-for="r in rooms"
                                     :key="r.id"
@@ -864,7 +736,7 @@ const sectionDescClass =
                     <div class="mb-5 flex items-start gap-3">
                         <DollarSign class="mt-0.5 h-5 w-5 text-indigo-600" />
                         <div>
-                            <h2 :class="sectionTitleClass">Pricing</h2>
+                            <h2 :class="sectionTitleClass">{{ $t('Pricing') }}</h2>
                             <p :class="sectionDescClass">
                                 Set the class fee structure.
                             </p>
@@ -879,7 +751,7 @@ const sectionDescClass =
                             <label
                                 class="mb-1.5 block text-sm font-semibold text-slate-700"
                             >
-                                Price
+                                {{ $t('Price') }}
                             </label>
                             <input
                                 v-model="form.price"
@@ -956,7 +828,7 @@ const sectionDescClass =
                     <div class="mb-5 flex items-start gap-3">
                         <Users class="mt-0.5 h-5 w-5 text-indigo-600" />
                         <div>
-                            <h2 :class="sectionTitleClass">Capacity</h2>
+                            <h2 :class="sectionTitleClass">{{ $t('Capacity') }}</h2>
                             <p :class="sectionDescClass">
                                 Manage student limits and availability.
                             </p>
@@ -978,7 +850,7 @@ const sectionDescClass =
                                 v-model="form.max_students"
                                 type="number"
                                 min="1"
-                                placeholder="e.g. 30"
+                                :placeholder="$t('e.g. 30')"
                                 :class="inputClass('max_students')"
                             />
                             <p
@@ -1000,7 +872,7 @@ const sectionDescClass =
                                 v-model="form.min_students"
                                 type="number"
                                 min="0"
-                                placeholder="e.g. 5"
+                                :placeholder="$t('e.g. 5')"
                                 :class="inputClass('min_students')"
                             />
                             <p
@@ -1022,8 +894,8 @@ const sectionDescClass =
                                 v-model="form.waiting_list"
                                 :class="inputClass('waiting_list')"
                             >
-                                <option value="no">No</option>
-                                <option value="yes">Yes</option>
+                                <option value="no">{{ $t('No') }}</option>
+                                <option value="yes">{{ $t('Yes') }}</option>
                             </select>
                             <p
                                 v-if="form.errors.waiting_list"
@@ -1042,7 +914,7 @@ const sectionDescClass =
                     <div class="mb-5 flex items-start gap-3">
                         <FileText class="mt-0.5 h-5 w-5 text-indigo-600" />
                         <div>
-                            <h2 :class="sectionTitleClass">Course Details</h2>
+                            <h2 :class="sectionTitleClass">{{ $t('Course Details') }}</h2>
                             <p :class="sectionDescClass">
                                 Provide a detailed overview of the class.
                             </p>
@@ -1058,7 +930,7 @@ const sectionDescClass =
                                 <label
                                     class="block text-sm font-semibold text-slate-700"
                                 >
-                                    Description
+                                    {{ $t('Description') }}
                                 </label>
                                 <span
                                     class="text-xs text-slate-400"
@@ -1073,7 +945,7 @@ const sectionDescClass =
                             <textarea
                                 v-model="form.description"
                                 rows="4"
-                                placeholder="Describe the class content, goals, and what students will learn..."
+                                :placeholder="$t('Describe the class content, goals, and what students will learn...')"
                                 :class="inputClass('description')"
                                 maxlength="1000"
                             ></textarea>
@@ -1095,7 +967,7 @@ const sectionDescClass =
                             <textarea
                                 v-model="form.learning_objectives"
                                 rows="3"
-                                placeholder="List the key learning outcomes. One per line is recommended..."
+                                :placeholder="$t('List the key learning outcomes. One per line is recommended...')"
                                 :class="inputClass('learning_objectives')"
                             ></textarea>
                             <p
@@ -1116,7 +988,7 @@ const sectionDescClass =
                             <textarea
                                 v-model="form.prerequisites"
                                 rows="3"
-                                placeholder="Any required knowledge, tools, or materials students need before joining..."
+                                :placeholder="$t('Any required knowledge, tools, or materials students need before joining...')"
                                 :class="inputClass('prerequisites')"
                             ></textarea>
                             <p
@@ -1136,7 +1008,7 @@ const sectionDescClass =
                     <div class="mb-5 flex items-start gap-3">
                         <Image class="mt-0.5 h-5 w-5 text-indigo-600" />
                         <div>
-                            <h2 :class="sectionTitleClass">Media</h2>
+                            <h2 :class="sectionTitleClass">{{ $t('Media') }}</h2>
                             <p :class="sectionDescClass">
                                 Upload class images and branding assets.
                             </p>
@@ -1151,7 +1023,7 @@ const sectionDescClass =
                             <label
                                 class="mb-1.5 block text-sm font-semibold text-slate-700"
                             >
-                                Thumbnail Image
+                                {{ $t('Thumbnail Image') }}
                             </label>
                             <div
                                 @click="$refs.thumbnailInput.click()"
@@ -1265,7 +1137,7 @@ const sectionDescClass =
                     <div class="mb-5 flex items-start gap-3">
                         <Settings2 class="mt-0.5 h-5 w-5 text-indigo-600" />
                         <div>
-                            <h2 :class="sectionTitleClass">Settings</h2>
+                            <h2 :class="sectionTitleClass">{{ $t('Settings') }}</h2>
                             <p :class="sectionDescClass">
                                 Configure visibility and publishing options.
                             </p>
@@ -1400,8 +1272,8 @@ const sectionDescClass =
                                 v-model="form.visibility"
                                 :class="inputClass('visibility')"
                             >
-                                <option value="public">Public</option>
-                                <option value="private">Private</option>
+                                <option value="public">{{ $t('Public') }}</option>
+                                <option value="private">{{ $t('Private') }}</option>
                             </select>
                             <p
                                 v-if="form.errors.visibility"
@@ -1427,7 +1299,7 @@ const sectionDescClass =
                             @click="back"
                             class="w-full rounded-xl border border-slate-300 px-6 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
                         >
-                            Cancel
+                            {{ $t('Cancel') }}
                         </button>
 
                         <button
@@ -1436,7 +1308,7 @@ const sectionDescClass =
                             class="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 px-6 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
                         >
                             <RefreshCw class="h-4 w-4" />
-                            Reset
+                            {{ $t('Reset') }}
                         </button>
 
                         <button
@@ -1465,11 +1337,13 @@ const sectionDescClass =
                                     d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                                 />
                             </svg>
-                            {{ form.processing ? "Saving..." : "Save Class" }}
+                            {{ form.processing ? $t("Saving...") : $t("Save Class") }}
                         </button>
                     </div>
                 </div>
             </form>
+            </template>
         </div>
+    </div>
     </DashboardLayout>
 </template>

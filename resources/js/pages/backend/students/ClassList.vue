@@ -1,7 +1,6 @@
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { router } from "@inertiajs/vue3";
-import { route } from "ziggy-js";
 import { Search, RotateCcw, Plus, LayoutGrid, Table2 } from "@lucide/vue";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
@@ -70,15 +69,16 @@ const classes = ref([
     notifications: 3,
   },
 ]);
+const viewMode = ref("card");
 
-defineProps({
-  classData: {
+const props = defineProps({
+  classes: {
     type: Object,
-    default: null,
+    default: () => ({ data: [] }),
   },
-  students: {
-    type: Array,
-    default: () => [],
+  filters: {
+    type: Object,
+    default: () => ({ search: "" }),
   },
   depositSummary: {
     type: Object,
@@ -86,18 +86,23 @@ defineProps({
   },
 });
 
-const filteredClasses = computed(() => {
-  if (!search.value) return classes.value;
+// const search = ref(props.filters.search ?? "");
+const filteredClasses = computed(() => props.classes?.data ?? []);
+let searchTimer = null;
 
-  return classes.value.filter((item) =>
-    (item.title + item.lesson + item.building + item.room)
-      .toLowerCase()
-      .includes(search.value.toLowerCase())
-  );
-});
+function runSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    router.get(
+      "/dashboard/students",
+      { search: search.value },
+      { preserveState: true, replace: true }
+    );
+  }, 350);
+}
 
 const search = ref(props.filters?.search ?? "");
-const viewMode = ref("card");
+// const viewMode = ref("card");
 
 const breadcrumbItems = [
   { label: "Dashboard", href: "/dashboard" },
@@ -106,15 +111,16 @@ const breadcrumbItems = [
 
 function refresh() {
     search.value = "";
-    router.visit(route("students.index"), { preserveState: true });
+    router.visit("/dashboard/students", { preserveState: true });
 }
 
 function goCreateClass() {
-    router.visit(route("students.create"));
+    router.visit("/dashboard/students/create");
 }
 
 function onSearch() {
-    router.visit(route("students.index", { search: search.value || null }), {
+    router.visit("/dashboard/students", {
+        data: { search: search.value || null },
         preserveState: true,
         replace: true,
     });
@@ -129,14 +135,14 @@ function onSearch() {
       >
         <div>
           <Breadcrumbs :items="breadcrumbItems" class="mb-4" />
-          <PageHero title="Class List" />
+          <PageHero :title="$t('Class List')" />
         </div>
 
         <button
           @click="goCreateClass"
           class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
         >
-          <Plus class="w-4 h-4" /> Add EnRoll
+          <Plus class="w-4 h-4" /> {{ $t('Add Enroll') }}
         </button>
       </div>
 
@@ -150,7 +156,7 @@ function onSearch() {
       >
         <!-- Title -->
         <div>
-          <h1 class="text-xl font-bold text-slate-800 dark:text-gray-100">All Class</h1>
+          <h1 class="text-xl font-bold text-slate-800 dark:text-gray-100">{{ $t('All Class') }}</h1>
         </div>
 
         <!-- Actions -->
@@ -163,7 +169,7 @@ function onSearch() {
             <input
               v-model="search"
               type="text"
-              placeholder="Search student..."
+              :placeholder="$t('Search student...')"
               class="w-full rounded-xl border border-slate-300 py-2 pl-10 pr-4 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
             />
           </div>
@@ -174,7 +180,7 @@ function onSearch() {
             class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
           >
             <RotateCcw class="h-4 w-4" />
-            Reset
+            {{ $t('Reset') }}
           </button>
 
           <!-- Card -->
@@ -188,7 +194,7 @@ function onSearch() {
             ]"
           >
             <LayoutGrid class="h-4 w-4" />
-            Card
+            {{ $t('Card') }}
           </button>
 
           <!-- Table -->
@@ -202,7 +208,7 @@ function onSearch() {
             ]"
           >
             <Table2 class="h-4 w-4" />
-            Table
+            {{ $t('Table') }}
           </button>
         </div>
       </div>
@@ -223,6 +229,24 @@ function onSearch() {
       <!-- Table View -->
       <div v-else class="w-full overflow-x-auto">
         <ClassTable :items="filteredClasses" />
+      </div>
+
+      <div v-if="classes?.links?.length > 3" class="mt-6 flex flex-wrap justify-center gap-2">
+        <button
+          v-for="link in classes.links"
+          :key="link.label"
+          type="button"
+          :disabled="!link.url"
+          @click="link.url && router.visit(link.url, { preserveState: true })"
+          v-html="link.label"
+          :class="[
+            'rounded-lg border px-3 py-2 text-sm',
+            link.active
+              ? 'border-blue-900 bg-blue-900 text-white'
+              : 'border-slate-300 bg-white text-slate-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300',
+            !link.url ? 'cursor-not-allowed opacity-50' : 'hover:bg-slate-100 dark:hover:bg-gray-800',
+          ]"
+        ></button>
       </div>
     </div>
   </DashboardLayout>

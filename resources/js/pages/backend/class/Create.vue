@@ -18,25 +18,25 @@ const submit = () => {
 </script>
 
 <template>
-  <Head title="Create Class" />
+  <Head :title="$t('Create Class')" />
   <DashboardLayout>
   <div class="p-8">
     <div class="flex items-center mb-6 space-x-4">
-      <Link href="/dashboard/admin/classes" class="text-blue-600 hover:underline dark:text-blue-400">&larr; Back to Classes</Link>
-      <h1 class="text-2xl font-bold dark:text-gray-100">Create New Class</h1>
+      <Link href="/dashboard/admin/classes" class="text-blue-600 hover:underline dark:text-blue-400">{{ $t('&larr; Back to Classes') }}</Link>
+      <h1 class="text-2xl font-bold dark:text-gray-100">{{ $t('Create New Class') }}</h1>
     </div>
 
     <div class="bg-white p-8 rounded-lg shadow-md max-w-lg dark:bg-gray-900">
       <form @submit.prevent="submit" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Course / Class Name</label>
-          <input v-model="form.class_name" type="text" placeholder="e.g. Web Design" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" required>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">{{ $t('Course / Class Name') }}</label>
+          <input v-model="form.class_name" type="text" :placeholder="$t('e.g. Web Design')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" required>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Select Time Slot</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">{{ $t('Select Time Slot') }}</label>
           <select v-model="form.time_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" required>
-            <option value="" disabled>Choose a time...</option>
+            <option value="" disabled>{{ $t('Choose a time...') }}</option>
             <option v-for="time in times" :key="time.id" :value="time.id">
               {{ time.time_name }} ({{ time.term?.term_name }})
             </option>
@@ -44,7 +44,7 @@ const submit = () => {
         </div>
 
         <div>
-           <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Capacity (Max Students)</label>
+           <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">{{ $t('Capacity (Max Students)') }}</label>
            <input v-model="form.capacity" type="number" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" required>
         </div>
 
