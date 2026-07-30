@@ -21,7 +21,6 @@ class CategorySeeder extends Seeder
 
         $categories = [
             'Programming',
-            'Web Development',
             'Mobile Development',
             'Data Science',
             'DevOps',

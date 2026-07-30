@@ -8,153 +8,136 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                <span>{{ $t('Course') }}</span>
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
                 <span class="text-slate-600 dark:text-gray-300 font-medium">{{ $t('Categories') }}</span>
             </nav>
 
-            <!-- Header -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <div class="flex items-center gap-4">
-                    <div>
-                        <h1 class="text-2xl font-bold text-slate-900 dark:text-gray-100 tracking-tight">{{ $t('Categories') }}</h1>
-                        <p class="text-sm text-slate-500 dark:text-gray-400 mt-0.5">{{ $t('Organize all learning categories') }}</p>
+            <PageHero
+                eyebrow="Course Management"
+                :title="$t('Categories')"
+                :description="$t('Organize all learning categories')"
+                class="mb-6"
+            />
+
+            <Card padding="p-0">
+                <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div class="min-w-0 shrink-0">
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-gray-500">{{ $t('Category Directory') }}</p>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t('Organize all learning categories') }}</p>
+                        </div>
+
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+                            <div class="relative">
+                                <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
+                                <input
+                                    v-model="search"
+                                    type="text"
+                                    :placeholder="$t('Search by name...')"
+                                    class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:w-56 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+                                    @input="resetPagination"
+                                >
+                            </div>
+
+                            <Link
+                                href="/dashboard/course/categories/create"
+                                class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+                            >
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                {{ $t('New Category') }}
+                            </Link>
+                        </div>
                     </div>
                 </div>
 
-                <Link href="/dashboard/course/categories/create"
-                    class="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-medium text-sm shadow-sm shadow-blue-200 dark:shadow-none transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    {{ $t('New Category') }}
-                </Link>
-            </div>
+                <div class="relative">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead class="w-16">{{ $t('No') }}</TableHead>
+                                <TableHead>{{ $t('Category') }}</TableHead>
+                                <TableHead>{{ $t('Sub Categories') }}</TableHead>
+                                <TableHead>{{ $t('Status') }}</TableHead>
+                                <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow v-for="(category, index) in paginatedCategories" :key="category.id">
+                                <TableCell class="text-sm text-slate-500 dark:text-gray-400">
+                                    {{ (currentPage - 1) * perPage + index + 1 }}
+                                </TableCell>
+                                <TableCell>
+                                    <span class="text-sm font-medium text-slate-900 dark:text-gray-100">{{ category.name }}</span>
+                                </TableCell>
+                                <TableCell>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300">
+                                        {{ category.sub_categories?.length || 0 }}
+                                    </span>
+                                </TableCell>
+                                <TableCell>
+                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="category.status === 'active' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'">
+                                        {{ category.status === 'active' ? $t('Active') : $t('Inactive') }}
+                                    </span>
+                                </TableCell>
+                                <TableCell class="text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <Link
+                                            :href="`/dashboard/course/categories/${category.id}/edit`"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
+                                            :title="$t('Edit')"
+                                            :aria-label="$t('Edit category')"
+                                        >
+                                            <Pencil class="h-4 w-4" />
+                                        </Link>
 
-            <!-- Stats strip -->
-            <div class="grid grid-cols-3 gap-3 mb-6">
-                <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-800 px-4 py-3.5">
-                    <p class="text-xs font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wide">{{ $t('Total') }}</p>
-                    <p class="text-xl font-bold text-slate-900 dark:text-gray-100 mt-1">{{ categories.length }}</p>
-                </div>
-                <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-800 px-4 py-3.5">
-                    <p class="text-xs font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wide">{{ $t('Active') }}</p>
-                    <p class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{{ activeCount }}</p>
-                </div>
-                <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-800 px-4 py-3.5">
-                    <p class="text-xs font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wide">{{ $t('Sub-categories') }}</p>
-                    <p class="text-xl font-bold text-slate-900 dark:text-gray-100 mt-1">{{ totalSubCategories }}</p>
-                </div>
-            </div>
+                                        <button
+                                            type="button"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
+                                            :title="$t('Delete')"
+                                            :aria-label="$t('Delete category')"
+                                            @click="confirmDelete(category)"
+                                        >
+                                            <Trash2 class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
 
-            <!-- Search and Results Count -->
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
-                <div class="w-full sm:max-w-sm">
-                    <div class="relative">
-                        <input v-model="search" type="text" :placeholder="$t('Search by name...')"
-                            class="w-full rounded-xl border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-800 pl-9 pr-4 py-2.5 text-sm text-slate-700 dark:text-gray-200 placeholder:text-slate-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500/20 focus:border-transparent transition"
-                            @input="resetPagination" />
-                        <svg class="absolute left-3 top-3 w-4 h-4 text-slate-400 dark:text-gray-500" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Categories Table -->
-            <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-800 overflow-hidden shadow-sm">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead class="w-12">{{ $t('No') }}</TableHead>
-                            <TableHead>{{ $t('Category') }}</TableHead>
-                            <TableHead>{{ $t('Sub Categories') }}</TableHead>
-                            <TableHead>{{ $t('Status') }}</TableHead>
-                            <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        <TableRow v-for="(category, index) in paginatedCategories" :key="category.id">
-                            <TableCell class="text-sm text-slate-500 dark:text-gray-400">
-                                {{ (currentPage - 1) * perPage + index + 1 }}
-                            </TableCell>
-                            <TableCell>
-                                <span class="text-sm font-medium text-slate-900 dark:text-gray-100">{{ category.name }}</span>
-                            </TableCell>
-                            <TableCell>
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300">
-                                    {{ category.sub_categories?.length || 0 }}
-                                </span>
-                            </TableCell>
-                            <TableCell>
-                                <span class="inline-flex items-center gap-1.5 text-xs font-medium"
-                                    :class="category.status === 'active' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'">
-                                    <span class="w-1.5 h-1.5 rounded-full"
-                                        :class="category.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'"></span>
-                                    {{ category.status === 'active' ? $t('Active') : $t('Inactive') }}
-                                </span>
-                            </TableCell>
-                            <TableCell class="text-right">
-                                <div class="flex items-center justify-end gap-2">
-                                    <Link :href="`/dashboard/course/categories/${category.id}/edit`"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 transition">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                        {{ $t('Edit') }}
+                            <!-- Empty state: no categories exist at all -->
+                            <TableRow v-if="paginatedCategories.length === 0 && categories.length === 0">
+                                <TableCell colspan="5" class="px-4 py-16 text-center">
+                                    <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                    </svg>
+                                    <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No categories yet') }}</p>
+                                    <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ $t('Create your first category to start organizing courses') }}</p>
+                                    <Link href="/dashboard/course/categories/create"
+                                        class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                                        + {{ $t('New Category') }}
                                     </Link>
-                                    <button @click="confirmDelete(category)"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 dark:text-rose-400 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 transition">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        {{ $t('Delete') }}
+                                </TableCell>
+                            </TableRow>
+
+                            <!-- Empty state: search found nothing -->
+                            <TableRow v-else-if="paginatedCategories.length === 0">
+                                <TableCell colspan="5" class="px-4 py-16 text-center">
+                                    <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No results for ":search"', { search }) }}</p>
+                                    <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ $t('Try a different name or clear the search') }}</p>
+                                    <button @click="search = ''"
+                                        class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                                        {{ $t('Clear search') }}
                                     </button>
-                                </div>
-                            </TableCell>
-                        </TableRow>
-
-                        <!-- Empty state: no categories exist at all -->
-                        <TableRow v-if="paginatedCategories.length === 0 && categories.length === 0">
-                            <TableCell colspan="5" class="px-4 py-16 text-center">
-                                <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                </svg>
-                                <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No categories yet') }}</p>
-                                <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ $t('Create your first category to start organizing courses') }}</p>
-                                <Link href="/dashboard/course/categories/create"
-                                    class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                                    + {{ $t('New Category') }}
-                                </Link>
-                            </TableCell>
-                        </TableRow>
-
-                        <!-- Empty state: search found nothing -->
-                        <TableRow v-else-if="paginatedCategories.length === 0">
-                            <TableCell colspan="5" class="px-4 py-16 text-center">
-                                <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No results for ":search"', { search }) }}</p>
-                                <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ $t('Try a different name or clear the search') }}</p>
-                                <button @click="search = ''"
-                                    class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                                    {{ $t('Clear search') }}
-                                </button>
-                            </TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
+                                </TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </div>
 
                 <!-- Pagination -->
                 <div v-if="filteredCategories.length > 0"
@@ -169,7 +152,7 @@
                         @page-change="goToPage"
                     />
                 </div>
-            </div>
+            </Card>
         </div>
 
         <!-- Delete Modal -->
@@ -213,7 +196,10 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
+import { Pencil, Search, Trash2 } from '@lucide/vue';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import { Card } from '@/components/ui/card';
+import { PageHero } from '@/components/ui/page-hero';
 import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Pagination } from '@/components/ui/pagination';
 
@@ -234,14 +220,6 @@ const perPage = ref(10);
 // Delete modal
 const showDeleteModal = ref(false);
 const deleteItem = ref(null);
-
-// Stats
-const activeCount = computed(() =>
-    props.categories.filter(cat => cat.status === 'active').length
-);
-const totalSubCategories = computed(() =>
-    props.categories.reduce((sum, cat) => sum + (cat.sub_categories?.length || 0), 0)
-);
 
 // Filtered categories
 const filteredCategories = computed(() => {

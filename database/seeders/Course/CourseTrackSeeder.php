@@ -104,6 +104,15 @@ class CourseTrackSeeder extends Seeder
                 'sub_category_id' => $this->getSubCategoryId('Full Stack'),
                 'name' => 'LAMP Stack'
             ],
+            // Web Development sub-category tracks
+            [
+                'sub_category_id' => $this->getSubCategoryId('Web Development'),
+                'name' => 'Frontend'
+            ],
+            [
+                'sub_category_id' => $this->getSubCategoryId('Web Development'),
+                'name' => 'Backend'
+            ],
         ];
 
         $usedSlugs = [];

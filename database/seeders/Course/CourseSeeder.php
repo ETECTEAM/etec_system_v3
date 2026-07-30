@@ -157,6 +157,100 @@ class CourseSeeder extends Seeder
                 'certificate_available' => true,
                 'status' => 'active'
             ],
+
+            // Web Development - Frontend track
+            [
+                'course_track_id' => $this->getTrackId('Frontend'),
+                'title' => 'HTML',
+                'level' => 'beginner',
+                'price' => 29.99,
+                'language' => 'en',
+                'certificate_available' => true,
+                'status' => 'active'
+            ],
+            [
+                'course_track_id' => $this->getTrackId('Frontend'),
+                'title' => 'CSS',
+                'level' => 'beginner',
+                'price' => 29.99,
+                'language' => 'en',
+                'certificate_available' => true,
+                'status' => 'active'
+            ],
+            [
+                'course_track_id' => $this->getTrackId('Frontend'),
+                'title' => 'JavaScript',
+                'level' => 'beginner',
+                'price' => 49.99,
+                'language' => 'en',
+                'certificate_available' => true,
+                'status' => 'active'
+            ],
+            [
+                'course_track_id' => $this->getTrackId('Frontend'),
+                'title' => 'Vue.js',
+                'level' => 'intermediate',
+                'price' => 59.99,
+                'language' => 'en',
+                'certificate_available' => true,
+                'status' => 'active'
+            ],
+            [
+                'course_track_id' => $this->getTrackId('Frontend'),
+                'title' => 'React.js',
+                'level' => 'intermediate',
+                'price' => 59.99,
+                'language' => 'en',
+                'certificate_available' => true,
+                'status' => 'active'
+            ],
+
+            // Web Development - Backend track
+            [
+                'course_track_id' => $this->getTrackId('Backend'),
+                'title' => 'PHP',
+                'level' => 'beginner',
+                'price' => 39.99,
+                'language' => 'en',
+                'certificate_available' => true,
+                'status' => 'active'
+            ],
+            [
+                'course_track_id' => $this->getTrackId('Backend'),
+                'title' => 'Laravel',
+                'level' => 'intermediate',
+                'price' => 69.99,
+                'language' => 'en',
+                'certificate_available' => true,
+                'status' => 'active'
+            ],
+            [
+                'course_track_id' => $this->getTrackId('Backend'),
+                'title' => 'Node.js',
+                'level' => 'intermediate',
+                'price' => 59.99,
+                'language' => 'en',
+                'certificate_available' => true,
+                'status' => 'active'
+            ],
+            [
+                'course_track_id' => $this->getTrackId('Backend'),
+                'title' => 'MySQL',
+                'level' => 'beginner',
+                'price' => 39.99,
+                'language' => 'en',
+                'certificate_available' => true,
+                'status' => 'active'
+            ],
+            [
+                'course_track_id' => $this->getTrackId('Backend'),
+                'title' => 'API Development',
+                'level' => 'intermediate',
+                'price' => 59.99,
+                'language' => 'en',
+                'certificate_available' => true,
+                'status' => 'active'
+            ],
         ];
 
         $usedSlugs = [];
