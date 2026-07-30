@@ -226,8 +226,8 @@ class NewsController extends Controller
             'created_at' => $news->created_at?->format('Y-m-d'),
             'images' => $news->images->map(fn ($image): array => [
                 'id' => $image->id,
-                'image' => $image->image,
-                'image_url' => $image->image_url,
+                'image' => null,
+                'image_url' => $this->website->publicImageDataUri($image->image),
                 'position' => $image->position,
                 'is_active' => $image->is_active,
             ])->values()->all(),

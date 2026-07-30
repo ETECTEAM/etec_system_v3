@@ -70,8 +70,8 @@ class WebsiteContentService
 
         return [
             'school_name' => $settings->school_name,
-            'school_logo' => $settings->school_logo,
-            'logo_url' => $settings->logo_url,
+            'school_logo' => null,
+            'logo_url' => $this->publicImageDataUri($settings->school_logo),
         ];
     }
 
@@ -211,8 +211,8 @@ class WebsiteContentService
             'price' => $course->price,
             'language' => $course->language,
             'certificate_available' => $course->certificate_available,
-            'thumbnail' => $course->thumbnail,
-            'thumbnail_url' => $course->thumbnail ? '/storage/'.ltrim($course->thumbnail, '/') : null,
+            'thumbnail' => null,
+            'thumbnail_url' => $this->publicImageDataUri($course->thumbnail),
             'track' => $course->track?->name,
             'sub_category' => $course->track?->subCategory?->name,
             'category' => $course->track?->subCategory?->category?->name,
@@ -365,8 +365,8 @@ class WebsiteContentService
             'created_at' => $news->created_at?->format('Y-m-d'),
             'images' => $news->images->map(fn ($image): array => [
                 'id' => $image->id,
-                'image' => $image->image,
-                'image_url' => $image->image_url,
+                'image' => null,
+                'image_url' => $this->publicImageDataUri($image->image),
                 'position' => $image->position,
                 'is_active' => $image->is_active,
             ])->values()->all(),
@@ -460,7 +460,7 @@ class WebsiteContentService
             'title' => $video->title,
             'description' => $video->description,
             'video_url' => $video->video_url,
-            'thumbnail_url' => $video->thumbnail_url,
+            'thumbnail_url' => $this->publicImageDataUri($video->thumbnail_path),
             'duration' => $video->duration,
             'views_count' => $video->views_count,
             'sort_order' => $video->sort_order,
@@ -475,6 +475,27 @@ class WebsiteContentService
         $name = Str::uuid()->toString().'.'.$extension;
 
         return $file->storeAs($directory, $name, 'public');
+    }
+
+    public function publicImageDataUri(?string $path): ?string
+    {
+        if (! $path || Str::startsWith($path, ['data:', 'http://', 'https://', '//'])) {
+            return $path;
+        }
+
+        $path = ltrim($path, '/');
+
+        if (! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        $mimeType = Storage::disk('public')->mimeType($path);
+
+        if (! is_string($mimeType) || ! Str::startsWith($mimeType, 'image/')) {
+            return null;
+        }
+
+        return 'data:'.$mimeType.';base64,'.base64_encode(Storage::disk('public')->get($path));
     }
 
     public function deletePublicFile(?string $path): void
@@ -523,8 +544,8 @@ class WebsiteContentService
                 'title' => $page->hero->title,
                 'subtitle' => $page->hero->subtitle,
                 'description' => $page->hero->description,
-                'background_image' => $page->hero->background_image,
-                'background_image_url' => $page->hero->background_image_url,
+                'background_image' => null,
+                'background_image_url' => $this->publicImageDataUri($page->hero->background_image),
                 'primary_button_text' => $page->hero->primary_button_text,
                 'primary_button_url' => $page->hero->primary_button_url,
                 'secondary_button_text' => $page->hero->secondary_button_text,
@@ -534,8 +555,8 @@ class WebsiteContentService
                 'is_active' => $page->hero->is_active,
                 'images' => $page->hero->images->map(fn ($image): array => [
                     'id' => $image->id,
-                    'image' => $image->image,
-                    'image_url' => $image->image_url,
+                    'image' => null,
+                    'image_url' => $this->publicImageDataUri($image->image),
                     'position' => $image->position,
                     'is_active' => $image->is_active,
                 ])->values()->all(),
