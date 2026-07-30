@@ -25,88 +25,11 @@ class SubCategorySeeder extends Seeder
             // Programming
             [
                 'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Python'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Java'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'JavaScript'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'C++'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'C#'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'PHP'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Ruby'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Go'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Rust'
-            ],
-
-            // Web Development (nested under Programming as its own sub-category)
-            [
-                'category_id' => $this->getCategoryId('Programming'),
                 'name' => 'Web Development'
             ],
-
-            // Previously under a standalone "Web Development" category; re-parented
-            // under Programming so this data isn't lost when that category was removed.
             [
                 'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Frontend'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Backend'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Full Stack'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'React'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Vue.js'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Angular'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Laravel'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Node.js'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Django'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Spring Boot'
+                'name' => 'Mobile Development'
             ],
         ];
 
@@ -135,6 +58,12 @@ class SubCategorySeeder extends Seeder
 
     private function getCategoryId($categoryName)
     {
-        return Category::where('name', $categoryName)->first()->id;
+        $category = Category::where('name', $categoryName)->first();
+
+        if (! $category) {
+            throw new \RuntimeException("Category '{$categoryName}' not found. Run CategorySeeder first.");
+        }
+
+        return $category->id;
     }
-}
+}   

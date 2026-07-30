@@ -21,12 +21,11 @@ class CategorySeeder extends Seeder
 
         $categories = [
             'Programming',
-            'Mobile Development',
-            'Data Science',
-            'DevOps',
             'Cybersecurity',
-            'Cloud Computing',
-            'Database',
+            'Networking',
+            'Internship',
+            'Maintenance',
+            'Computer Basic'
         ];
 
         foreach ($categories as $category) {
