@@ -16,7 +16,7 @@ class GetClassDetails
     public function handle(StudyClass $studyClass): array
     {
         $studyClass->load([
-            'course:id,title',
+            'course:id,title,price',
             'lesson:id,course_id,title',
             'teacher:id,name',
             'room:id,floor_id,room_number',

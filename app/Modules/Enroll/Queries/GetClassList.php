@@ -33,7 +33,7 @@ class GetClassList
                 'end_date',
             ])
             ->with([
-                'course:id,title',
+                'course:id,title,price',
                 'lesson:id,course_id,title',
                 'teacher:id,name',
                 'room:id,floor_id,room_number',
@@ -81,6 +81,7 @@ class GetClassList
             'id' => $studyClass->id,
             'title' => $studyClass->title,
             'course' => $studyClass->course?->title,
+            'course_price' => $studyClass->course?->price !== null ? (float) $studyClass->course->price : null,
             'lesson' => $studyClass->lesson?->title ?? '-',
             'teacher' => $studyClass->teacher?->name ?? '-',
             'building' => $studyClass->room?->floor?->building?->name ?? '-',

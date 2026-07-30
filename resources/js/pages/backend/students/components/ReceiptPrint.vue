@@ -59,6 +59,10 @@ function rowAmountValue() {
   return Number(props.student?.amount_paid ?? props.student?.deposit_amount ?? 0) + 5;
 }
 
+function feeAmount() {
+  return props.classData?.course_price ?? props.student?.fee_amount ?? props.classData?.price;
+}
+
 function rowAmount() {
   return money(rowAmountValue());
 }
@@ -128,7 +132,7 @@ function timeWithTerm() {
         </div>
         <div class="receipt-row">
           <span class="label">តម្លៃ / Fee</span>
-          <strong class="line">{{ money(student.fee_amount ?? classData?.price) }}</strong>
+          <strong class="line">{{ money(feeAmount()) }}</strong>
           <span class="label tiny">កាលបរិច្ឆេទចូលរៀន</span>
           <strong class="line short">{{ valueOrDash(student.payment_date ?? today) }}</strong>
         </div>

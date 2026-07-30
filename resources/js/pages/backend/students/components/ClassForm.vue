@@ -204,7 +204,7 @@ watch(
     lessons.value = [];
     const course = options.value.courses.find((item) => String(item.id) === String(courseId));
     form.title = course?.title ?? "";
-    form.price = course?.price ?? 0;
+    form.price = course?.price ?? "";
 
     if (!courseId) return;
 
@@ -381,7 +381,7 @@ function submit() {
 
       <div>
         <label class="font-semibold mb-2 block">{{ $t('Price') }}</label>
-        <input type="number" min="0" step="0.01" v-model="form.price" readonly class="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-500 dark:border-gray-600 dark:bg-gray-800/60 dark:text-gray-400" />
+        <input type="number" min="0" step="0.01" v-model="form.price" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
         <p v-if="form.errors.price" class="mt-1 text-xs text-red-600">{{ form.errors.price }}</p>
       </div>
 

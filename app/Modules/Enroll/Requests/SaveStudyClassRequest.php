@@ -27,7 +27,7 @@ class SaveStudyClassRequest extends FormRequest
 
         $this->merge([
             'title' => $course?->title ?? $this->input('title'),
-            'price' => $course?->price ?? $this->input('price'),
+            'price' => $this->filled('price') ? $this->input('price') : $course?->price,
             'capacity' => $this->input('class_type') === 'physical'
                 ? ($room?->capacity ?? $this->input('capacity'))
                 : $this->input('capacity'),
