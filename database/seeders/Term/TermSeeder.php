@@ -5,6 +5,7 @@ namespace Database\Seeders\Term;
 use App\Models\Term;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class TermSeeder extends Seeder
 {
@@ -13,7 +14,11 @@ class TermSeeder extends Seeder
      */
     public function run(): void
     {
-        Term::query()->delete();
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+        Term::truncate();
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         Term::insert([
             [
