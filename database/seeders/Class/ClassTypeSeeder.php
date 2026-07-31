@@ -39,8 +39,16 @@ class ClassTypeSeeder extends Seeder
             ],
             [
                 'class_type_id' => 4,
-                'type_name'     => 'Basic IT',
+                'type_name'     => 'Basic',
                 'description'   => 'Fundamental information technology courses',
+                'is_active'     => 1,
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ],
+            [
+                'class_type_id' => 5,
+                'type_name'     => 'Scholarship Class',
+                'description'   => 'Sponsored class for scholarship students',
                 'is_active'     => 1,
                 'created_at'    => now(),
                 'updated_at'    => now(),
