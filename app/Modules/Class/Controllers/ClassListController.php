@@ -57,7 +57,7 @@ class ClassListController extends Controller
 
         $classLists = $classLists->latest()->paginate(20)->withQueryString();
 
-        return Inertia::render('backend/classes/class-list/index', [
+        return Inertia::render('backend/classes/class-list/ClassList', [
             'classLists' => $classLists,
             'filters' => [
                 'search' => $request->search ?? '',
@@ -101,7 +101,7 @@ class ClassListController extends Controller
      */
     public function create()
     {
-        return Inertia::render('backend/classes/class-list/create', [
+        return Inertia::render('backend/classes/class-list/ClassListCreate', [
             'teachers' => User::select('id', 'name')->get(),
             'courses' => Course::select('id', 'title')->get(),
             'lessons' => CourseLesson::select('id', 'title')->get(),
@@ -123,7 +123,7 @@ class ClassListController extends Controller
             'teacher', 'course', 'lesson', 'term', 'time', 'building', 'floor', 'room', 'classType',
         ]);
 
-        return Inertia::render('backend/classes/class-list/show', [
+        return Inertia::render('backend/classes/class-list/ClassListShow', [
             'classList' => $classList,
         ]);
     }
@@ -133,7 +133,7 @@ class ClassListController extends Controller
      */
     public function edit(ClassList $classList)
     {
-        return Inertia::render('backend/classes/class-list/edit', [
+        return Inertia::render('backend/classes/class-list/ClassListEdit', [
             'classList' => $classList->load(['course', 'lesson', 'term', 'time', 'building', 'floor', 'room', 'classType']),
             'teachers' => User::select('id', 'name')->get(),
             'courses' => Course::select('id', 'title')->get(),
