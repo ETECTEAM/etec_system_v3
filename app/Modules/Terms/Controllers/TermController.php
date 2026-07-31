@@ -11,26 +11,16 @@ use Illuminate\Http\RedirectResponse;
 
 class TermController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $query = Term::query();
-
-        // SEARCH
-        if ($request->search) {
-            $query->where('term_name', 'like', '%' . $request->search . '%');
-        }
-
-        return Inertia::render('backend/terms/Index', [
-            'terms' => $query->orderBy('id', 'asc')->paginate(9)->withQueryString(),
-            'filters' => [
-                'search' => $request->search ?? '',
-            ]
+        return Inertia::render('backend/terms/Term', [
+            'terms' => Term::orderBy('id', 'asc')->get(),
         ]);
     }
 
     public function create(): Response
     {
-        return Inertia::render('backend/terms/Create');
+        return Inertia::render('backend/terms/TermCreate');
     }
 
     public function store(Request $request): RedirectResponse
@@ -46,7 +36,7 @@ class TermController extends Controller
 
     public function edit(Term $term): Response
     {
-        return Inertia::render('backend/terms/Edit', [
+        return Inertia::render('backend/terms/TermEdit', [
             'term' => $term
         ]);
     }

@@ -49,7 +49,7 @@ class ScheduleController extends Controller
 
         $perPage = $request->input('per_page', 7);
 
-        return Inertia::render('backend/schdule/Index', [
+        return Inertia::render('backend/schdule/Schedule', [
             'schedules' =>$query
                 ->orderBy('id', 'asc')
                 ->paginate($perPage)
@@ -83,7 +83,7 @@ class ScheduleController extends Controller
      */
     public function create()
     {
-        return Inertia::render('backend/schdule/Create', [
+        return Inertia::render('backend/schdule/ScheduleCreate', [
             'classTypes' => ClassType::select('class_type_id', 'type_name')
                 ->orderBy('type_name')
                 ->get(),
@@ -125,7 +125,7 @@ class ScheduleController extends Controller
      */
     public function edit(Schedule $schdule)
     {
-        return Inertia::render('backend/schdule/Edit', [
+        return Inertia::render('backend/schdule/ScheduleEdit', [
             'schdule' => $schdule->load('times'),
             'classTypes' => ClassType::select('class_type_id', 'type_name')
                 ->orderBy('type_name')

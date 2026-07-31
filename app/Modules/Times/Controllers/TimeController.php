@@ -12,24 +12,10 @@ class TimeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index()
     {
-        $query = Time::query();
-
-        // SEARCH
-        if ($request->filled('search')) {
-            $query->where('time_name', 'like', '%' . $request->search . '%');
-        }
-
-        return Inertia::render('backend/times/Index', [
-            'times' => $query
-                    ->orderBy('id', 'asc')
-                    ->paginate(7)
-                    ->withQueryString(),
-
-            'filters' => [
-                'search' => $request->search ?? '',
-            ],
+        return Inertia::render('backend/times/Time', [
+            'times' => Time::orderBy('id', 'asc')->get(),
         ]);
     }
 
@@ -38,7 +24,7 @@ class TimeController extends Controller
      */
     public function create()
     {
-        return Inertia::render('backend/times/Create');
+        return Inertia::render('backend/times/TimeCreate');
     }
 
     /**
@@ -62,7 +48,7 @@ class TimeController extends Controller
      */
     public function edit(Time $time)
     {
-        return Inertia::render('backend/times/Edit', [
+        return Inertia::render('backend/times/TimeEdit', [
             'time' => $time,
         ]);
     }
