@@ -49,43 +49,45 @@
                             >
                         </div>
 
-                        <select
-                            v-model="selectedType"
-                            class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                            @change="applyFilters"
-                        >
-                            <option value="all">{{ $t('Type') }}</option>
-                            <option v-for="type in classTypeOptions" :key="type" :value="type">{{ $t(type) }}</option>
-                        </select>
+                        <div class="w-44">
+                            <SelectSearch
+                                v-model="selectedType"
+                                :options="classTypeOptions"
+                                :placeholder="$t('Type')"
+                                :search-placeholder="$t('Search types...')"
+                                :button-class="filterSelectClass"
+                            />
+                        </div>
 
-                        <select
-                            v-model="selectedTerm"
-                            class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                            @change="applyFilters"
-                        >
-                            <option value="all">{{ $t('Term') }}</option>
-                            <option v-for="term in termOptions" :key="term" :value="term">{{ $t(term) }}</option>
-                        </select>
+                        <div class="w-44">
+                            <SelectSearch
+                                v-model="selectedTerm"
+                                :options="termOptions"
+                                :placeholder="$t('Term')"
+                                :search-placeholder="$t('Search terms...')"
+                                :button-class="filterSelectClass"
+                            />
+                        </div>
 
-                        <select
-                            v-model="selectedTime"
-                            class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                            @change="applyFilters"
-                        >
-                            <option value="all">{{ $t('Time') }}</option>
-                            <option v-for="time in timeOptions" :key="time" :value="time">{{ $t(time) }}</option>
-                        </select>
+                        <div class="w-44">
+                            <SelectSearch
+                                v-model="selectedTime"
+                                :options="timeOptions"
+                                :placeholder="$t('Time')"
+                                :search-placeholder="$t('Search times...')"
+                                :button-class="filterSelectClass"
+                            />
+                        </div>
 
-                        <select
-                            v-model="selectedStatus"
-                            class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                            @change="applyFilters"
-                        >
-                            <option value="all">{{ $t('Status') }}</option>
-                            <option value="progress">{{ $t('progress') }}</option>
-                            <option value="completed">{{ $t('completed') }}</option>
-                            <option value="cancelled">{{ $t('cancelled') }}</option>
-                        </select>
+                        <div class="w-44">
+                            <SelectSearch
+                                v-model="selectedStatus"
+                                :options="statusOptions"
+                                :placeholder="$t('Status')"
+                                :search-placeholder="$t('Search status...')"
+                                :button-class="filterSelectClass"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -247,7 +249,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Eye, Pencil, Search, Trash2 } from '@lucide/vue';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
@@ -255,6 +257,7 @@ import { PageHero } from '@/components/ui/page-hero';
 import { Card } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Pagination } from '@/components/ui/pagination';
+import { SelectSearch } from '@/components/ui/select-search';
 
 const props = defineProps({
     classLists: Object,
@@ -265,17 +268,24 @@ const props = defineProps({
 });
 
 const search = ref(props.filters?.search ?? '');
-const selectedType = ref(props.filters?.class_type ?? 'all');
-const selectedTerm = ref(props.filters?.term ?? 'all');
-const selectedTime = ref(props.filters?.time ?? 'all');
-const selectedStatus = ref(props.filters?.status ?? 'all');
+const selectedType = ref(props.filters?.class_type ?? '');
+const selectedTerm = ref(props.filters?.term ?? '');
+const selectedTime = ref(props.filters?.time ?? '');
+const selectedStatus = ref(props.filters?.status ?? '');
 const searchTimer = ref(null);
 
 const filteredData = computed(() => props.classLists?.data || []);
 
-const classTypeOptions = computed(() => props.classTypes.map((item) => item.type_name));
-const termOptions = computed(() => props.terms.map((item) => item.term_name));
-const timeOptions = computed(() => props.times.map((item) => item.time_name));
+const filterSelectClass = 'flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-left text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20';
+
+const classTypeOptions = computed(() => props.classTypes.map((item) => ({ label: item.type_name, value: item.type_name })));
+const termOptions = computed(() => props.terms.map((item) => ({ label: item.term_name, value: item.term_name })));
+const timeOptions = computed(() => props.times.map((item) => ({ label: item.time_name, value: item.time_name })));
+const statusOptions = [
+    { label: 'progress', value: 'progress' },
+    { label: 'completed', value: 'completed' },
+    { label: 'cancelled', value: 'cancelled' },
+];
 
 const paginationParams = () => ({
     search: search.value,
@@ -291,6 +301,8 @@ const applyFilters = () => {
         preserveScroll: true,
     });
 };
+
+watch([selectedType, selectedTerm, selectedTime, selectedStatus], applyFilters);
 
 const debounceSearch = () => {
     if (searchTimer.value) {
