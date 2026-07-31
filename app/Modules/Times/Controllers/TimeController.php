@@ -3,7 +3,6 @@
 namespace App\Modules\Times\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Term;
 use App\Models\Time;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,16 +14,11 @@ class TimeController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Time::with('term');
+        $query = Time::query();
 
         // SEARCH
         if ($request->filled('search')) {
             $query->where('time_name', 'like', '%' . $request->search . '%');
-        }
-
-        //  TERM FILTER (ADD THIS)
-        if ($request->filled('term_id')) {
-            $query->where('term_id', $request->term_id);
         }
 
         return Inertia::render('backend/times/Index', [
@@ -35,12 +29,7 @@ class TimeController extends Controller
 
             'filters' => [
                 'search' => $request->search ?? '',
-                'term_id' => $request->term_id ?? '', //  ADD THIS
             ],
-
-            'terms' => Term::select('id', 'term_name')
-                ->orderBy('term_name')
-                ->get(),
         ]);
     }
 
@@ -49,11 +38,7 @@ class TimeController extends Controller
      */
     public function create()
     {
-        return Inertia::render('backend/times/Create', [
-            'terms' => Term::select('id', 'term_name')
-                ->orderBy('term_name')
-                ->get(),
-        ]);
+        return Inertia::render('backend/times/Create');
     }
 
     /**
@@ -63,7 +48,6 @@ class TimeController extends Controller
     {
         $validated = $request->validate([
             'time_name' => ['required', 'string', 'max:255'],
-            'term_id'   => ['required', 'exists:terms,id'],
         ]);
 
         Time::create($validated);
@@ -80,9 +64,6 @@ class TimeController extends Controller
     {
         return Inertia::render('backend/times/Edit', [
             'time' => $time,
-            'terms' => Term::select('id', 'term_name')
-                ->orderBy('term_name')
-                ->get(),
         ]);
     }
 
@@ -93,7 +74,6 @@ class TimeController extends Controller
     {
         $validated = $request->validate([
             'time_name' => ['required', 'string', 'max:255'],
-            'term_id'   => ['required', 'exists:terms,id'],
         ]);
 
         $time->update($validated);

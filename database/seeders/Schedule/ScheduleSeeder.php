@@ -20,7 +20,7 @@ class ScheduleSeeder extends Seeder
 
    
         foreach (range(1, 8) as $timeId) {
-            DB::table('times')->updateOrInsert(['id' => $timeId], ['time_name' => "Slot $timeId", 'term_id' => 1]);
+            DB::table('times')->updateOrInsert(['id' => $timeId], ['time_name' => "Slot $timeId"]);
         }
 
         $data = [

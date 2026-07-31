@@ -93,9 +93,7 @@ const form = useForm({
 
 const submitLabel = computed(() => (props.mode === "edit" ? "Update Class" : "Save Class"));
 
-const filteredTimes = computed(() =>
-  times.value.filter((time) => !selectedTerm.value || String(time.term_id) === String(selectedTerm.value))
-);
+const filteredTimes = computed(() => times.value);
 
 const selectedCourse = computed(() =>
   options.value.courses.find((course) => String(course.id) === String(form.course_id))
@@ -156,7 +154,7 @@ function findSelectedTime() {
 }
 
 const matchedTime = findSelectedTime();
-selectedTerm.value = props.classData?.term_id ?? matchedTime?.term_id ?? "";
+selectedTerm.value = props.classData?.term_id ?? "";
 selectedTime.value = props.classData?.time_id ?? matchedTime?.id ?? "";
 form.term_id = selectedTerm.value;
 form.time_id = selectedTime.value;
@@ -182,15 +180,8 @@ watch(
 
 watch(
   selectedTerm,
-  (termId, oldTermId) => {
+  (termId) => {
     form.term_id = termId ?? "";
-
-    if (oldTermId === undefined) return;
-
-    const currentTime = times.value.find((time) => String(time.id) === String(selectedTime.value));
-    if (currentTime && String(currentTime.term_id) === String(termId)) return;
-
-    selectedTime.value = "";
   }
 );
 
@@ -365,7 +356,7 @@ function submit() {
 
       <div>
         <label class="font-semibold mb-2 block">{{ $t('Study Time') }}</label>
-        <select v-model="selectedTime" :disabled="!selectedTerm" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
+        <select v-model="selectedTime" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
           <option value="">{{ $t('Select Time') }}</option>
           <option v-for="time in filteredTimes" :key="time.id" :value="time.id">{{ time.time_name }}</option>
         </select>

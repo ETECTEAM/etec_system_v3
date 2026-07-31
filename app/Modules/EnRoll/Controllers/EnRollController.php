@@ -292,7 +292,7 @@ class EnRollController extends Controller
             'floors' => $class?->building_id ? $this->floorsForBuilding($class->building_id) : [],
             'rooms' => $class?->floor_id ? $this->roomsForFloor($class->floor_id) : [],
             'terms' => Term::query()->select('id', 'term_name')->orderBy('term_name')->get(),
-            'times' => Time::query()->select('id', 'term_id', 'time_name')->orderBy('time_name')->get(),
+            'times' => Time::query()->select('id', 'time_name')->orderBy('time_name')->get(),
             'classTypes' => $this->classTypes(),
             'studyDays' => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
         ];

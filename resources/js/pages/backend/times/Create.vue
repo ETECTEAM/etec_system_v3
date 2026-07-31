@@ -2,15 +2,10 @@
 import { useForm } from '@inertiajs/vue3'
 import { nextTick, onMounted, ref } from 'vue'
 
-const props = defineProps({
-  terms: Array
-})
-
 const emit = defineEmits(['close'])
 
 const form = useForm({
   time_name: '',
-  term_id: '',
 })
 
 const inputRef = ref(null)
@@ -68,33 +63,6 @@ function submit() {
 
         <p v-if="form.errors.time_name" class="text-red-500 text-sm mt-1 dark:text-red-400">
           {{ form.errors.time_name }}
-        </p>
-      </div>
-
-      <!-- TERM SELECT -->
-      <div>
-        <label class="text-sm font-medium text-gray-700 dark:text-gray-200">
-          {{ $t('Term') }}
-        </label>
-
-        <select
-          v-model="form.term_id"
-          class="mt-2 w-full rounded-xl border px-4 py-3 text-sm bg-gray-50
-                 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:bg-gray-800 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-        >
-          <option value="">{{ $t('Select Term') }}</option>
-
-          <option
-            v-for="term in terms"
-            :key="term.id"
-            :value="term.id"
-          >
-            {{ term.term_name }}
-          </option>
-        </select>
-
-        <p v-if="form.errors.term_id" class="text-red-500 text-sm mt-1 dark:text-red-400">
-          {{ form.errors.term_id }}
         </p>
       </div>
 

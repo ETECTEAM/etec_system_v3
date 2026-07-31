@@ -22,17 +22,32 @@ class TermSeeder extends Seeder
 
         Term::insert([
             [
-                'term_name' => 'Term 1',
+                'term_name' => 'Sunday',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'term_name' => 'Term 2',
+                'term_name' => 'Saturday',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'term_name' => 'Term 3',
+                'term_name' => 'Wed & Thu',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'term_name' => 'Mon & Tue',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'term_name' => 'Sat & Sun',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'term_name' => 'Mon & Thu',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

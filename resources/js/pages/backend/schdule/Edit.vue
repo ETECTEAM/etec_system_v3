@@ -37,21 +37,7 @@ watch(
   { immediate: true }
 )
 
-const filteredTimes = computed(() => {
-  if (!form.term_id) return []
-  return props.times.filter(time => time.term_id == form.term_id)
-})
-
-watch(() => form.term_id, (newTermId, oldTermId) => {
-  // Only clear time selections if term was changed by the user (meaning oldTermId was defined)
-  if (oldTermId !== undefined && oldTermId !== '') {
-    form.time_ids = []
-  }
-})
-
-function handleTermChange() {
-  form.time_ids = []
-}
+const filteredTimes = computed(() => props.times)
 
 function nextStep() {
   stepError.value = ''
@@ -245,7 +231,7 @@ const breadcrumbItems = [
                   v-for="term in terms"
                   :key="term.id"
                   type="button"
-                  @click="form.term_id = term.id; handleTermChange()"
+                  @click="form.term_id = term.id"
                   :class="[
                     'p-4 rounded-xl border text-left transition relative flex items-center space-x-3 cursor-pointer focus:outline-none',
                     form.term_id == term.id ? 'border-blue-600 bg-blue-50/20 ring-2 ring-blue-100 dark:bg-blue-500/10 dark:ring-blue-500/20' : 'border-slate-200 hover:border-slate-300 dark:border-gray-700 dark:hover:border-gray-600'
@@ -265,11 +251,11 @@ const breadcrumbItems = [
             <div v-if="currentStep === 3" class="space-y-4">
               <div>
                 <h3 class="text-base font-semibold text-slate-900 dark:text-gray-100">{{ $t('Select Time Slots') }}</h3>
-                <p class="text-sm text-slate-500 dark:text-gray-400">{{ $t('Pick the slots matching the selected term.') }}</p>
+                <p class="text-sm text-slate-500 dark:text-gray-400">{{ $t('Pick the time slots for this schedule.') }}</p>
               </div>
 
               <div v-if="filteredTimes.length === 0" class="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">
-                {{ $t('No time slots found for this term.') }}
+                {{ $t('No time slots found.') }}
               </div>
 
               <div v-else class="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-80 overflow-y-auto bg-slate-50 shadow-inner dark:border-gray-700 dark:divide-gray-800 dark:bg-gray-800">

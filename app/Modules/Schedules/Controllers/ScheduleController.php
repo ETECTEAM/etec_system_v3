@@ -72,7 +72,7 @@ class ScheduleController extends Controller
                 ->orderBy('term_name')
                 ->get(),
 
-            'times' => Time::select('id', 'time_name', 'term_id')
+            'times' => Time::select('id', 'time_name')
                 ->orderBy('time_name')
                 ->get(),
         ]);
@@ -90,7 +90,7 @@ class ScheduleController extends Controller
             'terms' => Term::select('id', 'term_name')
                 ->orderBy('term_name')
                 ->get(),
-            'times' => Time::select('id', 'time_name', 'term_id')
+            'times' => Time::select('id', 'time_name')
                 ->orderBy('time_name')
                 ->get(),
         ]);
@@ -133,7 +133,7 @@ class ScheduleController extends Controller
             'terms'   => Term::select('id', 'term_name')
                 ->orderBy('term_name')
                 ->get(),
-            'times'   => Time::select('id', 'time_name', 'term_id')
+            'times'   => Time::select('id', 'time_name')
                 ->orderBy('time_name')
                 ->get(),
         ]);

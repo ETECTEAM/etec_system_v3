@@ -1,6 +1,6 @@
 <script setup>
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
-import { Link, router, usePage } from '@inertiajs/vue3'
+import { Link, router } from '@inertiajs/vue3'
 import { ref, watch } from 'vue'
 
 import Create from './Create.vue'
@@ -20,7 +20,6 @@ const { t } = useI18n()
 // SEARCH
 const filters = ref({
   search: props.filters.search ?? '',
-  term_id: props.filters.term_id ?? '',
 })
 
 let timeout = null
@@ -33,7 +32,6 @@ watch(filters, (value) => {
       '/dashboard/times',
       {
         search: value.search,
-        term_id: value.term_id,
         page: 1,
       },
       {
@@ -44,11 +42,6 @@ watch(filters, (value) => {
     )
   }, 400)
 }, { deep: true })
-
-
-// TERMS (for select in Create/Edit)
-const page = usePage()
-const terms = page.props.terms
 
 // CREATE MODAL
 const showCreateModal = ref(false)
@@ -109,21 +102,6 @@ const breadcrumbItems = [
                   :placeholder="$t('Search times...')"
                   class="w-[30%] rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
                 />
-
-              <select
-                  v-model="filters.term_id"
-                  class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                >
-                  <option value="">{{ $t('All Terms') }}</option>
-
-                  <option
-                    v-for="term in terms"
-                    :key="term.id"
-                    :value="term.id"
-                  >
-                    {{ term.term_name }}
-                  </option>
-                </select>
             </div>
 
             <button
@@ -144,7 +122,6 @@ const breadcrumbItems = [
               <tr class="bg-gray-50 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-800">
                 <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('ID') }}</th>
                 <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('Time Name') }}</th>
-                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('Term') }}</th>
                 <th class="px-6 py-3 text-right text-slate-600 dark:text-gray-300">{{ $t('Actions') }}</th>
               </tr>
             </thead>
@@ -160,10 +137,6 @@ const breadcrumbItems = [
 
                 <td class="px-6 py-4 font-medium text-slate-900 dark:text-gray-100">
                   {{ time.time_name }}
-                </td>
-
-                <td class="px-6 py-4 text-slate-600 dark:text-gray-300">
-                  {{ time.term?.term_name || '-' }}
                 </td>
 
                 <td class="px-6 py-4 text-right space-x-2">
@@ -186,7 +159,7 @@ const breadcrumbItems = [
               </tr>
 
               <tr v-if="!times?.data?.length">
-                <td colspan="4" class="py-10 text-center text-slate-500 dark:text-gray-400">
+                <td colspan="3" class="py-10 text-center text-slate-500 dark:text-gray-400">
                   {{ filters.search ? $t('No results for ":search"', { search: filters.search }) : $t('No times found.') }}
                 </td>
               </tr>
@@ -237,7 +210,6 @@ const breadcrumbItems = [
           </button>
 
           <Create
-            :terms="terms"
             @close="closeCreateModal"
           />
         </div>
@@ -259,7 +231,6 @@ const breadcrumbItems = [
           <Edit
             v-if="selectedTime"
             :time="selectedTime"
-            :terms="terms"
             @close="closeEditModal"
           />
         </div>

@@ -84,7 +84,7 @@ class GetClassFormOptions
     public function times(): array
     {
         return Time::query()
-            ->select('id', 'term_id', 'time_name')
+            ->select('id', 'time_name')
             ->orderBy('time_name')
             ->get()
             ->all();
