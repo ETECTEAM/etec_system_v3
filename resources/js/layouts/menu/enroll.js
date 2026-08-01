@@ -5,7 +5,7 @@ export function build(ctx) {
     label: "Enrollment Management",
     labelKey: "navigation.enrollManagement",
     key: "enroll",
-    icon: "student",
+    icon: "notebook-pen",
     href: "/dashboard/students",
     match: ["/dashboard/students"],
     exact: false,
