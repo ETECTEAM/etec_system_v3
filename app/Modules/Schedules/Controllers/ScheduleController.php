@@ -47,13 +47,34 @@ class ScheduleController extends Controller
             });
         }
 
-        $perPage = $request->input('per_page', 7);
+        // Grouped by class type: each group holds its schedules (one per term),
+        // each schedule holds its time slots.
+        $scheduleGroups = $query->get()
+            ->sortBy(fn ($schedule) => $schedule->classType?->type_name ?? '')
+            ->groupBy('class_type_id')
+            ->map(function ($schedules) {
+                $first = $schedules->first();
+
+                return [
+                    'class_type_id' => $first->class_type_id,
+                    'class_type_name' => $first->classType?->type_name ?? '-',
+                    'schedules' => $schedules->sortBy(fn ($schedule) => $schedule->term?->term_name ?? '')
+                        ->values()
+                        ->map(fn ($schedule) => [
+                            'id' => $schedule->id,
+                            'term_id' => $schedule->term_id,
+                            'term_name' => $schedule->term?->term_name ?? '-',
+                            'times' => $schedule->times->map(fn ($time) => [
+                                'id' => $time->id,
+                                'time_name' => $time->time_name,
+                            ])->values(),
+                        ]),
+                ];
+            })
+            ->values();
 
         return Inertia::render('backend/schdule/Schedule', [
-            'schedules' =>$query
-                ->orderBy('id', 'asc')
-                ->paginate($perPage)
-                ->withQueryString(),
+            'scheduleGroups' => $scheduleGroups,
 
             // IMPORTANT: return ALL filters
             'filters' => [
@@ -61,7 +82,6 @@ class ScheduleController extends Controller
                 'class_type_id' => $request->class_type_id ?? '',
                 'term_id' => $request->term_id ?? '',
                 'time_id' => $request->time_id ?? '',
-                'per_page' => (int) $perPage,
             ],
 
             'classTypes' => ClassType::select('class_type_id', 'type_name')
@@ -173,5 +193,17 @@ class ScheduleController extends Controller
         return redirect()
             ->route('schdule.index')
             ->with('success', 'Schedule deleted successfully.');
+    }
+
+    /**
+     * Remove every schedule (all terms) belonging to a class type.
+     */
+    public function destroyByClassType(int $classTypeId)
+    {
+        Schedule::where('class_type_id', $classTypeId)->delete();
+
+        return redirect()
+            ->route('schdule.index')
+            ->with('success', 'Schedules deleted successfully.');
     }
 }

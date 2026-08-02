@@ -82,65 +82,74 @@
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead class="w-16">{{ $t('ID') }}</TableHead>
-                                <TableHead>{{ $t('Class Type') }}</TableHead>
-                                <TableHead>{{ $t('Term') }}</TableHead>
+                                <TableHead class="w-56">{{ $t('Class Type') }}</TableHead>
+                                <TableHead class="w-48">{{ $t('Term') }}</TableHead>
                                 <TableHead>{{ $t('Time Slots') }}</TableHead>
-                                <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
+                                <TableHead class="text-right w-20">{{ $t('Actions') }}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            <TableRow v-for="schedule in schedules.data" :key="schedule.id">
-                                <TableCell class="text-sm text-slate-500 dark:text-gray-400">
-                                    {{ schedule.id }}
-                                </TableCell>
-                                <TableCell>
-                                    <span class="text-sm font-semibold text-slate-900 dark:text-gray-100">{{ schedule.class_type?.type_name || '-' }}</span>
-                                </TableCell>
-                                <TableCell>
-                                    <span class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ schedule.term?.term_name || '-' }}</span>
-                                </TableCell>
-                                <TableCell>
-                                    <div class="flex flex-wrap gap-1.5 max-w-md">
-                                        <span
-                                            v-for="t in schedule.times"
-                                            :key="t.id"
-                                            class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20"
-                                        >
-                                            {{ t.time_name }}
-                                        </span>
-                                        <span v-if="!schedule.times?.length" class="text-slate-400 text-xs dark:text-gray-500">
-                                            {{ $t('No times selected') }}
-                                        </span>
-                                    </div>
-                                </TableCell>
-                                <TableCell class="text-right">
-                                    <div class="flex justify-end gap-2">
-                                        <Link
-                                            :href="`/dashboard/schdule/${schedule.id}/edit`"
-                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
-                                            :title="$t('Edit')"
-                                            :aria-label="$t('Edit schedule')"
-                                        >
-                                            <Pencil class="h-4 w-4" />
-                                        </Link>
+                            <template v-for="group in scheduleGroups" :key="group.class_type_id">
+                                <TableRow v-for="(schedule, index) in group.schedules" :key="schedule.id">
+                                    <TableCell v-if="index === 0" :rowspan="group.schedules.length" class="align-top border-r border-slate-100 dark:border-gray-800">
+                                        <span class="text-sm font-semibold text-slate-900 dark:text-gray-100">{{ group.class_type_name }}</span>
+                                    </TableCell>
 
+                                    <TableCell>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ schedule.term_name }}</span>
+                                            <Link
+                                                :href="`/dashboard/schdule/${schedule.id}/edit`"
+                                                class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
+                                                :title="$t('Edit')"
+                                                :aria-label="$t('Edit schedule')"
+                                            >
+                                                <Pencil class="h-3.5 w-3.5" />
+                                            </Link>
+                                            <button
+                                                type="button"
+                                                class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-red-50 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
+                                                :title="$t('Delete')"
+                                                :aria-label="$t('Delete schedule')"
+                                                @click="confirmDeleteSchedule(schedule)"
+                                            >
+                                                <Trash2 class="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <span
+                                                v-for="t in schedule.times"
+                                                :key="t.id"
+                                                class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20"
+                                            >
+                                                {{ t.time_name }}
+                                            </span>
+                                            <span v-if="!schedule.times?.length" class="text-slate-400 text-xs dark:text-gray-500">
+                                                {{ $t('No times selected') }}
+                                            </span>
+                                        </div>
+                                    </TableCell>
+
+                                    <TableCell v-if="index === 0" :rowspan="group.schedules.length" class="text-right align-top">
                                         <button
                                             type="button"
                                             class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
-                                            :title="$t('Delete')"
-                                            :aria-label="$t('Delete schedule')"
-                                            @click="confirmDelete(schedule)"
+                                            :title="$t('Delete all schedules for this class type')"
+                                            :aria-label="$t('Delete class type schedules')"
+                                            @click="confirmDeleteGroup(group)"
                                         >
                                             <Trash2 class="h-4 w-4" />
                                         </button>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
+                                    </TableCell>
+                                </TableRow>
+                            </template>
 
                             <!-- Empty state -->
-                            <TableRow v-if="!schedules?.data?.length">
-                                <TableCell colspan="5" class="px-4 py-16 text-center">
+                            <TableRow v-if="!scheduleGroups.length">
+                                <TableCell colspan="4" class="px-4 py-16 text-center">
                                     <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -159,18 +168,11 @@
                     </Table>
                 </div>
 
-                <!-- Pagination -->
-                <div v-if="schedules.total > 0"
-                    class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
+                <div v-if="scheduleGroups.length > 0"
+                    class="border-t border-slate-200 bg-slate-50 px-6 py-4 dark:border-gray-800 dark:bg-gray-800/40">
                     <p class="text-sm text-slate-500 dark:text-gray-400">
-                        {{ $t('Showing :from-:to of :total schedules', { from: schedules.from, to: schedules.to, total: schedules.total }) }}
+                        {{ $t(':count class types', { count: scheduleGroups.length }) }}
                     </p>
-
-                    <Pagination
-                        :current-page="schedules.current_page"
-                        :last-page="schedules.last_page"
-                        @page-change="goToPage"
-                    />
                 </div>
             </Card>
         </div>
@@ -187,9 +189,16 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Delete schedule') }}</h3>
+                        <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">
+                            {{ deleteMode === 'group' ? $t('Delete class type schedules') : $t('Delete schedule') }}
+                        </h3>
                         <p class="text-sm text-slate-600 dark:text-gray-400 mt-1">
-                            {{ $t('Are you sure you want to delete this schedule?') }}
+                            <template v-if="deleteMode === 'group'">
+                                {{ $t('Are you sure you want to delete all :count schedule(s) for ":name"?', { count: deleteItem?.schedules?.length ?? 0, name: deleteItem?.class_type_name }) }}
+                            </template>
+                            <template v-else>
+                                {{ $t('Are you sure you want to delete this schedule?') }}
+                            </template>
                             {{ $t('This action cannot be undone.') }}
                         </p>
                     </div>
@@ -199,9 +208,9 @@
                         class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-800 rounded-xl transition">
                         {{ $t('Cancel') }}
                     </button>
-                    <button @click="deleteSchedule"
+                    <button @click="deleteMode === 'group' ? deleteGroup() : deleteSchedule()"
                         class="px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-500 rounded-xl transition">
-                        {{ $t('Delete schedule') }}
+                        {{ $t('Delete') }}
                     </button>
                 </div>
             </div>
@@ -217,11 +226,13 @@ import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { Card } from '@/components/ui/card';
 import { PageHero } from '@/components/ui/page-hero';
 import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table';
-import { Pagination } from '@/components/ui/pagination';
 import { SelectSearch } from '@/components/ui/select-search';
 
 const props = defineProps({
-    schedules: Object,
+    scheduleGroups: {
+        type: Array,
+        default: () => [],
+    },
     filters: Object,
     classTypes: Array,
     terms: Array,
@@ -263,7 +274,6 @@ watch(filters, (value) => {
                 class_type_id: value.class_type_id,
                 term_id: value.term_id,
                 time_id: value.time_id,
-                page: 1,
             },
             {
                 preserveState: true,
@@ -274,26 +284,38 @@ watch(filters, (value) => {
     }, 400);
 }, { deep: true });
 
-function goToPage(page) {
-    router.get(
-        '/dashboard/schdule',
-        { ...filters.value, page },
-        { preserveState: true, preserveScroll: true }
-    );
-}
-
-// Delete modal
+// Delete modal (shared between single-schedule and whole-class-type-group delete)
 const showDeleteModal = ref(false);
+const deleteMode = ref('schedule'); // 'schedule' | 'group'
 const deleteItem = ref(null);
 
-const confirmDelete = (schedule) => {
+const confirmDeleteSchedule = (schedule) => {
+    deleteMode.value = 'schedule';
     deleteItem.value = schedule;
+    showDeleteModal.value = true;
+};
+
+const confirmDeleteGroup = (group) => {
+    deleteMode.value = 'group';
+    deleteItem.value = group;
     showDeleteModal.value = true;
 };
 
 const deleteSchedule = () => {
     if (deleteItem.value) {
         router.delete(`/dashboard/schdule/${deleteItem.value.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                showDeleteModal.value = false;
+                deleteItem.value = null;
+            },
+        });
+    }
+};
+
+const deleteGroup = () => {
+    if (deleteItem.value) {
+        router.delete(`/dashboard/schdule/class-type/${deleteItem.value.class_type_id}`, {
             preserveScroll: true,
             onSuccess: () => {
                 showDeleteModal.value = false;
