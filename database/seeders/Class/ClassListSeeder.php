@@ -148,15 +148,14 @@ class ClassListSeeder extends Seeder
 
     private function ensureTime(int $id): int
     {
-        DB::table('times')->updateOrInsert(
-            ['id' => $id],
-            [
-                'id' => $id,
-                'time_name' => "Time {$id}",
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
+        // insertOrIgnore: TimeSeeder already seeds real time slot names before this
+        // runs, so this must not overwrite them with a generic placeholder.
+        DB::table('times')->insertOrIgnore([
+            'id' => $id,
+            'time_name' => "Time {$id}",
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         return $id;
     }

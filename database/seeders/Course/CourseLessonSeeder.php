@@ -102,6 +102,7 @@ class CourseLessonSeeder extends Seeder
             CourseLesson::create([
                 'course_id' => $lesson['course_id'],
                 'title' => $lesson['title'],
+                'slug' => $slug,
                 'order_number' => $lesson['order_number'],
                 'status' => $lesson['status']
             ]);

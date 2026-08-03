@@ -24,7 +24,6 @@ use Database\Seeders\Course\CourseLessonSeeder;
 // Class seeders
 use Database\Seeders\Class\ClassTypeSeeder;
 use Database\Seeders\Class\ClassSeeder;
-use Database\Seeders\Class\ClassListSeeder;
 
 // Other base seeders
 use Database\Seeders\Term\TermSeeder;
@@ -65,9 +64,9 @@ class DatabaseSeeder extends Seeder
             CourseLessonSeeder::class,
 
             // 4. Class relation data
+            // ClassSeeder already calls ClassTypeSeeder + ClassListSeeder internally.
             ClassSeeder::class,
             ScheduleSeeder::class,
-            ClassListSeeder::class,
 
             // 5. Shift templates
             ShiftTemplateSeeder::class,
