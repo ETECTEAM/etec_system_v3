@@ -13,12 +13,14 @@ use App\Modules\Enroll\Actions\CreateClassStudent;
 use App\Modules\Enroll\Actions\CreateStudyClass;
 use App\Modules\Enroll\Actions\EnrollStudent;
 use App\Modules\Enroll\Actions\RecordEnrollmentDeposit;
+use App\Modules\Enroll\Actions\RegisterStudent;
 use App\Modules\Enroll\Actions\UpdateStudyClass;
 use App\Modules\Enroll\Queries\GetClassDetails;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Queries\GetClassList;
 use App\Modules\Enroll\Requests\EnrollStudentRequest;
 use App\Modules\Enroll\Requests\RecordDepositRequest;
+use App\Modules\Enroll\Requests\RegisterStudentRequest;
 use App\Modules\Enroll\Requests\SaveStudyClassRequest;
 use App\Modules\Enroll\Requests\StoreClassStudentRequest;
 use Illuminate\Http\JsonResponse;
@@ -105,6 +107,25 @@ class EnrollmentClassController extends Controller
         return Inertia::render('backend/students/CreateStudent', [
             'classData' => $classList->presentClass($studyClass),
         ]);
+    }
+
+    public function createRegisteredStudent(GetClassFormOptions $options): Response
+    {
+        return Inertia::render('backend/students/RegisterStudent', [
+            'courses' => Course::query()->select('id', 'title', 'price')->orderBy('title')->get(),
+            'scheduleGroups' => $options->scheduleGroups(),
+        ]);
+    }
+
+    public function storeRegisteredStudent(
+        RegisterStudentRequest $request,
+        RegisterStudent $registerStudent
+    ): RedirectResponse {
+        $registerStudent->handle($request->validated());
+
+        return redirect()
+            ->route('enroll.students.create')
+            ->with('success', 'Student registered successfully.');
     }
 
     public function update(

@@ -9,6 +9,10 @@ function toStringOrEmpty(value) {
   return value === null || value === undefined || value === "" ? "" : String(value);
 }
 
+function todayIso() {
+  return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, matches <input type="date">
+}
+
 const page = usePage();
 const roles = computed(() => page.props.auth?.roles ?? []);
 // Admins/super admins assign a class to an instructor; the instructor then picks
@@ -99,7 +103,8 @@ const form = useForm({
   end_time: props.classData?.end_time ?? "",
   capacity: props.classData?.capacity ?? 20,
   price: props.classData?.price ?? 0,
-  enrollment_start_date: props.classData?.enrollment_start_date ?? "",
+  // Enrollment opens the day the class is created unless overridden.
+  enrollment_start_date: props.classData?.enrollment_start_date ?? todayIso(),
   start_date: props.classData?.start_date ?? "",
   end_date: props.classData?.end_date ?? "",
 });
@@ -153,12 +158,25 @@ const scheduleTypeOptions = computed(() =>
   }))
 );
 
-const scheduleTermOptions = computed(() =>
-  (selectedScheduleGroup.value?.schedules ?? []).map((schedule) => ({
+// Basic class schedules mix two kinds of term: the generic Mon & Thu / Sat & Sun pair used
+// on the enrollment receipt, and specific day-splits (Mon & Tue, Wed & Thu, ...) that reflect
+// how a course actually runs once the instructor sets the real schedule. Admins creating a
+// Basic class only pick the generic receipt term; the assigned instructor later narrows it
+// down to the real one.
+const RECEIPT_ONLY_TERM_NAMES = ["Mon & Thu", "Sat & Sun"];
+
+const scheduleTermOptions = computed(() => {
+  const schedules = selectedScheduleGroup.value?.schedules ?? [];
+  const restrictToReceiptTerms = isAdminUser.value && selectedScheduleGroup.value?.class_type_name === "Basic";
+  const visibleSchedules = restrictToReceiptTerms
+    ? schedules.filter((schedule) => RECEIPT_ONLY_TERM_NAMES.includes(schedule.term_name))
+    : schedules;
+
+  return visibleSchedules.map((schedule) => ({
     label: schedule.term_name,
     value: String(schedule.term_id),
-  }))
-);
+  }));
+});
 
 const scheduleTimeOptions = computed(() =>
   (selectedSchedule.value?.times ?? []).map((time) => ({
@@ -521,7 +539,7 @@ function submit() {
 
       <div>
         <label class="font-semibold mb-2 block">{{ $t('Capacity') }}</label>
-        <input type="number" min="1" v-model="form.capacity" :readonly="form.class_type !== 'online'" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" :class="form.class_type !== 'online' ? 'bg-slate-50 text-slate-500 dark:bg-gray-800/60 dark:text-gray-400' : ''" />
+        <input type="number" min="1" v-model="form.capacity" :readonly="form.class_type !== 'online'" class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" :class="form.class_type !== 'online' ? 'bg-slate-50 text-slate-500 dark:bg-gray-800/60 dark:text-gray-400' : ''" />
         <p v-if="form.errors.capacity" class="mt-1 text-xs text-red-600">{{ form.errors.capacity }}</p>
       </div>
 
@@ -532,14 +550,14 @@ function submit() {
       </div>
 
       <div>
-        <label class="font-semibold mb-2 block">{{ $t('Start EnRoll') }}</label>
-        <input type="date" v-model="form.enrollment_start_date" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
+        <label class="font-semibold mb-2 block">{{ $t('Start Date') }}</label>
+        <input type="date" v-model="form.start_date" class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
+        <p v-if="form.errors.start_date" class="mt-1 text-xs text-red-600">{{ form.errors.start_date }}</p>
       </div>
 
       <div>
-        <label class="font-semibold mb-2 block">{{ $t('Start Date') }}</label>
-        <input type="date" v-model="form.start_date" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
-        <p v-if="form.errors.start_date" class="mt-1 text-xs text-red-600">{{ form.errors.start_date }}</p>
+        <label class="font-semibold mb-2 block">{{ $t('Start EnRoll') }}</label>
+        <input type="date" v-model="form.enrollment_start_date" class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
       </div>
     </div>
 

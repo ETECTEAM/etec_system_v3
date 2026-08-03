@@ -12,6 +12,7 @@ import DepositTable from "./components/DepositTable.vue";
 import DepositSummaryCard from "./components/DepositSummaryCard.vue";
 import QuickActions from "./components/QuickActions.vue";
 import RecordDepositModal from "./components/RecordDepositModal.vue";
+import AddStudentModal from "./components/AddStudentModal.vue";
 import ReceiptPrint from "./components/ReceiptPrint.vue";
 
 const props = defineProps({
@@ -27,10 +28,15 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  studentsForSelect: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const depositEnrollment = ref(null);
 const receiptStudent = ref(null);
+const showEnrollExistingStudent = ref(false);
 
 function openDeposit(enrollment) {
   depositEnrollment.value = enrollment;
@@ -38,6 +44,10 @@ function openDeposit(enrollment) {
 
 function addStudent() {
   router.get(`/dashboard/enroll/${props.classData.id}/students/create`);
+}
+
+function enrollExistingStudent() {
+  showEnrollExistingStudent.value = true;
 }
 
 async function printReceipt(student) {
@@ -73,7 +83,7 @@ function goBack() {
           <button @click="goBack" class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500">
             <ArrowLeft class="h-4 w-4" /> Back to Class List
           </button>
-          <QuickActions @add-student="addStudent" />
+          <QuickActions @add-student="addStudent" @enroll-existing-student="enrollExistingStudent" />
         </div>
 
         <!-- Class Information Card -->
@@ -99,6 +109,13 @@ function goBack() {
           :show="Boolean(depositEnrollment)"
           :enrollment="depositEnrollment"
           @close="depositEnrollment = null"
+        />
+
+        <AddStudentModal
+          :show="showEnrollExistingStudent"
+          :classId="classData.id"
+          :students="studentsForSelect"
+          @close="showEnrollExistingStudent = false"
         />
 
         <ReceiptPrint :classData="classData" :student="receiptStudent" />

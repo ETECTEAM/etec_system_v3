@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { router } from "@inertiajs/vue3";
-import { Search, RotateCcw, Plus, LayoutGrid, Table2 } from "@lucide/vue";
+import { Search, RotateCcw, Plus, LayoutGrid, Table2, UserPlus } from "@lucide/vue";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
 import ClassTable from "./components/ClassTable.vue";
@@ -118,6 +118,10 @@ function goCreateClass() {
     router.visit("/dashboard/enroll/create");
 }
 
+function goRegisterStudent() {
+    router.visit("/dashboard/enroll/students/create");
+}
+
 function onSearch() {
     router.visit("/dashboard/enroll", {
         data: { search: search.value || null },
@@ -138,12 +142,21 @@ function onSearch() {
           <PageHero :title="$t('Class List')" />
         </div>
 
-        <button
-          @click="goCreateClass"
-          class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
-        >
-          <Plus class="w-4 h-4" /> {{ $t('Add Enroll') }}
-        </button>
+        <div class="flex flex-wrap items-center gap-3">
+          <button
+            @click="goRegisterStudent"
+            class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+          >
+            <UserPlus class="w-4 h-4" /> {{ $t('Register Student') }}
+          </button>
+
+          <button
+            @click="goCreateClass"
+            class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
+          >
+            <Plus class="w-4 h-4" /> {{ $t('Add Enroll') }}
+          </button>
+        </div>
       </div>
 
       <!-- depositSummary  -->

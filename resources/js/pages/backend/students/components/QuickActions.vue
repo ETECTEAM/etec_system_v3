@@ -1,9 +1,9 @@
 <script setup>
 import { ref } from "vue";
-import { UserPlus, Banknote, Download, Printer } from "@lucide/vue";
+import { UserPlus, UserCheck, Banknote, Download, Printer } from "@lucide/vue";
 
 const actionMode = ref("student");
-const emit = defineEmits(["add-student", "record-deposit"]);
+const emit = defineEmits(["add-student", "enroll-existing-student", "record-deposit"]);
 </script>
 
 <template>
@@ -20,6 +20,20 @@ const emit = defineEmits(["add-student", "record-deposit"]);
     >
       <UserPlus class="h-4 w-4" />
       {{ $t('Add Student') }}
+    </button>
+
+    <!-- Enroll Existing Student -->
+    <button
+      @click="actionMode = 'existing-student'; emit('enroll-existing-student')"
+      :class="[
+        'inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2',
+        actionMode === 'existing-student'
+          ? 'border-indigo-900 bg-indigo-900 text-white'
+          : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
+      ]"
+    >
+      <UserCheck class="h-4 w-4" />
+      {{ $t('Enroll Existing Student') }}
     </button>
 
     <!-- Record Deposit -->

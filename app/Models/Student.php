@@ -15,7 +15,11 @@ class Student extends Model
         'date_of_birth',
         'phone',
         'address',
-        'status',
+        'student_status',
+        'course_id',
+        'term_id',
+        'time_id',
+        'fee_amount',
     ];
 
     public function user(): BelongsTo
@@ -26,5 +30,20 @@ class Student extends Model
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);
+    }
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    public function term(): BelongsTo
+    {
+        return $this->belongsTo(Term::class);
+    }
+
+    public function time(): BelongsTo
+    {
+        return $this->belongsTo(Time::class);
     }
 }
