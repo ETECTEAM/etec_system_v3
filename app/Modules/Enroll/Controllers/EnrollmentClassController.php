@@ -27,8 +27,10 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class EnRollController extends Controller
+class EnrollmentClassController extends Controller
 {
+    private const DOCUMENT_FEE = 5;
+
     public function index(Request $request, GetClassList $classes): Response
     {
         return Inertia::render('backend/students/ClassList', $classes->handle($request));
@@ -76,7 +78,7 @@ class EnRollController extends Controller
                 'start_time' => $this->formatTime($studyClass->start_time),
                 'end_time' => $this->formatTime($studyClass->end_time),
                 'capacity' => $studyClass->capacity,
-                'price' => (float) $studyClass->price,
+                'price' => round(max((float) $studyClass->price - self::DOCUMENT_FEE, 0), 2),
                 'enrollment_start_date' => $studyClass->enrollment_start_date?->format('Y-m-d'),
                 'start_date' => $studyClass->start_date?->format('Y-m-d'),
                 'end_date' => $studyClass->end_date?->format('Y-m-d'),
@@ -111,6 +113,32 @@ class EnRollController extends Controller
         $updateStudyClass->handle($studyClass, $request->validated());
 
         return redirect()->route('students.index')->with('success', 'Class updated successfully.');
+    }
+
+    public function updateStatus(Request $request, StudyClass $studyClass): RedirectResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'string', 'in:upcoming,active,pre_end,ended,cancelled,inactive,completed'],
+        ]);
+
+        $statusMap = [
+            'inactive' => 'pre_end',
+            'completed' => 'ended',
+        ];
+
+        $studyClass->update([
+            'status' => $statusMap[$validated['status']] ?? $validated['status'],
+        ]);
+
+        return back()->with('success', 'Class status updated successfully.');
+    }
+
+    public function destroy(StudyClass $studyClass): RedirectResponse
+    {
+        $studyClass->enrollments()->delete();
+        $studyClass->delete();
+
+        return redirect()->route('students.index')->with('success', 'Class deleted successfully.');
     }
 
     public function floors(Building $building, GetClassFormOptions $options): JsonResponse

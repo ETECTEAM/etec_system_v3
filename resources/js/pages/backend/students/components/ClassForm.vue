@@ -127,6 +127,13 @@ function parseStudyDays(timeName) {
     .filter(Boolean);
 }
 
+function parseTermDays(termName) {
+  return String(termName ?? "")
+    .split(/\s*(?:-|,|&|\/|\+|and)\s*/i)
+    .map((day) => dayMap[day.trim()])
+    .filter(Boolean);
+}
+
 function parseTimeOption(time) {
   const range = String(time?.time_name ?? "").match(/\(([^)]+)\)/)?.[1] ?? time?.time_name ?? "";
   const [start, end] = range.split(/\s*-\s*/);
@@ -154,7 +161,14 @@ function findSelectedTime() {
 }
 
 const matchedTime = findSelectedTime();
-selectedTerm.value = props.classData?.term_id ?? "";
+const matchedTerm = terms.value.find((term) => {
+  const parsedDays = parseTermDays(term.term_name);
+  return parsedDays.length > 0 &&
+    parsedDays.length === (form.study_days ?? []).length &&
+    parsedDays.every((day) => (form.study_days ?? []).includes(day));
+});
+
+selectedTerm.value = props.classData?.term_id ?? matchedTerm?.id ?? "";
 selectedTime.value = props.classData?.time_id ?? matchedTime?.id ?? "";
 form.term_id = selectedTerm.value;
 form.time_id = selectedTime.value;
@@ -172,7 +186,6 @@ watch(
     }
 
     const parsed = parseTimeOption(time);
-    form.study_days = parsed.studyDays;
     form.start_time = parsed.startTime;
     form.end_time = parsed.endTime;
   }
@@ -182,6 +195,14 @@ watch(
   selectedTerm,
   (termId) => {
     form.term_id = termId ?? "";
+
+    const term = terms.value.find((item) => String(item.id) === String(termId));
+    if (!term) {
+      form.study_days = [];
+      return;
+    }
+
+    form.study_days = parseTermDays(term.term_name);
   }
 );
 

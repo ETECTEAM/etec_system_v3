@@ -3,6 +3,7 @@
 namespace App\Modules\Enroll\Requests;
 
 use App\Models\Course;
+use App\Models\CourseLesson;
 use App\Models\Room;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use Illuminate\Foundation\Http\FormRequest;
@@ -10,6 +11,8 @@ use Illuminate\Validation\Rule;
 
 class SaveStudyClassRequest extends FormRequest
 {
+    private const DOCUMENT_FEE = 5;
+
     public function authorize(): bool
     {
         return $this->user() !== null;
@@ -25,9 +28,13 @@ class SaveStudyClassRequest extends FormRequest
             ? Room::query()->find($this->input('room_id'))
             : null;
 
+        $basePrice = $this->filled('price') ? $this->input('price') : $course?->price;
+        $lessonId = $this->validLessonId();
+
         $this->merge([
             'title' => $course?->title ?? $this->input('title'),
-            'price' => $this->filled('price') ? $this->input('price') : $course?->price,
+            'lesson_id' => $lessonId,
+            'price' => $basePrice !== null ? round((float) $basePrice + self::DOCUMENT_FEE, 2) : null,
             'capacity' => $this->input('class_type') === 'physical'
                 ? ($room?->capacity ?? $this->input('capacity'))
                 : $this->input('capacity'),
@@ -59,5 +66,22 @@ class SaveStudyClassRequest extends FormRequest
             'start_date' => ['nullable', 'date', 'after_or_equal:enrollment_start_date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
         ];
+    }
+
+    private function validLessonId(): ?int
+    {
+        if (! $this->filled('lesson_id') || ! $this->filled('course_id')) {
+            return null;
+        }
+
+        $lessonId = (int) $this->input('lesson_id');
+        $courseId = (int) $this->input('course_id');
+
+        return CourseLesson::query()
+            ->whereKey($lessonId)
+            ->where('course_id', $courseId)
+            ->exists()
+                ? $lessonId
+                : null;
     }
 }

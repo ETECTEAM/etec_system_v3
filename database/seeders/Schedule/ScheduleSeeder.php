@@ -3,28 +3,28 @@
 namespace Database\Seeders\Schedule;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class ScheduleSeeder extends Seeder
 {
     public function run(): void
     {
+        $now = Carbon::now();
 
-        // Depends on ClassTypeSeeder / TermSeeder / TimeSeeder having already run
-        // (DatabaseSeeder runs them before ScheduleSeeder), so we look the ids up by name instead of
-        // hardcoding them.
-        $scholarshipClassTypeId = DB::table('class_type')->where('type_name', 'Scholarship Class')->value('class_type_id');
-        $physicalClassTypeId = DB::table('class_type')->where('type_name', 'Physical Class')->value('class_type_id');
-        $onlineClassTypeId = DB::table('class_type')->where('type_name', 'Online Class')->value('class_type_id');
-        $basicClassTypeId = DB::table('class_type')->where('type_name', 'Basic')->value('class_type_id');
-        $monThuTermId = DB::table('terms')->where('term_name', 'Mon & Thu')->value('id');
-        $satSunTermId = DB::table('terms')->where('term_name', 'Sat & Sun')->value('id');
-        $monTueTermId = DB::table('terms')->where('term_name', 'Mon & Tue')->value('id');
-        $wedThuTermId = DB::table('terms')->where('term_name', 'Wed & Thu')->value('id');
-        $saturdayTermId = DB::table('terms')->where('term_name', 'Saturday')->value('id');
-        $sundayTermId = DB::table('terms')->where('term_name', 'Sunday')->value('id');
-
-        $findTimeId = fn (string $name) => DB::table('times')->where('time_name', $name)->value('id');
+        // Depends on ClassTypeSeeder / TermSeeder / TimeSeeder having already run.
+        // We still guard the lookups so a rerun fails with a useful message instead of a SQL error.
+        $scholarshipClassTypeId = $this->requireClassTypeId('Scholarship Class');
+        $physicalClassTypeId = $this->requireClassTypeId('Physical Class');
+        $onlineClassTypeId = $this->requireClassTypeId('Online Class');
+        $basicClassTypeId = $this->requireClassTypeId('Basic');
+        $monThuTermId = $this->requireTermId('Mon & Thu');
+        $satSunTermId = $this->requireTermId('Sat & Sun');
+        $monTueTermId = $this->requireTermId('Mon & Tue');
+        $wedThuTermId = $this->requireTermId('Wed & Thu');
+        $saturdayTermId = $this->requireTermId('Saturday');
+        $sundayTermId = $this->requireTermId('Sunday');
 
         $data = [
             // Scholarship Class - Mon & Thu
@@ -32,10 +32,10 @@ class ScheduleSeeder extends Seeder
                 'class_type_id' => $scholarshipClassTypeId,
                 'term_id' => $monThuTermId,
                 'times' => [
-                    $findTimeId('09:00 am - 11:00 am'),
-                    $findTimeId('11:00 am - 01:30 pm'),
-                    $findTimeId('03:30 pm - 05:30 pm'),
-                    $findTimeId('05:30 pm - 07:30 pm'),
+                    '09:00 am - 11:00 am',
+                    '11:00 am - 01:30 pm',
+                    '03:30 pm - 05:30 pm',
+                    '05:30 pm - 07:30 pm',
                 ],
             ],
             // Scholarship Class - Sat & Sun
@@ -43,9 +43,9 @@ class ScheduleSeeder extends Seeder
                 'class_type_id' => $scholarshipClassTypeId,
                 'term_id' => $satSunTermId,
                 'times' => [
-                    $findTimeId('08:00 am - 11:00 am'),
-                    $findTimeId('11:00 am - 01:30 pm'),
-                    $findTimeId('02:00 pm - 05:00 pm'),
+                    '08:00 am - 11:00 am',
+                    '11:00 am - 01:30 pm',
+                    '02:00 pm - 05:00 pm',
                 ],
             ],
             // Physical Class - Mon & Thu
@@ -53,13 +53,13 @@ class ScheduleSeeder extends Seeder
                 'class_type_id' => $physicalClassTypeId,
                 'term_id' => $monThuTermId,
                 'times' => [
-                    $findTimeId('09:00 am - 10:30 am'),
-                    $findTimeId('11:00 am - 12:15 pm'),
-                    $findTimeId('12:30 pm - 01:45 pm'),
-                    $findTimeId('02:00 pm - 3:15 pm'),
-                    $findTimeId('03:30 pm - 05:00 pm'),
-                    $findTimeId('06:00 pm - 07:15 pm'),
-                    $findTimeId('07:15 pm - 8:30 pm'),
+                    '09:00 am - 10:30 am',
+                    '11:00 am - 12:15 pm',
+                    '12:30 pm - 01:45 pm',
+                    '02:00 pm - 3:15 pm',
+                    '03:30 pm - 05:00 pm',
+                    '06:00 pm - 07:15 pm',
+                    '07:15 pm - 8:30 pm',
                 ],
             ],
             // Physical Class - Sat & Sun
@@ -67,9 +67,9 @@ class ScheduleSeeder extends Seeder
                 'class_type_id' => $physicalClassTypeId,
                 'term_id' => $satSunTermId,
                 'times' => [
-                    $findTimeId('08:00 am - 11:00 am'),
-                    $findTimeId('11:00 am - 01:30 pm'),
-                    $findTimeId('02:00 pm - 05:00 pm'),
+                    '08:00 am - 11:00 am',
+                    '11:00 am - 01:30 pm',
+                    '02:00 pm - 05:00 pm',
                 ],
             ],
             // Online Class - Mon & Thu
@@ -77,13 +77,13 @@ class ScheduleSeeder extends Seeder
                 'class_type_id' => $onlineClassTypeId,
                 'term_id' => $monThuTermId,
                 'times' => [
-                    $findTimeId('09:00 am - 10:30 am'),
-                    $findTimeId('11:00 am - 12:15 pm'),
-                    $findTimeId('12:30 pm - 01:45 pm'),
-                    $findTimeId('02:00 pm - 3:15 pm'),
-                    $findTimeId('03:30 pm - 05:00 pm'),
-                    $findTimeId('06:00 pm - 07:15 pm'),
-                    $findTimeId('07:15 pm - 8:30 pm'),
+                    '09:00 am - 10:30 am',
+                    '11:00 am - 12:15 pm',
+                    '12:30 pm - 01:45 pm',
+                    '02:00 pm - 3:15 pm',
+                    '03:30 pm - 05:00 pm',
+                    '06:00 pm - 07:15 pm',
+                    '07:15 pm - 8:30 pm',
                 ],
             ],
             // Online Class - Sat & Sun
@@ -91,9 +91,9 @@ class ScheduleSeeder extends Seeder
                 'class_type_id' => $onlineClassTypeId,
                 'term_id' => $satSunTermId,
                 'times' => [
-                    $findTimeId('08:00 am - 11:00 am'),
-                    $findTimeId('11:00 am - 01:30 pm'),
-                    $findTimeId('02:00 pm - 05:00 pm'),
+                    '08:00 am - 11:00 am',
+                    '11:00 am - 01:30 pm',
+                    '02:00 pm - 05:00 pm',
                 ],
             ],
             // Basic - Mon & Tue
@@ -101,13 +101,13 @@ class ScheduleSeeder extends Seeder
                 'class_type_id' => $basicClassTypeId,
                 'term_id' => $monTueTermId,
                 'times' => [
-                    $findTimeId('09:00 am - 10:30 am'),
-                    $findTimeId('11:00 am - 12:15 pm'),
-                    $findTimeId('12:30 pm - 01:45 pm'),
-                    $findTimeId('02:00 pm - 3:15 pm'),
-                    $findTimeId('03:30 pm - 05:00 pm'),
-                    $findTimeId('06:00 pm - 07:15 pm'),
-                    $findTimeId('07:15 pm - 8:30 pm'),
+                    '09:00 am - 10:30 am',
+                    '11:00 am - 12:15 pm',
+                    '12:30 pm - 01:45 pm',
+                    '02:00 pm - 3:15 pm',
+                    '03:30 pm - 05:00 pm',
+                    '06:00 pm - 07:15 pm',
+                    '07:15 pm - 8:30 pm',
                 ],
             ],
             // Basic - Wed & Thu
@@ -115,13 +115,13 @@ class ScheduleSeeder extends Seeder
                 'class_type_id' => $basicClassTypeId,
                 'term_id' => $wedThuTermId,
                 'times' => [
-                    $findTimeId('09:00 am - 10:30 am'),
-                    $findTimeId('11:00 am - 12:15 pm'),
-                    $findTimeId('12:30 pm - 01:45 pm'),
-                    $findTimeId('02:00 pm - 3:15 pm'),
-                    $findTimeId('03:30 pm - 05:00 pm'),
-                    $findTimeId('06:00 pm - 07:15 pm'),
-                    $findTimeId('07:15 pm - 8:30 pm'),
+                    '09:00 am - 10:30 am',
+                    '11:00 am - 12:15 pm',
+                    '12:30 pm - 01:45 pm',
+                    '02:00 pm - 3:15 pm',
+                    '03:30 pm - 05:00 pm',
+                    '06:00 pm - 07:15 pm',
+                    '07:15 pm - 8:30 pm',
                 ],
             ],
             // Basic - Saturday
@@ -129,9 +129,9 @@ class ScheduleSeeder extends Seeder
                 'class_type_id' => $basicClassTypeId,
                 'term_id' => $saturdayTermId,
                 'times' => [
-                    $findTimeId('08:00 am - 11:00 am'),
-                    $findTimeId('11:00 am - 01:30 pm'),
-                    $findTimeId('02:00 pm - 05:00 pm'),
+                    '08:00 am - 11:00 am',
+                    '11:00 am - 01:30 pm',
+                    '02:00 pm - 05:00 pm',
                 ],
             ],
             // Basic - Sunday
@@ -139,16 +139,15 @@ class ScheduleSeeder extends Seeder
                 'class_type_id' => $basicClassTypeId,
                 'term_id' => $sundayTermId,
                 'times' => [
-                    $findTimeId('08:00 am - 11:00 am'),
-                    $findTimeId('11:00 am - 01:30 pm'),
-                    $findTimeId('02:00 pm - 05:00 pm'),
+                    '08:00 am - 11:00 am',
+                    '11:00 am - 01:30 pm',
+                    '02:00 pm - 05:00 pm',
                 ],
             ],
         ];
 
         foreach ($data as $item) {
-
-            // 1. create schedule ONLY ONCE
+            // Create the schedule once, then attach all referenced times.
             DB::table('schedules')->updateOrInsert(
                 [
                     'class_type_id' => $item['class_type_id'],
@@ -157,20 +156,18 @@ class ScheduleSeeder extends Seeder
                 [
                     'class_type_id' => $item['class_type_id'],
                     'term_id'       => $item['term_id'],
-                    'created_at'    => now(),
-                    'updated_at'    => now(),
+                    'created_at'    => $now,
+                    'updated_at'    => $now,
                 ]
             );
 
-            // get schedule id
             $scheduleId = DB::table('schedules')
                 ->where('class_type_id', $item['class_type_id'])
                 ->where('term_id', $item['term_id'])
-                ->value('id'); // បើ primary key របស់ schedules ឈ្មោះ schedule_id សូមប្តូរត្រង់នេះ
+                ->value('id');
 
-            // 2. insert MANY times
-            foreach ($item['times'] as $timeId) {
-
+            foreach ($item['times'] as $timeName) {
+                $timeId = $this->ensureTimeId($timeName, $now);
                 DB::table('schedule_time')->updateOrInsert(
                     [
                         'schedule_id' => $scheduleId,
@@ -183,5 +180,42 @@ class ScheduleSeeder extends Seeder
                 );
             }
         }
+    }
+
+    private function requireClassTypeId(string $typeName): int
+    {
+        $id = DB::table('class_type')->where('type_name', $typeName)->value('class_type_id');
+
+        if ($id === null) {
+            throw new RuntimeException("ScheduleSeeder requires class type [{$typeName}] to exist.");
+        }
+
+        return (int) $id;
+    }
+
+    private function requireTermId(string $termName): int
+    {
+        $id = DB::table('terms')->where('term_name', $termName)->value('id');
+
+        if ($id === null) {
+            throw new RuntimeException("ScheduleSeeder requires term [{$termName}] to exist.");
+        }
+
+        return (int) $id;
+    }
+
+    private function ensureTimeId(string $timeName, Carbon $now): int
+    {
+        $id = DB::table('times')->where('time_name', $timeName)->value('id');
+
+        if ($id !== null) {
+            return (int) $id;
+        }
+
+        return (int) DB::table('times')->insertGetId([
+            'time_name' => $timeName,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
     }
 }

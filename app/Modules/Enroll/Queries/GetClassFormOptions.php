@@ -66,7 +66,7 @@ class GetClassFormOptions
         return CourseLesson::query()
             ->where('course_id', $courseId)
             ->select('id', 'course_id', 'title')
-            ->orderBy('order')
+            ->orderBy('order_number')
             ->orderBy('title')
             ->get()
             ->all();

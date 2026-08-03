@@ -11,6 +11,7 @@ import {
   BadgeCheck,
   Users,
   Presentation,
+  DollarSign,
 } from "@lucide/vue";
 
 defineProps({
@@ -164,12 +165,26 @@ function enrollmentPercent(capacity, enrolled) {
           <BadgeCheck class="mt-0.5 h-5 w-5 shrink-0 text-indigo-500 dark:text-indigo-400" />
           <div>
             <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">
-              {{ $t('Status') }}
+              {{ $t('Class Type') }}
             </p>
             <span
               class="mt-0.5 inline-block rounded-full bg-indigo-100 px-3 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400"
             >
-              {{ classData?.status ?? "—" }}
+              {{ classData?.class_type_label ?? classData?.status ?? "—" }}
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3">
+          <BadgeCheck class="mt-0.5 h-5 w-5 shrink-0 text-emerald-500 dark:text-emerald-400" />
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">
+              {{ $t('Class Status') }}
+            </p>
+            <span
+              class="mt-0.5 inline-block rounded-full bg-emerald-100 px-3 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+            >
+              {{ classData?.class_status_label ?? classData?.class_status ?? "—" }}
             </span>
           </div>
         </div>
@@ -196,6 +211,54 @@ function enrollmentPercent(capacity, enrolled) {
             </p>
             <p class="mt-0.5 font-semibold text-slate-900 dark:text-gray-100">
               {{ classData?.students ?? 0 }} enrolled
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3">
+          <DollarSign class="mt-0.5 h-5 w-5 shrink-0 text-indigo-500 dark:text-indigo-400" />
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">
+              {{ $t('Price') }}
+            </p>
+            <p class="mt-0.5 font-semibold text-slate-900 dark:text-gray-100">
+              ${{ Number(classData?.price ?? 0).toFixed(2) }}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3">
+          <Calendar class="mt-0.5 h-5 w-5 shrink-0 text-indigo-500 dark:text-indigo-400" />
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">
+              {{ $t('Enroll Start') }}
+            </p>
+            <p class="mt-0.5 font-semibold text-slate-900 dark:text-gray-100">
+              {{ classData?.enrollment_start_date ?? "—" }}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3">
+          <Calendar class="mt-0.5 h-5 w-5 shrink-0 text-indigo-500 dark:text-indigo-400" />
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">
+              {{ $t('Start Date') }}
+            </p>
+            <p class="mt-0.5 font-semibold text-slate-900 dark:text-gray-100">
+              {{ classData?.start_date ?? "—" }}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3">
+          <Calendar class="mt-0.5 h-5 w-5 shrink-0 text-indigo-500 dark:text-indigo-400" />
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">
+              {{ $t('End Date') }}
+            </p>
+            <p class="mt-0.5 font-semibold text-slate-900 dark:text-gray-100">
+              {{ classData?.end_date ?? "—" }}
             </p>
           </div>
         </div>

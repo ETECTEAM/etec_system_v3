@@ -32,6 +32,16 @@ const copies = [
   { key: "student", title: "Student Copy", khTitle: "ច្បាប់សិស្ស" },
 ];
 
+const dayAbbreviations = {
+  Monday: "Mon",
+  Tuesday: "Tue",
+  Wednesday: "Wed",
+  Thursday: "Thu",
+  Friday: "Fri",
+  Saturday: "Sat",
+  Sunday: "Sun",
+};
+
 function money(value) {
   return `$${Number(value ?? 0).toFixed(2)}`;
 }
@@ -56,11 +66,27 @@ function formatGender(value) {
 }
 
 function rowAmountValue() {
-  return Number(props.student?.amount_paid ?? props.student?.deposit_amount ?? 0) + 5;
+  return totalAmount();
+}
+
+function totalAmount() {
+  return Number(feeAmount() ?? 0);
+}
+
+function courseFeeAmount() {
+  return Math.max(totalAmount() - 5, 0);
+}
+
+function paidAmount() {
+  return Number(props.student?.amount_paid ?? props.student?.deposit_amount ?? 0);
+}
+
+function remainingAmount() {
+  return Math.max(rowAmountValue() - paidAmount(), 0);
 }
 
 function feeAmount() {
-  return props.classData?.course_price ?? props.student?.fee_amount ?? props.classData?.price;
+  return props.classData?.price ?? props.student?.fee_amount ?? props.classData?.course_price;
 }
 
 function rowAmount() {
@@ -71,9 +97,16 @@ function khmerRateAmount() {
   return riel(rowAmountValue() * 4000);
 }
 
+function abbreviateDays(value) {
+  return Object.entries(dayAbbreviations).reduce(
+    (text, [day, shortDay]) => text.replace(new RegExp(`\\b${day}\\b`, "g"), shortDay),
+    String(value ?? "")
+  );
+}
+
 function timeWithTerm() {
-  const time = valueOrDash(props.classData?.time);
-  const term = valueOrDash(props.classData?.term);
+  const time = abbreviateDays(valueOrDash(props.classData?.time));
+  const term = abbreviateDays(valueOrDash(props.classData?.term));
 
   if (time === "-" && term === "-") return "-";
   if (time === "-") return term;
@@ -132,14 +165,15 @@ function timeWithTerm() {
         </div>
         <div class="receipt-row">
           <span class="label">តម្លៃ / Fee</span>
-          <strong class="line">{{ money(feeAmount()) }}</strong>
+          <strong class="line">{{ money(courseFeeAmount()) }}</strong>
           <span class="label tiny">កាលបរិច្ឆេទចូលរៀន</span>
           <strong class="line short">{{ valueOrDash(student.payment_date ?? today) }}</strong>
         </div>
         <div class="receipt-row">
           <span class="label">ប្រាក់ត្រូវបង់</span>
-          <strong class="line">{{ rowAmount() }} /{{ khmerRateAmount()}} &emsp;&emsp;&emsp;&emsp;Document&emsp;5$</strong>
-        
+          <strong class="line payment-line">
+            <span>{{ rowAmount() }} /{{ khmerRateAmount() }} &emsp;&emsp;Document 5$</span>
+          </strong>
         </div>
         <div class="note">
           <span>***ប្រាក់ដែលបានបង់រួច មិនអាចដកវិញបានទេ/None refundable***</span>
@@ -185,6 +219,13 @@ function timeWithTerm() {
   :global(body) {
     margin: 0;
     background: #fff;
+    overflow: hidden;
+  }
+
+  :global(#app) {
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden;
   }
 
   .receipt-print-area,
@@ -193,12 +234,13 @@ function timeWithTerm() {
   }
 
   .receipt-print-area {
-    position: fixed;
+    position: absolute;
     inset: 0;
     display: flex;
     flex-direction: column;
     width: 210mm;
     height: 297mm;
+    overflow: hidden;
     background: #fff;
     color: #1f2933;
     font-family: "Khmer OS Battambang", "Noto Sans Khmer", Arial, sans-serif;
@@ -209,13 +251,15 @@ function timeWithTerm() {
   .receipt-copy {
     position: relative;
     display: flex;
-    min-height: 148.5mm;
-    flex: 1;
+    box-sizing: border-box;
+    height: 148.5mm;
+    flex: 0 0 148.5mm;
     flex-direction: column;
     overflow: hidden;
     padding: 7mm 10mm 0;
     border-bottom: 1px dashed #9ca3af;
-    page-break-inside: avoid;
+    break-inside: auto;
+    page-break-inside: auto;
   }
 
   .receipt-copy:last-child {
@@ -400,6 +444,22 @@ function timeWithTerm() {
 
   .line.wide {
     min-width: 116mm;
+  }
+
+  .payment-line {
+    display: flex;
+    min-width: 0;
+    align-items: end;
+    justify-content: space-between;
+    gap: 2mm;
+    overflow: visible;
+    font-size: 8.8pt;
+    white-space: nowrap;
+  }
+
+  .payment-line span {
+    display: inline-block;
+    flex: 0 1 auto;
   }
 
   .note {
