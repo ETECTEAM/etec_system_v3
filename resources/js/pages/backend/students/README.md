@@ -172,16 +172,16 @@ Reusable badge for displaying counts (e.g., unread notifications, pending action
 ## Pages
 
 ### ClassList.vue
-The main index page (`/dashboard/students`). Displays all classes in either a **Card Grid** or **Table View**, toggled by the user. Includes search-as-you-type filtering with server-side pagination support. Breadcrumbs + PageHero provide contextual navigation. An "Add Class" button links to the create page.
+The main index page (`/dashboard/enroll`). Displays all classes in either a **Card Grid** or **Table View**, toggled by the user. Includes search-as-you-type filtering with server-side pagination support. Breadcrumbs + PageHero provide contextual navigation. An "Add Class" button links to the create page.
 
 ### CreateClass.vue
-A multi-field form page for creating a new class (`/dashboard/students/create`). Uses Inertia `useForm` for validation. Fields include title, course, lesson, status, building, floor, room, study days, study time, and capacity. Back and Cancel buttons navigate to the class list. On submit, POSTs to `/dashboard/students`.
+A multi-field form page for creating a new class (`/dashboard/enroll/create`). Uses Inertia `useForm` for validation. Fields include title, course, lesson, status, building, floor, room, study days, study time, and capacity. Back and Cancel buttons navigate to the class list. On submit, POSTs to `/dashboard/enroll`.
 
 ### EditClass.vue
-Pre-filled form for updating an existing class (`/dashboard/students/{id}/edit`). Loads existing data via Inertia props and submits a `PUT` request. Includes server-side validation error display per field. Manually wired breadcrumbs and a Back button.
+Pre-filled form for updating an existing class (`/dashboard/enroll/{id}/edit`). Loads existing data via Inertia props and submits a `PUT` request. Includes server-side validation error display per field. Manually wired breadcrumbs and a Back button.
 
 ### ViewClass.vue
-Detail page for a single class (`/dashboard/students/{id}`). Shows full class information (lesson, building, floor/room, study days, time, status), enrolled students list with avatars, capacity progress bar with percentage filled, and a sidebar with quick actions (Edit, Add Student, End Class).
+Detail page for a single class (`/dashboard/enroll/{id}`). Shows full class information (lesson, building, floor/room, study days, time, status), enrolled students list with avatars, capacity progress bar with percentage filled, and a sidebar with quick actions (Edit, Add Student, End Class).
 
 ### Form.vue *(QR Check-in)*
 Location-based QR attendance check-in page. Uses the browser Geolocation API to verify the student is within 50m of the ETEC Center. Displays distance from the center and allows check-in when within range.
@@ -195,13 +195,13 @@ Attendance list page with QR code generation for check-in. Displays a table of s
 
 | Method | URI | Action |
 |--------|-----|--------|
-| `GET` | `/dashboard/students` | `ClassList` — view all classes |
-| `GET` | `/dashboard/students/create` | `CreateClass` — show create form |
-| `POST` | `/dashboard/students` | Store new class |
-| `GET` | `/dashboard/students/{id}` | `ViewClass` — view class details |
-| `GET` | `/dashboard/students/{id}/edit` | `EditClass` — show edit form |
-| `PUT` | `/dashboard/students/{id}` | Update class |
-| `DELETE` | `/dashboard/students/{id}` | Delete class |
+| `GET` | `/dashboard/enroll` | `ClassList` — view all classes |
+| `GET` | `/dashboard/enroll/create` | `CreateClass` — show create form |
+| `POST` | `/dashboard/enroll` | Store new class |
+| `GET` | `/dashboard/enroll/{id}` | `ViewClass` — view class details |
+| `GET` | `/dashboard/enroll/{id}/edit` | `EditClass` — show edit form |
+| `PUT` | `/dashboard/enroll/{id}` | Update class |
+| `DELETE` | `/dashboard/enroll/{id}` | Delete class |
 
 ---
 

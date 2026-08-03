@@ -6,9 +6,9 @@ export function build(ctx) {
     labelKey: "navigation.enrollManagement",
     key: "enroll",
     icon: "notebook-pen",
-    href: "/dashboard/students",
-    match: ["/dashboard/students"],
+    href: "/dashboard/enroll",
+    match: ["/dashboard/enroll"],
     exact: false,
-    isActive: (path) => path.startsWith("/dashboard/students"),
+    isActive: (path) => path.startsWith("/dashboard/enroll"),
   };
 }

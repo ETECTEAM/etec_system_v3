@@ -19,16 +19,16 @@ const props = defineProps({
 });
 
 const viewClass = (id) => {
-  router.get(`/dashboard/students/view/${id}`);
+  router.get(`/dashboard/enroll/view/${id}`);
 };
 
 const editClass = (id) => {
-  router.get(`/dashboard/students/edit/${id}`);
+  router.get(`/dashboard/enroll/edit/${id}`);
 };
 
 const deleteClass = (id) => {
   if (confirm("Are you sure you want to delete this class?")) {
-    router.delete(`/dashboard/students/${id}`);
+    router.delete(`/dashboard/enroll/${id}`);
   }
 };
 </script>

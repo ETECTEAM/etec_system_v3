@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\CourseLesson;
 use App\Models\Floor;
 use App\Models\Room;
+use App\Models\Schedule;
 use App\Models\StudyClass;
 use App\Models\Term;
 use App\Models\Time;
@@ -37,7 +38,40 @@ class GetClassFormOptions
             'classTypes' => $this->classTypes(),
             'statuses' => self::STATUSES,
             'studyDays' => self::STUDY_DAYS,
+            'scheduleGroups' => $this->scheduleGroups(),
         ];
+    }
+
+    /**
+     * Class type -> term -> time slots, as configured in Schedule Management,
+     * so the class form can cascade Class Type -> Study Term -> Study Time.
+     */
+    public function scheduleGroups(): array
+    {
+        return Schedule::with(['classType', 'term', 'times'])
+            ->get()
+            ->sortBy(fn (Schedule $schedule) => $schedule->classType?->type_name ?? '')
+            ->groupBy('class_type_id')
+            ->map(function ($schedules) {
+                $first = $schedules->first();
+
+                return [
+                    'class_type_id' => $first->class_type_id,
+                    'class_type_name' => $first->classType?->type_name ?? '-',
+                    'schedules' => $schedules->sortBy(fn (Schedule $schedule) => $schedule->term?->term_name ?? '')
+                        ->values()
+                        ->map(fn (Schedule $schedule) => [
+                            'term_id' => $schedule->term_id,
+                            'term_name' => $schedule->term?->term_name ?? '-',
+                            'times' => $schedule->times->map(fn (Time $time) => [
+                                'id' => $time->id,
+                                'time_name' => $time->time_name,
+                            ])->values(),
+                        ]),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     public function floors(int $buildingId): array

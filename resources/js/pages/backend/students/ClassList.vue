@@ -94,7 +94,7 @@ function runSearch() {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
     router.get(
-      "/dashboard/students",
+      "/dashboard/enroll",
       { search: search.value },
       { preserveState: true, replace: true }
     );
@@ -111,15 +111,15 @@ const breadcrumbItems = [
 
 function refresh() {
     search.value = "";
-    router.visit("/dashboard/students", { preserveState: true });
+    router.visit("/dashboard/enroll", { preserveState: true });
 }
 
 function goCreateClass() {
-    router.visit("/dashboard/students/create");
+    router.visit("/dashboard/enroll/create");
 }
 
 function onSearch() {
-    router.visit("/dashboard/students", {
+    router.visit("/dashboard/enroll", {
         data: { search: search.value || null },
         preserveState: true,
         replace: true,
@@ -152,7 +152,7 @@ function onSearch() {
       </div>
 
       <div
-        class="flex flex-col gap-4 border-b border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800"
+        class="flex flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <!-- Title -->
         <div>

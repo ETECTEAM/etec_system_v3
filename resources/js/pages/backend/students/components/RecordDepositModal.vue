@@ -38,7 +38,7 @@ function close() {
 function submit() {
   if (!props.enrollment?.enrollment_id) return;
 
-  form.post(`/dashboard/students/enrollments/${props.enrollment.enrollment_id}/deposit`, {
+  form.post(`/dashboard/enroll/enrollments/${props.enrollment.enrollment_id}/deposit`, {
     preserveScroll: true,
     onSuccess: close,
   });

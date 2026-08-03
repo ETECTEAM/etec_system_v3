@@ -110,6 +110,20 @@ class ScheduleSeeder extends Seeder
                     '07:15 pm - 8:30 pm',
                 ],
             ],
+            // Basic - Mon & Thu
+            [
+                'class_type_id' => $basicClassTypeId,
+                'term_id' => $monThuTermId,
+                'times' => [
+                    '09:00 am - 10:30 am',
+                    '11:00 am - 12:15 pm',
+                    '12:30 pm - 01:45 pm',
+                    '02:00 pm - 3:15 pm',
+                    '03:30 pm - 05:00 pm',
+                    '06:00 pm - 07:15 pm',
+                    '07:15 pm - 8:30 pm',
+                ],
+            ],
             // Basic - Wed & Thu
             [
                 'class_type_id' => $basicClassTypeId,
@@ -138,6 +152,16 @@ class ScheduleSeeder extends Seeder
             [
                 'class_type_id' => $basicClassTypeId,
                 'term_id' => $sundayTermId,
+                'times' => [
+                    '08:00 am - 11:00 am',
+                    '11:00 am - 01:30 pm',
+                    '02:00 pm - 05:00 pm',
+                ],
+            ],
+            // Basic - Sat & Sun
+            [
+                'class_type_id' => $basicClassTypeId,
+                'term_id' => $satSunTermId,
                 'times' => [
                     '08:00 am - 11:00 am',
                     '11:00 am - 01:30 pm',

@@ -47,7 +47,7 @@ class EnrollmentClassController extends Controller
     {
         $createStudyClass->handle($request->validated());
 
-        return redirect()->route('students.index')->with('success', 'Class created successfully.');
+        return redirect()->route('enroll.index')->with('success', 'Class created successfully.');
     }
 
     public function show(StudyClass $studyClass, GetClassDetails $details): Response
@@ -60,6 +60,8 @@ class EnrollmentClassController extends Controller
 
     public function edit(StudyClass $studyClass, GetClassFormOptions $options): Response
     {
+        $this->ensureInstructorOwnsClass($studyClass);
+
         $studyClass->load(['room.floor.building']);
 
         return Inertia::render('backend/students/EditClass', [
@@ -110,9 +112,11 @@ class EnrollmentClassController extends Controller
         StudyClass $studyClass,
         UpdateStudyClass $updateStudyClass
     ): RedirectResponse {
+        $this->ensureInstructorOwnsClass($studyClass);
+
         $updateStudyClass->handle($studyClass, $request->validated());
 
-        return redirect()->route('students.index')->with('success', 'Class updated successfully.');
+        return redirect()->route('enroll.index')->with('success', 'Class updated successfully.');
     }
 
     public function updateStatus(Request $request, StudyClass $studyClass): RedirectResponse
@@ -138,7 +142,7 @@ class EnrollmentClassController extends Controller
         $studyClass->enrollments()->delete();
         $studyClass->delete();
 
-        return redirect()->route('students.index')->with('success', 'Class deleted successfully.');
+        return redirect()->route('enroll.index')->with('success', 'Class deleted successfully.');
     }
 
     public function floors(Building $building, GetClassFormOptions $options): JsonResponse
@@ -174,7 +178,7 @@ class EnrollmentClassController extends Controller
         $createClassStudent->handle($studyClass, $request->validated());
 
         return redirect()
-            ->route('students.class-students.create', $studyClass)
+            ->route('enroll.class-students.create', $studyClass)
             ->with('success', 'Student added to class successfully.');
     }
 
@@ -207,5 +211,18 @@ class EnrollmentClassController extends Controller
     private function formatTime(?string $time): ?string
     {
         return $time ? substr($time, 0, 5) : null;
+    }
+
+    /**
+     * Instructors may only view/edit classes assigned to them; admins/super admins
+     * (who assign classes to instructors, not to themselves) are unrestricted.
+     */
+    private function ensureInstructorOwnsClass(StudyClass $studyClass): void
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole('instructor') && ! $user->hasAnyRole(['admin', 'super_admin'])) {
+            abort_unless($studyClass->teacher_id === $user->id, 403, 'You can only manage classes assigned to you.');
+        }
     }
 }

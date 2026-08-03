@@ -50,18 +50,18 @@ const statusStyle = computed(() => {
 
 const showBarDialog = ref(false);
 const showQrDialog = ref(false);
-const qrUrl = computed(() => `${window.location.origin}/dashboard/students/${props.classData.id}/students/create`);
+const qrUrl = computed(() => `${window.location.origin}/dashboard/enroll/${props.classData.id}/students/create`);
 
 function showViewClass () { 
-   router.get(`/dashboard/students/view/${props.classData.id}`);
+   router.get(`/dashboard/enroll/view/${props.classData.id}`);
 }
 
 function showEditClass() {
-    router.get(`/dashboard/students/edit/${props.classData.id}`);
+    router.get(`/dashboard/enroll/edit/${props.classData.id}`);
 }
 
 function showAddStudent() {
-    router.get(`/dashboard/students/${props.classData.id}/students/create`);
+    router.get(`/dashboard/enroll/${props.classData.id}/students/create`);
 }
 
 function showQr() {
@@ -74,7 +74,7 @@ function notifyPendingAction(label) {
 }
 
 function updateStatus(status) {
-    router.post(`/dashboard/students/${props.classData.id}/status`, { status }, {
+    router.post(`/dashboard/enroll/${props.classData.id}/status`, { status }, {
         preserveScroll: true,
         onFinish: () => {
             showBarDialog.value = false;

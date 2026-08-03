@@ -37,7 +37,7 @@ function openDeposit(enrollment) {
 }
 
 function addStudent() {
-  router.get(`/dashboard/students/${props.classData.id}/students/create`);
+  router.get(`/dashboard/enroll/${props.classData.id}/students/create`);
 }
 
 async function printReceipt(student) {
@@ -48,12 +48,12 @@ async function printReceipt(student) {
 
 const breadcrumbItems = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Class List", href: "/dashboard/students" },
+  { label: "Class List", href: "/dashboard/enroll" },
   { label: "View Class", current: true },
 ];
 
 function goBack() {
-  router.get("/dashboard/students");
+  router.get("/dashboard/enroll");
 }
 </script>
 

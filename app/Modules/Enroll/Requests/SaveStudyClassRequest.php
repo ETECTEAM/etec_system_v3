@@ -52,8 +52,18 @@ class SaveStudyClassRequest extends FormRequest
                 'exists:course_lessons,id',
                 Rule::exists('course_lessons', 'id')->where('course_id', $this->input('course_id')),
             ],
-            'teacher_id' => ['nullable', 'integer', 'exists:users,id'],
-            'room_id' => ['required_if:class_type,physical', 'nullable', 'integer', 'exists:rooms,id'],
+            'teacher_id' => [
+                Rule::requiredIf(fn () => $this->user()?->hasAnyRole(['admin', 'super_admin']) ?? false),
+                'nullable', 'integer', 'exists:users,id',
+            ],
+            // Admins/super admins assign the class to an instructor without picking a room;
+            // the assigned instructor fills in the room once they take ownership of the class.
+            'room_id' => [
+                Rule::requiredIf(
+                    fn () => $this->input('class_type') === 'physical' && ($this->user()?->hasRole('instructor') ?? false)
+                ),
+                'nullable', 'integer', 'exists:rooms,id',
+            ],
             'class_type' => ['required', 'string', Rule::in(GetClassFormOptions::CLASS_TYPES)],
             'status' => ['required', 'string', Rule::in(GetClassFormOptions::STATUSES)],
             'study_days' => ['required', 'array', 'min:1'],
