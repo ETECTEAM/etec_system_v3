@@ -54,10 +54,12 @@ export function createI18n(initialLocale = 'en') {
       ?? backendPlaceholderTranslations[state.locale]?.[key]
       ?? key
 
-    return Object.entries(replacements).reduce(
-      (message, [name, value]) => message.replaceAll(`:${name}`, value),
-      template,
-    )
+    return Object.entries(replacements)
+      .sort(([a], [b]) => b.length - a.length)
+      .reduce(
+        (message, [name, value]) => message.replaceAll(`:${name}`, value),
+        template,
+      )
   }
 
   return {

@@ -25,81 +25,11 @@ class SubCategorySeeder extends Seeder
             // Programming
             [
                 'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Python'
+                'name' => 'Web Development'
             ],
             [
                 'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Java'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'JavaScript'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'C++'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'C#'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'PHP'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Ruby'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Go'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Rust'
-            ],
-
-            // Web Development
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Frontend'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Backend'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Full Stack'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'React'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Vue.js'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Angular'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Laravel'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Node.js'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Django'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Spring Boot'
+                'name' => 'Mobile Development'
             ],
         ];
 
@@ -128,6 +58,12 @@ class SubCategorySeeder extends Seeder
 
     private function getCategoryId($categoryName)
     {
-        return Category::where('name', $categoryName)->first()->id;
+        $category = Category::where('name', $categoryName)->first();
+
+        if (! $category) {
+            throw new \RuntimeException("Category '{$categoryName}' not found. Run CategorySeeder first.");
+        }
+
+        return $category->id;
     }
-}
+}   

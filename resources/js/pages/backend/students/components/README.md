@@ -14,7 +14,7 @@ The View Class page (`ViewClass.vue`) is a dedicated page for viewing a single c
 
 | Method | URI | Name |
 |--------|-----|------|
-| GET | `/dashboard/students/view/{id}` | `students.show` |
+| GET | `/dashboard/enroll/view/{id}` | `enroll.show` |
 
 ### Props (from Laravel/Inertia)
 
@@ -190,10 +190,10 @@ None.
 **File:** `routes/web/backend/student.php`
 
 ```php
-Route::prefix('/dashboard/students')->group(function () {
+Route::prefix('/dashboard/enroll')->group(function () {
     Route::get('/', ...)                    // ClassList
     Route::get('/create', ...)              // CreateClass
-    Route::get('/view/{id}', ...)           // ViewClass (students.show)
+    Route::get('/view/{id}', ...)           // ViewClass (enroll.show)
 });
 ```
 

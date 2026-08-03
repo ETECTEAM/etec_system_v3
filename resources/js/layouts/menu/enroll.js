@@ -5,10 +5,10 @@ export function build(ctx) {
     label: "Enrollment Management",
     labelKey: "navigation.enrollManagement",
     key: "enroll",
-    icon: "student",
-    href: "/dashboard/students",
-    match: ["/dashboard/students"],
+    icon: "notebook-pen",
+    href: "/dashboard/enroll",
+    match: ["/dashboard/enroll"],
     exact: false,
-    isActive: (path) => path.startsWith("/dashboard/students"),
+    isActive: (path) => path.startsWith("/dashboard/enroll"),
   };
 }

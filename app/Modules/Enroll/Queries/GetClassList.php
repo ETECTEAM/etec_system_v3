@@ -4,11 +4,14 @@ namespace App\Modules\Enroll\Queries;
 
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
+use App\Models\Term;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class GetClassList
 {
+    private ?array $termLabels = null;
+
     public function handle(Request $request): array
     {
         $search = trim($request->string('search')->toString());
@@ -33,7 +36,7 @@ class GetClassList
                 'end_date',
             ])
             ->with([
-                'course:id,title',
+                'course:id,title,price',
                 'lesson:id,course_id,title',
                 'teacher:id,name',
                 'room:id,floor_id,room_number',
@@ -76,26 +79,33 @@ class GetClassList
         $availableSeats = max($capacity - $currentStudents, 0);
         $filledPercentage = $capacity > 0 ? round(($currentStudents / $capacity) * 100, 2) : 0;
         $studyDays = $studyClass->study_days ?? [];
+        $classTypeLabel = $studyClass->class_type === 'online' ? 'Online Class' : 'Physical Class';
 
         return [
             'id' => $studyClass->id,
             'title' => $studyClass->title,
             'course' => $studyClass->course?->title,
+            'course_price' => $studyClass->course?->price !== null ? (float) $studyClass->course->price : null,
             'lesson' => $studyClass->lesson?->title ?? '-',
             'teacher' => $studyClass->teacher?->name ?? '-',
             'building' => $studyClass->room?->floor?->building?->name ?? '-',
             'floor' => $studyClass->room?->floor?->name ?? '-',
             'room' => $studyClass->room?->room_number ?? ($studyClass->class_type === 'online' ? 'Online' : '-'),
             'class_type' => $studyClass->class_type,
-            'status' => $studyClass->class_type === 'online' ? 'Online Class' : 'Physical Class',
+            'class_type_label' => $classTypeLabel,
+            'status' => $classTypeLabel,
             'class_status' => $studyClass->status,
+            'class_status_label' => str_replace('_', ' ', ucfirst($studyClass->status)),
             'study_days' => $studyDays,
-            'term' => implode(' & ', $studyDays),
+            'term' => $this->termLabel($studyDays),
             'start_time' => $this->formatTime($studyClass->start_time),
             'end_time' => $this->formatTime($studyClass->end_time),
             'time' => $this->formatTime($studyClass->start_time).' - '.$this->formatTime($studyClass->end_time),
             'capacity' => $capacity,
             'price' => (float) $studyClass->price,
+            'enrollment_start_date' => optional($studyClass->enrollment_start_date)->format('Y-m-d'),
+            'start_date' => optional($studyClass->start_date)->format('Y-m-d'),
+            'end_date' => optional($studyClass->end_date)->format('Y-m-d'),
             'students' => $currentStudents,
             'current_students' => $currentStudents,
             'available_seats' => $availableSeats,
@@ -120,5 +130,70 @@ class GetClassList
     private function formatTime(?string $time): string
     {
         return $time ? substr($time, 0, 5) : '-';
+    }
+
+    private function termLabel(array $studyDays): string
+    {
+        if (! $studyDays) {
+            return '-';
+        }
+
+        $key = $this->studyDaysKey($studyDays);
+
+        return $this->termLabels()[$key] ?? implode(' & ', $studyDays);
+    }
+
+    private function termLabels(): array
+    {
+        if ($this->termLabels !== null) {
+            return $this->termLabels;
+        }
+
+        return $this->termLabels = Term::query()
+            ->select('term_name')
+            ->orderBy('term_name')
+            ->get()
+            ->mapWithKeys(fn (Term $term) => [
+                $this->studyDaysKey($this->parseTermDays($term->term_name)) => $term->term_name,
+            ])
+            ->filter(fn (string $label, string $key) => $key !== '')
+            ->all();
+    }
+
+    private function parseTermDays(?string $termName): array
+    {
+        $dayMap = [
+            'Mon' => 'Monday',
+            'Monday' => 'Monday',
+            'Tue' => 'Tuesday',
+            'Tues' => 'Tuesday',
+            'Tuesday' => 'Tuesday',
+            'Wed' => 'Wednesday',
+            'Wednesday' => 'Wednesday',
+            'Thu' => 'Thursday',
+            'Thur' => 'Thursday',
+            'Thurs' => 'Thursday',
+            'Thursday' => 'Thursday',
+            'Fri' => 'Friday',
+            'Friday' => 'Friday',
+            'Sat' => 'Saturday',
+            'Saturday' => 'Saturday',
+            'Sun' => 'Sunday',
+            'Sunday' => 'Sunday',
+        ];
+
+        return collect(preg_split('/\s*(?:-|,|&|\/|\+|and)\s*/i', (string) $termName))
+            ->map(fn (string $day) => $dayMap[trim($day)] ?? null)
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function studyDaysKey(array $studyDays): string
+    {
+        return collect($studyDays)
+            ->map(fn (string $day) => strtolower(trim($day)))
+            ->sort()
+            ->implode('|');
     }
 }

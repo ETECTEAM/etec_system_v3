@@ -9,12 +9,7 @@ class Time extends Model
     //
     protected $fillable = [
         'time_name',
-        'term_id',
     ];
-    public function term()
-    {
-        return $this->belongsTo(Term::class);
-    }
 
     public function schedules()
     {

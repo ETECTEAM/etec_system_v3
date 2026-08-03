@@ -21,10 +21,10 @@ const props = defineProps({
 const open = ref(false);
 const showQr = ref(false);
 const { t } = useI18n();
-const qrUrl = computed(() => `${window.location.origin}/dashboard/students/${props.classData.id}/students/create`);
+const qrUrl = computed(() => `${window.location.origin}/dashboard/enroll/${props.classData.id}/students/create`);
 
 function updateStatus(status) {
-  router.post(`/dashboard/students/${props.classData.id}/status`, { status }, {
+  router.post(`/dashboard/enroll/${props.classData.id}/status`, { status }, {
     preserveScroll: true,
     onFinish: () => {
       open.value = false;
@@ -36,17 +36,17 @@ const menus = [
   {
     label: "View Class",
     icon: Eye,
-    action: () => router.get(`/dashboard/students/view/${props.classData.id}`),
+    action: () => router.get(`/dashboard/enroll/view/${props.classData.id}`),
   },
   {
     label: "Edit Class",
     icon: SquarePen,
-    action: () => router.get(`/dashboard/students/edit/${props.classData.id}`),
+    action: () => router.get(`/dashboard/enroll/edit/${props.classData.id}`),
   },
   {
     label: "Add Student",
     icon: UserPlus,
-    action: () => router.get(`/dashboard/students/${props.classData.id}/students/create`),
+    action: () => router.get(`/dashboard/enroll/${props.classData.id}/students/create`),
   },
   { label: "Generate QR", icon: QrCode, action: () => { showQr.value = true; open.value = false; } },
   { label: "Switch Teacher", icon: UserCog, action: () => window.alert("Switch teacher is not available yet.") },

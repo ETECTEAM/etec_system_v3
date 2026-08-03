@@ -4,7 +4,6 @@ namespace App\Modules\EnRoll\Requests;
 
 use App\Models\Course;
 use App\Models\Room;
-use App\Models\Time;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateClassRequest extends FormRequest
@@ -22,13 +21,9 @@ class UpdateClassRequest extends FormRequest
         $room = $this->filled('room_id')
             ? Room::query()->select('id', 'capacity')->find($this->input('room_id'))
             : null;
-        $time = $this->filled('time_id')
-            ? Time::query()->select('id', 'term_id')->find($this->input('time_id'))
-            : null;
 
         $this->merge([
             'title' => $course?->title ?? $this->input('title'),
-            'term_id' => $this->input('term_id') ?: $time?->term_id,
             'capacity' => $this->input('class_type') === 'physical'
                 ? ($room?->capacity ?? $this->input('capacity'))
                 : $this->input('capacity'),

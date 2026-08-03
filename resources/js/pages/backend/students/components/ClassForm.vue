@@ -1,8 +1,19 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import { useForm, router } from "@inertiajs/vue3";
+import { useForm, router, usePage } from "@inertiajs/vue3";
 import { Save } from "@lucide/vue";
 import axios from "axios";
+import { SelectSearch } from "@/components/ui/select-search";
+
+function toStringOrEmpty(value) {
+  return value === null || value === undefined || value === "" ? "" : String(value);
+}
+
+const page = usePage();
+const roles = computed(() => page.props.auth?.roles ?? []);
+// Admins/super admins assign a class to an instructor; the instructor then picks
+// the Building/Floor/Room once they take ownership of the class.
+const isAdminUser = computed(() => roles.value.includes("super_admin") || roles.value.includes("admin"));
 
 const props = defineProps({
   classData: {
@@ -33,6 +44,7 @@ const options = computed(() => ({
     { value: "online", label: "Online Class" },
   ],
   studyDays: props.options?.studyDays ?? [],
+  scheduleGroups: props.options?.scheduleGroups ?? [],
 }));
 
 const floors = ref([...options.value.floors]);
@@ -46,6 +58,7 @@ const loading = ref({
   lessons: false,
 });
 
+const selectedScheduleType = ref("");
 const selectedTerm = ref("");
 const selectedTime = ref("");
 
@@ -71,14 +84,14 @@ const dayMap = {
 
 const form = useForm({
   title: props.classData?.title ?? "",
-  course_id: props.classData?.course_id ?? "",
-  lesson_id: props.classData?.lesson_id ?? "",
-  teacher_id: props.classData?.teacher_id ?? "",
-  building_id: props.classData?.building_id ?? "",
-  floor_id: props.classData?.floor_id ?? "",
-  room_id: props.classData?.room_id ?? "",
-  term_id: props.classData?.term_id ?? "",
-  time_id: props.classData?.time_id ?? "",
+  course_id: toStringOrEmpty(props.classData?.course_id),
+  lesson_id: toStringOrEmpty(props.classData?.lesson_id),
+  teacher_id: toStringOrEmpty(props.classData?.teacher_id),
+  building_id: toStringOrEmpty(props.classData?.building_id),
+  floor_id: toStringOrEmpty(props.classData?.floor_id),
+  room_id: toStringOrEmpty(props.classData?.room_id),
+  term_id: toStringOrEmpty(props.classData?.term_id),
+  time_id: toStringOrEmpty(props.classData?.time_id),
   class_type: props.classData?.class_type ?? "physical",
   status: props.classData?.status ?? "active",
   study_days: props.classData?.study_days ?? [],
@@ -93,10 +106,6 @@ const form = useForm({
 
 const submitLabel = computed(() => (props.mode === "edit" ? "Update Class" : "Save Class"));
 
-const filteredTimes = computed(() =>
-  times.value.filter((time) => !selectedTerm.value || String(time.term_id) === String(selectedTerm.value))
-);
-
 const selectedCourse = computed(() =>
   options.value.courses.find((course) => String(course.id) === String(form.course_id))
 );
@@ -104,6 +113,65 @@ const selectedCourse = computed(() =>
 const selectedRoom = computed(() =>
   rooms.value.find((room) => String(room.id) === String(form.room_id))
 );
+
+const courseOptions = computed(() =>
+  options.value.courses.map((course) => ({ label: course.title, value: String(course.id) }))
+);
+
+const teacherOptions = computed(() =>
+  options.value.teachers.map((teacher) => ({ label: teacher.name, value: String(teacher.id) }))
+);
+
+const buildingOptions = computed(() =>
+  options.value.buildings.map((building) => ({ label: building.name, value: String(building.id) }))
+);
+
+const floorOptions = computed(() =>
+  floors.value.map((floor) => ({ label: floor.name, value: String(floor.id) }))
+);
+
+const roomOptions = computed(() =>
+  rooms.value.map((room) => ({ label: room.room_number, value: String(room.id) }))
+);
+
+const selectedScheduleGroup = computed(() =>
+  options.value.scheduleGroups.find(
+    (group) => String(group.class_type_id) === String(selectedScheduleType.value)
+  )
+);
+
+const selectedSchedule = computed(() =>
+  selectedScheduleGroup.value?.schedules.find(
+    (schedule) => String(schedule.term_id) === String(selectedTerm.value)
+  )
+);
+
+const scheduleTypeOptions = computed(() =>
+  options.value.scheduleGroups.map((group) => ({
+    label: group.class_type_name,
+    value: String(group.class_type_id),
+  }))
+);
+
+const scheduleTermOptions = computed(() =>
+  (selectedScheduleGroup.value?.schedules ?? []).map((schedule) => ({
+    label: schedule.term_name,
+    value: String(schedule.term_id),
+  }))
+);
+
+const scheduleTimeOptions = computed(() =>
+  (selectedSchedule.value?.times ?? []).map((time) => ({
+    label: time.time_name,
+    value: String(time.id),
+  }))
+);
+
+const floorPlaceholder = computed(() => (loading.value.floors ? "Loading..." : "Select Floor"));
+const roomPlaceholder = computed(() => (loading.value.rooms ? "Loading..." : "Select Room"));
+
+const selectClass =
+  "flex w-full items-center justify-between rounded-xl border border-slate-300 px-4 py-3 text-left text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:disabled:bg-gray-900 dark:disabled:text-gray-500";
 
 function parseTimeText(value) {
   const match = String(value ?? "").trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -124,6 +192,13 @@ function parseStudyDays(timeName) {
   if (!dayPart) return [];
 
   return dayPart
+    .split(/\s*(?:-|,|&|\/|\+|and)\s*/i)
+    .map((day) => dayMap[day.trim()])
+    .filter(Boolean);
+}
+
+function parseTermDays(termName) {
+  return String(termName ?? "")
     .split(/\s*(?:-|,|&|\/|\+|and)\s*/i)
     .map((day) => dayMap[day.trim()])
     .filter(Boolean);
@@ -156,10 +231,32 @@ function findSelectedTime() {
 }
 
 const matchedTime = findSelectedTime();
-selectedTerm.value = props.classData?.term_id ?? matchedTime?.term_id ?? "";
-selectedTime.value = props.classData?.time_id ?? matchedTime?.id ?? "";
+const matchedTerm = terms.value.find((term) => {
+  const parsedDays = parseTermDays(term.term_name);
+  return parsedDays.length > 0 &&
+    parsedDays.length === (form.study_days ?? []).length &&
+    parsedDays.every((day) => (form.study_days ?? []).includes(day));
+});
+
+selectedTerm.value = toStringOrEmpty(props.classData?.term_id ?? matchedTerm?.id);
+selectedTime.value = toStringOrEmpty(props.classData?.time_id ?? matchedTime?.id);
+selectedScheduleType.value = toStringOrEmpty(
+  options.value.scheduleGroups.find((group) =>
+    group.schedules.some(
+      (schedule) =>
+        String(schedule.term_id) === String(selectedTerm.value) &&
+        schedule.times.some((time) => String(time.id) === String(selectedTime.value))
+    )
+  )?.class_type_id
+);
 form.term_id = selectedTerm.value;
 form.time_id = selectedTime.value;
+
+// Class Type -> Study Term -> Study Time cascade: changing a parent clears its children,
+// since the child's valid options come from the newly selected parent's schedule.
+watch(selectedScheduleType, () => {
+  selectedTerm.value = "";
+});
 
 watch(
   selectedTime,
@@ -174,7 +271,6 @@ watch(
     }
 
     const parsed = parseTimeOption(time);
-    form.study_days = parsed.studyDays;
     form.start_time = parsed.startTime;
     form.end_time = parsed.endTime;
   }
@@ -182,15 +278,17 @@ watch(
 
 watch(
   selectedTerm,
-  (termId, oldTermId) => {
+  (termId) => {
     form.term_id = termId ?? "";
-
-    if (oldTermId === undefined) return;
-
-    const currentTime = times.value.find((time) => String(time.id) === String(selectedTime.value));
-    if (currentTime && String(currentTime.term_id) === String(termId)) return;
-
     selectedTime.value = "";
+
+    const term = terms.value.find((item) => String(item.id) === String(termId));
+    if (!term) {
+      form.study_days = [];
+      return;
+    }
+
+    form.study_days = parseTermDays(term.term_name);
   }
 );
 
@@ -204,13 +302,13 @@ watch(
     lessons.value = [];
     const course = options.value.courses.find((item) => String(item.id) === String(courseId));
     form.title = course?.title ?? "";
-    form.price = course?.price ?? 0;
+    form.price = course?.price ?? "";
 
     if (!courseId) return;
 
     loading.value.lessons = true;
     try {
-      const response = await axios.get(`/dashboard/students/courses/${courseId}/lessons`);
+      const response = await axios.get(`/dashboard/enroll/courses/${courseId}/lessons`);
       lessons.value = response.data;
     } finally {
       loading.value.lessons = false;
@@ -240,7 +338,7 @@ watch(
 
     loading.value.floors = true;
     try {
-      const response = await axios.get(`/dashboard/students/buildings/${buildingId}/floors`);
+      const response = await axios.get(`/dashboard/enroll/buildings/${buildingId}/floors`);
       floors.value = response.data;
     } finally {
       loading.value.floors = false;
@@ -260,7 +358,7 @@ watch(
 
     loading.value.rooms = true;
     try {
-      const response = await axios.get(`/dashboard/students/floors/${floorId}/rooms`);
+      const response = await axios.get(`/dashboard/enroll/floors/${floorId}/rooms`);
       rooms.value = response.data;
     } finally {
       loading.value.rooms = false;
@@ -291,17 +389,24 @@ function classTypeValue(type) {
   return typeof type === "object" ? type.value : type;
 }
 
+const classTypeOptions = computed(() =>
+  options.value.classTypes.map((type) => ({
+    label: classTypeLabel(type),
+    value: String(classTypeValue(type)),
+  }))
+);
+
 function back() {
-  router.get("/dashboard/students");
+  router.get("/dashboard/enroll");
 }
 
 function submit() {
   if (props.mode === "edit") {
-    form.put(`/dashboard/students/${props.classData.id}`);
+    form.put(`/dashboard/enroll/${props.classData.id}`);
     return;
   }
 
-  form.post("/dashboard/students");
+  form.post("/dashboard/enroll");
 }
 </script>
 
@@ -310,10 +415,12 @@ function submit() {
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
       <div>
         <label class="font-semibold mb-2 block">{{ $t('Course') }}</label>
-        <select v-model.number="form.course_id" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">{{ $t('Select Course') }}</option>
-          <option v-for="course in options.courses" :key="course.id" :value="course.id">{{ course.title }}</option>
-        </select>
+        <SelectSearch
+          v-model="form.course_id"
+          :options="courseOptions"
+          :placeholder="$t('Select Course')"
+          :button-class="selectClass"
+        />
         <p v-if="form.errors.course_id || form.errors.title" class="mt-1 text-xs text-red-600">
           {{ form.errors.course_id || form.errors.title }}
         </p>
@@ -321,54 +428,93 @@ function submit() {
 
       <div>
         <label class="font-semibold mb-2 block">{{ $t('Status') }}</label>
-        <select v-model="form.class_type" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">{{ $t('Select Status') }}</option>
-          <option v-for="type in options.classTypes" :key="classTypeValue(type)" :value="classTypeValue(type)">{{ classTypeLabel(type) }}</option>
-        </select>
+        <SelectSearch
+          v-model="form.class_type"
+          :options="classTypeOptions"
+          :placeholder="$t('Select Status')"
+          :button-class="selectClass"
+        />
         <p v-if="form.errors.class_type" class="mt-1 text-xs text-red-600">{{ form.errors.class_type }}</p>
       </div>
 
       <input v-model="form.status" type="hidden" />
 
-      <div>
+      <div v-if="isAdminUser">
+        <label class="font-semibold mb-2 block">{{ $t('Instructor') }}</label>
+        <SelectSearch
+          v-model="form.teacher_id"
+          :options="teacherOptions"
+          :placeholder="$t('Select Instructor')"
+          :button-class="selectClass"
+        />
+        <p v-if="form.errors.teacher_id" class="mt-1 text-xs text-red-600">{{ form.errors.teacher_id }}</p>
+        <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">{{ $t('The assigned instructor sets the Building, Floor, and Room.') }}</p>
+      </div>
+
+      <div v-if="!isAdminUser">
         <label class="font-semibold mb-2 block">{{ $t('Building') }}</label>
-        <select v-model.number="form.building_id" :disabled="form.class_type === 'online'" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">{{ $t('Select Building') }}</option>
-          <option v-for="building in options.buildings" :key="building.id" :value="building.id">{{ building.name }}</option>
-        </select>
+        <SelectSearch
+          v-model="form.building_id"
+          :options="buildingOptions"
+          :disabled="form.class_type === 'online'"
+          :placeholder="$t('Select Building')"
+          :button-class="selectClass"
+        />
       </div>
 
-      <div>
+      <div v-if="!isAdminUser">
         <label class="font-semibold mb-2 block">{{ $t('Floor') }}</label>
-        <select v-model.number="form.floor_id" :disabled="form.class_type === 'online' || loading.floors || !form.building_id" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">{{ loading.floors ? "Loading..." : "Select Floor" }}</option>
-          <option v-for="floor in floors" :key="floor.id" :value="floor.id">{{ floor.name }}</option>
-        </select>
+        <SelectSearch
+          v-model="form.floor_id"
+          :options="floorOptions"
+          :disabled="form.class_type === 'online' || loading.floors || !form.building_id"
+          :placeholder="$t(floorPlaceholder)"
+          :button-class="selectClass"
+        />
       </div>
 
-      <div>
+      <div v-if="!isAdminUser">
         <label class="font-semibold mb-2 block">{{ $t('Room') }}</label>
-        <select v-model.number="form.room_id" :disabled="form.class_type === 'online' || loading.rooms || !form.floor_id" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">{{ loading.rooms ? "Loading..." : "Select Room" }}</option>
-          <option v-for="room in rooms" :key="room.id" :value="room.id">{{ room.room_number }}</option>
-        </select>
+        <SelectSearch
+          v-model="form.room_id"
+          :options="roomOptions"
+          :disabled="form.class_type === 'online' || loading.rooms || !form.floor_id"
+          :placeholder="$t(roomPlaceholder)"
+          :button-class="selectClass"
+        />
         <p v-if="form.errors.room_id" class="mt-1 text-xs text-red-600">{{ form.errors.room_id }}</p>
       </div>
 
       <div>
+        <label class="font-semibold mb-2 block">{{ $t('Class Type') }}</label>
+        <SelectSearch
+          v-model="selectedScheduleType"
+          :options="scheduleTypeOptions"
+          :placeholder="$t('Select Class Type')"
+          :button-class="selectClass"
+        />
+      </div>
+
+      <div>
         <label class="font-semibold mb-2 block">{{ $t('Study Term') }}</label>
-        <select v-model="selectedTerm" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">{{ $t('Select Term') }}</option>
-          <option v-for="term in terms" :key="term.id" :value="term.id">{{ term.term_name }}</option>
-        </select>
+        <SelectSearch
+          v-model="selectedTerm"
+          :options="scheduleTermOptions"
+          :disabled="!selectedScheduleType"
+          :placeholder="$t(selectedScheduleType ? 'Select Term' : 'Select Class Type first')"
+          :button-class="selectClass"
+        />
       </div>
 
       <div>
         <label class="font-semibold mb-2 block">{{ $t('Study Time') }}</label>
-        <select v-model="selectedTime" :disabled="!selectedTerm" class="w-full rounded-xl border border-slate-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-          <option value="">{{ $t('Select Time') }}</option>
-          <option v-for="time in filteredTimes" :key="time.id" :value="time.id">{{ time.time_name }}</option>
-        </select>
+        <SelectSearch
+          v-model="selectedTime"
+          :options="scheduleTimeOptions"
+          :disabled="!selectedTerm"
+          :placeholder="$t(selectedTerm ? 'Select Time' : 'Select Term first')"
+          :button-class="selectClass"
+        />
         <p v-if="form.errors.start_time" class="mt-1 text-xs text-red-600">{{ form.errors.start_time }}</p>
         <p v-if="form.errors.end_time" class="mt-1 text-xs text-red-600">{{ form.errors.end_time }}</p>
       </div>
@@ -381,7 +527,7 @@ function submit() {
 
       <div>
         <label class="font-semibold mb-2 block">{{ $t('Price') }}</label>
-        <input type="number" min="0" step="0.01" v-model="form.price" readonly class="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-500 dark:border-gray-600 dark:bg-gray-800/60 dark:text-gray-400" />
+        <input type="number" min="0" step="0.01" v-model="form.price" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
         <p v-if="form.errors.price" class="mt-1 text-xs text-red-600">{{ form.errors.price }}</p>
       </div>
 

@@ -29,7 +29,7 @@ function close() {
 }
 
 function submit() {
-  form.post(`/dashboard/students/${props.classId}/enrollments`, {
+  form.post(`/dashboard/enroll/${props.classId}/enrollments`, {
     preserveScroll: true,
     onSuccess: close,
   });

@@ -19,12 +19,12 @@ defineProps({
 
 const breadcrumbItems = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Class List", href: "/dashboard/students" },
+  { label: "Class List", href: "/dashboard/enroll" },
   { label: "Edit Class", current: true },
 ];
 
 function back() {
-  router.get("/dashboard/students");
+  router.get("/dashboard/enroll");
 }
 </script>
 

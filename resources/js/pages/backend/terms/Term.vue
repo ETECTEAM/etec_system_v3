@@ -8,13 +8,13 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                <span class="text-slate-600 dark:text-gray-300 font-medium">{{ $t('Sub Categories') }}</span>
+                <span class="text-slate-600 dark:text-gray-300 font-medium">{{ $t('Terms') }}</span>
             </nav>
 
             <PageHero
-                eyebrow="Course Management"
-                :title="$t('Sub Categories')"
-                :description="$t('Read, create, update, and delete sub category records')"
+                eyebrow="Terms Management"
+                :title="$t('Terms')"
+                :description="$t('Read, create, update, and delete terms records.')"
                 class="mb-6"
             />
 
@@ -22,8 +22,8 @@
                 <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div class="min-w-0 shrink-0">
-                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-gray-500">{{ $t('Sub Category Directory') }}</p>
-                            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t('Read, create, update, and delete sub category records') }}</p>
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-gray-500">{{ $t('Term Directory') }}</p>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t('Read, create, update, and delete terms records.') }}</p>
                         </div>
 
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
@@ -32,18 +32,18 @@
                                 <input
                                     v-model="search"
                                     type="text"
-                                    :placeholder="$t('Search sub categories...')"
+                                    :placeholder="$t('Search terms...')"
                                     class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:w-56 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                     @input="resetPagination"
                                 >
                             </div>
 
                             <Link
-                                href="/dashboard/course/subcategories/create"
+                                href="/dashboard/terms/create"
                                 class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
                             >
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                                {{ $t('Sub Category') }}
+                                {{ $t('Term') }}
                             </Link>
                         </div>
                     </div>
@@ -54,39 +54,25 @@
                         <TableHeader>
                             <TableRow>
                                 <TableHead class="w-16">{{ $t('No') }}</TableHead>
-                                <TableHead>{{ $t('Name') }}</TableHead>
-                                <TableHead>{{ $t('Category') }}</TableHead>
-                                <TableHead>{{ $t('Slug') }}</TableHead>
-                                <TableHead>{{ $t('Status') }}</TableHead>
+                                <TableHead>{{ $t('Term Name') }}</TableHead>
                                 <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            <TableRow v-for="(subCategory, index) in paginatedSubCategories" :key="subCategory.id">
+                            <TableRow v-for="(term, index) in paginatedTerms" :key="term.id">
                                 <TableCell class="text-sm text-slate-500 dark:text-gray-400">
                                     {{ (currentPage - 1) * perPage + index + 1 }}
                                 </TableCell>
                                 <TableCell>
-                                    <span class="text-sm font-medium text-slate-900 dark:text-gray-100">{{ subCategory.name }}</span>
-                                </TableCell>
-                                <TableCell>
-                                    <span class="text-sm text-slate-600 dark:text-gray-300">{{ subCategory.category?.name }}</span>
-                                </TableCell>
-                                <TableCell>
-                                    <code class="text-xs bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 px-2 py-1 rounded-md">{{ subCategory.slug }}</code>
-                                </TableCell>
-                                <TableCell>
-                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="subCategory.status === 'active' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'">
-                                        {{ subCategory.status === 'active' ? $t('Active') : $t('Inactive') }}
-                                    </span>
+                                    <span class="text-sm font-medium text-slate-900 dark:text-gray-100">{{ term.term_name }}</span>
                                 </TableCell>
                                 <TableCell class="text-right">
                                     <div class="flex justify-end gap-2">
                                         <Link
-                                            :href="`/dashboard/course/subcategories/${subCategory.id}/edit`"
+                                            :href="`/dashboard/terms/${term.id}/edit`"
                                             class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
                                             :title="$t('Edit')"
-                                            :aria-label="$t('Edit sub category')"
+                                            :aria-label="$t('Edit term')"
                                         >
                                             <Pencil class="h-4 w-4" />
                                         </Link>
@@ -95,8 +81,8 @@
                                             type="button"
                                             class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
                                             :title="$t('Delete')"
-                                            :aria-label="$t('Delete sub category')"
-                                            @click="confirmDelete(subCategory)"
+                                            :aria-label="$t('Delete term')"
+                                            @click="confirmDelete(term)"
                                         >
                                             <Trash2 class="h-4 w-4" />
                                         </button>
@@ -104,26 +90,26 @@
                                 </TableCell>
                             </TableRow>
 
-                            <!-- Empty state: no sub categories exist at all -->
-                            <TableRow v-if="paginatedSubCategories.length === 0 && subCategories.length === 0">
-                                <TableCell colspan="6" class="px-4 py-16 text-center">
+                            <!-- Empty state: no terms exist at all -->
+                            <TableRow v-if="paginatedTerms.length === 0 && terms.length === 0">
+                                <TableCell colspan="3" class="px-4 py-16 text-center">
                                     <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                     </svg>
-                                    <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No sub categories yet') }}</p>
-                                    <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ $t('Create your first sub category to start organizing courses') }}</p>
-                                    <Link href="/dashboard/course/subcategories/create"
+                                    <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No terms yet') }}</p>
+                                    <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ $t('Create your first term to start scheduling classes') }}</p>
+                                    <Link href="/dashboard/terms/create"
                                         class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                                        + {{ $t('Sub Category') }}
+                                        + {{ $t('Term') }}
                                     </Link>
                                 </TableCell>
                             </TableRow>
 
                             <!-- Empty state: search found nothing -->
-                            <TableRow v-else-if="paginatedSubCategories.length === 0">
-                                <TableCell colspan="6" class="px-4 py-16 text-center">
+                            <TableRow v-else-if="paginatedTerms.length === 0">
+                                <TableCell colspan="3" class="px-4 py-16 text-center">
                                     <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -142,10 +128,10 @@
                 </div>
 
                 <!-- Pagination -->
-                <div v-if="filteredSubCategories.length > 0"
+                <div v-if="filteredTerms.length > 0"
                     class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
                     <p class="text-sm text-slate-500 dark:text-gray-400">
-                        {{ $t('Showing :from to :to of :total sub categories', { from: rangeStart, to: rangeEnd, total: filteredSubCategories.length }) }}
+                        {{ $t('Showing :from to :to of :total terms', { from: rangeStart, to: rangeEnd, total: filteredTerms.length }) }}
                     </p>
 
                     <Pagination
@@ -169,14 +155,10 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Delete sub category') }}</h3>
+                        <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Delete term') }}</h3>
                         <p class="text-sm text-slate-600 dark:text-gray-400 mt-1">
-                            {{ $t('Are you sure you want to delete') }} "<span class="font-medium text-slate-900 dark:text-gray-100">{{ deleteItem?.name }}</span>"?
+                            {{ $t('Are you sure you want to delete') }} "<span class="font-medium text-slate-900 dark:text-gray-100">{{ deleteItem?.term_name }}</span>"?
                             {{ $t('This action cannot be undone.') }}
-                        </p>
-                        <p v-if="deleteItem?.tracks?.length > 0"
-                            class="text-sm text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-500/10 rounded-lg px-3 py-2 mt-3">
-                            {{ $t('This sub category has :count track(s) that will also be deleted.', { count: deleteItem.tracks.length }) }}
                         </p>
                     </div>
                 </div>
@@ -185,9 +167,9 @@
                         class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-800 rounded-xl transition">
                         {{ $t('Cancel') }}
                     </button>
-                    <button @click="deleteSubCategory"
+                    <button @click="deleteTerm"
                         class="px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-500 rounded-xl transition">
-                        {{ $t('Delete sub category') }}
+                        {{ $t('Delete term') }}
                     </button>
                 </div>
             </div>
@@ -206,7 +188,7 @@ import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from '@
 import { Pagination } from '@/components/ui/pagination';
 
 const props = defineProps({
-    subCategories: {
+    terms: {
         type: Array,
         default: () => []
     }
@@ -223,25 +205,24 @@ const perPage = ref(10);
 const showDeleteModal = ref(false);
 const deleteItem = ref(null);
 
-// Filtered sub categories
-const filteredSubCategories = computed(() => {
-    if (!search.value) return props.subCategories;
-    return props.subCategories.filter(sub =>
-        sub.name.toLowerCase().includes(search.value.toLowerCase()) ||
-        (sub.category?.name && sub.category.name.toLowerCase().includes(search.value.toLowerCase()))
+// Filtered terms
+const filteredTerms = computed(() => {
+    if (!search.value) return props.terms;
+    return props.terms.filter(term =>
+        term.term_name.toLowerCase().includes(search.value.toLowerCase())
     );
 });
 
 // Total pages
 const totalPages = computed(() => {
-    return Math.ceil(filteredSubCategories.value.length / perPage.value) || 1;
+    return Math.ceil(filteredTerms.value.length / perPage.value) || 1;
 });
 
-// Paginated sub categories
-const paginatedSubCategories = computed(() => {
+// Paginated terms
+const paginatedTerms = computed(() => {
     const start = (currentPage.value - 1) * perPage.value;
     const end = start + perPage.value;
-    return filteredSubCategories.value.slice(start, end);
+    return filteredTerms.value.slice(start, end);
 });
 
 // Navigation methods
@@ -257,12 +238,12 @@ const resetPagination = () => {
 
 // Range shown in the "Showing X to Y of Z" strip below the table
 const rangeStart = computed(() => {
-    if (filteredSubCategories.value.length === 0) return 0;
+    if (filteredTerms.value.length === 0) return 0;
     return (currentPage.value - 1) * perPage.value + 1;
 });
 
 const rangeEnd = computed(() => {
-    return Math.min(currentPage.value * perPage.value, filteredSubCategories.value.length);
+    return Math.min(currentPage.value * perPage.value, filteredTerms.value.length);
 });
 
 // Reset to page 1 when search changes
@@ -271,20 +252,20 @@ watch(search, () => {
 });
 
 // Confirm delete
-const confirmDelete = (subCategory) => {
-    deleteItem.value = subCategory;
+const confirmDelete = (term) => {
+    deleteItem.value = term;
     showDeleteModal.value = true;
 };
 
-const deleteSubCategory = () => {
+const deleteTerm = () => {
     if (deleteItem.value) {
-        router.delete(`/dashboard/course/subcategories/${deleteItem.value.id}`, {
+        router.delete(`/dashboard/terms/${deleteItem.value.id}`, {
             onSuccess: () => {
                 showDeleteModal.value = false;
                 deleteItem.value = null;
             },
             onError: (errors) => {
-                alert(errors.message || 'Failed to delete sub category');
+                alert(errors.message || 'Failed to delete term');
             }
         });
     }

@@ -15,8 +15,8 @@ const props = defineProps({
 
 const breadcrumbItems = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Class List", href: "/dashboard/students" },
-  { label: "View Class", href: `/dashboard/students/view/${props.classData.id}` },
+  { label: "Class List", href: "/dashboard/enroll" },
+  { label: "View Class", href: `/dashboard/enroll/view/${props.classData.id}` },
   { label: "Add Student", current: true },
 ];
 
@@ -27,18 +27,18 @@ const form = useForm({
 });
 
 function submit() {
-  form.post(`/dashboard/students/${props.classData.id}/students`, {
+  form.post(`/dashboard/enroll/${props.classData.id}/students`, {
     preserveScroll: true,
     onSuccess: () => form.reset(),
   });
 }
 
 function viewClass() {
-  router.get(`/dashboard/students/view/${props.classData.id}`);
+  router.get(`/dashboard/enroll/view/${props.classData.id}`);
 }
 
 function classList() {
-  router.get("/dashboard/students");
+  router.get("/dashboard/enroll");
 }
 </script>
 

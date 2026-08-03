@@ -4,6 +4,30 @@ import { nextTick, onMounted, ref } from 'vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
+import { SelectSearch } from '@/components/ui/select-search'
+
+const selectButtonClass = 'flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-3 text-left text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20'
+const blockSelectButtonClass = 'flex w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-left text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20'
+
+const employmentTypeOptions = [
+  { value: 'full_time', label: 'Full Time' },
+  { value: 'part_time', label: 'Part Time' },
+]
+
+const activeOptions = [
+  { value: '1', label: 'Yes' },
+  { value: '0', label: 'No option' },
+]
+
+const dayOptions = [
+  { value: '1', label: 'Monday' },
+  { value: '2', label: 'Tuesday' },
+  { value: '3', label: 'Wednesday' },
+  { value: '4', label: 'Thursday' },
+  { value: '5', label: 'Friday' },
+  { value: '6', label: 'Saturday' },
+  { value: '7', label: 'Sunday' },
+]
 
 const form = useForm({
   name: '',
@@ -73,18 +97,21 @@ const breadcrumbItems = [
             </div>
             <div>
               <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Employment Type') }}</label>
-              <select v-model="form.employment_type" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20">
-                <option value="">—</option>
-                <option value="full_time">{{ $t('Full Time') }}</option>
-                <option value="part_time">{{ $t('Part Time') }}</option>
-              </select>
+              <SelectSearch
+                v-model="form.employment_type"
+                :options="employmentTypeOptions"
+                placeholder="—"
+                :button-class="selectButtonClass"
+              />
             </div>
             <div>
               <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Active') }}</label>
-              <select v-model="form.is_active" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20">
-                <option :value="true">{{ $t('Yes') }}</option>
-                <option :value="false">{{ $t('No option') }}</option>
-              </select>
+              <SelectSearch
+                :model-value="form.is_active ? '1' : '0'"
+                :options="activeOptions"
+                :button-class="selectButtonClass"
+                @update:model-value="value => form.is_active = value === '1'"
+              />
             </div>
           </div>
 
@@ -102,15 +129,12 @@ const breadcrumbItems = [
             <div v-for="(block, i) in form.blocks" :key="i" class="flex flex-wrap items-end gap-3 mb-3 p-4 rounded-xl bg-slate-50 border border-slate-200 dark:bg-gray-800 dark:border-gray-700">
               <div class="flex-1 min-w-[130px]">
                 <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-gray-400">{{ $t('Day') }}</label>
-                <select v-model="block.day_of_week" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20">
-                  <option :value="1">{{ $t('Monday') }}</option>
-                  <option :value="2">{{ $t('Tuesday') }}</option>
-                  <option :value="3">{{ $t('Wednesday') }}</option>
-                  <option :value="4">{{ $t('Thursday') }}</option>
-                  <option :value="5">{{ $t('Friday') }}</option>
-                  <option :value="6">{{ $t('Saturday') }}</option>
-                  <option :value="7">{{ $t('Sunday') }}</option>
-                </select>
+                <SelectSearch
+                  :model-value="String(block.day_of_week)"
+                  :options="dayOptions"
+                  :button-class="blockSelectButtonClass"
+                  @update:model-value="value => block.day_of_week = Number(value)"
+                />
               </div>
               <div class="flex-1 min-w-[110px]">
                 <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-gray-400">{{ $t('Period') }}</label>

@@ -10,6 +10,7 @@ defineProps({
 
 const breadcrumbs = [
   { label: "Dashboard", href: "/dashboard" },
+  { label: "Website Management", current: true },
   { label: "Page Management", href: "/dashboard/website/pages" },
   { label: "View Page", current: true },
 ];

@@ -73,6 +73,7 @@ const normalizedOptions = computed(() => ({
         "Saturday",
         "Sunday",
     ],
+    scheduleGroups: props.options?.scheduleGroups ?? [],
 }));
 
 // ─── Form ───────────────────────────────────────────────────────────────
@@ -176,13 +177,13 @@ function generateCode() {
 // ─── Breadcrumbs ────────────────────────────────────────────────────────
 const breadcrumbItems = [
     { label: "Dashboard", href: "/dashboard" },
-    { label: "Students", href: "/dashboard/students" },
+    { label: "Students", href: "/dashboard/enroll" },
     { label: "Create Class", current: true },
 ];
 
 // ─── Navigation ─────────────────────────────────────────────────────────
 function back() {
-    router.visit("/dashboard/students");
+    router.visit("/dashboard/enroll");
 }
 
 function resetForm() {
@@ -194,7 +195,7 @@ function resetForm() {
 
 // ─── Submit ─────────────────────────────────────────────────────────────
 function submit() {
-    form.post(route("students.store"), {
+    form.post(route("enroll.store"), {
         onSuccess: () => {
             form.reset();
             thumbnailPreview.value = null;

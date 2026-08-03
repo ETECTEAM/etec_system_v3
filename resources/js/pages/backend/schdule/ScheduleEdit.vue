@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
@@ -9,6 +9,7 @@ import { useI18n } from '../../../i18n'
 const { t } = useI18n()
 
 const props = defineProps({
+  schdule: Object,
   classTypes: Array,
   terms: Array,
   times: Array,
@@ -23,14 +24,20 @@ const form = useForm({
   time_ids: [],
 })
 
-const filteredTimes = computed(() => {
-  if (!form.term_id) return []
-  return props.times.filter(time => time.term_id == form.term_id)
-})
+// Fill form when data changes
+watch(
+  () => props.schdule,
+  (val) => {
+    if (val) {
+      form.class_type_id = val.class_type_id
+      form.term_id = val.term_id
+      form.time_ids = val.times ? val.times.map(t => t.id) : []
+    }
+  },
+  { immediate: true }
+)
 
-function handleTermChange() {
-  form.time_ids = []
-}
+const filteredTimes = computed(() => props.times)
 
 function nextStep() {
   stepError.value = ''
@@ -85,7 +92,7 @@ function submit() {
     stepError.value = t('Please select at least one Time Slot.')
     return
   }
-  form.post('/dashboard/schdule', {
+  form.put(`/dashboard/schdule/${props.schdule.id}`, {
     preserveScroll: true,
   })
 }
@@ -93,17 +100,17 @@ function submit() {
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Schedules', href: '/dashboard/schdule' },
-  { label: 'Create', current: true },
+  { label: 'Edit', current: true },
 ]
 </script>
 
 <template>
-  <Head :title="$t('Create Schedule')" />
+  <Head :title="$t('Edit Schedule')" />
 
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Schedules Management" :title="$t('Create Schedule')" :description="$t('Add a new schedule step-by-step.')" />
+      <PageHero eyebrow="Schedules Management" :title="$t('Edit Schedule')" :description="$t('Modify the details of this schedule step-by-step.')" />
 
       <!-- Constrain both stepper and form card to max-w-3xl and center them -->
       <div class=" mx-auto space-y-6">
@@ -224,7 +231,7 @@ const breadcrumbItems = [
                   v-for="term in terms"
                   :key="term.id"
                   type="button"
-                  @click="form.term_id = term.id; handleTermChange()"
+                  @click="form.term_id = term.id"
                   :class="[
                     'p-4 rounded-xl border text-left transition relative flex items-center space-x-3 cursor-pointer focus:outline-none',
                     form.term_id == term.id ? 'border-blue-600 bg-blue-50/20 ring-2 ring-blue-100 dark:bg-blue-500/10 dark:ring-blue-500/20' : 'border-slate-200 hover:border-slate-300 dark:border-gray-700 dark:hover:border-gray-600'
@@ -244,11 +251,11 @@ const breadcrumbItems = [
             <div v-if="currentStep === 3" class="space-y-4">
               <div>
                 <h3 class="text-base font-semibold text-slate-900 dark:text-gray-100">{{ $t('Select Time Slots') }}</h3>
-                <p class="text-sm text-slate-500 dark:text-gray-400">{{ $t('Pick the slots matching the selected term.') }}</p>
+                <p class="text-sm text-slate-500 dark:text-gray-400">{{ $t('Pick the time slots for this schedule.') }}</p>
               </div>
 
               <div v-if="filteredTimes.length === 0" class="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">
-                {{ $t('No time slots found for this term.') }}
+                {{ $t('No time slots found.') }}
               </div>
 
               <div v-else class="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-80 overflow-y-auto bg-slate-50 shadow-inner dark:border-gray-700 dark:divide-gray-800 dark:bg-gray-800">
@@ -303,9 +310,9 @@ const breadcrumbItems = [
                   v-else
                   type="submit"
                   :disabled="form.processing"
-                  class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer dark:bg-blue-600 dark:hover:bg-blue-500"
+                  class="rounded-xl bg-yellow-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-yellow-600 disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer dark:bg-yellow-600 dark:hover:bg-yellow-500"
                 >
-                  {{ form.processing ? $t('Creating...') : $t('Create Schedule') }}
+                  {{ form.processing ? $t('Updating...') : $t('Update Schedule') }}
                 </button>
               </div>
             </div>

@@ -56,14 +56,25 @@ function nestedKey(item) {
 function childParentKey(item) {
   return nestedKey(item);
 }
+
+function firstChildHref(item) {
+  const child = item.children?.find((entry) => entry.href || entry.children?.length);
+
+  if (!child) return null;
+  if (child.href) return child.href;
+
+  return firstChildHref(child);
+}
 </script>
 
 <template>
   <ul :class="depth === 0 ? 'space-y-1.5' : 'ml-3 mt-2 space-y-1 border-l border-slate-200 pl-3 dark:border-gray-700'">
     <li v-for="item in items" :key="nestedKey(item)">
       <template v-if="item.children">
-        <button
-          type="button"
+        <component
+          :is="collapsed && firstChildHref(item) ? Link : 'button'"
+          :href="collapsed ? firstChildHref(item) : undefined"
+          :type="collapsed ? undefined : 'button'"
           :title="collapsed ? menuLabel(item) : ''"
           :class="[
             'flex w-full items-center rounded-xl text-sm font-semibold transition',
@@ -71,9 +82,14 @@ function childParentKey(item) {
             isChildActive(item.children) ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100',
             depth > 0 && !collapsed ? 'rounded-lg font-medium' : '',
           ]"
-          @click="emit('toggle', nestedKey(item))"
+          @click="collapsed ? emit('close') : emit('toggle', nestedKey(item))"
         >
-          <span class="flex min-w-0 flex-1 items-center gap-2 text-left">
+          <span
+            :class="[
+              'flex min-w-0 items-center gap-2 text-left',
+              collapsed ? '' : 'flex-1',
+            ]"
+          >
             <svg v-if="item.icon === 'course'" class="h-4 w-4 shrink-0 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
               <path d="M8 7h8" />
@@ -123,7 +139,7 @@ function childParentKey(item) {
           <svg v-if="!collapsed" class="h-4 w-4 shrink-0 text-slate-400 transition dark:text-gray-500" :class="openMenus[nestedKey(item)] ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
           </svg>
-        </button>
+        </component>
 
         <SidebarMenuTree
           v-if="openMenus[nestedKey(item)] && !collapsed"
@@ -161,6 +177,14 @@ function childParentKey(item) {
           <svg v-else-if="item.icon === 'home'" class="h-4 w-4 shrink-0 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          <svg v-else-if="item.icon === 'notebook-pen'" class="h-4 w-4 shrink-0 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4" />
+            <path d="M2 6h4" />
+            <path d="M2 10h4" />
+            <path d="M2 14h4" />
+            <path d="M2 18h4" />
+            <path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
           </svg>
           <svg v-else-if="depth === 0" class="h-4 w-4 shrink-0 text-slate-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />

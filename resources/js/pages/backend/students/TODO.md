@@ -25,9 +25,9 @@
 
 - [ ] Connect Laravel API — replace mock data with Inertia server-side props
 - [ ] Create Class CRUD controller and routes
-- [ ] Edit Class page (`/dashboard/students/{id}/edit`)
+- [ ] Edit Class page (`/dashboard/enroll/{id}/edit`)
 - [ ] Delete Class with confirmation modal
-- [ ] View Class details page (`/dashboard/students/{id}`)
+- [ ] View Class details page (`/dashboard/enroll/{id}`)
 - [ ] Server-side search API
 - [ ] Server-side pagination with Laravel paginator
 - [ ] Server-side filtering (by status, building, term)

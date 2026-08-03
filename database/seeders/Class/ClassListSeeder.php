@@ -84,7 +84,7 @@ class ClassListSeeder extends Seeder
             $item['building_id'] = $this->ensureBuilding((int) $item['building_id']);
             $item['floor_id'] = $this->ensureFloor((int) $item['floor_id'], (int) $item['building_id']);
             $item['room_id'] = $this->ensureRoom((int) $item['room_id'], (int) $item['floor_id']);
-            $item['time_id'] = $this->ensureTime((int) $item['time_id'], (int) $item['term_id']);
+            $item['time_id'] = $this->ensureTime((int) $item['time_id']);
             $item['created_at'] = now();
             $item['updated_at'] = now();
         }
@@ -146,18 +146,16 @@ class ClassListSeeder extends Seeder
         return $id;
     }
 
-    private function ensureTime(int $id, int $termId): int
+    private function ensureTime(int $id): int
     {
-        DB::table('times')->updateOrInsert(
-            ['id' => $id],
-            [
-                'id' => $id,
-                'time_name' => "Time {$id}",
-                'term_id' => $termId,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
+        // insertOrIgnore: TimeSeeder already seeds real time slot names before this
+        // runs, so this must not overwrite them with a generic placeholder.
+        DB::table('times')->insertOrIgnore([
+            'id' => $id,
+            'time_name' => "Time {$id}",
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         return $id;
     }

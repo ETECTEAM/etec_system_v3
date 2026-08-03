@@ -3,7 +3,6 @@
 namespace App\Modules\Times\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Term;
 use App\Models\Time;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,34 +12,10 @@ class TimeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index()
     {
-        $query = Time::with('term');
-
-        // SEARCH
-        if ($request->filled('search')) {
-            $query->where('time_name', 'like', '%' . $request->search . '%');
-        }
-
-        //  TERM FILTER (ADD THIS)
-        if ($request->filled('term_id')) {
-            $query->where('term_id', $request->term_id);
-        }
-
-        return Inertia::render('backend/times/Index', [
-            'times' => $query
-                    ->orderBy('id', 'asc')
-                    ->paginate(7)
-                    ->withQueryString(),
-
-            'filters' => [
-                'search' => $request->search ?? '',
-                'term_id' => $request->term_id ?? '', //  ADD THIS
-            ],
-
-            'terms' => Term::select('id', 'term_name')
-                ->orderBy('term_name')
-                ->get(),
+        return Inertia::render('backend/times/Time', [
+            'times' => Time::orderBy('id', 'asc')->get(),
         ]);
     }
 
@@ -49,11 +24,7 @@ class TimeController extends Controller
      */
     public function create()
     {
-        return Inertia::render('backend/times/Create', [
-            'terms' => Term::select('id', 'term_name')
-                ->orderBy('term_name')
-                ->get(),
-        ]);
+        return Inertia::render('backend/times/TimeCreate');
     }
 
     /**
@@ -63,7 +34,6 @@ class TimeController extends Controller
     {
         $validated = $request->validate([
             'time_name' => ['required', 'string', 'max:255'],
-            'term_id'   => ['required', 'exists:terms,id'],
         ]);
 
         Time::create($validated);
@@ -78,11 +48,8 @@ class TimeController extends Controller
      */
     public function edit(Time $time)
     {
-        return Inertia::render('backend/times/Edit', [
+        return Inertia::render('backend/times/TimeEdit', [
             'time' => $time,
-            'terms' => Term::select('id', 'term_name')
-                ->orderBy('term_name')
-                ->get(),
         ]);
     }
 
@@ -93,7 +60,6 @@ class TimeController extends Controller
     {
         $validated = $request->validate([
             'time_name' => ['required', 'string', 'max:255'],
-            'term_id'   => ['required', 'exists:terms,id'],
         ]);
 
         $time->update($validated);

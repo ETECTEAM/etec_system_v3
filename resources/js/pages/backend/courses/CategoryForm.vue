@@ -8,10 +8,6 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                <span>{{ $t('Course') }}</span>
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
                 <Link href="/dashboard/course/categories" class="hover:text-slate-600 dark:hover:text-gray-300 transition">{{ $t('Categories') }}</Link>
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -22,12 +18,6 @@
             <!-- Header -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div class="flex items-center gap-4">
-                    <Link href="/dashboard/course/categories"
-                        class="text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200 transition p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-800" :title="$t('Back')">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                    </Link>
                     <div>
                         <h1 class="text-2xl font-bold text-slate-900 dark:text-gray-100 tracking-tight">
                             {{ category ? $t('Edit Category') : $t('Create Category') }}
@@ -45,7 +35,7 @@
             <form @submit.prevent="submit" class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-800 p-4 sm:p-6 shadow-sm">
                 <div class="grid gap-5 sm:grid-cols-2">
                     <!-- Name -->
-                    <div class="sm:col-span-2">
+                    <div>
                         <label class="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
                             {{ $t('Name') }} <span class="text-rose-500">*</span>
                         </label>
@@ -65,34 +55,19 @@
                         </p>
                     </div>
 
-                    <!-- Description -->
-                    <div class="sm:col-span-2">
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5 dark:text-gray-300">{{ $t('Description') }}</label>
-                        <textarea
-                            v-model="form.description"
-                            rows="4"
-                            class="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-y dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
-                            :placeholder="$t('Enter category description (optional)')"
-                        />
-                        <p v-if="errors.description" class="mt-1.5 text-sm text-rose-600 dark:text-rose-400 flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            {{ errors.description }}
-                        </p>
-                    </div>
-
                     <!-- Status -->
-                    <div class="sm:col-span-2 flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 dark:bg-gray-800/40 dark:border-gray-700">
-                        <input
-                            v-model="form.status"
-                            type="checkbox"
-                            class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 focus:ring-2 transition dark:border-gray-600 dark:bg-gray-800"
-                            true-value="active"
-                            false-value="inactive"
-                        />
-                        <label class="text-sm font-medium text-slate-700 cursor-pointer dark:text-gray-300">{{ $t('Active') }}</label>
-                        <span class="text-xs text-slate-500 ml-auto dark:text-gray-400">
+                    <div class="flex flex-col justify-center gap-1.5 p-3 bg-slate-50 rounded-lg border border-slate-200 dark:bg-gray-800/40 dark:border-gray-700">
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer dark:text-gray-300">
+                            <input
+                                v-model="form.status"
+                                type="checkbox"
+                                class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 focus:ring-2 transition dark:border-gray-600 dark:bg-gray-800"
+                                true-value="active"
+                                false-value="inactive"
+                            />
+                            {{ $t('Active') }}
+                        </label>
+                        <span class="text-xs text-slate-500 dark:text-gray-400">
                             {{ form.status === 'active' ? $t('Category will be visible to users') : $t('Category will be hidden') }}
                         </span>
                     </div>
@@ -140,7 +115,6 @@ const props = defineProps({
 
 const form = useForm({
     name: props.category?.name || '',
-    description: props.category?.description || '',
     status: props.category?.status || 'active'
 });
 
