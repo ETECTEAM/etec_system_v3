@@ -14,9 +14,9 @@ class RecordEnrollmentDeposit
             $enrollment = StudentEnrollment::query()->lockForUpdate()->findOrFail($enrollment->id);
 
             $newAmountPaid = (float) $enrollment->amount_paid + $depositAmount;
-            $feeAmount = (float) $enrollment->fee_amount;
+            $totalDue = (float) $enrollment->fee_amount + (float) $enrollment->document_fee_amount;
 
-            if ($newAmountPaid > $feeAmount) {
+            if ($newAmountPaid > $totalDue) {
                 throw ValidationException::withMessages([
                     'deposit_amount' => 'Deposit amount cannot make paid amount greater than the fee amount.',
                 ]);
@@ -24,7 +24,7 @@ class RecordEnrollmentDeposit
 
             $enrollment->forceFill([
                 'amount_paid' => $newAmountPaid,
-                'payment_status' => $this->paymentStatus($newAmountPaid, $feeAmount),
+                'payment_status' => $this->paymentStatus($newAmountPaid, $totalDue),
                 'paid_at' => now(),
             ])->save();
 
@@ -32,13 +32,13 @@ class RecordEnrollmentDeposit
         });
     }
 
-    private function paymentStatus(float $amountPaid, float $feeAmount): string
+    private function paymentStatus(float $amountPaid, float $totalDue): string
     {
         if ($amountPaid <= 0) {
             return 'unpaid';
         }
 
-        if ($amountPaid < $feeAmount) {
+        if ($amountPaid < $totalDue) {
             return 'partial';
         }
 

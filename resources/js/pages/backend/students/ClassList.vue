@@ -164,6 +164,10 @@ const registrations = ref([]);
 const registrationsLoading = ref(false);
 const registrationsLoaded = ref(false);
 
+const pendingRegistrationsCount = computed(
+  () => registrations.value.filter((row) => row.payment_status !== "Paid").length
+);
+
 async function fetchRegistrations() {
   registrationsLoading.value = true;
 
@@ -205,6 +209,7 @@ function scheduleLabel(row) {
 // Feeds the same ReceiptPrint.vue component RegisterStudent.vue/ViewClass.vue use.
 const receiptClassData = ref(null);
 const receiptStudent = ref(null);
+const printingId = ref(null);
 
 async function printReceipt(row) {
   receiptClassData.value = {
@@ -228,12 +233,63 @@ async function printReceipt(row) {
   window.print();
 }
 
+function remainingBalance(row) {
+  return Number(row.fee_amount) + Number(row.document_fee_amount) - Number(row.amount_paid);
+}
+
+// "Print Receipt" also settles the balance in full — reuses the same
+// deposit endpoint the class View page's Record Deposit modal posts to
+// (EnrollmentClassController::deposit / RecordEnrollmentDeposit).
+const confirmPaidModalOpen = ref(false);
+const pendingRow = ref(null);
+
+function markPaidAndPrintReceipt(row) {
+  if (remainingBalance(row) > 0.01) {
+    pendingRow.value = row;
+    confirmPaidModalOpen.value = true;
+    return;
+  }
+
+  printReceipt(row);
+}
+
+function cancelMarkPaid() {
+  confirmPaidModalOpen.value = false;
+  pendingRow.value = null;
+}
+
+async function confirmMarkPaidAndPrint() {
+  const row = pendingRow.value;
+  if (!row) return;
+
+  confirmPaidModalOpen.value = false;
+  printingId.value = row.enrollment_id;
+
+  try {
+    await axios.post(`/dashboard/enroll/enrollments/${row.enrollment_id}/deposit`, {
+      deposit_amount: remainingBalance(row),
+    });
+    row.amount_paid = Number(row.fee_amount) + Number(row.document_fee_amount);
+    row.payment_status = "Paid";
+  } catch (error) {
+    console.error("Failed to mark registration as paid", error);
+    printingId.value = null;
+    pendingRow.value = null;
+    return;
+  }
+
+  printingId.value = null;
+  pendingRow.value = null;
+
+  await printReceipt(row);
+}
+
 let notificationsChannel = null;
 
 onMounted(() => {
-  if (viewMode.value === "registrations") {
-    fetchRegistrations();
-  }
+  // Always fetched (not just when the tab is active) so the badge count on
+  // the Registrations button is accurate no matter which tab loads first.
+  fetchRegistrations();
 
   notificationsChannel = getEcho()
     ?.private("admin-notifications")
@@ -345,13 +401,19 @@ onBeforeUnmount(() => {
           <!-- Registrations (students who self-registered on the public /classes page) -->
           <button
             @click="selectRegistrationsTab"
-            class="inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition"
+            class="relative inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition"
             :class="viewMode === 'registrations'
               ? 'border-blue-900 bg-blue-800 text-white'
               : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
           >
             <UserCheck class="h-4 w-4" />
             {{ $t('Registrations') }}
+            <span
+              v-if="pendingRegistrationsCount > 0"
+              class="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white"
+            >
+              {{ pendingRegistrationsCount > 99 ? '99+' : pendingRegistrationsCount }}
+            </span>
           </button>
         </div>
       </div>
@@ -392,7 +454,7 @@ onBeforeUnmount(() => {
                 <TableHead>{{ $t('Price') }}</TableHead>
                 <TableHead>{{ $t('Payment Status') }}</TableHead>
                 <TableHead>{{ $t('Registered') }}</TableHead>
-                <TableHead class="text-center">{{ $t('Action') }}</TableHead>
+                <TableHead class="text-right">{{ $t('Action') }}</TableHead>
               </TableRow>
             </TableHeader>
 
@@ -443,15 +505,18 @@ onBeforeUnmount(() => {
                 </TableCell>
 
                 <TableCell>
-                  <div class="flex justify-center">
+                  <div class="flex justify-end">
                     <button
                       type="button"
-                      class="inline-flex items-center gap-1.5 rounded-lg bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
-                      :title="$t('Print Receipt')"
-                      @click="printReceipt(row)"
+                      class="inline-flex w-[150px] items-center justify-center gap-1.5 rounded-lg bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
+                      :disabled="printingId === row.enrollment_id"
+                      :title="row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Mark Paid & Print')"
+                      @click="markPaidAndPrintReceipt(row)"
                     >
-                      <Printer class="h-4 w-4" />
-                      {{ $t('Print Receipt') }}
+                      <Printer class="h-4 w-4 shrink-0" />
+                      <span class="truncate">{{ printingId === row.enrollment_id
+                        ? $t('Saving...')
+                        : (row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Mark Paid & Print')) }}</span>
                     </button>
                   </div>
                 </TableCell>
@@ -470,6 +535,54 @@ onBeforeUnmount(() => {
       </div>
 
       <ReceiptPrint :classData="receiptClassData" :student="receiptStudent" />
+
+      <!-- Mark Paid & Print confirmation -->
+      <div v-if="confirmPaidModalOpen && pendingRow" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Mark as Paid & Print Receipt') }}</h3>
+
+          <div class="mt-4 space-y-2 rounded-xl bg-slate-50 p-4 text-sm dark:bg-gray-800">
+            <div class="flex justify-between">
+              <span class="text-slate-500 dark:text-gray-400">{{ $t('Name') }}</span>
+              <span class="font-semibold text-slate-800 dark:text-gray-100">{{ pendingRow.name }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500 dark:text-gray-400">{{ $t('Gender') }}</span>
+              <span class="font-semibold text-slate-800 dark:text-gray-100">{{ pendingRow.gender }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500 dark:text-gray-400">Phone</span>
+              <span class="font-semibold text-slate-800 dark:text-gray-100">{{ pendingRow.phone }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500 dark:text-gray-400">{{ $t('Class') }}</span>
+              <span class="font-semibold text-slate-800 dark:text-gray-100">{{ pendingRow.class_title }}</span>
+            </div>
+            <div class="flex justify-between border-t border-slate-200 pt-2 dark:border-gray-700">
+              <span class="text-slate-500 dark:text-gray-400">{{ $t('Amount') }}</span>
+              <span class="font-bold text-blue-700 dark:text-blue-400">${{ remainingBalance(pendingRow).toFixed(2) }}</span>
+            </div>
+          </div>
+
+          <p class="mt-4 text-sm text-slate-500 dark:text-gray-400">
+            {{ $t('This marks the registration as fully paid and opens the print dialog.') }}
+          </p>
+
+          <div class="mt-6 flex justify-end gap-3">
+            <button type="button" @click="cancelMarkPaid" class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+              {{ $t('Cancel') }}
+            </button>
+            <button
+              type="button"
+              @click="confirmMarkPaidAndPrint"
+              :disabled="printingId === pendingRow.enrollment_id"
+              class="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
+            >
+              {{ printingId === pendingRow.enrollment_id ? $t('Saving...') : $t('Mark Paid & Print') }}
+            </button>
+          </div>
+        </div>
+      </div>
 
       <div v-if="viewMode !== 'registrations' && classes?.links?.length > 3" class="mt-6 flex flex-wrap justify-center gap-2">
         <button
