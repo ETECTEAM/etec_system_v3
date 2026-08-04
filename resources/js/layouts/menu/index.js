@@ -2,6 +2,7 @@ import * as building from "./building";
 import * as notifications from "./notifications";
 import * as classes from "./classes";
 import * as enroll from "./enroll";
+import * as registerStudent from "./registerStudent";
 import * as course from "./course";
 import * as profile from "./profile";
 import * as user from "./user";
@@ -16,6 +17,7 @@ export const menuDomains = [
   notifications,
   classes,
   enroll,
+  registerStudent,
   course,
   profile,
   user,
