@@ -237,15 +237,33 @@ function remainingBalance(row) {
   return Number(row.fee_amount) + Number(row.document_fee_amount) - Number(row.amount_paid);
 }
 
-// "Print Receipt" also settles the balance in full — reuses the same
-// deposit endpoint the class View page's Record Deposit modal posts to
-// (EnrollmentClassController::deposit / RecordEnrollmentDeposit).
+// "Print Receipt" records a payment (full or partial — e.g. a student paying
+// only 50% now) then prints. Reuses the same deposit endpoint the class View
+// page's Record Deposit modal posts to (EnrollmentClassController::deposit /
+// RecordEnrollmentDeposit), which now also answers with JSON when asked.
 const confirmPaidModalOpen = ref(false);
 const pendingRow = ref(null);
+const paymentAmountInput = ref("");
+const paymentAmountErrorMsg = ref("");
+
+const paymentAmountError = computed(() => {
+  if (!pendingRow.value) return "";
+
+  const amount = Number(paymentAmountInput.value);
+  const max = remainingBalance(pendingRow.value);
+
+  if (paymentAmountInput.value === "" || Number.isNaN(amount)) return "Enter an amount.";
+  if (amount <= 0) return "Amount must be greater than 0.";
+  if (amount > max + 0.01) return `Amount can't be more than the remaining $${max.toFixed(2)}.`;
+
+  return paymentAmountErrorMsg.value;
+});
 
 function markPaidAndPrintReceipt(row) {
   if (remainingBalance(row) > 0.01) {
     pendingRow.value = row;
+    paymentAmountInput.value = remainingBalance(row).toFixed(2);
+    paymentAmountErrorMsg.value = "";
     confirmPaidModalOpen.value = true;
     return;
   }
@@ -260,21 +278,24 @@ function cancelMarkPaid() {
 
 async function confirmMarkPaidAndPrint() {
   const row = pendingRow.value;
-  if (!row) return;
+  if (!row || paymentAmountError.value) return;
+
+  const amount = Number(paymentAmountInput.value);
 
   confirmPaidModalOpen.value = false;
   printingId.value = row.enrollment_id;
 
   try {
-    await axios.post(`/dashboard/enroll/enrollments/${row.enrollment_id}/deposit`, {
-      deposit_amount: remainingBalance(row),
+    const response = await axios.post(`/dashboard/enroll/enrollments/${row.enrollment_id}/deposit`, {
+      deposit_amount: amount,
     });
-    row.amount_paid = Number(row.fee_amount) + Number(row.document_fee_amount);
-    row.payment_status = "Paid";
+    row.amount_paid = response.data.amount_paid;
+    row.payment_status = response.data.payment_status.charAt(0).toUpperCase() + response.data.payment_status.slice(1);
   } catch (error) {
-    console.error("Failed to mark registration as paid", error);
+    console.error("Failed to record payment", error);
+    paymentAmountErrorMsg.value = error.response?.data?.errors?.deposit_amount?.[0] ?? "Failed to record payment.";
     printingId.value = null;
-    pendingRow.value = null;
+    confirmPaidModalOpen.value = true;
     return;
   }
 
@@ -510,13 +531,13 @@ onBeforeUnmount(() => {
                       type="button"
                       class="inline-flex w-[150px] items-center justify-center gap-1.5 rounded-lg bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
                       :disabled="printingId === row.enrollment_id"
-                      :title="row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Mark Paid & Print')"
+                      :title="row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record Payment')"
                       @click="markPaidAndPrintReceipt(row)"
                     >
                       <Printer class="h-4 w-4 shrink-0" />
                       <span class="truncate">{{ printingId === row.enrollment_id
                         ? $t('Saving...')
-                        : (row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Mark Paid & Print')) }}</span>
+                        : (row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record Payment')) }}</span>
                     </button>
                   </div>
                 </TableCell>
@@ -536,10 +557,10 @@ onBeforeUnmount(() => {
 
       <ReceiptPrint :classData="receiptClassData" :student="receiptStudent" />
 
-      <!-- Mark Paid & Print confirmation -->
+      <!-- Record Payment & Print confirmation -->
       <div v-if="confirmPaidModalOpen && pendingRow" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4">
         <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Mark as Paid & Print Receipt') }}</h3>
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Record Payment & Print Receipt') }}</h3>
 
           <div class="mt-4 space-y-2 rounded-xl bg-slate-50 p-4 text-sm dark:bg-gray-800">
             <div class="flex justify-between">
@@ -559,13 +580,33 @@ onBeforeUnmount(() => {
               <span class="font-semibold text-slate-800 dark:text-gray-100">{{ pendingRow.class_title }}</span>
             </div>
             <div class="flex justify-between border-t border-slate-200 pt-2 dark:border-gray-700">
-              <span class="text-slate-500 dark:text-gray-400">{{ $t('Amount') }}</span>
-              <span class="font-bold text-blue-700 dark:text-blue-400">${{ remainingBalance(pendingRow).toFixed(2) }}</span>
+              <span class="text-slate-500 dark:text-gray-400">{{ $t('Total Due') }}</span>
+              <span class="font-semibold text-slate-800 dark:text-gray-100">${{ (Number(pendingRow.fee_amount) + Number(pendingRow.document_fee_amount)).toFixed(2) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500 dark:text-gray-400">{{ $t('Already Paid') }}</span>
+              <span class="font-semibold text-slate-800 dark:text-gray-100">${{ Number(pendingRow.amount_paid).toFixed(2) }}</span>
             </div>
           </div>
 
+          <label class="mt-4 grid gap-2 text-sm font-semibold text-slate-700 dark:text-gray-300">
+            {{ $t('Amount to Pay Now') }}
+            <input
+              v-model="paymentAmountInput"
+              type="number"
+              min="0.01"
+              step="0.01"
+              :max="remainingBalance(pendingRow)"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+            />
+          </label>
+          <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">
+            {{ $t('Remaining balance') }}: ${{ remainingBalance(pendingRow).toFixed(2) }}
+          </p>
+          <p v-if="paymentAmountError" class="mt-1 text-xs font-semibold text-red-600">{{ paymentAmountError }}</p>
+
           <p class="mt-4 text-sm text-slate-500 dark:text-gray-400">
-            {{ $t('This marks the registration as fully paid and opens the print dialog.') }}
+            {{ $t('This records the payment above and opens the print dialog.') }}
           </p>
 
           <div class="mt-6 flex justify-end gap-3">
@@ -575,10 +616,10 @@ onBeforeUnmount(() => {
             <button
               type="button"
               @click="confirmMarkPaidAndPrint"
-              :disabled="printingId === pendingRow.enrollment_id"
+              :disabled="printingId === pendingRow.enrollment_id || !!paymentAmountError"
               class="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
-              {{ printingId === pendingRow.enrollment_id ? $t('Saving...') : $t('Mark Paid & Print') }}
+              {{ printingId === pendingRow.enrollment_id ? $t('Saving...') : $t('Record Payment & Print') }}
             </button>
           </div>
         </div>

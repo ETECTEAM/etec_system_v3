@@ -212,8 +212,18 @@ class EnrollmentClassController extends Controller
         RecordDepositRequest $request,
         StudentEnrollment $enrollment,
         RecordEnrollmentDeposit $recordDeposit
-    ): RedirectResponse {
-        $recordDeposit->handle($enrollment, (float) $request->validated('deposit_amount'));
+    ): RedirectResponse|JsonResponse {
+        $enrollment = $recordDeposit->handle($enrollment, (float) $request->validated('deposit_amount'));
+
+        if ($request->expectsJson()) {
+            $totalDue = (float) $enrollment->fee_amount + (float) $enrollment->document_fee_amount;
+
+            return response()->json([
+                'amount_paid' => (float) $enrollment->amount_paid,
+                'payment_status' => $enrollment->payment_status,
+                'remaining_balance' => max($totalDue - (float) $enrollment->amount_paid, 0),
+            ]);
+        }
 
         return back()->with('success', 'Deposit recorded successfully.');
     }
