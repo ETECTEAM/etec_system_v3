@@ -42,6 +42,7 @@ class EnrollStudent
                 'enrollment_status' => 'active',
                 'payment_status' => 'unpaid',
                 'fee_amount' => $studyClass->price,
+                'document_fee_amount' => $studyClass->document_price,
                 'amount_paid' => 0,
                 'enrolled_at' => now(),
             ]);

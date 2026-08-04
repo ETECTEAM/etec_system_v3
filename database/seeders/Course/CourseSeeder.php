@@ -28,6 +28,7 @@ class CourseSeeder extends Seeder
                 'title' => 'HTML',
                 'level' => 'beginner',
                 'price' => 29.99,
+                'document_price' => 5,
                 'language' => 'en',
                 'certificate_available' => true,
                 'status' => 'active'
@@ -37,6 +38,7 @@ class CourseSeeder extends Seeder
                 'title' => 'CSS',
                 'level' => 'beginner',
                 'price' => 29.99,
+                'document_price' => 5,
                 'language' => 'en',
                 'certificate_available' => true,
                 'status' => 'active'
@@ -46,6 +48,7 @@ class CourseSeeder extends Seeder
                 'title' => 'JavaScript',
                 'level' => 'beginner',
                 'price' => 49.99,
+                'document_price' => 0,
                 'language' => 'en',
                 'certificate_available' => true,
                 'status' => 'active'
@@ -55,6 +58,7 @@ class CourseSeeder extends Seeder
                 'title' => 'Tailwind CSS',
                 'level' => 'beginner',
                 'price' => 39.99,
+                'document_price' => 5,
                 'language' => 'en',
                 'certificate_available' => true,
                 'status' => 'active'
@@ -64,6 +68,7 @@ class CourseSeeder extends Seeder
                 'title' => 'React.js',
                 'level' => 'intermediate',
                 'price' => 59.99,
+                'document_price' => 10,
                 'language' => 'en',
                 'certificate_available' => true,
                 'status' => 'active'
@@ -75,6 +80,7 @@ class CourseSeeder extends Seeder
                 'title' => 'PHP',
                 'level' => 'beginner',
                 'price' => 39.99,
+                'document_price' => 5,
                 'language' => 'en',
                 'certificate_available' => true,
                 'status' => 'active'
@@ -84,6 +90,7 @@ class CourseSeeder extends Seeder
                 'title' => 'Laravel',
                 'level' => 'intermediate',
                 'price' => 69.99,
+                'document_price' => 10,
                 'language' => 'en',
                 'certificate_available' => true,
                 'status' => 'active'
@@ -93,6 +100,7 @@ class CourseSeeder extends Seeder
                 'title' => 'Node.js',
                 'level' => 'intermediate',
                 'price' => 59.99,
+                'document_price' => 0,
                 'language' => 'en',
                 'certificate_available' => true,
                 'status' => 'active'
@@ -102,6 +110,7 @@ class CourseSeeder extends Seeder
                 'title' => 'MySQL',
                 'level' => 'beginner',
                 'price' => 39.99,
+                'document_price' => 5,
                 'language' => 'en',
                 'certificate_available' => true,
                 'status' => 'active'
@@ -111,6 +120,7 @@ class CourseSeeder extends Seeder
                 'title' => 'API Development',
                 'level' => 'intermediate',
                 'price' => 59.99,
+                'document_price' => 10,
                 'language' => 'en',
                 'certificate_available' => true,
                 'status' => 'active'
@@ -137,6 +147,7 @@ class CourseSeeder extends Seeder
                 'slug' => $slug,
                 'level' => $course['level'],
                 'price' => $course['price'],
+                'document_price' => $course['document_price'] ?? 0,
                 'language' => $course['language'],
                 'certificate_available' => $course['certificate_available'],
                 'status' => $course['status']

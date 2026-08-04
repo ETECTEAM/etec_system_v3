@@ -31,8 +31,6 @@ use Inertia\Response;
 
 class EnrollmentClassController extends Controller
 {
-    private const DOCUMENT_FEE = 5;
-
     public function index(Request $request, GetClassList $classes): Response
     {
         return Inertia::render('backend/students/ClassList', $classes->handle($request));
@@ -82,7 +80,8 @@ class EnrollmentClassController extends Controller
                 'start_time' => $this->formatTime($studyClass->start_time),
                 'end_time' => $this->formatTime($studyClass->end_time),
                 'capacity' => $studyClass->capacity,
-                'price' => round(max((float) $studyClass->price - self::DOCUMENT_FEE, 0), 2),
+                'price' => round((float) $studyClass->price, 2),
+                'document_price' => round((float) $studyClass->document_price, 2),
                 'enrollment_start_date' => $studyClass->enrollment_start_date?->format('Y-m-d'),
                 'start_date' => $studyClass->start_date?->format('Y-m-d'),
                 'end_date' => $studyClass->end_date?->format('Y-m-d'),
@@ -112,7 +111,7 @@ class EnrollmentClassController extends Controller
     public function createRegisteredStudent(GetClassFormOptions $options): Response
     {
         return Inertia::render('backend/students/RegisterStudent', [
-            'courses' => Course::query()->select('id', 'title', 'price')->orderBy('title')->get(),
+            'courses' => Course::query()->select('id', 'title', 'price', 'document_price')->orderBy('title')->get(),
             'scheduleGroups' => $options->scheduleGroups(),
         ]);
     }

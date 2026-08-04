@@ -18,6 +18,7 @@ class Course extends Model
         'level',
         'duration',
         'price',
+        'document_price',
         'thumbnail',
         'language',
         'certificate_available',
@@ -28,6 +29,7 @@ class Course extends Model
         'certificate_available' => 'boolean',
         'duration' => 'integer',
         'price' => 'decimal:2',
+        'document_price' => 'decimal:2',
     ];
 
     public function track()

@@ -70,11 +70,15 @@ function rowAmountValue() {
 }
 
 function totalAmount() {
-  return Number(feeAmount() ?? 0);
+  return courseFeeAmount() + documentFeeAmount();
 }
 
 function courseFeeAmount() {
-  return Math.max(totalAmount() - 5, 0);
+  return Number(props.classData?.price ?? props.student?.fee_amount ?? props.classData?.course_price ?? 0);
+}
+
+function documentFeeAmount() {
+  return Number(props.classData?.document_price ?? props.student?.document_fee_amount ?? 0);
 }
 
 function paidAmount() {
@@ -83,10 +87,6 @@ function paidAmount() {
 
 function remainingAmount() {
   return Math.max(rowAmountValue() - paidAmount(), 0);
-}
-
-function feeAmount() {
-  return props.classData?.price ?? props.student?.fee_amount ?? props.classData?.course_price;
 }
 
 function rowAmount() {
@@ -102,6 +102,11 @@ function abbreviateDays(value) {
     (text, [day, shortDay]) => text.replace(new RegExp(`\\b${day}\\b`, "g"), shortDay),
     String(value ?? "")
   );
+}
+
+function documentFeeLabel() {
+  const amount = documentFeeAmount();
+  return amount > 0 ? `Document ${money(amount)}` : "Document Free";
 }
 
 function timeWithTerm() {
@@ -172,7 +177,7 @@ function timeWithTerm() {
         <div class="receipt-row">
           <span class="label">ប្រាក់ត្រូវបង់</span>
           <strong class="line payment-line">
-            <span>{{ rowAmount() }} /{{ khmerRateAmount() }} &emsp;&emsp;Document 5$</span>
+            <span>{{ rowAmount() }} /{{ khmerRateAmount() }} &emsp;&emsp;{{ documentFeeLabel() }}</span>
           </strong>
         </div>
         <div class="note">

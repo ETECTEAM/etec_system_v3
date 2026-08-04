@@ -8,8 +8,6 @@ import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
 import PageHero from "../../../components/ui/page-hero/PageHero.vue";
 import ReceiptPrint from "./components/ReceiptPrint.vue";
 
-const DOCUMENT_FEE = 5;
-
 const props = defineProps({
   courses: {
     type: Array,
@@ -42,6 +40,7 @@ const form = useForm({
   term_id: "",
   time_id: "",
   price: "",
+  document_price: "",
 });
 
 const genderOptions = [
@@ -57,15 +56,17 @@ const selectedCourse = computed(() =>
   props.courses.find((course) => String(course.id) === String(form.course_id))
 );
 
-// Price defaults from the course but stays editable — e.g. for a discount.
+// Price and document price default from the course but stay editable —
+// e.g. for a discount, or a course where the document fee is waived.
 watch(
   () => form.course_id,
   () => {
     form.price = selectedCourse.value?.price ?? "";
+    form.document_price = selectedCourse.value?.document_price ?? 0;
   }
 );
 
-const totalFee = computed(() => Math.round((Number(form.price || 0) + DOCUMENT_FEE) * 100) / 100);
+const totalFee = computed(() => Math.round((Number(form.price || 0) + Number(form.document_price || 0)) * 100) / 100);
 
 const scheduleTypeOptions = computed(() =>
   props.scheduleGroups.map((group) => ({
@@ -126,19 +127,21 @@ function submit() {
       receiptClassData.value = {
         course: selectedCourse.value?.title,
         course_price: Number(form.price || 0),
+        document_price: Number(form.document_price || 0),
         term: selectedSchedule.value?.term_name,
         time: props.scheduleGroups
           .flatMap((group) => group.schedules)
           .flatMap((schedule) => schedule.times)
           .find((time) => String(time.id) === String(selectedTime.value))?.time_name,
-        price: totalFee.value,
+        price: Number(form.price || 0),
       };
       receiptStudent.value = {
         name: form.name,
         gender: form.gender,
         payment_date: today,
         amount_paid: 0,
-        fee_amount: totalFee.value,
+        fee_amount: Number(form.price || 0),
+        document_fee_amount: Number(form.document_price || 0),
       };
 
       form.reset("name", "gender", "phone");
@@ -301,11 +304,28 @@ function classList() {
               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
               :placeholder="$t('Enter price')"
             />
-            <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">
-              + {{ DOCUMENT_FEE }}$ {{ $t('document fee') }} = {{ totalFee.toFixed(2) }}$
-            </p>
             <p v-if="form.errors.price" class="mt-1 text-xs text-red-600">
               {{ form.errors.price }}
+            </p>
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">
+              {{ $t('Document Price') }}
+            </label>
+            <input
+              v-model="form.document_price"
+              type="number"
+              min="0"
+              step="0.01"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
+              :placeholder="$t('Enter document price')"
+            />
+            <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">
+              {{ $t('Total') }} = {{ totalFee.toFixed(2) }}$
+            </p>
+            <p v-if="form.errors.document_price" class="mt-1 text-xs text-red-600">
+              {{ form.errors.document_price }}
             </p>
           </div>
         </div>

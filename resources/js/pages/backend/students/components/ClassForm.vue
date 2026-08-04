@@ -103,6 +103,7 @@ const form = useForm({
   end_time: props.classData?.end_time ?? "",
   capacity: props.classData?.capacity ?? 20,
   price: props.classData?.price ?? 0,
+  document_price: props.classData?.document_price ?? 0,
   // Enrollment opens the day the class is created unless overridden.
   enrollment_start_date: props.classData?.enrollment_start_date ?? todayIso(),
   start_date: props.classData?.start_date ?? "",
@@ -321,6 +322,7 @@ watch(
     const course = options.value.courses.find((item) => String(item.id) === String(courseId));
     form.title = course?.title ?? "";
     form.price = course?.price ?? "";
+    form.document_price = course?.document_price ?? 0;
 
     if (!courseId) return;
 
@@ -547,6 +549,12 @@ function submit() {
         <label class="font-semibold mb-2 block">{{ $t('Price') }}</label>
         <input type="number" min="0" step="0.01" v-model="form.price" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
         <p v-if="form.errors.price" class="mt-1 text-xs text-red-600">{{ form.errors.price }}</p>
+      </div>
+
+      <div>
+        <label class="font-semibold mb-2 block">{{ $t('Document Price') }}</label>
+        <input type="number" min="0" step="0.01" v-model="form.document_price" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
+        <p v-if="form.errors.document_price" class="mt-1 text-xs text-red-600">{{ form.errors.document_price }}</p>
       </div>
 
       <div>

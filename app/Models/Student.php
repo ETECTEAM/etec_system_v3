@@ -20,6 +20,7 @@ class Student extends Model
         'term_id',
         'time_id',
         'fee_amount',
+        'document_fee_amount',
     ];
 
     public function user(): BelongsTo

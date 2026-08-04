@@ -41,9 +41,11 @@ class StudyClassAndEnrollmentSeeder extends Seeder
                 $student = $students[$index];
                 $paymentStatus = $index === 0 ? 'paid' : ($index === 1 ? 'partial' : 'unpaid');
                 $feeAmount = (float) $studyClass->price;
+                $documentFeeAmount = (float) $studyClass->document_price;
+                $totalFee = $feeAmount + $documentFeeAmount;
                 $amountPaid = match ($paymentStatus) {
-                    'paid' => $feeAmount,
-                    'partial' => round($feeAmount / 2, 2),
+                    'paid' => $totalFee,
+                    'partial' => round($totalFee / 2, 2),
                     default => 0,
                 };
 
@@ -56,6 +58,7 @@ class StudyClassAndEnrollmentSeeder extends Seeder
                         'enrollment_status' => 'active',
                         'payment_status' => $paymentStatus,
                         'fee_amount' => $feeAmount,
+                        'document_fee_amount' => $documentFeeAmount,
                         'amount_paid' => $amountPaid,
                         'enrolled_at' => now()->subDays(4 - $index),
                         'paid_at' => $amountPaid > 0 ? now()->subDays(3 - $index) : null,
@@ -148,6 +151,7 @@ class StudyClassAndEnrollmentSeeder extends Seeder
                 'end_time' => '10:00:00',
                 'capacity' => 20,
                 'price' => 120,
+                'document_price' => 5,
             ],
             [
                 'title' => 'Test Laravel Class',
@@ -158,6 +162,7 @@ class StudyClassAndEnrollmentSeeder extends Seeder
                 'end_time' => '12:00:00',
                 'capacity' => 25,
                 'price' => 180,
+                'document_price' => 10,
             ],
             [
                 'title' => 'Test Java Class',
@@ -168,6 +173,7 @@ class StudyClassAndEnrollmentSeeder extends Seeder
                 'end_time' => '15:00:00',
                 'capacity' => 30,
                 'price' => 150,
+                'document_price' => 0,
             ],
             [
                 'title' => 'Test Python Online Class',
@@ -178,6 +184,7 @@ class StudyClassAndEnrollmentSeeder extends Seeder
                 'end_time' => '20:00:00',
                 'capacity' => 35,
                 'price' => 160,
+                'document_price' => 5,
             ],
         ];
 
@@ -198,6 +205,7 @@ class StudyClassAndEnrollmentSeeder extends Seeder
                     'end_time' => $row['end_time'],
                     'capacity' => $row['capacity'],
                     'price' => $row['price'],
+                    'document_price' => $row['document_price'],
                     'enrollment_start_date' => now()->subWeek()->toDateString(),
                     'start_date' => now()->addDays($index + 1)->toDateString(),
                     'end_date' => now()->addMonths(3)->toDateString(),

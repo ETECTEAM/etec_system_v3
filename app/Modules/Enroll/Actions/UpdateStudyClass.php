@@ -32,6 +32,7 @@ class UpdateStudyClass
                 'end_time' => $data['end_time'],
                 'capacity' => ($data['class_type'] ?? null) === 'physical' ? ($room?->capacity ?? $data['capacity']) : $data['capacity'],
                 'price' => $data['price'],
+                'document_price' => $data['document_price'] ?? 0,
                 'enrollment_start_date' => $data['enrollment_start_date'] ?? null,
                 'start_date' => $data['start_date'] ?? null,
                 'end_date' => $data['end_date'] ?? null,

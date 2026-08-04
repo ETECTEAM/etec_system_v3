@@ -137,8 +137,8 @@
                             :placeholder="$t('Enter course description')" />
                     </div>
 
-                    <!-- Duration, Price -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Duration, Price, Document Price -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">{{ $t('Duration (hours)') }}</label>
                             <input v-model.number="form.duration" type="number" min="0"
@@ -148,6 +148,12 @@
                             <label class="block text-sm font-medium text-slate-700 mb-1">{{ $t('Price ($)') }}</label>
                             <input v-model.number="form.price" type="number" min="0" step="0.01"
                                 class="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">{{ $t('Document Price ($)') }}</label>
+                            <input v-model.number="form.document_price" type="number" min="0" step="0.01"
+                                class="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition" />
+                            <p class="mt-1 text-xs text-slate-400">{{ $t('Leave 0 if documents are free for this course') }}</p>
                         </div>
                     </div>
 
@@ -249,6 +255,7 @@ const form = useForm({
     description: props.course?.description || '',
     duration: props.course?.duration || '',
     price: props.course?.price || '',
+    document_price: props.course?.document_price || '',
     language: props.course?.language || 'en',
     certificate_available: toBoolean(props.course?.certificate_available),
     status: props.course?.status || 'active',

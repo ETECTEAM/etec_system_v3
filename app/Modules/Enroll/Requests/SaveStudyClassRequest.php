@@ -11,8 +11,6 @@ use Illuminate\Validation\Rule;
 
 class SaveStudyClassRequest extends FormRequest
 {
-    private const DOCUMENT_FEE = 5;
-
     public function authorize(): bool
     {
         return $this->user() !== null;
@@ -29,12 +27,14 @@ class SaveStudyClassRequest extends FormRequest
             : null;
 
         $basePrice = $this->filled('price') ? $this->input('price') : $course?->price;
+        $baseDocumentPrice = $this->filled('document_price') ? $this->input('document_price') : $course?->document_price;
         $lessonId = $this->validLessonId();
 
         $this->merge([
             'title' => $course?->title ?? $this->input('title'),
             'lesson_id' => $lessonId,
-            'price' => $basePrice !== null ? round((float) $basePrice + self::DOCUMENT_FEE, 2) : null,
+            'price' => $basePrice !== null ? round((float) $basePrice, 2) : null,
+            'document_price' => $baseDocumentPrice !== null ? round((float) $baseDocumentPrice, 2) : 0,
             'capacity' => $this->input('class_type') === 'physical'
                 ? ($room?->capacity ?? $this->input('capacity'))
                 : $this->input('capacity'),
@@ -72,6 +72,7 @@ class SaveStudyClassRequest extends FormRequest
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
             'capacity' => ['required', 'integer', 'min:1'],
             'price' => ['required', 'numeric', 'min:0'],
+            'document_price' => ['nullable', 'numeric', 'min:0'],
             'enrollment_start_date' => ['nullable', 'date'],
             'start_date' => ['nullable', 'date', 'after_or_equal:enrollment_start_date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],

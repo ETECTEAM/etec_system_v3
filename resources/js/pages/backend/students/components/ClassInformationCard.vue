@@ -228,6 +228,18 @@ function enrollmentPercent(capacity, enrolled) {
         </div>
 
         <div class="flex items-start gap-3">
+          <DollarSign class="mt-0.5 h-5 w-5 shrink-0 text-indigo-500 dark:text-indigo-400" />
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">
+              {{ $t('Document Price') }}
+            </p>
+            <p class="mt-0.5 font-semibold text-slate-900 dark:text-gray-100">
+              ${{ Number(classData?.document_price ?? 0).toFixed(2) }}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3">
           <Calendar class="mt-0.5 h-5 w-5 shrink-0 text-indigo-500 dark:text-indigo-400" />
           <div>
             <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">

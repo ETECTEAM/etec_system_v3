@@ -16,7 +16,7 @@ class GetClassDetails
     public function handle(StudyClass $studyClass): array
     {
         $studyClass->load([
-            'course:id,title,price',
+            'course:id,title,price,document_price',
             'lesson:id,course_id,title',
             'teacher:id,name',
             'room:id,floor_id,room_number',
@@ -45,6 +45,7 @@ class GetClassDetails
     private function presentEnrollment(StudentEnrollment $enrollment, int $rosterNo): array
     {
         $feeAmount = (float) $enrollment->fee_amount;
+        $documentFeeAmount = (float) $enrollment->document_fee_amount;
         $amountPaid = (float) $enrollment->amount_paid;
 
         return [
@@ -55,11 +56,12 @@ class GetClassDetails
             'gender' => $enrollment->student?->student?->gender ?? '-',
             'phone' => $enrollment->student?->student?->phone,
             'fee_amount' => $feeAmount,
+            'document_fee_amount' => $documentFeeAmount,
             'amount_paid' => $amountPaid,
             'deposit_amount' => $amountPaid,
             'payment_date' => $enrollment->paid_at?->format('Y-m-d'),
             'payment_status' => ucfirst($enrollment->payment_status),
-            'remaining_balance' => max($feeAmount - $amountPaid, 0),
+            'remaining_balance' => max(($feeAmount + $documentFeeAmount) - $amountPaid, 0),
         ];
     }
 

@@ -15,8 +15,6 @@ use Illuminate\Support\Str;
  */
 class RegisterStudent
 {
-    private const DOCUMENT_FEE = 5;
-
     public function handle(array $data): Student
     {
         return DB::transaction(function () use ($data): Student {
@@ -38,7 +36,8 @@ class RegisterStudent
                 'course_id' => $data['course_id'],
                 'term_id' => $data['term_id'],
                 'time_id' => $data['time_id'],
-                'fee_amount' => round((float) $data['price'] + self::DOCUMENT_FEE, 2),
+                'fee_amount' => round((float) $data['price'], 2),
+                'document_fee_amount' => round((float) ($data['document_price'] ?? 0), 2),
             ]);
         });
     }

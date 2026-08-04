@@ -27,7 +27,7 @@ class GetClassFormOptions
         $courseId = $studyClass?->course_id;
 
         return [
-            'courses' => Course::query()->select('id', 'title', 'price')->orderBy('title')->get(),
+            'courses' => Course::query()->select('id', 'title', 'price', 'document_price')->orderBy('title')->get(),
             'teachers' => User::query()->select('id', 'name')->orderBy('name')->get(),
             'buildings' => Building::query()->select('id', 'name')->orderBy('name')->get(),
             'floors' => $buildingId ? $this->floors($buildingId) : [],
