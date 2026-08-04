@@ -114,30 +114,30 @@ function priceLabel(cls) {
   return `$${Number(cls.price ?? 0).toFixed(2)}`;
 }
 
-const joinModalOpen = ref(false);
-const activeJoinClass = ref(null);
-const joinForm = useForm({
+const registerModalOpen = ref(false);
+const activeRegisterClass = ref(null);
+const registerForm = useForm({
   name: "",
   gender: "",
   phone: "",
 });
 
-function openJoinModal(cls) {
-  activeJoinClass.value = cls;
-  joinForm.reset();
-  joinForm.clearErrors();
-  joinModalOpen.value = true;
+function openRegisterModal(cls) {
+  activeRegisterClass.value = cls;
+  registerForm.reset();
+  registerForm.clearErrors();
+  registerModalOpen.value = true;
 }
 
-function closeJoinModal() {
-  joinModalOpen.value = false;
-  activeJoinClass.value = null;
+function closeRegisterModal() {
+  registerModalOpen.value = false;
+  activeRegisterClass.value = null;
 }
 
-function submitJoin() {
-  joinForm.post(`/classes/${activeJoinClass.value.id}/join`, {
+function submitRegister() {
+  registerForm.post(`/classes/${activeRegisterClass.value.id}/register`, {
     preserveScroll: true,
-    onSuccess: () => closeJoinModal(),
+    onSuccess: () => closeRegisterModal(),
   });
 }
 </script>
@@ -237,9 +237,9 @@ function submitJoin() {
                     type="button"
                     class="w-full rounded-full bg-[#1A66FF] px-4 py-3 text-sm font-black text-white transition hover:bg-[#1555D9] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                     :disabled="cls.available_seats <= 0"
-                    @click="openJoinModal(cls)"
+                    @click="openRegisterModal(cls)"
                   >
-                    {{ cls.available_seats > 0 ? "Request to Join" : "Class Full" }}
+                    {{ cls.available_seats > 0 ? "Register" : "Class Full" }}
                   </button>
                 </div>
               </div>
@@ -270,43 +270,43 @@ function submitJoin() {
     <FrontendFooter :settings="settings" :menus="menus" />
 
     <transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-      <div v-if="joinModalOpen" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" @click.self="closeJoinModal">
+      <div v-if="registerModalOpen" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" @click.self="closeRegisterModal">
         <div class="w-full max-w-md rounded-[2rem] bg-white p-8 shadow-2xl">
           <div class="flex items-start justify-between mb-6">
             <div>
-              <p class="text-xs font-bold uppercase tracking-wide text-[#1A66FF] mb-1">Request to Join</p>
-              <h3 class="text-xl font-black text-slate-900">{{ activeJoinClass?.title }}</h3>
+              <p class="text-xs font-bold uppercase tracking-wide text-[#1A66FF] mb-1">Class Registration</p>
+              <h3 class="text-xl font-black text-slate-900">{{ activeRegisterClass?.title }}</h3>
             </div>
-            <button type="button" class="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" @click="closeJoinModal">
+            <button type="button" class="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" @click="closeRegisterModal">
               <X class="h-5 w-5" />
             </button>
           </div>
 
-          <form @submit.prevent="submitJoin" class="grid gap-4">
+          <form @submit.prevent="submitRegister" class="grid gap-4">
             <label class="grid gap-2 text-sm font-bold text-slate-900">
               Full Name
-              <input v-model="joinForm.name" type="text" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-medium outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10" placeholder="Your full name" />
-              <span v-if="joinForm.errors.name" class="text-sm font-semibold text-red-600">{{ joinForm.errors.name }}</span>
+              <input v-model="registerForm.name" type="text" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-medium outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10" placeholder="Your full name" />
+              <span v-if="registerForm.errors.name" class="text-sm font-semibold text-red-600">{{ registerForm.errors.name }}</span>
             </label>
 
             <label class="grid gap-2 text-sm font-bold text-slate-900">
               Gender
-              <select v-model="joinForm.gender" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-medium outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10">
+              <select v-model="registerForm.gender" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-medium outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10">
                 <option value="" disabled>Select gender</option>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
               </select>
-              <span v-if="joinForm.errors.gender" class="text-sm font-semibold text-red-600">{{ joinForm.errors.gender }}</span>
+              <span v-if="registerForm.errors.gender" class="text-sm font-semibold text-red-600">{{ registerForm.errors.gender }}</span>
             </label>
 
             <label class="grid gap-2 text-sm font-bold text-slate-900">
               Phone Number
-              <input v-model="joinForm.phone" type="text" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-medium outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10" placeholder="012 345 678" />
-              <span v-if="joinForm.errors.phone" class="text-sm font-semibold text-red-600">{{ joinForm.errors.phone }}</span>
+              <input v-model="registerForm.phone" type="text" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-medium outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10" placeholder="012 345 678" />
+              <span v-if="registerForm.errors.phone" class="text-sm font-semibold text-red-600">{{ registerForm.errors.phone }}</span>
             </label>
 
-            <button type="submit" class="mt-2 rounded-full bg-[#1A66FF] px-8 py-4 text-base font-black text-white shadow-[0_10px_20px_rgba(26,102,255,0.2)] transition-all hover:bg-[#1555D9] disabled:cursor-not-allowed disabled:opacity-70" :disabled="joinForm.processing">
-              {{ joinForm.processing ? "Sending..." : "Send Request" }}
+            <button type="submit" class="mt-2 rounded-full bg-[#1A66FF] px-8 py-4 text-base font-black text-white shadow-[0_10px_20px_rgba(26,102,255,0.2)] transition-all hover:bg-[#1555D9] disabled:cursor-not-allowed disabled:opacity-70" :disabled="registerForm.processing">
+              {{ registerForm.processing ? "Registering..." : "Register" }}
             </button>
           </form>
         </div>

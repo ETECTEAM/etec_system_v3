@@ -7,6 +7,7 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
     // Enrollment Management: browsing, creating, and administering classes — super_admin only.
     Route::middleware(['auth', 'role:super_admin'])->group(function (): void {
         Route::get('/', [EnrollmentClassController::class, 'index'])->name('enroll.index');
+        Route::get('/registrations/data', [EnrollmentClassController::class, 'publicRegistrations'])->name('enroll.registrations.data');
         Route::get('/create', [EnrollmentClassController::class, 'create'])->name('enroll.create');
         Route::post('/', [EnrollmentClassController::class, 'store'])->name('enroll.store');
         Route::get('/view/{studyClass}', [EnrollmentClassController::class, 'show'])->name('enroll.show');

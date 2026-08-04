@@ -18,6 +18,7 @@ use App\Modules\Enroll\Actions\UpdateStudyClass;
 use App\Modules\Enroll\Queries\GetClassDetails;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Queries\GetClassList;
+use App\Modules\Enroll\Queries\GetPublicRegistrations;
 use App\Modules\Enroll\Requests\EnrollStudentRequest;
 use App\Modules\Enroll\Requests\RecordDepositRequest;
 use App\Modules\Enroll\Requests\RegisterStudentRequest;
@@ -34,6 +35,11 @@ class EnrollmentClassController extends Controller
     public function index(Request $request, GetClassList $classes): Response
     {
         return Inertia::render('backend/students/ClassList', $classes->handle($request));
+    }
+
+    public function publicRegistrations(GetPublicRegistrations $query): JsonResponse
+    {
+        return response()->json(['data' => $query->handle()]);
     }
 
     public function create(GetClassFormOptions $options): Response

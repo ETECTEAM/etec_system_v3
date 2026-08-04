@@ -4,8 +4,8 @@ namespace App\Modules\Website\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\StudyClass;
-use App\Modules\Website\Actions\RequestClassJoin;
-use App\Modules\Website\Requests\JoinClassRequest;
+use App\Modules\Website\Actions\RegisterClassStudent;
+use App\Modules\Website\Requests\RegisterClassRequest;
 use App\Modules\Website\Services\WebsiteContentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -32,11 +32,11 @@ class PublicPageController extends Controller
         return response()->json($this->website->paginatedPublicClasses(12, $this->classFilters($request)));
     }
 
-    public function joinClass(JoinClassRequest $request, StudyClass $studyClass, RequestClassJoin $requestClassJoin): RedirectResponse
+    public function registerForClass(RegisterClassRequest $request, StudyClass $studyClass, RegisterClassStudent $registerClassStudent): RedirectResponse
     {
-        $requestClassJoin->handle($studyClass, $request->validated());
+        $registerClassStudent->handle($studyClass, $request->validated());
 
-        return back()->with('success', 'Your request has been sent — we will contact you soon.');
+        return back()->with('success', "You're registered! We'll be in touch about payment and class details.");
     }
 
     /**

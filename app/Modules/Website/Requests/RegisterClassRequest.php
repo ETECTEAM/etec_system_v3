@@ -5,11 +5,11 @@ namespace App\Modules\Website\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class JoinClassRequest extends FormRequest
+class RegisterClassRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Public "Request to Join" form on the /classes page — no login required.
+        // Public self-registration on the /classes page — no login required.
         return true;
     }
 

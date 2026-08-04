@@ -1,13 +1,22 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { router } from "@inertiajs/vue3";
-import { Search, RotateCcw, Plus, LayoutGrid, Table2, UserPlus } from "@lucide/vue";
+import axios from "axios";
+import { Search, RotateCcw, Plus, LayoutGrid, Table2, UserPlus, UserCheck, Printer } from "@lucide/vue";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
 import ClassTable from "./components/ClassTable.vue";
 import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
 import PageHero from "../../../components/ui/page-hero/PageHero.vue";
 import DepositSummaryCard from "./components/DepositSummaryCard.vue";
+import ReceiptPrint from "./components/ReceiptPrint.vue";
+import { getEcho } from "@/echo";
+import Table from "../../../components/ui/table/Table.vue";
+import TableHeader from "../../../components/ui/table/TableHeader.vue";
+import TableHead from "../../../components/ui/table/TableHead.vue";
+import TableBody from "../../../components/ui/table/TableBody.vue";
+import TableRow from "../../../components/ui/table/TableRow.vue";
+import TableCell from "../../../components/ui/table/TableCell.vue";
 
 // const search = ref("");
 // const viewMode = ref("card");
@@ -69,7 +78,25 @@ const classes = ref([
     notifications: 3,
   },
 ]);
-const viewMode = ref("card");
+
+// Remembers the active tab across page refreshes (Card/Table/Registrations),
+// defaulting to Registrations on a first-ever visit.
+const VIEW_MODE_STORAGE_KEY = "enroll.classList.viewMode";
+const VALID_VIEW_MODES = ["card", "table", "registrations"];
+
+function storedViewMode() {
+  if (typeof window === "undefined") return "registrations";
+  const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+  return VALID_VIEW_MODES.includes(stored) ? stored : "registrations";
+}
+
+const viewMode = ref(storedViewMode());
+
+watch(viewMode, (value) => {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, value);
+  }
+});
 
 const props = defineProps({
   classes: {
@@ -129,6 +156,97 @@ function onSearch() {
         replace: true,
     });
 }
+
+// "Registrations" tab — students who self-registered via the public /classes
+// page (StudentEnrollment.source = 'public_website'), fetched from
+// EnrollmentClassController::publicRegistrations() / GetPublicRegistrations.
+const registrations = ref([]);
+const registrationsLoading = ref(false);
+const registrationsLoaded = ref(false);
+
+async function fetchRegistrations() {
+  registrationsLoading.value = true;
+
+  try {
+    const response = await axios.get("/dashboard/enroll/registrations/data");
+    registrations.value = response.data?.data ?? [];
+    registrationsLoaded.value = true;
+  } catch (error) {
+    console.error("Failed to fetch class registrations", error);
+  } finally {
+    registrationsLoading.value = false;
+  }
+}
+
+function selectRegistrationsTab() {
+  viewMode.value = "registrations";
+
+  if (!registrationsLoaded.value) {
+    fetchRegistrations();
+  }
+}
+
+const dayAbbreviations = {
+  Monday: "Mon",
+  Tuesday: "Tue",
+  Wednesday: "Wed",
+  Thursday: "Thu",
+  Friday: "Fri",
+  Saturday: "Sat",
+  Sunday: "Sun",
+};
+
+function scheduleLabel(row) {
+  const days = (row.study_days ?? []).map((day) => dayAbbreviations[day] ?? day).join(" & ");
+  const time = row.start_time && row.end_time ? `${row.start_time} - ${row.end_time}` : "";
+  return [days, time].filter(Boolean).join(", ") || "-";
+}
+
+// Feeds the same ReceiptPrint.vue component RegisterStudent.vue/ViewClass.vue use.
+const receiptClassData = ref(null);
+const receiptStudent = ref(null);
+
+async function printReceipt(row) {
+  receiptClassData.value = {
+    course: row.course_title ?? row.class_title,
+    price: row.fee_amount,
+    document_price: row.document_fee_amount,
+    term: scheduleLabel(row),
+    time: row.start_time && row.end_time ? `${row.start_time} - ${row.end_time}` : "-",
+  };
+  receiptStudent.value = {
+    name: row.name,
+    gender: row.gender,
+    payment_date: row.enrolled_at,
+    amount_paid: row.amount_paid,
+    fee_amount: row.fee_amount,
+    document_fee_amount: row.document_fee_amount,
+    enrollment_id: row.enrollment_id,
+  };
+
+  await nextTick();
+  window.print();
+}
+
+let notificationsChannel = null;
+
+onMounted(() => {
+  if (viewMode.value === "registrations") {
+    fetchRegistrations();
+  }
+
+  notificationsChannel = getEcho()
+    ?.private("admin-notifications")
+    .listen(".notifications.updated", () => {
+      if (registrationsLoaded.value) fetchRegistrations();
+    });
+});
+
+onBeforeUnmount(() => {
+  if (notificationsChannel) {
+    notificationsChannel.stopListening(".notifications.updated");
+  }
+});
 </script>
 
 <template>
@@ -223,6 +341,18 @@ function onSearch() {
             <Table2 class="h-4 w-4" />
             {{ $t('Table') }}
           </button>
+
+          <!-- Registrations (students who self-registered on the public /classes page) -->
+          <button
+            @click="selectRegistrationsTab"
+            class="inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition"
+            :class="viewMode === 'registrations'
+              ? 'border-blue-900 bg-blue-800 text-white'
+              : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
+          >
+            <UserCheck class="h-4 w-4" />
+            {{ $t('Registrations') }}
+          </button>
         </div>
       </div>
 
@@ -240,11 +370,108 @@ function onSearch() {
       </div>
 
       <!-- Table View -->
-      <div v-else class="w-full overflow-x-auto">
+      <div v-else-if="viewMode === 'table'" class="w-full overflow-x-auto">
         <ClassTable :items="filteredClasses" />
       </div>
 
-      <div v-if="classes?.links?.length > 3" class="mt-6 flex flex-wrap justify-center gap-2">
+      <!-- Registrations View -->
+      <div v-else class="w-full overflow-x-auto">
+        <div v-if="registrationsLoading && !registrations.length" class="rounded-xl bg-white py-10 text-center text-sm text-slate-500 shadow dark:bg-gray-900 dark:text-gray-400">
+          {{ $t('Loading...') }}
+        </div>
+
+        <div class="bg-white rounded-xl shadow overflow-hidden dark:bg-gray-900">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{{ $t('Name') }}</TableHead>
+                <TableHead>{{ $t('Gender') }}</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>{{ $t('Class') }}</TableHead>
+                <TableHead>{{ $t('Schedule') }}</TableHead>
+                <TableHead>{{ $t('Price') }}</TableHead>
+                <TableHead>{{ $t('Payment Status') }}</TableHead>
+                <TableHead>{{ $t('Registered') }}</TableHead>
+                <TableHead class="text-center">{{ $t('Action') }}</TableHead>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+              <TableRow v-for="row in registrations" :key="row.enrollment_id">
+                <TableCell class="whitespace-nowrap font-semibold">
+                  {{ row.name }}
+                </TableCell>
+
+                <TableCell>
+                  {{ row.gender }}
+                </TableCell>
+
+                <TableCell class="whitespace-nowrap">
+                  {{ row.phone }}
+                </TableCell>
+
+                <TableCell class="whitespace-nowrap">
+                  <div>
+                    <p>{{ row.class_title }}</p>
+                    <p v-if="row.course_title" class="text-xs text-slate-500 dark:text-gray-400">{{ row.course_title }}</p>
+                  </div>
+                </TableCell>
+
+                <TableCell class="whitespace-nowrap">
+                  {{ scheduleLabel(row) }}
+                </TableCell>
+
+                <TableCell class="whitespace-nowrap">
+                  ${{ Number(row.fee_amount + row.document_fee_amount).toFixed(2) }}
+                </TableCell>
+
+                <TableCell>
+                  <span
+                    class="inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs"
+                    :class="{
+                      'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400': row.payment_status === 'Paid',
+                      'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400': row.payment_status === 'Partial',
+                      'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400': row.payment_status === 'Unpaid',
+                    }"
+                  >
+                    {{ row.payment_status }}
+                  </span>
+                </TableCell>
+
+                <TableCell class="whitespace-nowrap text-slate-500 dark:text-gray-400">
+                  {{ row.enrolled_at }}
+                </TableCell>
+
+                <TableCell>
+                  <div class="flex justify-center">
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1.5 rounded-lg bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
+                      :title="$t('Print Receipt')"
+                      @click="printReceipt(row)"
+                    >
+                      <Printer class="h-4 w-4" />
+                      {{ $t('Print Receipt') }}
+                    </button>
+                  </div>
+                </TableCell>
+              </TableRow>
+
+              <TableRow v-if="!registrationsLoading && registrations.length === 0">
+                <TableCell colspan="9">
+                  <div class="py-10 text-center text-slate-500 dark:text-gray-400">
+                    {{ $t('No public registrations yet.') }}
+                  </div>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      <ReceiptPrint :classData="receiptClassData" :student="receiptStudent" />
+
+      <div v-if="viewMode !== 'registrations' && classes?.links?.length > 3" class="mt-6 flex flex-wrap justify-center gap-2">
         <button
           v-for="link in classes.links"
           :key="link.label"

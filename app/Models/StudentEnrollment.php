@@ -16,6 +16,7 @@ class StudentEnrollment extends Model
         'student_id',
         'enrollment_status',
         'payment_status',
+        'source',
         'fee_amount',
         'document_fee_amount',
         'amount_paid',
