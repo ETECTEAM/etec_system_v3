@@ -8,6 +8,7 @@ use App\Models\Menu;
 use App\Models\News;
 use App\Models\Page;
 use App\Models\SchoolSetting;
+use App\Models\StudyClass;
 use App\Models\WebsiteVideo;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -248,6 +249,107 @@ class WebsiteContentService
             ->firstOrFail();
 
         return $this->presentCourse($course);
+    }
+
+    /**
+     * Statuses considered open for public browsing; 'ended' and 'cancelled'
+     * classes are never shown on the public site.
+     *
+     * @return array<string, mixed>
+     */
+    public function paginatedPublicClasses(int $perPage = 12, array $filters = []): array
+    {
+        $perPage = min(max($perPage, 1), 24);
+        $sortBy = in_array($filters['sort_by'] ?? null, ['start_date', 'price', 'created_at'], true)
+            ? $filters['sort_by']
+            : 'start_date';
+        $sortDirection = ($filters['sort_direction'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
+
+        /** @var LengthAwarePaginator $paginator */
+        $query = StudyClass::query()
+            ->with([
+                'course:id,title,price,thumbnail',
+                'teacher:id,name',
+                'room.floor.building',
+            ])
+            ->withCount([
+                'enrollments as current_students' => fn ($query) => $query->where('enrollment_status', 'active'),
+            ])
+            ->whereIn('status', ['upcoming', 'active', 'pre_end']);
+
+        if ($search = trim((string) ($filters['search'] ?? ''))) {
+            $query->where(function ($query) use ($search): void {
+                $query->where('title', 'like', "%{$search}%")
+                    ->orWhereHas('course', fn ($courseQuery) => $courseQuery->where('title', 'like', "%{$search}%"));
+            });
+        }
+
+        if ($classType = trim((string) ($filters['class_type'] ?? ''))) {
+            $query->where('class_type', $classType);
+        }
+
+        $paginator = $query
+            ->orderBy($sortBy, $sortDirection)
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return [
+            'data' => $paginator->getCollection()
+                ->map(fn (StudyClass $studyClass): array => $this->presentClassPublic($studyClass))
+                ->values()
+                ->all(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'next_page_url' => $paginator->nextPageUrl(),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function presentClassPublic(StudyClass $studyClass): array
+    {
+        $capacity = (int) $studyClass->capacity;
+        $currentStudents = (int) ($studyClass->current_students ?? 0);
+        $availableSeats = max($capacity - $currentStudents, 0);
+
+        return [
+            'id' => $studyClass->id,
+            'title' => $studyClass->title,
+            'course_title' => $studyClass->course?->title,
+            'course_thumbnail_url' => $this->publicImageDataUri($studyClass->course?->thumbnail),
+            'class_type' => $studyClass->class_type,
+            'class_type_label' => $studyClass->class_type === 'online' ? 'Online Class' : 'Physical Class',
+            'study_days' => $studyClass->study_days ?? [],
+            'start_time' => $this->formatTime($studyClass->start_time),
+            'end_time' => $this->formatTime($studyClass->end_time),
+            'price' => (float) $studyClass->price,
+            'document_price' => (float) $studyClass->document_price,
+            'capacity' => $capacity,
+            'current_students' => $currentStudents,
+            'available_seats' => $availableSeats,
+            'filled_percentage' => $capacity > 0 ? round(($currentStudents / $capacity) * 100, 2) : 0,
+            'enrollment_start_date' => optional($studyClass->enrollment_start_date)->format('Y-m-d'),
+            'start_date' => optional($studyClass->start_date)->format('Y-m-d'),
+            'end_date' => optional($studyClass->end_date)->format('Y-m-d'),
+            'teacher_name' => $studyClass->teacher?->name,
+            'location' => $studyClass->class_type === 'online'
+                ? 'Online'
+                : (trim(implode(', ', array_filter([
+                    $studyClass->room?->floor?->building?->name,
+                    $studyClass->room?->floor?->name,
+                    $studyClass->room?->room_number,
+                ]))) ?: null),
+        ];
+    }
+
+    private function formatTime(?string $time): ?string
+    {
+        return $time ? substr($time, 0, 5) : null;
     }
 
     /**

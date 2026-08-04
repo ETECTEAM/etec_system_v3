@@ -51,6 +51,9 @@ class Menu extends Model
             return '/home';
         }
 
-        return route('pages.show', $this->page->slug, false);
+        // Built directly rather than via route('pages.show', ...): the public
+        // CMS page-rendering route no longer exists (only /classes is public),
+        // and this name also collides with routes/api.php's own 'pages.show'.
+        return '/'.$this->page->slug;
     }
 }

@@ -31,8 +31,8 @@ const currentYear = computed(() => new Date().getFullYear());
             <h3 class="text-3xl font-black text-white mb-2">Ready to master your skills?</h3>
             <p class="text-blue-200/80 max-w-lg">Join thousands of students building their tech careers with our industry-leading curriculum.</p>
          </div>
-         <Link href="/courses" class="shrink-0 flex items-center justify-center h-14 px-8 rounded-full bg-[#FFB800] text-slate-900 font-bold hover:bg-yellow-400 hover:-translate-y-1 transition-all shadow-[0_10px_30px_rgba(255,184,0,0.2)]">
-            Explore Courses <ArrowRight class="ml-2 h-5 w-5" />
+         <Link href="/classes" class="shrink-0 flex items-center justify-center h-14 px-8 rounded-full bg-[#FFB800] text-slate-900 font-bold hover:bg-yellow-400 hover:-translate-y-1 transition-all shadow-[0_10px_30px_rgba(255,184,0,0.2)]">
+            Explore Classes <ArrowRight class="ml-2 h-5 w-5" />
          </Link>
       </div>
 
@@ -69,22 +69,13 @@ const currentYear = computed(() => new Date().getFullYear());
           </div>
         </div>
 
-        <!-- Column 2: Quick Links (from menus) -->
+        <!-- Column 2: Quick Links -->
         <div>
           <h4 class="text-white font-bold text-lg mb-6">Quick Links</h4>
           <nav class="grid gap-3">
-            <template v-for="item in menus" :key="item.id">
-               <div class="group">
-                 <Link :href="item.url" class="inline-flex text-sm text-blue-100/70 transition-colors group-hover:text-[#FFB800]">
-                   {{ item.name }}
-                 </Link>
-                 <div v-if="item.children?.length" class="pl-4 mt-2 grid gap-2 border-l border-white/10 ml-2">
-                   <Link v-for="child in item.children" :key="child.id" :href="child.url" class="text-sm text-slate-500 transition-colors hover:text-white">
-                     {{ child.name }}
-                   </Link>
-                 </div>
-               </div>
-            </template>
+            <Link href="/classes" class="inline-flex text-sm text-blue-100/70 transition-colors hover:text-[#FFB800]">
+              Classes
+            </Link>
           </nav>
         </div>
         

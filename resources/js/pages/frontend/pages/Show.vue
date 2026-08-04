@@ -2,9 +2,8 @@
 import { computed, ref, watch } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
 import axios from "axios";
-import { Menu, Search, X, Heart, Check, BookOpen, Users } from "@lucide/vue";
+import { Search, Heart, Check, BookOpen, Users } from "@lucide/vue";
 import FrontendFooter from "@/components/frontend/FrontendFooter.vue";
-import FrontendMenuLinks from "@/components/frontend/FrontendMenuLinks.vue";
 import AboutLayout from "@/components/frontend/pages/AboutLayout.vue";
 import ContactLayout from "@/components/frontend/pages/ContactLayout.vue";
 
@@ -40,7 +39,6 @@ const inertiaPage = usePage();
 const website = computed(() => inertiaPage.props.website ?? {});
 const settings = computed(() => website.value.settings ?? {});
 const menus = computed(() => website.value.menus ?? []);
-const menuOpen = ref(false);
 const courseItems = ref(Array.isArray(props.courses) ? props.courses : props.courses?.data ?? []);
 const courseMeta = ref(Array.isArray(props.courses) ? null : props.courses?.meta ?? null);
 const courseSearch = ref(props.activeCourseFilters.search ?? "");
@@ -169,43 +167,7 @@ watch([courseSearch, selectedCategory, selectedSubCategory], () => {
   <div class="min-h-screen bg-[#F4F7FA] font-sans selection:bg-[#1A66FF]/20 selection:text-[#1A66FF] [--public-header-height:5.5rem]">
     <div v-if="preview" class="bg-amber-100 px-4 py-2 text-center text-sm font-semibold text-amber-900">Preview mode</div>
 
-    <header class="fixed left-0 right-0 top-0 z-40 border-b border-slate-200/50 bg-white/80 shadow-sm backdrop-blur-xl">
-      <div class="mx-auto flex min-h-[5.5rem] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link href="/" class="flex min-w-0 items-center gap-3 group">
-          <span class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#1A66FF] shadow-[0_5px_15px_rgba(26,102,255,0.3)] transition-transform group-hover:scale-105">
-            <img v-if="settings.logo_url" :src="settings.logo_url" :alt="schoolName" class="h-full w-full object-contain p-1" />
-            <span v-else class="text-xs font-black text-white">ETEC</span>
-          </span>
-          <span class="max-w-[12rem] truncate text-xl font-black text-slate-900 sm:max-w-xs transition-colors group-hover:text-[#1A66FF]">{{ schoolName }}</span>
-        </Link>
-        <nav class="hidden items-center gap-2 lg:flex">
-          <FrontendMenuLinks :menus="menus" :active-slug="activeSlug" :home-active="activeSlug === 'home'" />
-        </nav>
-        <button type="button" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E8F0FF] text-[#1A66FF] transition hover:bg-[#1A66FF] hover:text-white lg:hidden" aria-label="Toggle menu" :aria-expanded="menuOpen" @click="menuOpen = true">
-          <Menu class="h-5 w-5" />
-        </button>
-      </div>
-    </header>
-
-      <transition enter-active-class="transition duration-300 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-200 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="menuOpen" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm lg:hidden" @click="menuOpen = false"></div>
-      </transition>
-
-      <transition enter-active-class="transition duration-300 ease-out transform" enter-from-class="translate-x-full" enter-to-class="translate-x-0" leave-active-class="transition duration-200 ease-in transform" leave-from-class="translate-x-0" leave-to-class="translate-x-full">
-        <nav v-if="menuOpen" class="fixed inset-y-0 right-0 z-[110] w-full max-w-sm bg-white shadow-2xl lg:hidden flex flex-col">
-          <div class="flex items-center justify-between p-5 border-b border-slate-100">
-            <span class="text-xl font-black text-slate-900">Menu</span>
-            <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900" @click="menuOpen = false">
-              <X class="h-5 w-5" />
-            </button>
-          </div>
-          <div class="p-6 overflow-y-auto flex-1 grid gap-2">
-            <FrontendMenuLinks :menus="menus" :active-slug="activeSlug" :home-active="activeSlug === 'home'" mobile @navigate="menuOpen = false" />
-          </div>
-        </nav>
-      </transition>
-
-    <section class="relative mt-[88px] min-h-screen bg-[#0A1D3A] bg-cover bg-center" :style="{ backgroundImage: `url(${hero?.background_image_url || fallbackHero})` }">
+    <section class="relative min-h-screen bg-[#0A1D3A] bg-cover bg-center" :style="{ backgroundImage: `url(${hero?.background_image_url || fallbackHero})` }">
       <div class="absolute inset-0 bg-gradient-to-r from-[#0A1D3A]/90 to-[#0A1D3A]/50"></div>
       <div class="absolute inset-0 bg-gradient-to-tr from-[#1A66FF]/20 to-[#FFB800]/10 mix-blend-overlay"></div>
       
