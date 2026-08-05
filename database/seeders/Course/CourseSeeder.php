@@ -22,6 +22,15 @@ class CourseSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         $courses = [
+            // Fundamental / Basic IT Track
+            [
+                'track' => 'Code & Network',
+                'title' => 'Basic IT',
+                'level' => 'beginner',
+                'language' => 'en',
+                'certificate_available' => true,
+                'status' => 'active'
+            ],
             // Basic Code Track
             [
                 'track' => 'Basic Code',
@@ -86,7 +95,7 @@ class CourseSeeder extends Seeder
 
             // Enterprise Java Development
             [
-                'track' => 'Enterprise Java Development',
+                'track' => 'Backend Course',
                 'title' => 'Java + Spring Boot (Basic/Advance - Java required)',
                 'level' => 'advanced',
                 'language' => 'en',

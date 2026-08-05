@@ -22,6 +22,11 @@ class SubCategorySeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
         
         $subCategories = [
+            // Fundamental Category
+            [
+                'category_id' => $this->getCategoryId('Fundamental'),
+                'name' => 'Basic IT'
+            ],
             // Programming Category
             [
                 'category_id' => $this->getCategoryId('Programming'),

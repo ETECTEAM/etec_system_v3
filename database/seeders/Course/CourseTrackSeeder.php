@@ -23,6 +23,10 @@ class CourseTrackSeeder extends Seeder
 
         $tracks = [
             [
+                'sub_category_id' => $this->getSubCategoryId('Basic IT'),
+                'name' => 'Code & Network'
+            ],
+            [
                 'sub_category_id' => $this->getSubCategoryId('Programming Fundamentals'),
                 'name' => 'Basic Code'
             ],
@@ -31,7 +35,7 @@ class CourseTrackSeeder extends Seeder
                 'name' => 'Web Full-Stack Course'
             ],
             [
-                'sub_category_id' => $this->getSubCategoryId('Programming Fundamentals'),
+                'sub_category_id' => $this->getSubCategoryId('Web Development'),
                 'name' => 'Enterprise Java Development'
             ],
             [
