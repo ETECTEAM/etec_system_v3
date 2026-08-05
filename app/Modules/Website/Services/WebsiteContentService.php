@@ -10,6 +10,7 @@ use App\Models\Page;
 use App\Models\SchoolSetting;
 use App\Models\StudyClass;
 use App\Models\WebsiteVideo;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
@@ -17,6 +18,10 @@ use Illuminate\Support\Str;
 
 class WebsiteContentService
 {
+    public function __construct(
+        private readonly PublicRegistrationCookie $registrationCookie,
+    ) {}
+
     public function settings(): SchoolSetting
     {
         return SchoolSetting::query()->firstOrCreate([], [
@@ -257,7 +262,7 @@ class WebsiteContentService
      *
      * @return array<string, mixed>
      */
-    public function paginatedPublicClasses(int $perPage = 12, array $filters = []): array
+    public function paginatedPublicClasses(int $perPage = 12, array $filters = [], ?Request $request = null): array
     {
         $perPage = min(max($perPage, 1), 24);
         $sortBy = in_array($filters['sort_by'] ?? null, ['start_date', 'price', 'created_at'], true)
@@ -293,9 +298,16 @@ class WebsiteContentService
             ->paginate($perPage)
             ->withQueryString();
 
+        $registeredClassIds = $request
+            ? $this->registrationCookie->registeredClassIds($request, $paginator->getCollection())
+            : [];
+
         return [
             'data' => $paginator->getCollection()
-                ->map(fn (StudyClass $studyClass): array => $this->presentClassPublic($studyClass))
+                ->map(fn (StudyClass $studyClass): array => $this->presentClassPublic(
+                    $studyClass,
+                    in_array((int) $studyClass->id, $registeredClassIds, true),
+                ))
                 ->values()
                 ->all(),
             'meta' => [
@@ -311,7 +323,7 @@ class WebsiteContentService
     /**
      * @return array<string, mixed>
      */
-    public function presentClassPublic(StudyClass $studyClass): array
+    public function presentClassPublic(StudyClass $studyClass, bool $alreadyRegistered = false): array
     {
         $capacity = (int) $studyClass->capacity;
         $currentStudents = (int) ($studyClass->current_students ?? 0);
@@ -332,6 +344,7 @@ class WebsiteContentService
             'capacity' => $capacity,
             'current_students' => $currentStudents,
             'available_seats' => $availableSeats,
+            'already_registered' => $alreadyRegistered,
             'filled_percentage' => $capacity > 0 ? round(($currentStudents / $capacity) * 100, 2) : 0,
             'enrollment_start_date' => optional($studyClass->enrollment_start_date)->format('Y-m-d'),
             'start_date' => optional($studyClass->start_date)->format('Y-m-d'),

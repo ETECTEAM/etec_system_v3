@@ -151,6 +151,7 @@ function closeRegisterModal() {
 }
 
 function submitRegister() {
+  const classId = activeRegisterClass.value?.id;
   const classTitle = activeRegisterClass.value?.title ?? "";
   const name = registerForm.name;
   const phone = registerForm.phone;
@@ -168,6 +169,19 @@ function submitRegister() {
         localStorage.setItem(REGISTRATION_STORAGE.phone, phone);
         localStorage.setItem(REGISTRATION_STORAGE.classTitle, classTitle);
         openPendingModal(enrollmentId, name, phone, classTitle);
+
+        // Server won't reflect this until the next page load - patch the card we
+        // already have in memory so the button disables immediately instead of
+        // only after a refresh.
+        const registeredClass = classItems.value.find((cls) => cls.id === classId);
+        if (registeredClass) {
+          registeredClass.already_registered = true;
+          registeredClass.current_students += 1;
+          registeredClass.available_seats = Math.max(registeredClass.available_seats - 1, 0);
+          registeredClass.filled_percentage = registeredClass.capacity > 0
+            ? Math.round((registeredClass.current_students / registeredClass.capacity) * 10000) / 100
+            : registeredClass.filled_percentage;
+        }
       }
     },
   });
@@ -339,10 +353,10 @@ onUnmounted(() => {
                   <button
                     type="button"
                     class="w-full rounded-full bg-[#1A66FF] px-4 py-3 text-sm font-black text-white transition hover:bg-[#1555D9] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-                    :disabled="cls.available_seats <= 0"
+                    :disabled="cls.already_registered || cls.available_seats <= 0"
                     @click="openRegisterModal(cls)"
                   >
-                    {{ cls.available_seats > 0 ? "Register" : "Class Full" }}
+                    {{ cls.already_registered ? "Already Registered" : (cls.available_seats > 0 ? "Register" : "Class Full") }}
                   </button>
                 </div>
               </div>

@@ -11,8 +11,12 @@ the three.
 
 ```text
 GET  /classes                          -> PublicPageController::classes (browse/filter)
+                                        -> flags each class already_registered via
+                                           PublicRegistrationCookie (this browser's cookies)
 POST /classes/{studyClass}/register    -> throttle:5,10 per IP
-  -> RegisterClassRequest validates input (incl. duplicate-phone rule)
+  -> RegisterClassRequest validates input
+       -> duplicate-phone rule (same phone already active in this class)
+       -> duplicate-cookie rule (this browser already registered for this class)
   -> RegisterClassStudent::handle() (one DB transaction)
        -> lock the class row, re-check capacity
        -> re-check duplicate phone inside the lock
@@ -20,8 +24,10 @@ POST /classes/{studyClass}/register    -> throttle:5,10 per IP
        -> create StudentEnrollment (source: public_website)
        -> create a dashboard Notification (type: class_registration)
   -> NotificationsUpdated dispatched (dashboard badge/list refetch)
+  -> PublicRegistrationCookie::remember() queues a per-class cookie
   -> redirect back with flash success message + enrollment_id
-  -> frontend closes the form modal and opens a LOCKED payment-polling modal
+  -> frontend closes the form modal, patches the class card in memory
+     (already_registered, seat count), and opens a LOCKED payment-polling modal
        -> polls GET /public/enrollments/{enrollment}/status every 3s
        -> auto-closes once payment_status is "Paid"
 
@@ -42,9 +48,10 @@ goes away once an admin records the payment.
 `PublicPageController::classes` (`app/Modules/Website/Controllers/PublicPageController.php:22`)
 renders `frontend/classes/Index.vue` with paginated, filtered classes from
 `WebsiteContentService::paginatedPublicClasses()`. Each class is presented with
-`available_seats = max(capacity - current_students, 0)`; the "Register" button is
-disabled client-side (shows "Class Full") once seats hit zero, but that's UX only —
-the real check happens server-side in Step 2.
+`available_seats = max(capacity - current_students, 0)` and `already_registered`
+(see Step 4). The "Register" button is disabled client-side once seats hit zero
+("Class Full") or once `already_registered` is true ("Already Registered") — both
+are UX only, the real checks happen server-side in Step 2 and Step 4.
 
 Clicking "Register" opens a modal (`registerModalOpen` in `Index.vue`) with an
 Inertia `useForm({ name, gender, phone })` that posts to
@@ -54,8 +61,14 @@ The route is rate-limited with `throttle:5,10` (`routes/web/frontend/class_data.
 — 5 submissions per 10 minutes per IP — so the public, unauthenticated endpoint
 can't be spammed.
 
-On a successful submit the frontend closes the registration form modal and opens
-the locked payment-polling modal described in Step 4.
+On a successful submit, `submitRegister()`'s `onSuccess` callback finds the
+matching entry in the in-memory `classItems` array and patches it directly
+(`already_registered = true`, bumps `current_students`/`available_seats`/
+`filled_percentage`) before opening the payment-polling modal. This is
+deliberate: the server-rendered `already_registered` flag from Step 4 wouldn't
+reflect the new registration until the next full page load, so without this patch
+the just-submitted class's button would stay clickable (and seat count stale)
+until a refresh.
 
 ## Step 2 — Validation
 
@@ -65,12 +78,18 @@ validates:
 
 - `name` — required, string, max 255
 - `gender` — required, one of `male`/`female`
-- `phone` — required, string, max 20, plus a custom closure rule: it fails with
-  "This phone number is already registered for this class." if an **active**
-  `StudentEnrollment` already exists for the route's `StudyClass` whose student
-  (matched by `Student.phone`) is enrolled. This is the first line of defense
-  against duplicate sign-ups; the transaction re-checks it under the row lock
-  (Step 3) to close the race-condition window.
+- `phone` — required, string, max 20, plus two closure checks run in order:
+  1. **Duplicate phone**: fails with "This phone number is already registered for
+     this class." if an **active** `StudentEnrollment` already exists for the
+     route's `StudyClass` whose student (matched by `Student.phone`) is enrolled.
+     The transaction re-checks this under the row lock (Step 3) to close the
+     race-condition window.
+  2. **Duplicate cookie** (only reached if the phone check passes): fails with
+     "You have already registered for this class from this device." if
+     `PublicRegistrationCookie::alreadyRegistered()` finds a valid cookie proving
+     this browser already has an active seat in this class — see Step 4. This
+     catches someone typing a different (or fake) phone number specifically to
+     dodge check #1.
 
 No email is collected — the flow generates one (see Step 3).
 
@@ -108,10 +127,11 @@ After the transaction commits, `NotificationsUpdated::dispatch()` fires so any o
 dashboard refetches the notification feed — see `docs/notification-workflow.md` for
 how that broadcast/refetch mechanism works generally.
 
-`PublicPageController::registerForClass` redirects back with
-`->with(['success' => ..., 'enrollment_id' => $enrollment->id])` — see Step 4 for
-why `enrollment_id` specifically has to be flashed (not just `success`), and how
-the frontend picks it up.
+`PublicPageController::registerForClass` then calls
+`PublicRegistrationCookie::remember($studyClass, $enrollment)` (Step 4) and redirects
+back with `->with(['success' => ..., 'enrollment_id' => $enrollment->id])` — see
+Step 5 for why `enrollment_id` specifically has to be flashed (not just `success`),
+and how the frontend picks it up.
 
 ### Related but different: the QR self-registration flow
 
@@ -122,18 +142,64 @@ The differences that matter:
 
 - QR flow leaves `source` `null`; this flow tags `public_website`. That tag is the
   only thing that makes a registration show up in the dashboard's "Registrations"
-  tab (Step 6) — a QR signup does not appear there.
+  tab (Step 7) — a QR signup does not appear there.
 - This flow raises a `Notification` + `NotificationsUpdated` broadcast; the QR flow
   raises neither, so nothing pings the dashboard live for a QR signup.
-- This flow rejects duplicate phones (request rule + in-lock re-check) and reuses an
-  existing `Student` by phone; `CreateClassStudent` has neither — it always creates
-  a fresh User+Student (its per-class duplicate protection is the DB unique
-  constraint on `study_class_id` + `student_id`).
+- This flow rejects duplicate phones and duplicate browsers (request rule + in-lock
+  re-check + the cookie in Step 4) and reuses an existing `Student` by phone;
+  `CreateClassStudent` has neither — it always creates a fresh User+Student (its
+  per-class duplicate protection is the DB unique constraint on `study_class_id` +
+  `student_id`).
 
 If you're changing one of these two actions, check whether the other needs the same
 change.
 
-## Step 4 — The locked payment-polling modal
+## Step 4 — Blocking repeat registrations: the per-class cookie
+
+`PublicRegistrationCookie` (`app/Modules/Website/Services/PublicRegistrationCookie.php`)
+marks "this browser already registered for class X" without requiring login or
+identity verification.
+
+### Why a cookie needs no manual signing
+
+`EncryptCookies` runs on Laravel's `web` middleware group by default (it's not
+listed in `bootstrap/app.php` because appending to the group doesn't replace its
+defaults). Every outgoing cookie set via `Cookie::queue()` is transparently
+encrypted+MAC'd, and a tampered or hand-edited value simply fails to decrypt server
+-side and reads back as `null` — so `remember()` can store a plain enrollment id
+(`registered_class_{studyClassId}` → `$enrollment->id`) with no custom HMAC code.
+Nobody can forge a cookie claiming a registration that doesn't belong to them.
+
+### Issuing and checking it
+
+- `remember(StudyClass $studyClass, StudentEnrollment $enrollment)` — called from
+  `PublicPageController::registerForClass` right after `RegisterClassStudent`
+  succeeds (Step 3). Queues the cookie for 30 days.
+- `alreadyRegistered(Request $request, StudyClass $studyClass): bool` — used by the
+  duplicate-cookie validation rule in Step 2.
+- `registeredClassIds(Request $request, Collection $classes): array` — used by
+  `WebsiteContentService::paginatedPublicClasses()` to compute the `already_registered`
+  flag for every class on a page **in one query**, not one lookup per card: it reads
+  all the relevant cookies, then does a single `whereIn('study_class_id', ...)`
+  against `StudentEnrollment` (`source: public_website`, `enrollment_status: active`)
+  and matches each row's `id` back against the cookie value for that specific class.
+  A cookie whose enrollment has since gone inactive (e.g. cancelled) doesn't count -
+  the DB check is authoritative, not just "a cookie exists."
+- Both comparisons explicitly cast to `(int)` before strict (`===`/`in_array(...,
+  true)`) comparisons against `StudyClass`/`StudentEnrollment` primary keys, since
+  neither model casts `id` and relying on PDO returning it as a native int (rather
+  than a numeric string) isn't guaranteed across environments.
+
+### What this does and doesn't stop
+
+This blocks the "same browser, different/fake phone number" bypass of the Step 2
+phone check, and gives real UI feedback (button says "Already Registered" instead
+of silently failing). It does **not** stop a different browser, a different device,
+or a cleared cookie jar - those all start from a clean slate. That's an accepted
+gap, not an oversight: closing it fully would require phone-ownership verification
+(OTP), which this flow doesn't have.
+
+## Step 5 — The locked payment-polling modal
 
 ### The `enrollment_id` flash gotcha
 
@@ -171,7 +237,7 @@ via `setInterval`. Each call hits `GET /public/enrollments/{enrollment}/status`
 `routes/web/frontend/class_data.php` — no auth required, returns only
 `{ payment_status }`) and compares the result to the literal string `"Paid"`. That
 string comes from `ucfirst($enrollment->payment_status)`, so it only matches once
-`RecordEnrollmentDeposit::paymentStatus()` (Step 6) has set the underlying column to
+`RecordEnrollmentDeposit::paymentStatus()` (Step 7) has set the underlying column to
 `'paid'` — a `'partial'` deposit does not unlock the modal. A failed poll request is
 swallowed silently (network hiccup, etc.) rather than unlocking the modal, and the
 loop just retries on the next tick.
@@ -188,7 +254,7 @@ saved name/phone/class title — this is what actually enforces the lock, since
 without it a refresh would be a trivial way to dismiss the modal before payment is
 confirmed.
 
-## Step 5 — The notification is informational only, not actionable
+## Step 6 — The notification is informational only, not actionable
 
 `class_registration` notifications show up in the bell/popup and
 `/dashboard/notifications` like any other, but they carry no Approve/Reject
@@ -197,9 +263,9 @@ buttons: `NotificationController::approvalStatusFor()`
 `null` for any type other than `instructor_approval`, and `resolve()` (backing the
 approve/reject endpoints) explicitly rejects acting on any notification whose type
 isn't `instructor_approval`. So this notification is just a heads-up — the real
-follow-up workflow is Step 6.
+follow-up workflow is Step 7.
 
-## Step 6 — Admin follow-up: the "Registrations" tab
+## Step 7 — Admin follow-up: the "Registrations" tab
 
 `resources/js/pages/backend/students/ClassList.vue` has a `registrations` view mode
 that calls `GET /dashboard/enroll/registrations/data`
@@ -220,16 +286,17 @@ collecting payment via `POST
 purely a client-side count of what's already loaded — it's not a separate
 server-computed metric. This deposit call is the only thing that can move
 `payment_status` to `'paid'` — which is exactly what the registrant's own browser
-is polling for in Step 4.
+is polling for in Step 5.
 
 ## Summary
 
 | Step | Where | What happens |
 |---|---|---|
-| Browse | `PublicPageController::classes` | Public, filterable class listing |
-| Submit | `RegisterClassRequest` | Validates name/gender/phone (duplicate-phone rule), `throttle:5,10`, no auth required |
+| Browse | `PublicPageController::classes` | Public, filterable class listing; flags each class `already_registered` |
+| Submit | `RegisterClassRequest` | Validates name/gender/phone, duplicate-phone rule, duplicate-cookie rule, `throttle:5,10`, no auth required |
 | Create | `RegisterClassStudent` | Locks class, checks capacity, re-checks duplicate phone, reuses or creates Student, creates StudentEnrollment (`source: public_website`), raises a `Notification` |
-| Lock | `Index.vue` payment-polling modal | Closes the form, opens a non-dismissible modal, polls `GET /public/enrollments/{id}/status` every 3s, survives refresh via `localStorage` |
+| Dedup | `PublicRegistrationCookie` | Issues a per-class encrypted cookie on success; gates re-submission and flags the button, but is browser-scoped only |
+| Lock | `Index.vue` payment-polling modal | Closes the form, patches the card in memory, opens a non-dismissible modal, polls `GET /public/enrollments/{id}/status` every 3s, survives refresh via `localStorage` |
 | Notify | `NotificationsUpdated` | Live-refetches the dashboard notification feed (informational only — no approve/reject) |
 | Follow up | `GetPublicRegistrations` + deposit endpoint | Admin views/collects payment on public registrations from the "Registrations" tab — this is what unlocks the modal above |
 

@@ -5,6 +5,7 @@ namespace App\Modules\Website\Requests;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
+use App\Modules\Website\Services\PublicRegistrationCookie;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -41,6 +42,16 @@ class RegisterClassRequest extends FormRequest
 
                     if ($alreadyRegistered) {
                         $fail('This phone number is already registered for this class.');
+
+                        return;
+                    }
+
+                    // Backs up the phone check above: a returning visitor could type a
+                    // different (or fake) phone number to dodge it, but this browser's
+                    // signed cookie from its earlier registration still proves it already
+                    // has an active seat in this class (see PublicRegistrationCookie).
+                    if (app(PublicRegistrationCookie::class)->alreadyRegistered($this, $studyClass)) {
+                        $fail('You have already registered for this class from this device.');
                     }
                 },
             ],

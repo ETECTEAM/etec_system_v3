@@ -7,6 +7,7 @@ use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Modules\Website\Actions\RegisterClassStudent;
 use App\Modules\Website\Requests\RegisterClassRequest;
+use App\Modules\Website\Services\PublicRegistrationCookie;
 use App\Modules\Website\Services\WebsiteContentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -23,19 +24,21 @@ class PublicPageController extends Controller
     public function classes(Request $request): Response
     {
         return Inertia::render('frontend/classes/Index', [
-            'classes' => $this->website->paginatedPublicClasses(12, $this->classFilters($request)),
+            'classes' => $this->website->paginatedPublicClasses(12, $this->classFilters($request), $request),
             'activeClassFilters' => $this->classFilters($request),
         ]);
     }
 
     public function classesLoadMore(Request $request): JsonResponse
     {
-        return response()->json($this->website->paginatedPublicClasses(12, $this->classFilters($request)));
+        return response()->json($this->website->paginatedPublicClasses(12, $this->classFilters($request), $request));
     }
 
-    public function registerForClass(RegisterClassRequest $request, StudyClass $studyClass, RegisterClassStudent $registerClassStudent): RedirectResponse
+    public function registerForClass(RegisterClassRequest $request, StudyClass $studyClass, RegisterClassStudent $registerClassStudent, PublicRegistrationCookie $registrationCookie): RedirectResponse
     {
         $enrollment = $registerClassStudent->handle($studyClass, $request->validated());
+
+        $registrationCookie->remember($studyClass, $enrollment);
 
         return redirect()->back()->with([
             'success' => 'Registration received.',
