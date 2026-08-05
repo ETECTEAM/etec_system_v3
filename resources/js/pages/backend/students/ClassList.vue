@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { router } from "@inertiajs/vue3";
 import axios from "axios";
-import { Search, RotateCcw, Plus, LayoutGrid, Table2, UserPlus, UserCheck, Printer } from "@lucide/vue";
+import { Search, RotateCcw, Plus, LayoutGrid, Table2, UserPlus, UserCheck, Printer, Pencil } from "@lucide/vue";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
 import ClassTable from "./components/ClassTable.vue";
@@ -237,10 +237,13 @@ function remainingBalance(row) {
   return Number(row.fee_amount) + Number(row.document_fee_amount) - Number(row.amount_paid);
 }
 
-// "Print Receipt" records a payment (full or partial — e.g. a student paying
-// only 50% now) then prints. Reuses the same deposit endpoint the class View
-// page's Record Deposit modal posts to (EnrollmentClassController::deposit /
-// RecordEnrollmentDeposit), which now also answers with JSON when asked.
+// "Record Payment" is one click for the common case (pay the full remaining
+// balance and print, no modal). The small edit icon next to it opens a modal
+// for the less common case — a custom/partial amount (e.g. a 50% deposit) —
+// which does need a confirm step since it's an amount someone is choosing.
+// Both post to the same deposit endpoint the class View page's Record Deposit
+// modal uses (EnrollmentClassController::deposit / RecordEnrollmentDeposit),
+// which now also answers with JSON when asked instead of only redirecting.
 const confirmPaidModalOpen = ref(false);
 const pendingRow = ref(null);
 const paymentAmountInput = ref("");
@@ -259,16 +262,48 @@ const paymentAmountError = computed(() => {
   return paymentAmountErrorMsg.value;
 });
 
-function markPaidAndPrintReceipt(row) {
-  if (remainingBalance(row) > 0.01) {
-    pendingRow.value = row;
-    paymentAmountInput.value = remainingBalance(row).toFixed(2);
-    paymentAmountErrorMsg.value = "";
-    confirmPaidModalOpen.value = true;
-    return;
+function capitalizeStatus(status) {
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+async function recordPayment(row, amount) {
+  printingId.value = row.enrollment_id;
+
+  try {
+    const response = await axios.post(`/dashboard/enroll/enrollments/${row.enrollment_id}/deposit`, {
+      deposit_amount: amount,
+    });
+    row.amount_paid = response.data.amount_paid;
+    row.payment_status = capitalizeStatus(response.data.payment_status);
+  } catch (error) {
+    console.error("Failed to record payment", error);
+    printingId.value = null;
+    throw error;
   }
 
-  printReceipt(row);
+  printingId.value = null;
+}
+
+// Single-click default: pay the full remaining balance, then print.
+async function quickRecordAndPrint(row) {
+  const remaining = remainingBalance(row);
+
+  if (remaining > 0.01) {
+    try {
+      await recordPayment(row, remaining);
+    } catch {
+      return;
+    }
+  }
+
+  await printReceipt(row);
+}
+
+function openPartialPaymentModal(row) {
+  pendingRow.value = row;
+  paymentAmountInput.value = remainingBalance(row).toFixed(2);
+  paymentAmountErrorMsg.value = "";
+  confirmPaidModalOpen.value = true;
 }
 
 function cancelMarkPaid() {
@@ -281,25 +316,16 @@ async function confirmMarkPaidAndPrint() {
   if (!row || paymentAmountError.value) return;
 
   const amount = Number(paymentAmountInput.value);
-
   confirmPaidModalOpen.value = false;
-  printingId.value = row.enrollment_id;
 
   try {
-    const response = await axios.post(`/dashboard/enroll/enrollments/${row.enrollment_id}/deposit`, {
-      deposit_amount: amount,
-    });
-    row.amount_paid = response.data.amount_paid;
-    row.payment_status = response.data.payment_status.charAt(0).toUpperCase() + response.data.payment_status.slice(1);
+    await recordPayment(row, amount);
   } catch (error) {
-    console.error("Failed to record payment", error);
     paymentAmountErrorMsg.value = error.response?.data?.errors?.deposit_amount?.[0] ?? "Failed to record payment.";
-    printingId.value = null;
     confirmPaidModalOpen.value = true;
     return;
   }
 
-  printingId.value = null;
   pendingRow.value = null;
 
   await printReceipt(row);
@@ -526,18 +552,29 @@ onBeforeUnmount(() => {
                 </TableCell>
 
                 <TableCell>
-                  <div class="flex justify-end">
+                  <div class="flex justify-end items-center gap-1.5">
                     <button
                       type="button"
                       class="inline-flex w-[150px] items-center justify-center gap-1.5 rounded-lg bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
                       :disabled="printingId === row.enrollment_id"
-                      :title="row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record Payment')"
-                      @click="markPaidAndPrintReceipt(row)"
+                      :title="row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record full payment & print')"
+                      @click="quickRecordAndPrint(row)"
                     >
                       <Printer class="h-4 w-4 shrink-0" />
                       <span class="truncate">{{ printingId === row.enrollment_id
                         ? $t('Saving...')
                         : (row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record Payment')) }}</span>
+                    </button>
+
+                    <button
+                      v-if="row.payment_status !== 'Paid'"
+                      type="button"
+                      class="shrink-0 rounded-lg border border-slate-300 p-2 text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                      :disabled="printingId === row.enrollment_id"
+                      :title="$t('Enter a custom amount')"
+                      @click="openPartialPaymentModal(row)"
+                    >
+                      <Pencil class="h-4 w-4" />
                     </button>
                   </div>
                 </TableCell>
