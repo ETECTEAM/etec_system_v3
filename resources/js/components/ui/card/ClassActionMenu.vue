@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { router } from "@inertiajs/vue3";
 import { QrcodeCanvas } from "qrcode.vue";
 import { useI18n } from "@/i18n";
@@ -20,8 +20,35 @@ const props = defineProps({
 
 const open = ref(false);
 const showQr = ref(false);
+const dropdownRef = ref(null);
 const { t } = useI18n();
 const qrUrl = computed(() => `${window.location.origin}/dashboard/enroll/${props.classData.id}/students/create`);
+
+function closeDropdown() {
+  open.value = false;
+}
+
+function handleClickOutside(event) {
+  if (open.value && dropdownRef.value && !dropdownRef.value.contains(event.target)) {
+    closeDropdown();
+  }
+}
+
+function handleKeydown(event) {
+  if (event.key === "Escape") {
+    closeDropdown();
+  }
+}
+
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside, true);
+  document.addEventListener("keydown", handleKeydown);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleClickOutside, true);
+  document.removeEventListener("keydown", handleKeydown);
+});
 
 function updateStatus(status) {
   router.post(`/dashboard/enroll/${props.classData.id}/status`, { status }, {
@@ -59,7 +86,7 @@ const actions = [
 </script>
 
 <template>
-  <div class="relative">
+  <div ref="dropdownRef" class="relative">
     <button
       @click="open = !open"
       class="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-slate-100 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
