@@ -36,25 +36,43 @@ class RegisterClassStudent
                 ]);
             }
 
-            $user = User::create([
-                'name' => $data['name'],
-                'email' => $this->studentEmail(),
-                'password' => Hash::make(Str::random(32)),
-                'role' => 'student',
-                'status' => 'active',
-            ]);
+            $student = Student::query()->where('phone', $data['phone'])->first();
 
-            Student::create([
-                'user_id' => $user->id,
-                'full_name' => $data['name'],
-                'gender' => $data['gender'],
-                'phone' => $data['phone'],
-                'student_status' => 'active',
-            ]);
+            if ($student !== null) {
+                $alreadyEnrolled = StudentEnrollment::query()
+                    ->where('study_class_id', $studyClass->id)
+                    ->where('enrollment_status', 'active')
+                    ->where('student_id', $student->user_id)
+                    ->exists();
+
+                if ($alreadyEnrolled) {
+                    throw ValidationException::withMessages([
+                        'phone' => 'This phone number is already registered for this class.',
+                    ]);
+                }
+            }
+
+            if ($student === null) {
+                $user = User::create([
+                    'name' => $data['name'],
+                    'email' => $this->studentEmail(),
+                    'password' => Hash::make(Str::random(32)),
+                    'role' => 'student',
+                    'status' => 'active',
+                ]);
+
+                $student = Student::create([
+                    'user_id' => $user->id,
+                    'full_name' => $data['name'],
+                    'gender' => $data['gender'],
+                    'phone' => $data['phone'],
+                    'student_status' => 'active',
+                ]);
+            }
 
             $enrollment = StudentEnrollment::create([
                 'study_class_id' => $studyClass->id,
-                'student_id' => $user->id,
+                'student_id' => $student->user_id,
                 'enrollment_status' => 'active',
                 'payment_status' => 'unpaid',
                 'source' => 'public_website',

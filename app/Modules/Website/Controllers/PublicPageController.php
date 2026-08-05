@@ -3,6 +3,7 @@
 namespace App\Modules\Website\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Modules\Website\Actions\RegisterClassStudent;
 use App\Modules\Website\Requests\RegisterClassRequest;
@@ -34,9 +35,19 @@ class PublicPageController extends Controller
 
     public function registerForClass(RegisterClassRequest $request, StudyClass $studyClass, RegisterClassStudent $registerClassStudent): RedirectResponse
     {
-        $registerClassStudent->handle($studyClass, $request->validated());
+        $enrollment = $registerClassStudent->handle($studyClass, $request->validated());
 
-        return back()->with('success', "You're registered! We'll be in touch about payment and class details.");
+        return redirect()->back()->with([
+            'success' => 'Registration received.',
+            'enrollment_id' => $enrollment->id,
+        ]);
+    }
+
+    public function enrollmentStatus(StudentEnrollment $enrollment): JsonResponse
+    {
+        return response()->json([
+            'payment_status' => ucfirst($enrollment->payment_status),
+        ]);
     }
 
     /**

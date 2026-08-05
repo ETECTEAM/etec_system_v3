@@ -2,6 +2,10 @@
 
 namespace App\Modules\Website\Requests;
 
+use App\Models\Student;
+use App\Models\StudentEnrollment;
+use App\Models\StudyClass;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,7 +22,28 @@ class RegisterClassRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['required', 'string', Rule::in(['male', 'female'])],
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => [
+                'required', 'string', 'max:20',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    $studyClass = $this->route('studyClass');
+
+                    if (! $studyClass instanceof StudyClass) {
+                        return;
+                    }
+
+                    $userIds = Student::query()->where('phone', $value)->pluck('user_id');
+
+                    $alreadyRegistered = StudentEnrollment::query()
+                        ->where('study_class_id', $studyClass->id)
+                        ->where('enrollment_status', 'active')
+                        ->whereIn('student_id', $userIds)
+                        ->exists();
+
+                    if ($alreadyRegistered) {
+                        $fail('This phone number is already registered for this class.');
+                    }
+                },
+            ],
         ];
     }
 }

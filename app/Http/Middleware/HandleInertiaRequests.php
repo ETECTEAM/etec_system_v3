@@ -54,6 +54,10 @@ class HandleInertiaRequests extends Middleware
                 'error' => $request->session()->get('error'),
                 'warning' => $request->session()->get('warning'),
                 'info' => $request->session()->get('info'),
+                // Set alongside 'success' by flows that need the client to act on the
+                // created record right after redirect (e.g. the public class
+                // registration flow opening its payment-polling modal).
+                'enrollment_id' => $request->session()->get('enrollment_id'),
                 // Seconds until a throttle block lifts - lets the triggering form
                 // disable its submit button and count down instead of just erroring.
                 'retryAfter' => $request->session()->get('retryAfter'),

@@ -1,9 +1,12 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useForm, usePage } from "@inertiajs/vue3";
 import axios from "axios";
-import { Search, CalendarDays, Clock, MapPin, X } from "@lucide/vue";
+import { useToast } from "vue-toastification";
+import { Search, CalendarDays, Clock, MapPin, CheckCircle2, Loader2, X } from "@lucide/vue";
 import FrontendFooter from "@/components/frontend/FrontendFooter.vue";
+
+const toast = useToast();
 
 const props = defineProps({
   classes: {
@@ -115,12 +118,25 @@ function priceLabel(cls) {
 }
 
 const registerModalOpen = ref(false);
+const showPendingModal = ref(false);
+const pendingName = ref("");
+const pendingPhone = ref("");
+const pendingClassTitle = ref("");
 const activeRegisterClass = ref(null);
 const registerForm = useForm({
   name: "",
   gender: "",
   phone: "",
 });
+
+const REGISTRATION_STORAGE = {
+  id: "active_registration_id",
+  name: "active_registration_name",
+  phone: "active_registration_phone",
+  classTitle: "active_registration_class_title",
+};
+
+let paymentPollTimer = null;
 
 function openRegisterModal(cls) {
   activeRegisterClass.value = cls;
@@ -135,11 +151,98 @@ function closeRegisterModal() {
 }
 
 function submitRegister() {
+  const classTitle = activeRegisterClass.value?.title ?? "";
+  const name = registerForm.name;
+  const phone = registerForm.phone;
+
   registerForm.post(`/classes/${activeRegisterClass.value.id}/register`, {
     preserveScroll: true,
-    onSuccess: () => closeRegisterModal(),
+    onSuccess: () => {
+      closeRegisterModal();
+
+      const enrollmentId = inertiaPage.props.flash?.enrollment_id;
+
+      if (enrollmentId) {
+        localStorage.setItem(REGISTRATION_STORAGE.id, String(enrollmentId));
+        localStorage.setItem(REGISTRATION_STORAGE.name, name);
+        localStorage.setItem(REGISTRATION_STORAGE.phone, phone);
+        localStorage.setItem(REGISTRATION_STORAGE.classTitle, classTitle);
+        openPendingModal(enrollmentId, name, phone, classTitle);
+      }
+    },
   });
 }
+
+function stopPaymentPolling() {
+  if (paymentPollTimer) {
+    window.clearInterval(paymentPollTimer);
+    paymentPollTimer = null;
+  }
+}
+
+async function pollPaymentStatus(enrollmentId) {
+  try {
+    const response = await axios.get(`/public/enrollments/${enrollmentId}/status`);
+
+    if (response.data?.payment_status === "Paid") {
+      stopPaymentPolling();
+      localStorage.removeItem(REGISTRATION_STORAGE.id);
+      localStorage.removeItem(REGISTRATION_STORAGE.name);
+      localStorage.removeItem(REGISTRATION_STORAGE.phone);
+      localStorage.removeItem(REGISTRATION_STORAGE.classTitle);
+      showPendingModal.value = false;
+      document.body.classList.remove("overflow-hidden");
+      toast.success("Payment confirmed! Your class registration is active.");
+    }
+  } catch {
+    // Transient polling failures must not unlock the modal; retry next tick.
+  }
+}
+
+function startPaymentPolling(enrollmentId) {
+  stopPaymentPolling();
+  pollPaymentStatus(enrollmentId);
+  paymentPollTimer = window.setInterval(() => {
+    pollPaymentStatus(enrollmentId);
+  }, 3000);
+}
+
+function openPendingModal(enrollmentId, name, phone, classTitle) {
+  pendingName.value = name;
+  pendingPhone.value = phone;
+  pendingClassTitle.value = classTitle;
+  showPendingModal.value = true;
+  document.body.classList.add("overflow-hidden");
+  startPaymentPolling(enrollmentId);
+}
+
+function onKeydown(event) {
+  if (event.key === "Escape" && showPendingModal.value) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}
+
+onMounted(() => {
+  window.addEventListener("keydown", onKeydown, true);
+
+  const storedId = localStorage.getItem(REGISTRATION_STORAGE.id);
+
+  if (storedId) {
+    openPendingModal(
+      storedId,
+      localStorage.getItem(REGISTRATION_STORAGE.name) ?? "",
+      localStorage.getItem(REGISTRATION_STORAGE.phone) ?? "",
+      localStorage.getItem(REGISTRATION_STORAGE.classTitle) ?? "",
+    );
+  }
+});
+
+onUnmounted(() => {
+  stopPaymentPolling();
+  window.removeEventListener("keydown", onKeydown, true);
+  document.body.classList.remove("overflow-hidden");
+});
 </script>
 
 <template>
@@ -309,6 +412,39 @@ function submitRegister() {
               {{ registerForm.processing ? "Registering..." : "Register" }}
             </button>
           </form>
+        </div>
+      </div>
+    </transition>
+
+    <transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
+      <div v-if="showPendingModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-live="assertive">
+        <div class="w-full max-w-md rounded-[2rem] bg-white p-8 text-center shadow-2xl">
+          <div class="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-50">
+            <CheckCircle2 class="h-9 w-9 text-emerald-500" />
+          </div>
+
+          <h3 class="mt-5 text-2xl font-black text-slate-900">Registration Received!</h3>
+          <p class="mt-3 text-base font-medium text-slate-600">Please complete your payment with the admin at the counter. This window will unlock automatically once payment is confirmed.</p>
+
+          <div class="mt-6 rounded-2xl bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-600">
+            <p class="flex items-center justify-between gap-4">
+              <span class="text-slate-400">Name</span>
+              <span class="truncate text-slate-800">{{ pendingName || "—" }}</span>
+            </p>
+            <p class="mt-2 flex items-center justify-between gap-4">
+              <span class="text-slate-400">Class</span>
+              <span class="truncate text-slate-800">{{ pendingClassTitle || "—" }}</span>
+            </p>
+            <p class="mt-2 flex items-center justify-between gap-4">
+              <span class="text-slate-400">Phone Number</span>
+              <span class="text-slate-800">{{ pendingPhone || "—" }}</span>
+            </p>
+          </div>
+
+          <div class="mt-6 flex items-center justify-center gap-2 text-sm font-bold text-[#1A66FF]">
+            <Loader2 class="h-4 w-4 animate-spin" />
+            <span>Waiting for admin payment confirmation...</span>
+          </div>
         </div>
       </div>
     </transition>
