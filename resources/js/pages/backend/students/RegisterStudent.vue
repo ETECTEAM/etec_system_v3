@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { router, useForm } from "@inertiajs/vue3";
 import { ArrowLeft, Save, UserPlus } from "@lucide/vue";
 import { SelectSearch } from "@/components/ui/select-search";
@@ -54,16 +54,6 @@ const courseOptions = computed(() =>
 
 const selectedCourse = computed(() =>
   props.courses.find((course) => String(course.id) === String(form.course_id))
-);
-
-// Price and document price default from the course but stay editable —
-// e.g. for a discount, or a course where the document fee is waived.
-watch(
-  () => form.course_id,
-  () => {
-    form.price = selectedCourse.value?.price ?? "";
-    form.document_price = selectedCourse.value?.document_price ?? 0;
-  }
 );
 
 const totalFee = computed(() => Math.round((Number(form.price || 0) + Number(form.document_price || 0)) * 100) / 100);

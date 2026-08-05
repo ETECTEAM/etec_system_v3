@@ -54,7 +54,7 @@ docker compose up -d --build
 docker compose run --rm app composer install
 docker compose run --rm app npm install
 docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate
+docker compose exec app php artisan migrate --seed
 ```
 
 ### macOS (Terminal)
@@ -65,7 +65,7 @@ docker compose up -d --build
 docker compose run --rm app composer install
 docker compose run --rm app npm install
 docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate
+docker compose exec app php artisan migrate --seed
 ```
 
 ### Linux (Terminal)
@@ -76,7 +76,7 @@ docker compose up -d --build
 docker compose run --rm app composer install
 docker compose run --rm app npm install
 docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate
+docker compose exec app php artisan migrate --seed
 ```
 
 ## Setup Without Docker
@@ -118,18 +118,14 @@ composer install
 npm install
 ```
 
-### 5. Generate app key and run migrations
+### 5. Generate app key and run migrations with seeders
 
 ```bash
 php artisan key:generate
-php artisan migrate
+php artisan migrate --seed
 ```
 
-If you need seed data:
-
-```bash
-php artisan db:seed
-```
+> **Note**: Always use `migrate --seed` (or `migrate:fresh --seed`) when pulling new updates so default categories, tracks, and courses are populated properly.
 
 ### 6. Start the project
 
@@ -166,7 +162,14 @@ Optional queue worker in another terminal:
 php artisan queue:listen --tries=1 --timeout=0
 ```
 
-## Daily Commands (All OS)
+## Daily Commands & Pulling Code (With Docker)
+
+Pull latest changes:
+
+```bash
+git pull origin dev
+docker compose exec app php artisan migrate --seed
+```
 
 Start:
 
@@ -186,13 +189,20 @@ Run tests:
 docker compose exec app php artisan test
 ```
 
-Run migrations:
+Run migrations with seeders:
 
 ```bash
-docker compose exec app php artisan migrate
+docker compose exec app php artisan migrate --seed
 ```
 
-## Daily Commands Without Docker
+## Daily Commands & Pulling Code (Without Docker)
+
+Pull latest changes:
+
+```bash
+git pull origin dev
+php artisan migrate --seed
+```
 
 Start Laravel:
 
@@ -218,10 +228,10 @@ Run tests:
 php artisan test
 ```
 
-Run migrations:
+Run migrations with seeders:
 
 ```bash
-php artisan migrate
+php artisan migrate --seed
 ```
 
 ## Access Services

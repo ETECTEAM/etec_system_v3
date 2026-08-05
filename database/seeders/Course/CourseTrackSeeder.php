@@ -23,12 +23,40 @@ class CourseTrackSeeder extends Seeder
 
         $tracks = [
             [
-                'sub_category_id' => $this->getSubCategoryId('Web Development'),
-                'name' => 'Frontend'
+                'sub_category_id' => $this->getSubCategoryId('Programming Fundamentals'),
+                'name' => 'Basic Code'
             ],
             [
                 'sub_category_id' => $this->getSubCategoryId('Web Development'),
-                'name' => 'Backend'
+                'name' => 'Web Full-Stack Course'
+            ],
+            [
+                'sub_category_id' => $this->getSubCategoryId('Programming Fundamentals'),
+                'name' => 'Enterprise Java Development'
+            ],
+            [
+                'sub_category_id' => $this->getSubCategoryId('Mobile Development'),
+                'name' => 'Mobile App Course'
+            ],
+            [
+                'sub_category_id' => $this->getSubCategoryId('Desktop Development'),
+                'name' => 'Desktop App Course'
+            ],
+            [
+                'sub_category_id' => $this->getSubCategoryId('Graphic & UI/UX Design'),
+                'name' => 'Graphic Design Course'
+            ],
+            [
+                'sub_category_id' => $this->getSubCategoryId('Network & Systems'),
+                'name' => 'Network Course'
+            ],
+            [
+                'sub_category_id' => $this->getSubCategoryId('Web Development'),
+                'name' => 'Frontend Course'
+            ],
+            [
+                'sub_category_id' => $this->getSubCategoryId('Web Development'),
+                'name' => 'Backend Course'
             ],
         ];
 
@@ -46,12 +74,14 @@ class CourseTrackSeeder extends Seeder
             }
             $usedSlugs[] = $slug;
 
-            CourseTrack::create([
-                'sub_category_id' => $track['sub_category_id'],
-                'name' => $track['name'],
-                'slug' => $slug,
-                'status' => 'active'
-            ]);
+            CourseTrack::updateOrCreate(
+                ['name' => $track['name']],
+                [
+                    'sub_category_id' => $track['sub_category_id'],
+                    'slug' => $slug,
+                    'status' => 'active'
+                ]
+            );
         }
     }
 

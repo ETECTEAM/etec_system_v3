@@ -106,7 +106,6 @@
                                 <TableHead>{{ $t('Category') }}</TableHead>
                                 <TableHead>{{ $t('Sub Category') }}</TableHead>
                                 <TableHead>{{ $t('Track') }}</TableHead>
-                                <TableHead>{{ $t('Price') }}</TableHead>
                                 <TableHead>{{ $t('Certificate') }}</TableHead>
                                 <TableHead>{{ $t('Status') }}</TableHead>
                                 <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
@@ -143,9 +142,6 @@
                                 </TableCell>
                                 <TableCell>
                                     <span class="text-sm text-slate-600 dark:text-gray-300">{{ course.track?.name || $t('N/A') }}</span>
-                                </TableCell>
-                                <TableCell>
-                                    <span class="text-sm font-semibold text-slate-900 dark:text-gray-100">${{ parseFloat(course.price || 0).toFixed(2) }}</span>
                                 </TableCell>
                                 <TableCell>
                                     <span class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium"

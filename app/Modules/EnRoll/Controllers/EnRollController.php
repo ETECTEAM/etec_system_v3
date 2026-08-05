@@ -286,7 +286,7 @@ class EnRollController extends Controller
     private function classFormProps(?ScheduleClass $class = null): array
     {
         $options = [
-            'courses' => Course::query()->select('id', 'title', 'price')->orderBy('title')->get(),
+            'courses' => Course::query()->select('id', 'title')->orderBy('title')->get(),
             'lessons' => $class?->course_id ? $this->lessonsForCourse($class->course_id) : [],
             'buildings' => Building::query()->select('id', 'name')->orderBy('name')->get(),
             'floors' => $class?->building_id ? $this->floorsForBuilding($class->building_id) : [],

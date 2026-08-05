@@ -26,15 +26,13 @@ class SaveStudyClassRequest extends FormRequest
             ? Room::query()->find($this->input('room_id'))
             : null;
 
-        $basePrice = $this->filled('price') ? $this->input('price') : $course?->price;
-        $baseDocumentPrice = $this->filled('document_price') ? $this->input('document_price') : $course?->document_price;
         $lessonId = $this->validLessonId();
 
         $this->merge([
             'title' => $course?->title ?? $this->input('title'),
             'lesson_id' => $lessonId,
-            'price' => $basePrice !== null ? round((float) $basePrice, 2) : null,
-            'document_price' => $baseDocumentPrice !== null ? round((float) $baseDocumentPrice, 2) : 0,
+            'price' => $this->filled('price') ? round((float) $this->input('price'), 2) : null,
+            'document_price' => $this->filled('document_price') ? round((float) $this->input('document_price'), 2) : 0,
             'capacity' => $this->input('class_type') === 'physical'
                 ? ($room?->capacity ?? $this->input('capacity'))
                 : $this->input('capacity'),

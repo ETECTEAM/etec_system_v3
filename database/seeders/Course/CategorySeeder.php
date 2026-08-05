@@ -21,18 +21,19 @@ class CategorySeeder extends Seeder
 
         $categories = [
             'Programming',
-            'Cybersecurity',
+            'Graphic Design',
             'Networking',
+            'Cybersecurity',
             'Internship',
             'Maintenance',
             'Computer Basic'
         ];
 
         foreach ($categories as $category) {
-            Category::create([
-                'name' => $category,
-                'status' => 'active'
-            ]);
+            Category::updateOrCreate(
+                ['name' => $category],
+                ['status' => 'active']
+            );
         }
     }
 }

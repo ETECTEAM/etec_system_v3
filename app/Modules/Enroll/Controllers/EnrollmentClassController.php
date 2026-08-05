@@ -117,7 +117,7 @@ class EnrollmentClassController extends Controller
     public function createRegisteredStudent(GetClassFormOptions $options): Response
     {
         return Inertia::render('backend/students/RegisterStudent', [
-            'courses' => Course::query()->select('id', 'title', 'price', 'document_price')->orderBy('title')->get(),
+            'courses' => Course::query()->select('id', 'title')->orderBy('title')->get(),
             'scheduleGroups' => $options->scheduleGroups(),
         ]);
     }

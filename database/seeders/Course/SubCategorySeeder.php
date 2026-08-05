@@ -22,7 +22,11 @@ class SubCategorySeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
         
         $subCategories = [
-            // Programming
+            // Programming Category
+            [
+                'category_id' => $this->getCategoryId('Programming'),
+                'name' => 'Programming Fundamentals'
+            ],
             [
                 'category_id' => $this->getCategoryId('Programming'),
                 'name' => 'Web Development'
@@ -30,6 +34,20 @@ class SubCategorySeeder extends Seeder
             [
                 'category_id' => $this->getCategoryId('Programming'),
                 'name' => 'Mobile Development'
+            ],
+            [
+                'category_id' => $this->getCategoryId('Programming'),
+                'name' => 'Desktop Development'
+            ],
+            // Graphic Design Category
+            [
+                'category_id' => $this->getCategoryId('Graphic Design'),
+                'name' => 'Graphic & UI/UX Design'
+            ],
+            // Networking Category
+            [
+                'category_id' => $this->getCategoryId('Networking'),
+                'name' => 'Network & Systems'
             ],
         ];
 
@@ -47,12 +65,14 @@ class SubCategorySeeder extends Seeder
             }
             $usedSlugs[] = $slug;
             
-            SubCategory::create([
-                'category_id' => $subCategory['category_id'],
-                'name' => $subCategory['name'],
-                'slug' => $slug,
-                'status' => 'active'
-            ]);
+            SubCategory::updateOrCreate(
+                ['name' => $subCategory['name']],
+                [
+                    'category_id' => $subCategory['category_id'],
+                    'slug' => $slug,
+                    'status' => 'active'
+                ]
+            );
         }
     }
 

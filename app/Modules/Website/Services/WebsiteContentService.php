@@ -213,7 +213,6 @@ class WebsiteContentService
             'description' => $course->description,
             'level' => $course->level,
             'duration' => $course->duration,
-            'price' => $course->price,
             'language' => $course->language,
             'certificate_available' => $course->certificate_available,
             'thumbnail' => null,
@@ -273,7 +272,7 @@ class WebsiteContentService
         /** @var LengthAwarePaginator $paginator */
         $query = StudyClass::query()
             ->with([
-                'course:id,title,price,thumbnail',
+                'course:id,title,thumbnail',
                 'teacher:id,name',
                 'room.floor.building',
             ])

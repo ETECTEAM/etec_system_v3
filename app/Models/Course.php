@@ -17,8 +17,6 @@ class Course extends Model
         'description',
         'level',
         'duration',
-        'price',
-        'document_price',
         'thumbnail',
         'language',
         'certificate_available',
@@ -28,8 +26,6 @@ class Course extends Model
     protected $casts = [
         'certificate_available' => 'boolean',
         'duration' => 'integer',
-        'price' => 'decimal:2',
-        'document_price' => 'decimal:2',
     ];
 
     public function track()

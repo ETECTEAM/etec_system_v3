@@ -37,7 +37,7 @@ class GetClassList
                 'end_date',
             ])
             ->with([
-                'course:id,title,price,document_price',
+                'course:id,title',
                 'lesson:id,course_id,title',
                 'teacher:id,name',
                 'room:id,floor_id,room_number',

@@ -321,8 +321,6 @@ watch(
     lessons.value = [];
     const course = options.value.courses.find((item) => String(item.id) === String(courseId));
     form.title = course?.title ?? "";
-    form.price = course?.price ?? "";
-    form.document_price = course?.document_price ?? 0;
 
     if (!courseId) return;
 
