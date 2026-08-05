@@ -20,18 +20,22 @@ POST /classes/{studyClass}/register    -> throttle:5,10 per IP
        -> create StudentEnrollment (source: public_website)
        -> create a dashboard Notification (type: class_registration)
   -> NotificationsUpdated dispatched (dashboard badge/list refetch)
-  -> redirect back with a flash success message
-  -> frontend closes the form modal and opens the payment-notice modal
+  -> redirect back with flash success message + enrollment_id
+  -> frontend closes the form modal and opens a LOCKED payment-polling modal
+       -> polls GET /public/enrollments/{enrollment}/status every 3s
+       -> auto-closes once payment_status is "Paid"
 
 Admin follow-up (no approval step — the enrollment is already active):
   Dashboard "Registrations" tab -> GetPublicRegistrations query
   -> admin collects payment via POST /dashboard/enroll/enrollments/{enrollment}/deposit
+       -> this is what flips payment_status to "paid" and unlocks the poller above
 ```
 
 There is no approval/verification step here, unlike the instructor flow — the
 account and enrollment are created active immediately. The only thing still
 "pending" afterward is payment, which is why the registration form is followed by
-a success modal asking the student to confirm payment with the admin office.
+a **locked** modal (no close button, no outside-click/Escape dismissal) that only
+goes away once an admin records the payment.
 
 ## Step 1 — Browsing and the registration form
 
@@ -50,12 +54,8 @@ The route is rate-limited with `throttle:5,10` (`routes/web/frontend/class_data.
 — 5 submissions per 10 minutes per IP — so the public, unauthenticated endpoint
 can't be spammed.
 
-On a successful submit the frontend closes the registration form modal and opens a
-**Success / Payment Notice modal** (`showSuccessModal` in `Index.vue`): a
-"Registration Received!" heading with a success icon, a line telling the student
-their seat is reserved and to confirm payment with the admin office, bullets
-explaining the admin will call their phone or they can visit the school office, and
-a "Got it, thanks!" button that closes it.
+On a successful submit the frontend closes the registration form modal and opens
+the locked payment-polling modal described in Step 4.
 
 ## Step 2 — Validation
 
@@ -108,10 +108,10 @@ After the transaction commits, `NotificationsUpdated::dispatch()` fires so any o
 dashboard refetches the notification feed — see `docs/notification-workflow.md` for
 how that broadcast/refetch mechanism works generally.
 
-The controller then redirects back with a flash `success` message; the frontend
-closes the form modal and opens the payment-notice modal on success
-(`onSuccess: () => { closeRegisterModal(); showSuccessModal = true }` in
-`Index.vue`).
+`PublicPageController::registerForClass` redirects back with
+`->with(['success' => ..., 'enrollment_id' => $enrollment->id])` — see Step 4 for
+why `enrollment_id` specifically has to be flashed (not just `success`), and how
+the frontend picks it up.
 
 ### Related but different: the QR self-registration flow
 
@@ -122,7 +122,7 @@ The differences that matter:
 
 - QR flow leaves `source` `null`; this flow tags `public_website`. That tag is the
   only thing that makes a registration show up in the dashboard's "Registrations"
-  tab (Step 4) — a QR signup does not appear there.
+  tab (Step 6) — a QR signup does not appear there.
 - This flow raises a `Notification` + `NotificationsUpdated` broadcast; the QR flow
   raises neither, so nothing pings the dashboard live for a QR signup.
 - This flow rejects duplicate phones (request rule + in-lock re-check) and reuses an
@@ -133,7 +133,62 @@ The differences that matter:
 If you're changing one of these two actions, check whether the other needs the same
 change.
 
-## Step 4 — The notification is informational only, not actionable
+## Step 4 — The locked payment-polling modal
+
+### The `enrollment_id` flash gotcha
+
+`redirect()->back()->with([...])` flashes arbitrary session keys, but Inertia only
+exposes what `HandleInertiaRequests::share()` explicitly puts on the `flash` shared
+prop — it's a hand-curated array (`success`, `error`, `warning`, `info`,
+`retryAfter`, `isHardBlock`), not a passthrough of the whole session. `enrollment_id`
+had to be added there too (`app/Http/Middleware/HandleInertiaRequests.php:60`); without
+it, the controller flashes the value correctly but `inertiaPage.props.flash.enrollment_id`
+is silently `undefined` on the client and the modal never opens. Any future flow that
+needs a controller-flashed value read from an Inertia redirect needs the same
+addition — the middleware won't forward it automatically.
+
+### Opening the modal
+
+`submitRegister()` in `Index.vue` reads `inertiaPage.props.flash?.enrollment_id` in
+the form's `onSuccess` callback, then:
+
+- Saves `enrollment_id`, `name`, `phone`, and the class title to `localStorage`
+  (`REGISTRATION_STORAGE.*` keys) so the pending state survives a page refresh.
+- Calls `openPendingModal()`, which sets `showPendingModal = true`, adds
+  `overflow-hidden` to `<body>`, and starts polling.
+
+The modal shows a "Registration Received!" heading, the student's **Name**,
+**Class**, and **Phone Number**, and a spinner labeled "Waiting for admin payment
+confirmation...". It is deliberately **not dismissible**: the backdrop has no
+`@click.self` close handler, and a capture-phase `keydown` listener
+(`onKeydown` in `Index.vue`) swallows Escape while `showPendingModal` is true.
+
+### Polling
+
+`startPaymentPolling()` calls `pollPaymentStatus()` immediately, then every 3000ms
+via `setInterval`. Each call hits `GET /public/enrollments/{enrollment}/status`
+(`PublicPageController::enrollmentStatus`, public route in
+`routes/web/frontend/class_data.php` — no auth required, returns only
+`{ payment_status }`) and compares the result to the literal string `"Paid"`. That
+string comes from `ucfirst($enrollment->payment_status)`, so it only matches once
+`RecordEnrollmentDeposit::paymentStatus()` (Step 6) has set the underlying column to
+`'paid'` — a `'partial'` deposit does not unlock the modal. A failed poll request is
+swallowed silently (network hiccup, etc.) rather than unlocking the modal, and the
+loop just retries on the next tick.
+
+Once matched: polling stops, the three `localStorage` keys are cleared, the modal
+closes, `overflow-hidden` is removed from `<body>`, and a success toast fires.
+
+### Surviving a refresh
+
+`onMounted()` checks `localStorage` for a stored `active_registration_id` on every
+page load. If one is found (i.e. the browser has a payment still pending from an
+earlier visit), it immediately reopens the modal and restarts polling with the
+saved name/phone/class title — this is what actually enforces the lock, since
+without it a refresh would be a trivial way to dismiss the modal before payment is
+confirmed.
+
+## Step 5 — The notification is informational only, not actionable
 
 `class_registration` notifications show up in the bell/popup and
 `/dashboard/notifications` like any other, but they carry no Approve/Reject
@@ -142,9 +197,9 @@ buttons: `NotificationController::approvalStatusFor()`
 `null` for any type other than `instructor_approval`, and `resolve()` (backing the
 approve/reject endpoints) explicitly rejects acting on any notification whose type
 isn't `instructor_approval`. So this notification is just a heads-up — the real
-follow-up workflow is Step 5.
+follow-up workflow is Step 6.
 
-## Step 5 — Admin follow-up: the "Registrations" tab
+## Step 6 — Admin follow-up: the "Registrations" tab
 
 `resources/js/pages/backend/students/ClassList.vue` has a `registrations` view mode
 that calls `GET /dashboard/enroll/registrations/data`
@@ -163,7 +218,9 @@ collecting payment via `POST
 `payment_status` on the enrollment. The tab's unpaid count badge
 (`registrations.value.filter(row => row.payment_status !== "Paid").length`) is
 purely a client-side count of what's already loaded — it's not a separate
-server-computed metric.
+server-computed metric. This deposit call is the only thing that can move
+`payment_status` to `'paid'` — which is exactly what the registrant's own browser
+is polling for in Step 4.
 
 ## Summary
 
@@ -172,10 +229,11 @@ server-computed metric.
 | Browse | `PublicPageController::classes` | Public, filterable class listing |
 | Submit | `RegisterClassRequest` | Validates name/gender/phone (duplicate-phone rule), `throttle:5,10`, no auth required |
 | Create | `RegisterClassStudent` | Locks class, checks capacity, re-checks duplicate phone, reuses or creates Student, creates StudentEnrollment (`source: public_website`), raises a `Notification` |
+| Lock | `Index.vue` payment-polling modal | Closes the form, opens a non-dismissible modal, polls `GET /public/enrollments/{id}/status` every 3s, survives refresh via `localStorage` |
 | Notify | `NotificationsUpdated` | Live-refetches the dashboard notification feed (informational only — no approve/reject) |
-| Confirm | `Index.vue` success modal | Closes the form, shows "Registration Received!" payment-notice, closes on "Got it, thanks!" |
-| Follow up | `GetPublicRegistrations` + deposit endpoint | Admin views/collects payment on public registrations from the "Registrations" tab |
+| Follow up | `GetPublicRegistrations` + deposit endpoint | Admin views/collects payment on public registrations from the "Registrations" tab — this is what unlocks the modal above |
 
 Unlike the instructor flow, there is exactly one path through this one — no OTP, no
 approval branching, no Telegram. The only asynchronous part is payment collection,
-which happens entirely outside this flow.
+which happens entirely outside this flow, bridged back to the registrant's browser
+by the 3-second poll.
