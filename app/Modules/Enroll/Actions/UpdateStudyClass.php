@@ -2,6 +2,7 @@
 
 namespace App\Modules\Enroll\Actions;
 
+use App\Models\ClassType;
 use App\Models\Course;
 use App\Models\Room;
 use App\Models\StudyClass;
@@ -14,8 +15,9 @@ class UpdateStudyClass
         return DB::transaction(function () use ($studyClass, $data): StudyClass {
             $course = Course::query()->find($data['course_id']);
             $room = isset($data['room_id']) ? Room::query()->find($data['room_id']) : null;
+            $online = $this->isOnline($data['class_type_id'] ?? null);
 
-            if (($data['class_type'] ?? null) === 'online') {
+            if ($online) {
                 $data['room_id'] = null;
             }
 
@@ -25,12 +27,11 @@ class UpdateStudyClass
                 'lesson_id' => $data['lesson_id'] ?? null,
                 'teacher_id' => $data['teacher_id'] ?? null,
                 'room_id' => $data['room_id'] ?? null,
-                'class_type' => $data['class_type'],
+                'class_type_id' => $data['class_type_id'] ?? null,
+                'term_id' => $data['term_id'] ?? null,
+                'time_id' => $data['time_id'] ?? null,
                 'status' => $data['status'],
-                'study_days' => $data['study_days'],
-                'start_time' => $data['start_time'],
-                'end_time' => $data['end_time'],
-                'capacity' => ($data['class_type'] ?? null) === 'physical' ? ($room?->capacity ?? $data['capacity']) : $data['capacity'],
+                'capacity' => $online ? $data['capacity'] : ($room?->capacity ?? $data['capacity']),
                 'price' => $data['price'],
                 'document_price' => $data['document_price'] ?? 0,
                 'enrollment_start_date' => $data['enrollment_start_date'] ?? null,
@@ -40,5 +41,12 @@ class UpdateStudyClass
 
             return $studyClass;
         });
+    }
+
+    private function isOnline(mixed $classTypeId): bool
+    {
+        return $classTypeId
+            ? ClassType::query()->find($classTypeId)?->isOnline() ?? false
+            : false;
     }
 }

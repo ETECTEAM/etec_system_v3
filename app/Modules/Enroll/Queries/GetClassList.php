@@ -24,11 +24,10 @@ class GetClassList
                 'lesson_id',
                 'teacher_id',
                 'room_id',
-                'class_type',
+                'class_type_id',
+                'term_id',
+                'time_id',
                 'status',
-                'study_days',
-                'start_time',
-                'end_time',
                 'capacity',
                 'price',
                 'document_price',
@@ -43,6 +42,9 @@ class GetClassList
                 'room:id,floor_id,room_number',
                 'room.floor:id,building_id,name,level',
                 'room.floor.building:id,name',
+                'classType:class_type_id,type_name',
+                'term:id,term_name',
+                'time:id,time_name',
             ])
             ->withCount([
                 'enrollments as current_students' => fn (Builder $query) => $query->where('enrollment_status', 'active'),
@@ -79,8 +81,10 @@ class GetClassList
         $capacity = (int) $studyClass->capacity;
         $availableSeats = max($capacity - $currentStudents, 0);
         $filledPercentage = $capacity > 0 ? round(($currentStudents / $capacity) * 100, 2) : 0;
-        $studyDays = $studyClass->study_days ?? [];
-        $classTypeLabel = $studyClass->class_type === 'online' ? 'Online Class' : 'Physical Class';
+        $studyDays = $studyClass->scheduleStudyDays();
+        $classTypeValue = $studyClass->classTypeValue();
+        $classTypeLabel = $studyClass->classType?->type_name
+            ?? ($classTypeValue === 'online' ? 'Online Class' : 'Physical Class');
 
         return [
             'id' => $studyClass->id,
@@ -92,17 +96,17 @@ class GetClassList
             'teacher' => $studyClass->teacher?->name ?? '-',
             'building' => $studyClass->room?->floor?->building?->name ?? '-',
             'floor' => $studyClass->room?->floor?->name ?? '-',
-            'room' => $studyClass->room?->room_number ?? ($studyClass->class_type === 'online' ? 'Online' : '-'),
-            'class_type' => $studyClass->class_type,
+            'room' => $studyClass->room?->room_number ?? ($studyClass->isOnline() ? 'Online' : '-'),
+            'class_type' => $classTypeValue,
             'class_type_label' => $classTypeLabel,
             'status' => $classTypeLabel,
             'class_status' => $studyClass->status,
             'class_status_label' => str_replace('_', ' ', ucfirst($studyClass->status)),
             'study_days' => $studyDays,
             'term' => $this->termLabel($studyDays),
-            'start_time' => $this->formatTime($studyClass->start_time),
-            'end_time' => $this->formatTime($studyClass->end_time),
-            'time' => $this->formatTime($studyClass->start_time).' - '.$this->formatTime($studyClass->end_time),
+            'start_time' => $this->formatTime($studyClass->scheduleStartTime()),
+            'end_time' => $this->formatTime($studyClass->scheduleEndTime()),
+            'time' => $this->formatTime($studyClass->scheduleStartTime()).' - '.$this->formatTime($studyClass->scheduleEndTime()),
             'capacity' => $capacity,
             'price' => (float) $studyClass->price,
             'document_price' => (float) $studyClass->document_price,

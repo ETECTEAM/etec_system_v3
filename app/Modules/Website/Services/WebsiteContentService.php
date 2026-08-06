@@ -266,6 +266,9 @@ class WebsiteContentService
                 'course:id,title,thumbnail',
                 'teacher:id,name',
                 'room.floor.building',
+                'classType:class_type_id,type_name',
+                'term:id,term_name',
+                'time:id,time_name',
             ])
             ->withCount([
                 'enrollments as current_students' => fn ($query) => $query->where('enrollment_status', 'active'),
@@ -280,7 +283,7 @@ class WebsiteContentService
         }
 
         if ($classType = trim((string) ($filters['class_type'] ?? ''))) {
-            $query->where('class_type', $classType);
+            $query->whereHas('classType', fn ($typeQuery) => $typeQuery->where('type_name', 'like', "%{$classType}%"));
         }
 
         $paginator = $query
@@ -318,17 +321,19 @@ class WebsiteContentService
         $capacity = (int) $studyClass->capacity;
         $currentStudents = (int) ($studyClass->current_students ?? 0);
         $availableSeats = max($capacity - $currentStudents, 0);
+        $classTypeValue = $studyClass->classTypeValue();
 
         return [
             'id' => $studyClass->id,
             'title' => $studyClass->title,
             'course_title' => $studyClass->course?->title,
             'course_thumbnail_url' => $this->publicImageDataUri($studyClass->course?->thumbnail),
-            'class_type' => $studyClass->class_type,
-            'class_type_label' => $studyClass->class_type === 'online' ? 'Online Class' : 'Physical Class',
-            'study_days' => $studyClass->study_days ?? [],
-            'start_time' => $this->formatTime($studyClass->start_time),
-            'end_time' => $this->formatTime($studyClass->end_time),
+            'class_type' => $classTypeValue,
+            'class_type_label' => $studyClass->classType?->type_name
+                ?? ($classTypeValue === 'online' ? 'Online Class' : 'Physical Class'),
+            'study_days' => $studyClass->scheduleStudyDays(),
+            'start_time' => $this->formatTime($studyClass->scheduleStartTime()),
+            'end_time' => $this->formatTime($studyClass->scheduleEndTime()),
             'price' => (float) $studyClass->price,
             'document_price' => (float) $studyClass->document_price,
             'capacity' => $capacity,
@@ -340,7 +345,7 @@ class WebsiteContentService
             'start_date' => optional($studyClass->start_date)->format('Y-m-d'),
             'end_date' => optional($studyClass->end_date)->format('Y-m-d'),
             'teacher_name' => $studyClass->teacher?->name,
-            'location' => $studyClass->class_type === 'online'
+            'location' => $studyClass->isOnline()
                 ? 'Online'
                 : (trim(implode(', ', array_filter([
                     $studyClass->room?->floor?->building?->name,

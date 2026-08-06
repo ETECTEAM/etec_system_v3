@@ -53,6 +53,12 @@ class EnrollmentClassController extends Controller
     {
         $createStudyClass->handle($request->validated());
 
+        // "Save & Copy": keep the user on the create form (front end preserves its state)
+        // so they can duplicate the class with a different term/time/teacher.
+        if ($request->boolean('create_another')) {
+            return redirect()->route('enroll.create')->with('success', 'Class created. Adjust the details and save again to create another.');
+        }
+
         return redirect()->route('enroll.index')->with('success', 'Class created successfully.');
     }
 
@@ -68,7 +74,12 @@ class EnrollmentClassController extends Controller
     {
         $this->ensureInstructorOwnsClass($studyClass);
 
-        $studyClass->load(['room.floor.building']);
+        $studyClass->load([
+            'room.floor.building',
+            'classType:class_type_id,type_name',
+            'term:id,term_name',
+            'time:id,time_name',
+        ]);
 
         return Inertia::render('backend/students/EditClass', [
             'classData' => [
@@ -83,7 +94,12 @@ class EnrollmentClassController extends Controller
     {
         $this->ensureInstructorOwnsClass($studyClass);
 
-        $studyClass->load(['room.floor.building']);
+        $studyClass->load([
+            'room.floor.building',
+            'classType:class_type_id,type_name',
+            'term:id,term_name',
+            'time:id,time_name',
+        ]);
 
         return Inertia::render('backend/students/CreateClass', [
             'classData' => $this->presentClassData($studyClass),
@@ -249,11 +265,14 @@ class EnrollmentClassController extends Controller
             'building_id' => $studyClass->room?->floor?->building?->id,
             'floor_id' => $studyClass->room?->floor?->id,
             'room_id' => $studyClass->room_id,
-            'class_type' => $studyClass->class_type,
+            'class_type_id' => $studyClass->class_type_id,
+            'term_id' => $studyClass->term_id,
+            'time_id' => $studyClass->time_id,
+            'class_type' => $studyClass->classTypeValue(),
             'status' => $studyClass->status,
-            'study_days' => $studyClass->study_days ?? [],
-            'start_time' => $this->formatTime($studyClass->start_time),
-            'end_time' => $this->formatTime($studyClass->end_time),
+            'study_days' => $studyClass->scheduleStudyDays(),
+            'start_time' => $this->formatTime($studyClass->scheduleStartTime()),
+            'end_time' => $this->formatTime($studyClass->scheduleEndTime()),
             'capacity' => $studyClass->capacity,
             'price' => round((float) $studyClass->price, 2),
             'document_price' => round((float) $studyClass->document_price, 2),
