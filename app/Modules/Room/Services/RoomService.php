@@ -16,7 +16,8 @@ class RoomService
                 $query->where('room_number', 'like', "%{$search}%")
                     ->orWhere('status', 'like', "%{$search}%");
             })
-            ->latest()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate($perPage)
             ->withQueryString();
     }

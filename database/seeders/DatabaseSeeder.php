@@ -14,6 +14,9 @@ use Database\Seeders\Permission\UserSeeder;
 // Core / base seeders
 use Database\Seeders\Core\CoreSeeder;
 
+// Building / Floor / Room seeders
+use Database\Seeders\Building\BuildingSeeder;
+
 // Course seeders
 use Database\Seeders\Course\CategorySeeder;
 use Database\Seeders\Course\SubCategorySeeder;
@@ -54,6 +57,7 @@ class DatabaseSeeder extends Seeder
             ClassTypeSeeder::class,
             TermSeeder::class,
             TimeSeeder::class,
+            BuildingSeeder::class,
 
             // 3. Course data
             CategorySeeder::class,

@@ -12,6 +12,22 @@ class ClassListSeeder extends Seeder
      */
     public function run(): void
     {
+        // Reuses rooms created by Database\Seeders\Building\BuildingSeeder instead of
+        // fabricating placeholder buildings/floors/rooms, so this data matches what
+        // admins actually see in Building Management.
+        $rooms = DB::table('rooms')
+            ->join('floors', 'floors.id', '=', 'rooms.floor_id')
+            ->orderBy('rooms.id')
+            ->limit(5)
+            ->get(['rooms.id as room_id', 'rooms.floor_id', 'floors.building_id'])
+            ->values();
+
+        if ($rooms->count() < 5) {
+            throw new \RuntimeException(
+                'ClassListSeeder needs at least 5 seeded rooms. Run Database\\Seeders\\Building\\BuildingSeeder first.'
+            );
+        }
+
         $items = [
             [
                 'teacher_id'    => 1,
@@ -19,9 +35,7 @@ class ClassListSeeder extends Seeder
                 'lesson_id'     => 1,
                 'term_id'       => 1,
                 'time_id'       => 1,
-                'building_id'   => 1,
-                'floor_id'      => 1,
-                'room_id'       => 1,
+                'room'          => $rooms[0],
                 'class_type_id' => 1,
                 'student_count' => 22,
                 'status'        => 'progress',
@@ -32,9 +46,7 @@ class ClassListSeeder extends Seeder
                 'lesson_id'     => 2,
                 'term_id'       => 2,
                 'time_id'       => 2,
-                'building_id'   => 1,
-                'floor_id'      => 2,
-                'room_id'       => 2,
+                'room'          => $rooms[1],
                 'class_type_id' => 2,
                 'student_count' => 18,
                 'status'        => 'completed',
@@ -45,9 +57,7 @@ class ClassListSeeder extends Seeder
                 'lesson_id'     => 3,
                 'term_id'       => 1,
                 'time_id'       => 3,
-                'building_id'   => 2,
-                'floor_id'      => 3,
-                'room_id'       => 3,
+                'room'          => $rooms[2],
                 'class_type_id' => 3,
                 'student_count' => 30,
                 'status'        => 'progress',
@@ -58,9 +68,7 @@ class ClassListSeeder extends Seeder
                 'lesson_id'     => 4,
                 'term_id'       => 2,
                 'time_id'       => 4,
-                'building_id'   => 2,
-                'floor_id'      => 1,
-                'room_id'       => 4,
+                'room'          => $rooms[3],
                 'class_type_id' => 4,
                 'student_count' => 16,
                 'status'        => 'cancelled',
@@ -71,79 +79,31 @@ class ClassListSeeder extends Seeder
                 'lesson_id'     => 3,
                 'term_id'       => 3,
                 'time_id'       => 5,
-                'building_id'   => 3,
-                'floor_id'      => 2,
-                'room_id'       => 5,
+                'room'          => $rooms[4],
                 'class_type_id' => 1,
                 'student_count' => 25,
                 'status'        => 'progress',
             ],
         ];
 
+        DB::table('class_list')->truncate();
+
         foreach ($items as &$item) {
-            $item['building_id'] = $this->ensureBuilding((int) $item['building_id']);
-            $item['floor_id'] = $this->ensureFloor((int) $item['floor_id'], (int) $item['building_id']);
-            $item['room_id'] = $this->ensureRoom((int) $item['room_id'], (int) $item['floor_id']);
+            $room = $item['room'];
+            unset($item['room']);
+
+            $item['building_id'] = $room->building_id;
+            $item['floor_id'] = $room->floor_id;
+            $item['room_id'] = $room->room_id;
             $item['time_id'] = $this->ensureTime((int) $item['time_id']);
             $item['created_at'] = now();
             $item['updated_at'] = now();
         }
+        unset($item);
 
         foreach ($items as $item) {
             DB::table('class_list')->insert($item);
         }
-    }
-
-    private function ensureBuilding(int $id): int
-    {
-        DB::table('buildings')->updateOrInsert(
-            ['id' => $id],
-            [
-                'id' => $id,
-                'name' => "Building {$id}",
-                'code' => "B{$id}",
-                'description' => 'Seeded for class list testing',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        return $id;
-    }
-
-    private function ensureFloor(int $id, int $buildingId): int
-    {
-        DB::table('floors')->updateOrInsert(
-            ['id' => $id],
-            [
-                'id' => $id,
-                'name' => "Floor {$id}",
-                'level' => $id,
-                'building_id' => $buildingId,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        return $id;
-    }
-
-    private function ensureRoom(int $id, int $floorId): int
-    {
-        DB::table('rooms')->updateOrInsert(
-            ['id' => $id],
-            [
-                'id' => $id,
-                'floor_id' => $floorId,
-                'room_number' => "R{$id}",
-                'capacity' => 30,
-                'status' => 'available',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        return $id;
     }
 
     private function ensureTime(int $id): int
