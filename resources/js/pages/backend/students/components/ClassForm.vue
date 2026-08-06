@@ -175,6 +175,13 @@ const isOnlineClass = computed(() => {
   return (group?.class_type_name ?? "").toLowerCase().includes("online");
 });
 
+// Capacity is read-only only when it comes from the room's max occupancy.
+// Admins don't pick a room (they assign the instructor later), so they must
+// be able to type the capacity manually.
+const isReadonlyCapacity = computed(
+  () => !isAdminUser.value && !isOnlineClass.value && Boolean(form.room_id)
+);
+
 selectedScheduleType.value = toStringOrEmpty(props.classData?.class_type_id);
 selectedTerm.value = toStringOrEmpty(props.classData?.term_id);
 selectedTime.value = toStringOrEmpty(props.classData?.time_id);
@@ -394,7 +401,7 @@ function submit(copy = false) {
 
       <div>
         <label class="font-semibold mb-2 block">{{ $t('Capacity') }}</label>
-        <input type="number" min="1" v-model="form.capacity" :readonly="!isOnlineClass" class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" :class="!isOnlineClass ? 'bg-slate-50 text-slate-500 dark:bg-gray-800/60 dark:text-gray-400' : ''" />
+        <input type="number" min="1" v-model="form.capacity" :readonly="isReadonlyCapacity" class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" :class="isReadonlyCapacity ? 'bg-slate-50 text-slate-500 dark:bg-gray-800/60 dark:text-gray-400' : ''" />
         <p v-if="form.errors.capacity" class="mt-1 text-xs text-red-600">{{ form.errors.capacity }}</p>
       </div>
 
