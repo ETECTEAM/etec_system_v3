@@ -102,7 +102,7 @@ class ClassListController extends Controller
     public function create()
     {
         return Inertia::render('backend/classes/class-list/ClassListCreate', [
-            'teachers' => User::select('id', 'name')->get(),
+            'teachers' => User::role('instructor')->select('id', 'name')->get(),
             'courses' => Course::select('id', 'title')->get(),
             'lessons' => CourseLesson::select('id', 'title')->get(),
             'terms' => Term::select('id', 'term_name')->get(),
@@ -135,7 +135,7 @@ class ClassListController extends Controller
     {
         return Inertia::render('backend/classes/class-list/ClassListEdit', [
             'classList' => $classList->load(['course', 'lesson', 'term', 'time', 'building', 'floor', 'room', 'classType']),
-            'teachers' => User::select('id', 'name')->get(),
+            'teachers' => User::role('instructor')->select('id', 'name')->get(),
             'courses' => Course::select('id', 'title')->get(),
             'lessons' => CourseLesson::select('id', 'title')->get(),
             'terms' => Term::select('id', 'term_name')->get(),

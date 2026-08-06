@@ -73,25 +73,20 @@ class EnrollmentClassController extends Controller
         return Inertia::render('backend/students/EditClass', [
             'classData' => [
                 'id' => $studyClass->id,
-                'title' => $studyClass->title,
-                'course_id' => $studyClass->course_id,
-                'lesson_id' => $studyClass->lesson_id,
-                'teacher_id' => $studyClass->teacher_id,
-                'building_id' => $studyClass->room?->floor?->building?->id,
-                'floor_id' => $studyClass->room?->floor?->id,
-                'room_id' => $studyClass->room_id,
-                'class_type' => $studyClass->class_type,
-                'status' => $studyClass->status,
-                'study_days' => $studyClass->study_days ?? [],
-                'start_time' => $this->formatTime($studyClass->start_time),
-                'end_time' => $this->formatTime($studyClass->end_time),
-                'capacity' => $studyClass->capacity,
-                'price' => round((float) $studyClass->price, 2),
-                'document_price' => round((float) $studyClass->document_price, 2),
-                'enrollment_start_date' => $studyClass->enrollment_start_date?->format('Y-m-d'),
-                'start_date' => $studyClass->start_date?->format('Y-m-d'),
-                'end_date' => $studyClass->end_date?->format('Y-m-d'),
+                ...$this->presentClassData($studyClass),
             ],
+            'options' => $options->handle($studyClass),
+        ]);
+    }
+
+    public function copy(StudyClass $studyClass, GetClassFormOptions $options): Response
+    {
+        $this->ensureInstructorOwnsClass($studyClass);
+
+        $studyClass->load(['room.floor.building']);
+
+        return Inertia::render('backend/students/CreateClass', [
+            'classData' => $this->presentClassData($studyClass),
             'options' => $options->handle($studyClass),
         ]);
     }
@@ -242,6 +237,30 @@ class EnrollmentClassController extends Controller
                 'phone' => $user->student?->phone,
             ])
             ->all();
+    }
+
+    private function presentClassData(StudyClass $studyClass): array
+    {
+        return [
+            'title' => $studyClass->title,
+            'course_id' => $studyClass->course_id,
+            'lesson_id' => $studyClass->lesson_id,
+            'teacher_id' => $studyClass->teacher_id,
+            'building_id' => $studyClass->room?->floor?->building?->id,
+            'floor_id' => $studyClass->room?->floor?->id,
+            'room_id' => $studyClass->room_id,
+            'class_type' => $studyClass->class_type,
+            'status' => $studyClass->status,
+            'study_days' => $studyClass->study_days ?? [],
+            'start_time' => $this->formatTime($studyClass->start_time),
+            'end_time' => $this->formatTime($studyClass->end_time),
+            'capacity' => $studyClass->capacity,
+            'price' => round((float) $studyClass->price, 2),
+            'document_price' => round((float) $studyClass->document_price, 2),
+            'enrollment_start_date' => $studyClass->enrollment_start_date?->format('Y-m-d'),
+            'start_date' => $studyClass->start_date?->format('Y-m-d'),
+            'end_date' => $studyClass->end_date?->format('Y-m-d'),
+        ];
     }
 
     private function formatTime(?string $time): ?string

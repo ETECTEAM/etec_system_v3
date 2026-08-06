@@ -59,7 +59,7 @@ const submit = () => {
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form @submit.prevent="submit" class="grid gap-6 lg:grid-cols-2">
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Teacher') }}</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Teacher') }} <span class="text-xs font-normal text-slate-400">{{ $t('(optional)') }}</span></span>
             <select
               v-model="form.teacher_id"
               class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"

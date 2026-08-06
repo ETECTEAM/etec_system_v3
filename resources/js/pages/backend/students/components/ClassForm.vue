@@ -458,7 +458,7 @@ function submit() {
       <input v-model="form.status" type="hidden" />
 
       <div v-if="isAdminUser">
-        <label class="font-semibold mb-2 block">{{ $t('Instructor') }}</label>
+        <label class="font-semibold mb-2 block">{{ $t('Instructor') }} <span class="text-xs font-normal text-slate-400">{{ $t('(optional)') }}</span></label>
         <SelectSearch
           v-model="form.teacher_id"
           :options="teacherOptions"
@@ -466,7 +466,7 @@ function submit() {
           :button-class="selectClass"
         />
         <p v-if="form.errors.teacher_id" class="mt-1 text-xs text-red-600">{{ form.errors.teacher_id }}</p>
-        <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">{{ $t('The assigned instructor sets the Building, Floor, and Room.') }}</p>
+        <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">{{ $t('Optional — you can assign or change the instructor later.') }}</p>
       </div>
 
       <div v-if="!isAdminUser">

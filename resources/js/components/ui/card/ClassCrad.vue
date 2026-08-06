@@ -18,6 +18,7 @@ const props = defineProps({
 
 const emit = defineEmits([
     "edit",
+    "copy",
     "add-student",
     "qr",
     "switch-teacher",
@@ -58,6 +59,10 @@ function showViewClass () {
 
 function showEditClass() {
     router.get(`/dashboard/enroll/edit/${props.classData.id}`);
+}
+
+function showCopyClass() {
+    router.get(`/dashboard/enroll/copy/${props.classData.id}`);
 }
 
 function showAddStudent() {
@@ -249,6 +254,7 @@ function updateStatus(status) {
     @close="showBarDialog = false"
     @view="showViewClass"
     @edit="showEditClass"
+    @copy="showCopyClass"
     @add-student="showAddStudent"
     @qr="showQr"
     @switch-teacher="notifyPendingAction('Switch teacher')"

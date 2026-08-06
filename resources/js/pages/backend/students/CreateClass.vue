@@ -32,6 +32,10 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    classData: {
+        type: Object,
+        default: null,
+    },
     courses: { type: Array, default: () => [] },
     lessons: { type: Array, default: () => [] },
     teachers: { type: Array, default: () => [] },
@@ -75,6 +79,8 @@ const normalizedOptions = computed(() => ({
     ],
     scheduleGroups: props.options?.scheduleGroups ?? [],
 }));
+
+const isCopy = computed(() => Boolean(props.classData));
 
 // ─── Form ───────────────────────────────────────────────────────────────
 const form = useForm({
@@ -175,11 +181,11 @@ function generateCode() {
 }
 
 // ─── Breadcrumbs ────────────────────────────────────────────────────────
-const breadcrumbItems = [
+const breadcrumbItems = computed(() => [
     { label: "Dashboard", href: "/dashboard" },
     { label: "Students", href: "/dashboard/enroll" },
-    { label: "Create Class", current: true },
-];
+    { label: isCopy.value ? "Copy Class" : "Create Class", current: true },
+]);
 
 // ─── Navigation ─────────────────────────────────────────────────────────
 function back() {
@@ -239,7 +245,7 @@ const visibleInputClass =
 </script>
 
 <template>
-    <Head :title="$t('Create Class')" />
+    <Head :title="$t(isCopy ? 'Copy Class' : 'Create Class')" />
     <DashboardLayout>
     <div class="w-full">
         <div class="space-y-6">
@@ -248,7 +254,7 @@ const visibleInputClass =
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <PageHero
                     eyebrow="Class Management"
-                    :title="$t('Create New Class')"
+                    :title="$t(isCopy ? 'Copy Class' : 'Create New Class')"
                     :description="$t('Create and manage class information.')"
                 />
 
@@ -262,7 +268,7 @@ const visibleInputClass =
                 </button>
             </div>
 
-            <ClassForm :options="normalizedOptions" mode="create" />
+            <ClassForm :classData="classData" :options="normalizedOptions" mode="create" />
 
             <!-- ── Form ────────────────────────────────────────────────── -->
             <!-- Kept for future use. Enable this template when the full create-class form is needed again. -->

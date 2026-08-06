@@ -3,6 +3,7 @@ import { ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import {
     GraduationCap,
     Pencil,
+    Copy,
     UserPlus,
     QrCode,
     RefreshCcw,
@@ -22,6 +23,7 @@ const props = defineProps({
 const emit = defineEmits([
     "close",
     "edit",
+    "copy",
     "add-student",
     "qr",
     "switch-teacher",
@@ -36,6 +38,7 @@ const dialogRef = ref(null);
 
 const items = [
     { icon: Pencil, label: "Edit Class", event: "edit" },
+    { icon: Copy, label: "Copy Class", event: "copy" },
     { icon: UserPlus, label: "Add Student", event: "add-student" },
     { icon: QrCode, label: "QR Add", event: "qr" },
     { icon: RefreshCcw, label: "Switch Teacher", event: "switch-teacher" },

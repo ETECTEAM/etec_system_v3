@@ -28,7 +28,7 @@ class GetClassFormOptions
 
         return [
             'courses' => Course::query()->select('id', 'title')->orderBy('title')->get(),
-            'teachers' => User::query()->select('id', 'name')->orderBy('name')->get(),
+            'teachers' => User::role('instructor')->select('id', 'name')->orderBy('name')->get(),
             'buildings' => Building::query()->select('id', 'name')->orderBy('name')->get(),
             'floors' => $buildingId ? $this->floors($buildingId) : [],
             'rooms' => $floorId ? $this->rooms($floorId) : [],
