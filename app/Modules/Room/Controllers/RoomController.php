@@ -22,7 +22,7 @@ class RoomController extends Controller
 
     public function index(): Response
     {
-        return Inertia::render('backend/buildings/Room/Index');
+        return Inertia::render('backend/buildings/Room/RoomIndex');
     }
 
     public function paginatedIndex(Request $request): JsonResponse
@@ -36,19 +36,19 @@ class RoomController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('backend/buildings/Room/Create');
+        return Inertia::render('backend/buildings/Room/RoomCreate');
     }
 
     public function show(Room $room): Response
     {
-        return Inertia::render('backend/buildings/Room/Show', [
+        return Inertia::render('backend/buildings/Room/RoomShow', [
             'room' => $this->roomService->presentRoom($room),
         ]);
     }
 
     public function edit(Room $room): Response
     {
-        return Inertia::render('backend/buildings/Room/Edit', [
+        return Inertia::render('backend/buildings/Room/RoomEdit', [
             'room' => $this->roomService->presentRoom($room),
         ]);
     }

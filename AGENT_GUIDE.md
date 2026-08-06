@@ -186,8 +186,9 @@ resources/js/
   with props/emits tables.
 - **Pages**: one folder per feature under `pages/backend/`; nested folders for sub-entities
   (`buildings/Building/`, `buildings/Floor/`, `buildings/Room/`; `classes/class-list/`,
-  `classes/class-type/`). CRUD pages named `Index.vue`/`List.vue`, `Create*.vue`,
-  `Edit*.vue`, `Show*.vue`/`View*.vue`. Feature-local shared components go in a
+  `classes/class-type/`). CRUD pages are entity-prefixed — `<Entity><Action>.vue`
+  (`BuildingIndex`, `FloorCreate`, `RoomEdit`; also `UserIndex`/`UserCreate` in `users/`).
+  Feature-local shared components go in a
   `components/` subfolder, feature-local composables in a `composables/` subfolder.
 - Some feature folders are **empty placeholders** (`attendances/`, `categories/`,
   `contacts/`, `docs/`, `permissions/`, `qr/`, `results/`) — don't treat emptiness as a bug.
@@ -384,8 +385,8 @@ Don't delete the scratch files without asking. `database/seeders/Feature/Report/
 - Some pages fetch data via axios from `<feature>/data` endpoints (Rooms, Floors, Users) with
   their own pagination; the backend pagination endpoints accept `per_page` (default 10,
   `'all'` supported).
-- Controllers render Inertia components with **exact** casing (`Floor/Floor`,
-  `buildings/Room/Index`) — a case mismatch 404s (PSR-4 file resolution is case-sensitive).
+- Controllers render Inertia components with **exact** casing (`Floor/FloorIndex`,
+  `buildings/Room/RoomIndex`) — a case mismatch 404s (PSR-4 file resolution is case-sensitive).
 
 ---
 

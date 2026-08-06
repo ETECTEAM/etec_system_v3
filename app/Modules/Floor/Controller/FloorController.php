@@ -23,7 +23,7 @@ class FloorController extends Controller
     {
         $this->authorizeFloorAccess($request);
 
-        return Inertia::render('backend/buildings/Floor/Floor');
+        return Inertia::render('backend/buildings/Floor/FloorIndex');
     }
 
     public function paginatedIndex(Request $request): JsonResponse
@@ -42,7 +42,7 @@ class FloorController extends Controller
     {
         $this->authorizeFloorAccess($request);
 
-        return Inertia::render('backend/buildings/Floor/Create');
+        return Inertia::render('backend/buildings/Floor/FloorCreate');
     }
 
     public function store(StoreFloorRequest $request): JsonResponse|RedirectResponse
@@ -63,7 +63,7 @@ class FloorController extends Controller
     {
         $this->authorizeFloorAccess($request);
 
-        return Inertia::render('backend/buildings/Floor/Show', [
+        return Inertia::render('backend/buildings/Floor/FloorShow', [
             'floor' => $this->floorService->present($floor),
         ]);
     }
@@ -72,7 +72,7 @@ class FloorController extends Controller
     {
         $this->authorizeFloorAccess($request);
 
-        return Inertia::render('backend/buildings/Floor/Edit', [
+        return Inertia::render('backend/buildings/Floor/FloorEdit', [
             'floor' => $this->floorService->present($floor),
         ]);
     }
