@@ -14,18 +14,9 @@ class Course extends Model
         'course_track_id',
         'title',
         'slug',
-        'description',
         'level',
-        'duration',
         'thumbnail',
-        'language',
-        'certificate_available',
         'status'
-    ];
-
-    protected $casts = [
-        'certificate_available' => 'boolean',
-        'duration' => 'integer',
     ];
 
     public function track()

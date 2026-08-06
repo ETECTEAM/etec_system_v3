@@ -204,7 +204,7 @@ watch([courseSearch, selectedCategory, selectedSubCategory], () => {
               Search courses
               <span class="relative">
                 <Search class="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                <input v-model="courseSearch" type="search" class="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-base font-medium outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 placeholder:font-normal" placeholder="Name, slug, or description" />
+                  <input v-model="courseSearch" type="search" class="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-base font-medium outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 placeholder:font-normal" placeholder="Name or slug" />
               </span>
             </label>
 
@@ -289,7 +289,6 @@ watch([courseSearch, selectedCategory, selectedSubCategory], () => {
                   </div>
 
                   <h4 class="text-xl font-bold text-[#0A1D3A] mb-4 leading-tight">{{ course.title }}</h4>
-                  <p class="text-sm text-slate-500 mb-6 leading-relaxed">{{ course.description || 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa.' }}</p>
                   
                   <ul class="text-sm text-slate-600 space-y-3 mb-8">
                      <li class="flex items-start gap-2.5">

@@ -107,7 +107,7 @@ class WebsiteContentService
     public function paginatedPublicCourses(int $perPage = 12, array $filters = []): array
     {
         $perPage = min(max($perPage, 1), 24);
-        $sortBy = in_array($filters['sort_by'] ?? null, ['title', 'level', 'duration', 'price', 'created_at'], true)
+        $sortBy = in_array($filters['sort_by'] ?? null, ['title', 'level', 'price', 'created_at'], true)
             ? $filters['sort_by']
             : 'id';
         $sortDirection = ($filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
@@ -121,7 +121,6 @@ class WebsiteContentService
             $query->where(function ($query) use ($search): void {
                 $query->where('title', 'like', "%{$search}%")
                     ->orWhere('slug', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
                     ->orWhereHas('track', fn ($trackQuery) => $trackQuery->where('name', 'like', "%{$search}%"))
                     ->orWhereHas('track.subCategory', fn ($subCategoryQuery) => $subCategoryQuery->where('name', 'like', "%{$search}%"))
                     ->orWhereHas('track.subCategory.category', fn ($categoryQuery) => $categoryQuery->where('name', 'like', "%{$search}%"));
@@ -130,10 +129,6 @@ class WebsiteContentService
 
         if ($level = trim((string) ($filters['level'] ?? ''))) {
             $query->where('level', $level);
-        }
-
-        if ($duration = trim((string) ($filters['duration'] ?? ''))) {
-            $query->where('duration', '<=', (int) $duration);
         }
 
         if ($category = trim((string) ($filters['category'] ?? ''))) {
@@ -210,11 +205,7 @@ class WebsiteContentService
             'id' => $course->id,
             'title' => $course->title,
             'slug' => $course->slug,
-            'description' => $course->description,
             'level' => $course->level,
-            'duration' => $course->duration,
-            'language' => $course->language,
-            'certificate_available' => $course->certificate_available,
             'thumbnail' => null,
             'thumbnail_url' => $this->publicImageDataUri($course->thumbnail),
             'track' => $course->track?->name,

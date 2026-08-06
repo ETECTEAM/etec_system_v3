@@ -75,10 +75,9 @@ class PublicApiController extends Controller
             'category' => ['nullable', 'string', 'max:120'],
             'sub_category' => ['nullable', 'string', 'max:120'],
             'level' => ['nullable', 'string', 'max:80'],
-            'duration' => ['nullable', 'integer', 'min:1'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
-            'sort_by' => ['nullable', 'string', 'in:title,level,duration,price,created_at'],
+            'sort_by' => ['nullable', 'string', 'in:title,level,price,created_at'],
             'sort_direction' => ['nullable', 'string', 'in:asc,desc'],
         ]);
 
