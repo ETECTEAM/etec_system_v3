@@ -1,14 +1,17 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { Head, Link, router, useForm, usePage } from "@inertiajs/vue3";
-import { Card } from "../../../components/ui/card";
-import { PageHero } from "../../../components/ui/page-hero";
-import DashboardLayout from "../../../layouts/DashboardLayout.vue";
+import { Card } from "../../../../components/ui/card";
+import { SelectSearch } from "../../../../components/ui/select-search";
+import { PageHero } from "../../../../components/ui/page-hero";
+import DashboardLayout from "../../../../layouts/DashboardLayout.vue";
 import { useI18n } from "@/i18n";
+import { useConfirm } from "@/composables/useConfirm";
 import { Pencil, Plus, Trash2 } from "@lucide/vue";
 
 const page = usePage();
 const { t } = useI18n();
+const { confirm } = useConfirm();
 
 const buildings = computed(() => page.props.buildings ?? []);
 const summary = computed(
@@ -37,6 +40,25 @@ const filterRooms = computed(() => {
     const f = filterFloors.value.find(x => x.id === Number(selectedFloorId.value));
     return f ? f.rooms : [];
 });
+
+// Searchable filter options
+const buildingOptions = computed(() =>
+    buildings.value.map(b => ({ label: b.name, value: String(b.id) })),
+);
+
+const floorOptions = computed(() =>
+    filterFloors.value.map(f => ({
+        label: `${f.name} (${t('Lvl')} ${f.level ?? t('N/A')})`,
+        value: String(f.id),
+    })),
+);
+
+const roomOptions = computed(() =>
+    filterRooms.value.map(r => ({
+        label: `${t('Room')} ${r.room_number}`,
+        value: String(r.id),
+    })),
+);
 
 function resetFilters() {
     selectedBuildingId.value = "";
@@ -144,14 +166,16 @@ function setActiveFloor(buildingId, floorId) {
     activeFloorMap.value = { ...activeFloorMap.value, [buildingId]: floorId };
 }
 
-function deleteBuilding(building) {
-    if (
-        !window.confirm(
-            t('Delete building ":name" and all its floors and rooms?', { name: building.name }),
-        )
-    ) {
-        return;
-    }
+async function deleteBuilding(building) {
+    const ok = await confirm({
+        title: t("Delete Building"),
+        message: t('Delete building ":name" and all its floors and rooms?', { name: building.name }),
+        confirmText: t("Delete"),
+        cancelText: t("Cancel"),
+        danger: true,
+    });
+
+    if (!ok) return;
 
     router.delete(`/dashboard/buildings/${building.id}`, {
         preserveScroll: true,
@@ -237,12 +261,16 @@ function submitAutoFloor() {
     );
 }
 
-function deleteFloor(building, floor) {
-    if (
-        !window.confirm(t('Delete floor ":name" and all rooms inside it?', { name: floor.name }))
-    ) {
-        return;
-    }
+async function deleteFloor(building, floor) {
+    const ok = await confirm({
+        title: t("Delete Floor"),
+        message: t('Delete floor ":name" and all rooms inside it?', { name: floor.name }),
+        confirmText: t("Delete"),
+        cancelText: t("Cancel"),
+        danger: true,
+    });
+
+    if (!ok) return;
 
     router.delete(`/dashboard/buildings/${building.id}/floors/${floor.id}`, {
         preserveScroll: true,
@@ -329,10 +357,16 @@ function submitRoom() {
     );
 }
 
-function deleteRoom(building, floor, room) {
-    if (!window.confirm(t('Delete room ":number"?', { number: room.room_number }))) {
-        return;
-    }
+async function deleteRoom(building, floor, room) {
+    const ok = await confirm({
+        title: t("Delete Room"),
+        message: t('Delete room ":number"?', { number: room.room_number }),
+        confirmText: t("Delete"),
+        cancelText: t("Cancel"),
+        danger: true,
+    });
+
+    if (!ok) return;
 
     router.delete(
         `/dashboard/buildings/${building.id}/floors/${floor.id}/rooms/${room.id}`,
@@ -517,88 +551,20 @@ function statusClass(status) {
                     <div class="grid w-full gap-4 grid-cols-1 sm:grid-cols-3 max-w-4xl">
                         <!-- Building Dropdown -->
                         <div class="space-y-1.5 text-left">
-                            <label for="building-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">
-                                {{ $t('Building') }}
-                            </label>
-                            <div class="relative">
-                                <select
-                                    id="building-filter"
-                                    v-model="selectedBuildingId"
-                                    class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                                >
-                                    <option value="">{{ $t('All Buildings') }}</option>
-                                    <option
-                                        v-for="b in buildings"
-                                        :key="b.id"
-                                        :value="b.id"
-                                    >
-                                        {{ b.name }}
-                                    </option>
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400 dark:text-gray-500">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">{{ $t('Building') }}</label>
+                            <SelectSearch v-model="selectedBuildingId" :options="buildingOptions" :placeholder="t('All Buildings')" />
                         </div>
 
                         <!-- Floor Dropdown -->
                         <div class="space-y-1.5 text-left">
-                            <label for="floor-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">
-                                {{ $t('Floor') }}
-                            </label>
-                            <div class="relative">
-                                <select
-                                    id="floor-filter"
-                                    v-model="selectedFloorId"
-                                    :disabled="!selectedBuildingId"
-                                    class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-800/50 dark:disabled:text-gray-500"
-                                >
-                                    <option value="">{{ $t('All Floors') }}</option>
-                                    <option
-                                        v-for="f in filterFloors"
-                                        :key="f.id"
-                                        :value="f.id"
-                                    >
-                                        {{ f.name }} ({{ $t('Lvl') }} {{ f.level ?? $t('N/A') }})
-                                    </option>
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400 dark:text-gray-500">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">{{ $t('Floor') }}</label>
+                            <SelectSearch v-model="selectedFloorId" :options="floorOptions" :placeholder="t('All Floors')" :disabled="!selectedBuildingId" />
                         </div>
 
                         <!-- Room Dropdown -->
                         <div class="space-y-1.5 text-left">
-                            <label for="room-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">
-                                {{ $t('Room') }}
-                            </label>
-                            <div class="relative">
-                                <select
-                                    id="room-filter"
-                                    v-model="selectedRoomId"
-                                    :disabled="!selectedFloorId"
-                                    class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-800/50 dark:disabled:text-gray-500"
-                                >
-                                    <option value="">{{ $t('All Rooms') }}</option>
-                                    <option
-                                        v-for="r in filterRooms"
-                                        :key="r.id"
-                                        :value="r.id"
-                                    >
-                                        {{ $t('Room') }} {{ r.room_number }}
-                                    </option>
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400 dark:text-gray-500">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">{{ $t('Room') }}</label>
+                            <SelectSearch v-model="selectedRoomId" :options="roomOptions" :placeholder="t('All Rooms')" :disabled="!selectedFloorId" />
                         </div>
                     </div>
 

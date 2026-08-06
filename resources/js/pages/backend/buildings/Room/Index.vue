@@ -2,21 +2,24 @@
 import axios from 'axios'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { onMounted, ref, watch } from 'vue'
-import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
-import { PageHero } from '../../../components/ui/page-hero'
-import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import { Breadcrumbs } from '../../../../components/ui/breadcrumbs'
+import { Pagination } from '../../../../components/ui/pagination'
+import { PageHero } from '../../../../components/ui/page-hero'
+import DashboardLayout from '../../../../layouts/DashboardLayout.vue'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()
 
 const rooms = ref([])
 const search = ref('')
+const perPage = ref(10)
+const perPageOptions = [10, 25, 50, 100, 'all']
 const isLoading = ref(false)
 const hasLoaded = ref(false)
 const pagination = ref({
   current_page: 1,
   last_page: 1,
-  per_page: 5,
+  per_page: 10,
   total: 0,
 })
 
@@ -36,6 +39,7 @@ async function fetchRooms(pageNumber = 1) {
     const response = await axios.get('/dashboard/rooms/data', {
       params: {
         page: pageNumber,
+        per_page: perPage.value,
         search: search.value,
       },
     })
@@ -44,7 +48,7 @@ async function fetchRooms(pageNumber = 1) {
     pagination.value = {
       current_page: response.data.current_page ?? 1,
       last_page: response.data.last_page ?? 1,
-      per_page: response.data.per_page ?? 5,
+      per_page: response.data.per_page ?? 10,
       total: response.data.total ?? 0,
     }
   } catch (error) {
@@ -73,6 +77,19 @@ function deleteRoom(room) {
 watch(search, () => {
   fetchRooms(1)
 })
+watch(perPage, () => {
+  fetchRooms(1)
+})
+
+function paginationStart() {
+  if (pagination.value.total === 0 || rooms.value.length === 0) return 0
+  return ((pagination.value.current_page - 1) * pagination.value.per_page) + 1
+}
+
+function paginationEnd() {
+  if (pagination.value.total === 0 || rooms.value.length === 0) return 0
+  return ((pagination.value.current_page - 1) * pagination.value.per_page) + rooms.value.length
+}
 
 function statusClass(status) {
   if (status === 'occupied')
@@ -94,12 +111,23 @@ function statusClass(status) {
 
       <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <input
-            v-model="search"
-            type="search"
-            class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:max-w-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-            :placeholder="$t('Search room number or status')"
-          >
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input
+              v-model="search"
+              type="search"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:max-w-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+              :placeholder="$t('Search room number or status')"
+            >
+
+            <!-- <select
+              v-model="perPage"
+              class="w-40 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+            >
+              <option v-for="option in perPageOptions" :key="option" :value="option">
+                {{ option === 'all' ? $t('All rooms') : $t(':count per page', { count: option }) }}
+              </option>
+            </select> -->
+          </div>
 
           <Link
             href="/dashboard/rooms/create"
@@ -114,7 +142,7 @@ function statusClass(status) {
             <thead class="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-400">
               <tr>
                 <th class="px-4 py-3">{{ $t('ID') }}</th>
-                <th class="px-4 py-3">{{ $t('Floor ID') }}</th>
+                <th class="px-4 py-3">{{ $t('Floor') }}</th>
                 <th class="px-4 py-3">{{ $t('Room Number') }}</th>
                 <th class="px-4 py-3">{{ $t('Capacity') }}</th>
                 <th class="px-4 py-3">{{ $t('Status') }}</th>
@@ -132,7 +160,7 @@ function statusClass(status) {
 
               <tr v-for="room in rooms" v-else :key="room.id" class="transition hover:bg-slate-50 dark:hover:bg-gray-800">
                 <td class="px-4 py-3 font-medium text-slate-700 dark:text-gray-300">{{ room.id }}</td>
-                <td class="px-4 py-3 text-slate-600 dark:text-gray-300">{{ room.floor_id ?? '-' }}</td>
+                <td class="px-4 py-3 text-slate-600 dark:text-gray-300">{{ room.floor?.name ?? '-' }}</td>
                 <td class="px-4 py-3 font-semibold text-slate-900 dark:text-gray-100">{{ room.room_number }}</td>
                 <td class="px-4 py-3 text-slate-600 dark:text-gray-300">{{ room.capacity ?? '-' }}</td>
                 <td class="px-4 py-3">
@@ -163,27 +191,17 @@ function statusClass(status) {
           </table>
         </div>
 
-        <div class="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:text-gray-300">
-          <span>{{ $t('Page :current of :last - :total rooms', { current: pagination.current_page, last: pagination.last_page, total: pagination.total }) }}</span>
+        <div class="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">
+          <p class="text-sm text-slate-500 dark:text-gray-400">
+            {{ $t('Showing :from-:to of :total rooms', { from: paginationStart(), to: paginationEnd(), total: pagination.total }) }}
+          </p>
 
-          <div class="flex gap-2">
-            <button
-              type="button"
-              :disabled="pagination.current_page <= 1 || isLoading"
-              class="rounded-lg border border-slate-300 px-3 py-2 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-              @click="fetchRooms(pagination.current_page - 1)"
-            >
-              {{ $t('Previous') }}
-            </button>
-            <button
-              type="button"
-              :disabled="pagination.current_page >= pagination.last_page || isLoading"
-              class="rounded-lg border border-slate-300 px-3 py-2 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-              @click="fetchRooms(pagination.current_page + 1)"
-            >
-              {{ $t('Next') }}
-            </button>
-          </div>
+          <Pagination
+            :current-page="pagination.current_page"
+            :last-page="pagination.last_page"
+            :disabled="isLoading"
+            @page-change="fetchRooms"
+          />
         </div>
       </div>
     </section>

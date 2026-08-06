@@ -29,7 +29,7 @@ class BuildingController extends Controller
     {
         $this->authorizeAccess($request);
 
-        return Inertia::render('backend/buildings/Index', [
+        return Inertia::render('backend/buildings/Building/Index', [
             'buildings' => $this->buildingService->hierarchy(),
             'summary' => $this->buildingService->summary(),
         ]);
@@ -49,7 +49,7 @@ class BuildingController extends Controller
             }
         }
 
-        return Inertia::render('backend/buildings/Create', [
+        return Inertia::render('backend/buildings/Building/Create', [
             'building' => $building,
             'initialStep' => (int) $request->input('step', 1),
         ]);
@@ -59,7 +59,7 @@ class BuildingController extends Controller
     {
         $this->authorizeAccess($request);
 
-        return Inertia::render('backend/buildings/Edit', [
+        return Inertia::render('backend/buildings/Building/Edit', [
             'building' => $this->buildingService->presentBuilding($building->load('floors.rooms')),
         ]);
     }

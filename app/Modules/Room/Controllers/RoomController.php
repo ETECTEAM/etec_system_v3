@@ -22,33 +22,33 @@ class RoomController extends Controller
 
     public function index(): Response
     {
-        return Inertia::render('backend/buildings/Room');
+        return Inertia::render('backend/buildings/Room/Index');
     }
 
     public function paginatedIndex(Request $request): JsonResponse
     {
         $rooms = $this->roomService->paginateRooms([
             'search' => $request->string('search')->toString(),
-        ], 5);
+        ], $this->resolvePerPage($request));
 
         return response()->json($rooms);
     }
 
     public function create(): Response
     {
-        return Inertia::render('backend/buildings/RoomCreate');
+        return Inertia::render('backend/buildings/Room/Create');
     }
 
     public function show(Room $room): Response
     {
-        return Inertia::render('backend/rooms/Show', [
+        return Inertia::render('backend/buildings/Room/Show', [
             'room' => $this->roomService->presentRoom($room),
         ]);
     }
 
     public function edit(Room $room): Response
     {
-        return Inertia::render('backend/buildings/RoomUpdate', [
+        return Inertia::render('backend/buildings/Room/Edit', [
             'room' => $this->roomService->presentRoom($room),
         ]);
     }
@@ -92,5 +92,14 @@ class RoomController extends Controller
         $this->roomService->delete($room);
 
         return redirect('/dashboard/rooms')->with('success', 'Room deleted successfully.');
+    }
+
+    private function resolvePerPage(Request $request): int
+    {
+        if ($request->input('per_page') === 'all') {
+            return max(1, Room::query()->count());
+        }
+
+        return max(1, min(1000, (int) $request->integer('per_page', 10)));
     }
 }

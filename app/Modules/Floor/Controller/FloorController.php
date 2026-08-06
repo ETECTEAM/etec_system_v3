@@ -23,7 +23,7 @@ class FloorController extends Controller
     {
         $this->authorizeFloorAccess($request);
 
-        return Inertia::render('backend/buildings/Floor/index');
+        return Inertia::render('backend/buildings/Floor/Floor');
     }
 
     public function paginatedIndex(Request $request): JsonResponse

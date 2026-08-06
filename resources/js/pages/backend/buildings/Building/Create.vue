@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { Head, Link, useForm, router } from '@inertiajs/vue3'
-import { PageHero } from '../../../components/ui/page-hero'
-import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import { PageHero } from '../../../../components/ui/page-hero'
+import DashboardLayout from '../../../../layouts/DashboardLayout.vue'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()

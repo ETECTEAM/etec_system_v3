@@ -12,6 +12,7 @@ class RoomService
     public function paginateRooms(array $filters = [], int $perPage = 5): LengthAwarePaginator
     {
         return Room::query()
+            ->with('floor')
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where('room_number', 'like', "%{$search}%")
                     ->orWhere('status', 'like', "%{$search}%");

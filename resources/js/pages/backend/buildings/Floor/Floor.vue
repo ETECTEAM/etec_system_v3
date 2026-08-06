@@ -3,6 +3,7 @@ import axios from 'axios'
 import { onMounted, ref, watch } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { Breadcrumbs } from '../../../../components/ui/breadcrumbs'
+import { PageHero } from '../../../../components/ui/page-hero'
 import { Pagination } from '../../../../components/ui/pagination'
 import { Card } from '../../../../components/ui/card'
 import { ActionMenu } from '../../../../components/ui/menu'
@@ -117,42 +118,36 @@ watch(perPage, () => fetchFloors(1))
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
+      <PageHero eyebrow="Building Management" :title="$t('Floors')" :description="$t('Read, create, update, and delete floor records.')" />
 
       <Card padding="p-0">
         <!-- Header -->
-        <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
-          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div class="flex items-center gap-3">
-              <h2 class="text-xl font-semibold text-slate-900 dark:text-gray-100">{{ $t('Floors') }}</h2>
-              <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-sm font-semibold text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-                {{ pagination.total }}
-              </span>
-            </div>
-
-            <Link
-              href="/dashboard/floors/create"
-              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
-            >
-              {{ $t('Create Floor') }}
-            </Link>
-          </div>
-
-          <div class="mt-4 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800 flex justify-between item-center">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
             <input
               v-model="search"
               type="text"
               :placeholder="$t('Search by name or level...')"
-              class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+              class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 lg:max-w-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             >
 
-            <select
+            <!-- <select
               v-model="perPage"
               class="w-40 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             >
               <option v-for="option in perPageOptions" :key="option" :value="option">
                 {{ option === 'all' ? $t('All floors') : $t(':count per page', { count: option }) }}
               </option>
-            </select>
+            </select> -->
+          </div>
+
+          <div>
+            <Link
+              href="/dashboard/floors/create"
+              class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+            >
+              {{ $t('Create Floor') }}
+            </Link>
           </div>
         </div>
 

@@ -1,8 +1,8 @@
 <script setup>
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
-import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
-import { PageHero } from '../../../components/ui/page-hero'
-import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import { Breadcrumbs } from '../../../../components/ui/breadcrumbs'
+import { PageHero } from '../../../../components/ui/page-hero'
+import DashboardLayout from '../../../../layouts/DashboardLayout.vue'
 
 const page = usePage()
 const room = page.props.room ?? {}

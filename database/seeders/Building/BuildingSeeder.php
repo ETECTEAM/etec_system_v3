@@ -17,17 +17,17 @@ class BuildingSeeder extends Seeder
                 'code' => 'A',
                 'floors' => [
                     [
-                        'name' => 'Floor-1',
+                        'name' => 'A-Floor-1',
                         'level' => 1,
                         'rooms' => ['ETEC A101', 'ETEC A102', 'ETEC A103(Hall)', 'ETEC A104'],
                     ],
                     [
-                        'name' => 'Floor-2',
+                        'name' => 'A-Floor-2',
                         'level' => 2,
                         'rooms' => ['ETEC A203', 'ETEC A202'],
                     ],
                     [
-                        'name' => 'Mezzanine',
+                        'name' => 'A-Mezzanine',
                         'level' => 0,
                         'rooms' => ['ETEC A01'],
                     ],
@@ -38,22 +38,22 @@ class BuildingSeeder extends Seeder
                 'code' => 'B',
                 'floors' => [
                     [
-                        'name' => 'Floor-1',
+                        'name' => 'B-Floor-1',
                         'level' => 1,
                         'rooms' => ['ETEC B101', 'ETEC B102', 'ETEC B103', 'ETEC B104', 'ETEC B105', 'ETEC B106'],
                     ],
                     [
-                        'name' => 'Floor-2',
+                        'name' => 'B-Floor-2',
                         'level' => 2,
                         'rooms' => ['ETEC B201', 'ETEC B202', 'ETEC B203', 'ETEC B204', 'ETEC B205', 'ETEC B206'],
                     ],
                     [
-                        'name' => 'Floor-3',
+                        'name' => 'B-Floor-3',
                         'level' => 3,
                         'rooms' => ['ETEC B301', 'ETEC B302', 'ETEC B303', 'ETEC Design', 'ETEC Office'],
                     ],
                     [
-                        'name' => 'Ground-Floor',
+                        'name' => 'B-Mezzanine',
                         'level' => 0,
                         'rooms' => ['ETEC B01', 'ETEC B02'],
                     ],
