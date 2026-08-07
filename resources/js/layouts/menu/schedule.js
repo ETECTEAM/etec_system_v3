@@ -17,7 +17,7 @@ export function build(ctx) {
     labelKey: "navigation.scheduleManagement",
     key,
     match: ["/dashboard/terms", "/dashboard/times", "/dashboard/schdule"],
-    icon: "schdule",
+    icon: "schedule",
     children: [
       {
         label: "Terms",
