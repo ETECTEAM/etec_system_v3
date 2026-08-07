@@ -18,6 +18,7 @@ const classListLabel = computed(() => (classListId.value === 'Unknown' ? 'Unknow
 const classListEditHref = computed(() => (classListId.value !== 'Unknown' ? `/dashboard/class-list/${classListId.value}/edit` : '/dashboard/class-list'));
 const classListDeleteHref = computed(() => (classListId.value !== 'Unknown' ? `/dashboard/class-list/${classListId.value}` : null));
 
+const classTitle = computed(() => classList.value?.title || `Class ${classListLabel.value}`);
 const courseTitle = computed(() => classList.value?.course?.title || `Class ${classListLabel.value}`);
 const lessonTitle = computed(() => classList.value?.lesson?.title || 'No lesson assigned');
 const instructorName = computed(() => classList.value?.teacher?.name || classList.value?.teacher?.teacher_name || 'No instructor');
@@ -25,24 +26,26 @@ const classTypeName = computed(() => classList.value?.class_type?.type_name || '
 const termName = computed(() => classList.value?.term?.term_name || 'Not set');
 const timeName = computed(() => classList.value?.time?.time_name || 'Not scheduled');
 const roomNumber = computed(() => classList.value?.room?.room_number || 'Not assigned');
-const buildingName = computed(() => classList.value?.building?.name || 'Unknown');
-const floorName = computed(() => classList.value?.floor?.name || 'Unknown');
+const buildingName = computed(() => classList.value?.room?.floor?.building?.name || 'Unknown');
+const floorName = computed(() => classList.value?.room?.floor?.name || 'Unknown');
 const teacherLabel = computed(() => instructorName.value);
+const studentsSummary = computed(() => `${classList.value?.current_students ?? 0} / ${classList.value?.capacity ?? 0}`);
 
 const statusLabel = computed(() => {
-  const status = classList.value.status ?? 'Unknown';
-  return status === 'progress' || status === 'completed' || status === 'cancelled'
-    ? status.charAt(0).toUpperCase() + status.slice(1)
-    : 'Unknown';
+  const status = classList.value.status;
+  return status ? status.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Unknown';
 });
 
 const statusClasses = computed(() => {
   const status = classList.value.status;
-  if (status === 'completed') {
+  if (status === 'ended') {
     return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400';
   }
-  if (status === 'progress') {
+  if (status === 'active') {
     return 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400';
+  }
+  if (status === 'pre_end') {
+    return 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400';
   }
   if (status === 'cancelled') {
     return 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400';
@@ -79,7 +82,7 @@ const deleteItem = () => {
 
       <PageHero
         eyebrow="Management"
-        :title="courseTitle"
+        :title="classTitle"
         :description="$t('Review the full schedule, instructor, and location details for this class.')"
       />
 
@@ -88,8 +91,8 @@ const deleteItem = () => {
           <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-gray-400">{{ $t('Class summary') }}</p>
-              <h2 class="mt-3 text-2xl font-semibold text-slate-900 dark:text-gray-100">{{ courseTitle || 'Untitled class' }}</h2>
-              <p class="mt-2 text-sm text-slate-600 dark:text-gray-300">{{ $t(lessonTitle) }}</p>
+              <h2 class="mt-3 text-2xl font-semibold text-slate-900 dark:text-gray-100">{{ classTitle }}</h2>
+              <p class="mt-2 text-sm text-slate-600 dark:text-gray-300">{{ courseTitle }} · {{ $t(lessonTitle) }}</p>
             </div>
             <div class="space-y-2 text-right">
               <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-700 dark:bg-gray-800 dark:text-gray-300">
@@ -110,7 +113,7 @@ const deleteItem = () => {
             </div>
             <div class="rounded-3xl bg-slate-50 p-5 dark:bg-gray-800">
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">{{ $t('Students') }}</p>
-              <p class="mt-3 text-base font-semibold text-slate-900 dark:text-gray-100">{{ classList.student_count ?? 0 }}</p>
+              <p class="mt-3 text-base font-semibold text-slate-900 dark:text-gray-100">{{ studentsSummary }}</p>
             </div>
             <div class="rounded-3xl bg-slate-50 p-5 dark:bg-gray-800">
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">{{ $t('Class type') }}</p>
@@ -168,7 +171,7 @@ const deleteItem = () => {
               </div>
               <div class="flex items-start justify-between gap-4">
                 <span class="text-slate-400 dark:text-gray-500">{{ $t('Students') }}</span>
-                <span class="font-medium text-slate-900 dark:text-gray-100">{{ classList.student_count ?? 0 }}</span>
+                <span class="font-medium text-slate-900 dark:text-gray-100">{{ studentsSummary }}</span>
               </div>
             </div>
           </div>

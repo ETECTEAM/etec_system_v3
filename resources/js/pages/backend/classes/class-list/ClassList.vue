@@ -121,7 +121,8 @@
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.course?.title || $t('No course') }}</div>
+                                    <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.title || $t('No title') }}</div>
+                                    <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.course?.title || $t('No course') }}</div>
                                     <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ $t('Lesson:') }} <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700 dark:bg-gray-800 dark:text-gray-300">{{ item.lesson?.title || $t('No lesson') }}</span></div>
                                     <div class="mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">{{ $t('Type') }}: {{ item.class_type?.type_name || $t('Unknown') }}</div>
                                 </TableCell>
@@ -130,20 +131,15 @@
                                     <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.time?.time_name || $t('No time') }}</div>
                                 </TableCell>
                                 <TableCell>
-                                    <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.building?.name || $t('No building') }}</div>
-                                    <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.floor?.name || $t('No floor') }} · {{ item.room?.room_number || $t('No room') }}</div>
+                                    <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.room?.floor?.building?.name || $t('No building') }}</div>
+                                    <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.room?.floor?.name || $t('No floor') }} · {{ item.room?.room_number || $t('No room') }}</div>
                                 </TableCell>
                                 <TableCell class="font-semibold text-slate-900 dark:text-gray-100">
-                                    {{ item.student_count ?? 0 }}
+                                    {{ item.current_students ?? 0 }} / {{ item.capacity ?? 0 }}
                                 </TableCell>
                                 <TableCell>
-                                    <span :class="[
-                                        'inline-flex rounded-full px-3 py-1 text-[11px] font-semibold',
-                                        item.status === 'completed' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : '',
-                                        item.status === 'progress' ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : '',
-                                        item.status === 'cancelled' ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400' : '',
-                                    ]">
-                                        {{ item.status ? $t(item.status.charAt(0).toUpperCase() + item.status.slice(1)) : $t('Unknown') }}
+                                    <span :class="['inline-flex rounded-full px-3 py-1 text-[11px] font-semibold', statusBadgeClass(item.status)]">
+                                        {{ $t(statusLabel(item.status)) }}
                                     </span>
                                 </TableCell>
                                 <TableCell class="text-right">
@@ -282,10 +278,22 @@ const classTypeOptions = computed(() => props.classTypes.map((item) => ({ label:
 const termOptions = computed(() => props.terms.map((item) => ({ label: item.term_name, value: item.term_name })));
 const timeOptions = computed(() => props.times.map((item) => ({ label: item.time_name, value: item.time_name })));
 const statusOptions = [
-    { label: 'progress', value: 'progress' },
-    { label: 'completed', value: 'completed' },
+    { label: 'upcoming', value: 'upcoming' },
+    { label: 'active', value: 'active' },
+    { label: 'pre_end', value: 'pre_end' },
+    { label: 'ended', value: 'ended' },
     { label: 'cancelled', value: 'cancelled' },
 ];
+
+const statusBadgeClass = (status) => ({
+    'bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300': status === 'upcoming',
+    'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400': status === 'active',
+    'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400': status === 'pre_end',
+    'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400': status === 'ended',
+    'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400': status === 'cancelled',
+});
+
+const statusLabel = (status) => (status ? status.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Unknown');
 
 const paginationParams = () => ({
     search: search.value,

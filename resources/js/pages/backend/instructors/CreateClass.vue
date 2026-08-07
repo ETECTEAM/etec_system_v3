@@ -11,23 +11,20 @@ const props = defineProps({
   lessons: Array,
   terms: Array,
   times: Array,
-  buildings: Array,
-  floors: Array,
   rooms: Array,
   classTypes: Array,
 });
 
 const form = useForm({
+  title: '',
   course_id: '',
   lesson_id: '',
   term_id: '',
   time_id: '',
-  building_id: '',
-  floor_id: '',
   room_id: '',
   class_type_id: '',
-  student_count: 0,
-  status: 'progress',
+  capacity: 20,
+  status: 'upcoming',
 });
 
 const breadcrumbItems = [
@@ -46,14 +43,14 @@ const courseOptions = computed(() => toOptions(props.courses));
 const lessonOptions = computed(() => toOptions(props.lessons));
 const termOptions = computed(() => toOptions(props.terms));
 const timeOptions = computed(() => toOptions(props.times));
-const buildingOptions = computed(() => toOptions(props.buildings));
-const floorOptions = computed(() => toOptions(props.floors));
 const roomOptions = computed(() => toOptions(props.rooms));
 const classTypeOptions = computed(() => toOptions(props.classTypes, 'class_type_id'));
 
 const statusOptions = [
-  { label: 'In Progress', value: 'progress' },
-  { label: 'Completed', value: 'completed' },
+  { label: 'Upcoming', value: 'upcoming' },
+  { label: 'Active', value: 'active' },
+  { label: 'Pre-End', value: 'pre_end' },
+  { label: 'Ended', value: 'ended' },
   { label: 'Cancelled', value: 'cancelled' },
 ];
 
@@ -77,6 +74,16 @@ const submit = () => {
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form @submit.prevent="submit" class="grid gap-6 lg:grid-cols-2">
+          <label class="block lg:col-span-2">
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Title') }}</span>
+            <input
+              type="text"
+              v-model="form.title"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+            />
+            <span v-if="form.errors.title" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.title }}</span>
+          </label>
+
           <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Course') }}</span>
             <SelectSearch
@@ -122,28 +129,6 @@ const submit = () => {
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Building') }}</span>
-            <SelectSearch
-              v-model="form.building_id"
-              :options="buildingOptions"
-              :placeholder="$t('Select building')"
-              :button-class="selectClass"
-            />
-            <span v-if="form.errors.building_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.building_id }}</span>
-          </label>
-
-          <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Floor') }}</span>
-            <SelectSearch
-              v-model="form.floor_id"
-              :options="floorOptions"
-              :placeholder="$t('Select floor')"
-              :button-class="selectClass"
-            />
-            <span v-if="form.errors.floor_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.floor_id }}</span>
-          </label>
-
-          <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Room') }}</span>
             <SelectSearch
               v-model="form.room_id"
@@ -166,14 +151,14 @@ const submit = () => {
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Student Count') }}</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Capacity') }}</span>
             <input
               type="number"
               min="0"
-              v-model="form.student_count"
+              v-model="form.capacity"
               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             />
-            <span v-if="form.errors.student_count" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.student_count }}</span>
+            <span v-if="form.errors.capacity" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.capacity }}</span>
           </label>
 
           <label class="block">

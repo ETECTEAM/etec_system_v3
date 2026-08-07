@@ -10,7 +10,6 @@ class ClassSeeder extends Seeder
     {
         $this->call([
             ClassTypeSeeder::class,
-            ClassListSeeder::class,
         ]);
     }
 }

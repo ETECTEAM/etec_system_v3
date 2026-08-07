@@ -42,8 +42,6 @@ It is displayed in the dashboard list and connects classes to their schedule, lo
 
 ## Seeder Notes
 - `ClassTypeSeeder` populates the class type table with base categories.
-- `ClassListSeeder` inserts sample classes and expects supporting tables for terms, times, floors, rooms, and class types.
-- If your application uses real `teachers`, `courses`, `lessons`, or `buildings`, update the placeholder IDs in `ClassListSeeder` accordingly.
 
 ##command to run
 #php artisan db:seed

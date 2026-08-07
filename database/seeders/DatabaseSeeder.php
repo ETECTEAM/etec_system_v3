@@ -68,7 +68,7 @@ class DatabaseSeeder extends Seeder
             CourseLessonSeeder::class,
 
             // 4. Class relation data
-            // ClassSeeder already calls ClassTypeSeeder + ClassListSeeder internally.
+            // ClassSeeder already calls ClassTypeSeeder internally.
             ClassSeeder::class,
             StudyClassSeeder::class,
             ScheduleSeeder::class,
