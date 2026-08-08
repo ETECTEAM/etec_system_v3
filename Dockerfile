@@ -17,8 +17,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Required PHP extensions for Laravel + MySQL + media/zip handling
+# pcntl is required by `php artisan reverb:start` for signal handling (SIGINT/SIGTERM)
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install -j"$(nproc)" pdo_mysql gd zip bcmath
+    && docker-php-ext-install -j"$(nproc)" pdo_mysql gd zip bcmath pcntl
 
 # Node.js, so Vite/Inertia assets can be built and hot-reloaded
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
@@ -28,6 +29,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 # Composer binary, copied straight from the official image
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-EXPOSE 8000 5173
+EXPOSE 8000 5173 8080
 
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
