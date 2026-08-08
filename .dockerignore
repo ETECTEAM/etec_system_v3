@@ -9,6 +9,12 @@ storage/framework/views
 storage/logs
 bootstrap/cache
 
+# Locally built/dev-only assets (production stage builds its own; a stale
+# public/hot would make Vite think a dev server is running)
+public/build
+public/hot
+public/storage
+
 # Version control and env files
 .git
 .env
