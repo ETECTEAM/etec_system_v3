@@ -2,12 +2,13 @@ export function build(ctx) {
   if (!ctx.isSuperAdmin || !ctx.canAccessNotifications) return null;
 
   return {
-    label: "EnRoll Management",
+    label: "Enrollment Management",
+    labelKey: "navigation.enrollManagement",
     key: "enroll",
-    icon: "student",
-    href: "/dashboard/students",
-    match: ["/dashboard/students"],
+    icon: "notebook-pen",
+    href: "/dashboard/enroll",
+    match: ["/dashboard/enroll"],
     exact: false,
-    isActive: (path) => path.startsWith("/dashboard/students"),
+    isActive: (path) => path.startsWith("/dashboard/enroll") && !path.startsWith("/dashboard/enroll/students/create") && !path.startsWith("/dashboard/enroll/config"),
   };
 }

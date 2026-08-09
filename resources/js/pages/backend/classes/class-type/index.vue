@@ -1,201 +1,312 @@
+<template>
+    <Head :title="$t('Class Types')" />
+    <DashboardLayout>
+        <div class="w-full">
+
+            <!-- Breadcrumb -->
+            <nav class="flex items-center gap-1.5 text-sm text-slate-400 dark:text-gray-500 mb-4">
+                <span>{{ $t('Dashboard') }}</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                <span class="text-slate-600 dark:text-gray-300 font-medium">{{ $t('Class Types') }}</span>
+            </nav>
+
+            <PageHero
+                eyebrow="Management"
+                :title="$t('Class Types')"
+                :description="$t('Manage your class categories.')"
+                class="mb-6"
+            />
+
+            <Card padding="p-0">
+                <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div class="min-w-0 shrink-0">
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-gray-500">{{ $t('Class Type Directory') }}</p>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t('Manage your class categories.') }}</p>
+                        </div>
+
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+                            <div class="relative">
+                                <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
+                                <input
+                                    v-model="search"
+                                    type="text"
+                                    :placeholder="$t('Search by name...')"
+                                    class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:w-56 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+                                    @input="resetPagination"
+                                >
+                            </div>
+
+                            <select
+                                v-model="statusFilter"
+                                class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+                                @change="resetPagination"
+                            >
+                                <option value="all">{{ $t('All Status') }}</option>
+                                <option value="active">{{ $t('Active') }}</option>
+                                <option value="inactive">{{ $t('Inactive') }}</option>
+                            </select>
+
+                            <Link
+                                href="/dashboard/class-types/create"
+                                class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+                            >
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                {{ $t('Class Type') }}
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead class="w-16">{{ $t('No') }}</TableHead>
+                                <TableHead>{{ $t('Type Name') }}</TableHead>
+                                <TableHead>{{ $t('Status') }}</TableHead>
+                                <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow v-for="(item, index) in paginatedData" :key="item.class_type_id">
+                                <TableCell class="text-sm text-slate-500 dark:text-gray-400">
+                                    {{ (currentPage - 1) * perPage + index + 1 }}
+                                </TableCell>
+                                <TableCell>
+                                    <span class="text-sm font-medium text-slate-900 dark:text-gray-100">{{ item.type_name }}</span>
+                                </TableCell>
+                                <TableCell>
+                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="item.is_active ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300'">
+                                        {{ item.is_active ? $t('Active') : $t('Inactive') }}
+                                    </span>
+                                </TableCell>
+                                <TableCell class="text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <Link
+                                            :href="`/dashboard/class-types/${item.class_type_id}`"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                            :title="$t('View')"
+                                            :aria-label="$t('View class type')"
+                                        >
+                                            <Eye class="h-4 w-4" />
+                                        </Link>
+
+                                        <Link
+                                            :href="`/dashboard/class-types/${item.class_type_id}/edit`"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
+                                            :title="$t('Edit')"
+                                            :aria-label="$t('Edit class type')"
+                                        >
+                                            <Pencil class="h-4 w-4" />
+                                        </Link>
+
+                                        <button
+                                            type="button"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
+                                            :title="$t('Delete')"
+                                            :aria-label="$t('Delete class type')"
+                                            @click="confirmDelete(item)"
+                                        >
+                                            <Trash2 class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+
+                            <!-- Empty state: no class types exist at all -->
+                            <TableRow v-if="paginatedData.length === 0 && classTypes.length === 0">
+                                <TableCell colspan="4" class="px-4 py-16 text-center">
+                                    <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                    </svg>
+                                    <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No class types yet') }}</p>
+                                    <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ $t('Create your first class type to start organizing classes') }}</p>
+                                    <Link href="/dashboard/class-types/create"
+                                        class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                                        + {{ $t('Class Type') }}
+                                    </Link>
+                                </TableCell>
+                            </TableRow>
+
+                            <!-- Empty state: search/filter found nothing -->
+                            <TableRow v-else-if="paginatedData.length === 0">
+                                <TableCell colspan="4" class="px-4 py-16 text-center">
+                                    <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No results for ":search"', { search }) }}</p>
+                                    <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ $t('Try a different name or clear the search') }}</p>
+                                    <button @click="clearFilters"
+                                        class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                                        {{ $t('Clear search') }}
+                                    </button>
+                                </TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="filteredData.length > 0"
+                    class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
+                    <p class="text-sm text-slate-500 dark:text-gray-400">
+                        {{ $t('Showing :from to :to of :total entries', { from: rangeStart, to: rangeEnd, total: filteredData.length }) }}
+                    </p>
+
+                    <Pagination
+                        :current-page="currentPage"
+                        :last-page="totalPages"
+                        @page-change="goToPage"
+                    />
+                </div>
+            </Card>
+        </div>
+
+        <!-- Delete Modal -->
+        <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-[2px]"
+            @click.self="showDeleteModal = false">
+            <div class="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl">
+                <div class="flex items-start gap-4 mb-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Delete class type') }}</h3>
+                        <p class="text-sm text-slate-600 dark:text-gray-400 mt-1">
+                            {{ $t('Are you sure you want to delete') }} "<span class="font-medium text-slate-900 dark:text-gray-100">{{ deleteItem?.type_name }}</span>"?
+                            {{ $t('This action cannot be undone.') }}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 border-t border-slate-100 dark:border-gray-800 pt-4">
+                    <button @click="showDeleteModal = false"
+                        class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-800 rounded-xl transition">
+                        {{ $t('Cancel') }}
+                    </button>
+                    <button @click="deleteClassType"
+                        class="px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-500 rounded-xl transition">
+                        {{ $t('Delete class type') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </DashboardLayout>
+</template>
+
 <script setup>
-import { ref, computed } from "vue";
-import { Head, Link, router } from "@inertiajs/vue3";
-import DashboardLayout from "@/layouts/DashboardLayout.vue";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
-import { PageHero } from "@/components/ui/page-hero";
-import { Card } from "@/components/ui/card";
-import {
-    Table,
-    TableHeader,
-    TableBody,
-    TableRow,
-    TableHead,
-    TableCell,
-} from "@/components/ui/table";
-import { ActionMenu } from "@/components/ui/menu";
-import { Pagination } from "@/components/ui/pagination";
+import { ref, computed, watch } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { Eye, Pencil, Search, Trash2 } from '@lucide/vue';
+import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import { Card } from '@/components/ui/card';
+import { PageHero } from '@/components/ui/page-hero';
+import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table';
+import { Pagination } from '@/components/ui/pagination';
 
 const props = defineProps({
-    classTypes: Object,
+    classTypes: {
+        type: Array,
+        default: () => []
+    }
 });
 
-const search = ref("");
-const statusFilter = ref("all");
+// Search & status filter
+const search = ref('');
+const statusFilter = ref('all');
 
+// Pagination
+const currentPage = ref(1);
+const perPage = ref(10);
+
+// Delete modal
+const showDeleteModal = ref(false);
+const deleteItem = ref(null);
+
+// Filtered class types
 const filteredData = computed(() => {
-    const data = (props.classTypes?.data || []).slice().sort((a, b) => {
-        return Number(a.class_type_id || 0) - Number(b.class_type_id || 0);
-    });
-
-    return data.filter((item) => {
-        const matchesSearch = item.type_name
-            .toLowerCase()
-            .includes(search.value.toLowerCase());
-        const matchesStatus =
-            statusFilter.value === "all"
-                ? true
-                : statusFilter.value === "active"
-                  ? item.is_active
-                  : !item.is_active;
+    return props.classTypes.filter((item) => {
+        const matchesSearch = item.type_name.toLowerCase().includes(search.value.toLowerCase());
+        const matchesStatus = statusFilter.value === 'all'
+            ? true
+            : statusFilter.value === 'active'
+                ? item.is_active
+                : !item.is_active;
 
         return matchesSearch && matchesStatus;
     });
 });
 
-const handleAction = (action, item) => {
-    switch (action) {
-        case "view":
-            router.visit(`/dashboard/class-types/${item.class_type_id}`);
-            break;
-        case "edit":
-            router.visit(`/dashboard/class-types/${item.class_type_id}/edit`);
-            break;
-        case "delete":
-            if (confirm("Are you sure you want to delete this class type?")) {
-                router.delete(`/dashboard/class-types/${item.class_type_id}`, {
-                    preserveScroll: true,
-                    onSuccess: () => {},
-                    onError: (errors) => {
-                        console.error("Delete failed", errors);
-                        alert(
-                            "Could not delete the class type. It may be in use.",
-                        );
-                    },
-                });
-            }
-            break;
+// Total pages
+const totalPages = computed(() => {
+    return Math.ceil(filteredData.value.length / perPage.value) || 1;
+});
+
+// Paginated class types
+const paginatedData = computed(() => {
+    const start = (currentPage.value - 1) * perPage.value;
+    const end = start + perPage.value;
+    return filteredData.value.slice(start, end);
+});
+
+// Navigation methods
+const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page;
     }
 };
 
-const breadcrumbItems = [
-    { label: "Dashboard", href: "/dashboard" },
-    { label: "Class Types", current: true },
-];
+const resetPagination = () => {
+    currentPage.value = 1;
+};
 
-const handlePageChange = (page) => {
-    router.visit(`/dashboard/class-types?page=${page}`, {
-        preserveState: true,
-        preserveScroll: true,
-    });
+const clearFilters = () => {
+    search.value = '';
+    statusFilter.value = 'all';
+};
+
+// Range shown in the "Showing X to Y of Z" strip below the table
+const rangeStart = computed(() => {
+    if (filteredData.value.length === 0) return 0;
+    return (currentPage.value - 1) * perPage.value + 1;
+});
+
+const rangeEnd = computed(() => {
+    return Math.min(currentPage.value * perPage.value, filteredData.value.length);
+});
+
+// Reset to page 1 when filters change
+watch([search, statusFilter], () => {
+    resetPagination();
+});
+
+// Confirm delete
+const confirmDelete = (item) => {
+    deleteItem.value = item;
+    showDeleteModal.value = true;
+};
+
+const deleteClassType = () => {
+    if (deleteItem.value) {
+        router.delete(`/dashboard/class-types/${deleteItem.value.class_type_id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                showDeleteModal.value = false;
+                deleteItem.value = null;
+            },
+            onError: (errors) => {
+                alert(errors.message || 'Could not delete the class type. It may be in use.');
+            }
+        });
+    }
 };
 </script>
-
-<template>
-    <Head title="Class Types" />
-    <DashboardLayout>
-        <section class="space-y-6">
-            <Breadcrumbs :items="breadcrumbItems" />
-
-            <div
-                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-                <PageHero
-                    eyebrow="Management"
-                    title="Class Types"
-                    description="Manage your class categories."
-                />
-
-                <Link
-                    href="/dashboard/class-types/create"
-                    class="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
-                >
-                    + Add New Class Type
-                </Link>
-            </div>
-
-            <div
-                class="flex gap-4 items-center bg-white p-4 rounded-lg border border-slate-200 dark:bg-gray-900 dark:border-gray-800"
-            >
-                <input
-                    v-model="search"
-                    placeholder="Search by name..."
-                    class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                />
-                <select
-                    v-model="statusFilter"
-                    class="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                >
-                    <option value="all">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-            </div>
-
-            <Card class="p-0 overflow-hidden">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>ID</TableHead>
-                            <TableHead>Type Name</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead class="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        <TableRow
-                            v-for="item in filteredData"
-                            :key="item.class_type_id"
-                        >
-                            <TableCell>#{{ item.class_type_id }}</TableCell>
-                            <TableCell class="font-semibold">{{
-                                item.type_name
-                            }}</TableCell>
-                            <TableCell>
-                                <span
-                                    :class="
-                                        item.is_active
-                                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                            : 'bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300'
-                                    "
-                                    class="px-2 py-0.5 rounded text-xs font-semibold"
-                                >
-                                    {{ item.is_active ? "Active" : "Inactive" }}
-                                </span>
-                            </TableCell>
-                            <TableCell class="text-right">
-                                <ActionMenu
-                                    :items="[
-                                        { key: 'view', label: 'View' },
-                                        { key: 'edit', label: 'Edit' },
-                                        { key: 'delete', label: 'Delete' },
-                                    ]"
-                                    @select="
-                                        (action) =>
-                                            handleAction(action.key, item)
-                                    "
-                                />
-                            </TableCell>
-                        </TableRow>
-                        <TableRow v-if="filteredData.length === 0">
-                            <TableCell
-                                colspan="4"
-                                class="text-center py-8 text-slate-400 dark:text-gray-500"
-                                >No class types found.</TableCell
-                            >
-                        </TableRow>
-                    </TableBody>
-                </Table>
-
-                <div
-                    class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40"
-                >
-                    <p class="text-sm text-slate-500 dark:text-gray-400">
-                        Showing {{ classTypes.from ?? 0 }}–{{
-                            classTypes.to ?? 0
-                        }}
-                        of {{ classTypes.total ?? 0 }} entries
-                    </p>
-
-                    <Pagination
-                        v-if="classTypes?.links?.length"
-                        :current-page="classTypes.current_page"
-                        :last-page="classTypes.last_page"
-                        :disabled="false"
-                        @page-change="handlePageChange"
-                    />
-                </div>
-            </Card>
-        </section>
-    </DashboardLayout>
-</template>

@@ -14,12 +14,14 @@ export function build(ctx) {
 
   return {
     label: "Schedule Management",
+    labelKey: "navigation.scheduleManagement",
     key,
     match: ["/dashboard/terms", "/dashboard/times", "/dashboard/schdule"],
-    icon: "schdule",
+    icon: "schedule",
     children: [
       {
         label: "Terms",
+        labelKey: "navigation.terms",
         href: "/dashboard/terms",
         match: ["/dashboard/terms"],
         exact: false,
@@ -30,6 +32,7 @@ export function build(ctx) {
       },
       {
         label: "Times",
+        labelKey: "navigation.times",
         href: "/dashboard/times",
         match: ["/dashboard/times"],
         exact: false,
@@ -41,6 +44,7 @@ export function build(ctx) {
       },
       {
         label: "Schedules",
+        labelKey: "navigation.schedules",
         href: "/dashboard/schdule",
         match: ["/dashboard/schdule"],
         exact: false,

@@ -13,14 +13,14 @@
 -->
 <template>
     <div v-if="totalItems > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="text-sm text-slate-500 text-center sm:text-left">
-            Showing
-            <span class="font-medium text-slate-700">{{ rangeStart }}</span>
-            to
-            <span class="font-medium text-slate-700">{{ rangeEnd }}</span>
-            of
-            <span class="font-medium text-slate-700">{{ totalItems }}</span>
-            {{ itemLabel }}
+        <div class="text-sm text-slate-500 dark:text-gray-400 text-center sm:text-left">
+            {{ $t('Showing') }}
+            <span class="font-medium text-slate-700 dark:text-gray-200">{{ rangeStart }}</span>
+            {{ $t('to') }}
+            <span class="font-medium text-slate-700 dark:text-gray-200">{{ rangeEnd }}</span>
+            {{ $t('of') }}
+            <span class="font-medium text-slate-700 dark:text-gray-200">{{ totalItems }}</span>
+            {{ $t(itemLabel) }}
         </div>
 
         <div class="flex flex-wrap items-center justify-center gap-2">
@@ -31,8 +31,8 @@
                 :class="[
                     'p-2 rounded-lg text-sm font-medium transition',
                     currentPage === 1
-                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600'
+                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
                 ]"
             >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,8 +45,8 @@
                 <template v-for="(page, i) in visiblePages" :key="`${page}-${i}`">
                     <span
                         v-if="page === '...'"
-                        class="px-2 py-2 text-sm text-slate-400 select-none"
-                    >&hellip;</span>
+                        class="px-2 py-2 text-sm text-slate-400 dark:text-gray-600 select-none"
+                    >{{ $t('&hellip;') }}</span>
                     <button
                         v-else
                         type="button"
@@ -55,7 +55,7 @@
                             'px-3 py-2 rounded-lg text-sm font-medium transition min-w-[36px]',
                             page === currentPage
                                 ? 'bg-blue-600 text-white'
-                                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
                         ]"
                     >
                         {{ page }}
@@ -70,8 +70,8 @@
                 :class="[
                     'p-2 rounded-lg text-sm font-medium transition',
                     currentPage === totalPages
-                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600'
+                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
                 ]"
             >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,7 +84,7 @@
                 v-if="showPerPage"
                 :value="perPage"
                 @change="onPerPageChange"
-                class="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ml-1"
+                class="rounded-lg border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500/20 bg-white dark:bg-gray-800 dark:text-gray-200 ml-1"
             >
                 <option v-for="opt in perPageOptions" :key="opt" :value="opt">{{ opt }}</option>
             </select>

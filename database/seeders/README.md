@@ -31,6 +31,12 @@ Run invoice test seeder only:
 php artisan db:seed --class="Database\Seeders\Feature\Invoice\InvoiceTestSeeder"
 ```
 
+Run building/floor/room seeders only:
+
+```bash
+php artisan db:seed --class="Database\Seeders\Building\BuildingSeeder"
+```
+
 Run one core seeder only:
 
 ```bash

@@ -70,7 +70,7 @@ function changePage(page) {
       :disabled="props.disabled || props.currentPage === 1"
       @click="changePage(props.currentPage - 1)"
     >
-      Prev
+      {{ $t('Prev') }}
     </button>
 
     <button
@@ -96,7 +96,7 @@ function changePage(page) {
       :disabled="props.disabled || props.currentPage === props.lastPage"
       @click="changePage(props.currentPage + 1)"
     >
-      Next
+      {{ $t('Next') }}
     </button>
   </div>
 </template>

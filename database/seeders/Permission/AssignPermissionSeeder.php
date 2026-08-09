@@ -12,12 +12,15 @@ class AssignPermissionSeeder extends Seeder
     {
         // --- សម្រាប់ WEB GUARD ---
         $superAdminWeb = Role::where('name', 'super_admin')->where('guard_name', 'web')->first();
+        $adminWeb = Role::where('name', 'admin')->where('guard_name', 'web')->first();
         $instructorWeb = Role::where('name', 'instructor')->where('guard_name', 'web')->first();
-        
+
         $allPermissionsWeb = Permission::where('guard_name', 'web')->get();
-        
+
         // super_admin ទទួលបានសិទ្ធិទាំងអស់
         $superAdminWeb->syncPermissions($allPermissionsWeb);
+        // admin អាចមើល និងដោះសោគណនីដែលត្រូវបានទប់ស្កាត់
+        $adminWeb?->givePermissionTo(['unblock-login-accounts']);
         // instructor ទទួលបានតែសិទ្ធិមើល និងបង្កើត Classes
         $instructorWeb->givePermissionTo(['view-classes', 'create-classes']);
 

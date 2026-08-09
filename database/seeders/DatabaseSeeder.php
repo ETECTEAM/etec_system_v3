@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Modules\Registration\Controllers\Enroll\StudentRegistrationController;
 use Illuminate\Database\Seeder;
 
 // Permission seeders
@@ -13,6 +14,9 @@ use Database\Seeders\Permission\UserSeeder;
 // Core / base seeders
 use Database\Seeders\Core\CoreSeeder;
 
+// Building / Floor / Room seeders
+use Database\Seeders\Building\BuildingSeeder;
+
 // Course seeders
 use Database\Seeders\Course\CategorySeeder;
 use Database\Seeders\Course\SubCategorySeeder;
@@ -23,7 +27,7 @@ use Database\Seeders\Course\CourseLessonSeeder;
 // Class seeders
 use Database\Seeders\Class\ClassTypeSeeder;
 use Database\Seeders\Class\ClassSeeder;
-use Database\Seeders\Class\ClassListSeeder;
+use Database\Seeders\Class\StudyClassSeeder;
 
 // Other base seeders
 use Database\Seeders\Term\TermSeeder;
@@ -32,6 +36,10 @@ use Database\Seeders\Schedule\ScheduleSeeder;
 
 // Shift template seeders
 use Database\Seeders\Schedule\ShiftTemplateSeeder;
+use Database\Seeders\Website\WebsiteMenuSeeder;
+
+// Login security seeders
+use Database\Seeders\LoginLockoutSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -43,12 +51,14 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             AssignPermissionSeeder::class,
             UserSeeder::class,
+            LoginLockoutSeeder::class,
 
             // 2. Core/base data
             CoreSeeder::class,
             ClassTypeSeeder::class,
             TermSeeder::class,
             TimeSeeder::class,
+            BuildingSeeder::class,
 
             // 3. Course data
             CategorySeeder::class,
@@ -58,12 +68,16 @@ class DatabaseSeeder extends Seeder
             CourseLessonSeeder::class,
 
             // 4. Class relation data
+            // ClassSeeder already calls ClassTypeSeeder internally.
             ClassSeeder::class,
+            StudyClassSeeder::class,
             ScheduleSeeder::class,
-            ClassListSeeder::class,
 
             // 5. Shift templates
             ShiftTemplateSeeder::class,
+
+            // 6. Public website defaults
+            WebsiteMenuSeeder::class,
         ]);
     }
 }

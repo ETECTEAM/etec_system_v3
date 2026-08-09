@@ -4,11 +4,48 @@
 
 :root {
     --font-sans: 'Poppins', 'Siemreap', sans-serif;
+    --font-khmer: 'Siemreap', 'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif;
 }
 
 html,
 body {
     font-family: var(--font-sans);
+}
+
+html[lang="km"],
+html[lang="km"] body,
+html[lang="km"] button,
+html[lang="km"] input,
+html[lang="km"] select,
+html[lang="km"] textarea {
+    font-family: var(--font-khmer);
+}
+
+html[lang="km"] body,
+html[lang="km"] h1,
+html[lang="km"] h2,
+html[lang="km"] h3,
+html[lang="km"] h4,
+html[lang="km"] h5,
+html[lang="km"] h6,
+html[lang="km"] p,
+html[lang="km"] span,
+html[lang="km"] label,
+html[lang="km"] a,
+html[lang="km"] button,
+html[lang="km"] input,
+html[lang="km"] select,
+html[lang="km"] textarea,
+html[lang="km"] th,
+html[lang="km"] td,
+html[lang="km"] li {
+    line-height: 1.5;
+    letter-spacing: 0;
+}
+
+html[lang="km"] [class*="uppercase"],
+html[lang="km"] .uppercase {
+    text-transform: none;
 }
 
 /*
@@ -51,6 +88,27 @@ html.dark {
     *::after {
         transition-duration: 0.01ms;
     }
+}
+
+/* Tailwind's Preflight resets <button> to cursor: default; restore the pointer everywhere except disabled buttons. */
+button:not(:disabled) {
+    cursor: pointer;
+}
+
+/*
+ * Chrome/WebKit paints its own yellow background on autofilled inputs via an
+ * internal UA stylesheet that plain background-color can't override. Delaying
+ * the background-color transition far beyond any real use keeps the input's
+ * own background visible instead, while -webkit-text-fill-color keeps the
+ * text following the app's actual (possibly dark-mode) text color rather
+ * than the black WebKit forces by default.
+ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-text-fill-color: currentColor;
+    transition: background-color 600000s 0s, color 600000s 0s;
 }
 
 /* Hide scrollbar but keep scrolling */

@@ -15,155 +15,138 @@ class CourseSeeder extends Seeder
     {
         // Disable foreign key checks
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        
+
         Course::truncate();
-        
+
         // Re-enable foreign key checks
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
-        
+
         $courses = [
-            // Python Courses
+            // Fundamental / Basic IT Track
             [
-                'course_track_id' => $this->getTrackId('Python Fundamentals'),
-                'title' => 'Python Programming: From Zero to Hero',
+                'track' => 'Code & Network',
+                'title' => 'Basic IT',
                 'level' => 'beginner',
-                'price' => 59.99,
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
+            // Basic Code Track
             [
-                'course_track_id' => $this->getTrackId('Python for Data Science'),
-                'title' => 'Python for Data Science & Machine Learning',
-                'level' => 'intermediate',
-                'price' => 99.99,
-                'language' => 'en',
-                'certificate_available' => true,
-                'status' => 'active'
-            ],
-            [
-                'course_track_id' => $this->getTrackId('Python Web Development'),
-                'title' => 'Python Web Development with Django',
-                'level' => 'intermediate',
-                'price' => 89.99,
-                'language' => 'en',
-                'certificate_available' => true,
-                'status' => 'active'
-            ],
-
-            // Java Courses
-            [
-                'course_track_id' => $this->getTrackId('Java Programming'),
-                'title' => 'Java Masterclass: Complete Java Programming',
+                'track' => 'Basic Code',
+                'title' => 'Basic / Advance C++ / OOP + Algorithm + Projects',
                 'level' => 'beginner',
-                'price' => 69.99,
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
             [
-                'course_track_id' => $this->getTrackId('Java Enterprise'),
-                'title' => 'Java Enterprise Edition (JEE) Masterclass',
-                'level' => 'advanced',
-                'price' => 109.99,
-                'language' => 'en',
-                'certificate_available' => true,
-                'status' => 'active'
-            ],
-            [
-                'course_track_id' => $this->getTrackId('Spring Framework'),
-                'title' => 'Spring Framework 6 & Spring Boot 3',
-                'level' => 'advanced',
-                'price' => 119.99,
-                'language' => 'en',
-                'certificate_available' => true,
-                'status' => 'active'
-            ],
-
-            // Frontend Courses
-            [
-                'course_track_id' => $this->getTrackId('HTML & CSS'),
-                'title' => 'HTML5 & CSS3: Complete Web Development',
+                'track' => 'Basic Code',
+                'title' => 'Basic / Advance Basic Python / OOP + Projects',
                 'level' => 'beginner',
-                'price' => 49.99,
-                'language' => 'en',
-                'certificate_available' => true,
-                'status' => 'active'
-            ],
-            [
-                'course_track_id' => $this->getTrackId('React.js'),
-                'title' => 'React.js: The Complete Guide',
-                'level' => 'intermediate',
-                'price' => 94.99,
-                'language' => 'en',
-                'certificate_available' => true,
-                'status' => 'active'
-            ],
-            [
-                'course_track_id' => $this->getTrackId('Vue.js'),
-                'title' => 'Vue.js: The Complete Masterclass',
-                'level' => 'intermediate',
-                'price' => 89.99,
-                'language' => 'en',
-                'certificate_available' => true,
-                'status' => 'active'
-            ],
-            [
-                'course_track_id' => $this->getTrackId('Angular'),
-                'title' => 'Angular 17: The Complete Guide',
-                'level' => 'advanced',
-                'price' => 109.99,
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
 
-            // Backend Courses
+            // Web Full-Stack Course (Frontend Track)
             [
-                'course_track_id' => $this->getTrackId('Node.js'),
-                'title' => 'Node.js & Express.js Masterclass',
-                'level' => 'intermediate',
-                'price' => 84.99,
-                'language' => 'en',
-                'certificate_available' => true,
+                'track' => 'Frontend Course',
+                'title' => 'HTML, CSS, Bootstrap',
+                'level' => 'beginner',
                 'status' => 'active'
             ],
             [
-                'course_track_id' => $this->getTrackId('Laravel'),
-                'title' => 'Laravel 11: The Complete Guide',
+                'track' => 'Frontend Course',
+                'title' => 'JavaScript + React.js, Domain Hosting',
                 'level' => 'intermediate',
-                'price' => 94.99,
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
             [
-                'course_track_id' => $this->getTrackId('Django'),
-                'title' => 'Django 5: The Complete Guide',
-                'level' => 'intermediate',
-                'price' => 89.99,
-                'language' => 'en',
-                'certificate_available' => true,
+                'track' => 'Frontend Course',
+                'title' => 'Web Design Frontend (Basic/Advance)',
+                'level' => 'beginner',
                 'status' => 'active'
             ],
 
-            // Full Stack Courses
+            // Web Full-Stack Course (Backend Track)
             [
-                'course_track_id' => $this->getTrackId('MERN Stack'),
-                'title' => 'MERN Stack: MongoDB, Express, React, Node',
+                'track' => 'Backend Course',
+                'title' => 'PHP / MySQL + Ajax + Projects Web Backend (Basic/Advance)',
+                'level' => 'intermediate',
+                'status' => 'active'
+            ],
+            [
+                'track' => 'Backend Course',
+                'title' => 'PHP / MySQL + Laravel + Projects Web Backend (Basic/Advance)',
                 'level' => 'advanced',
-                'price' => 129.99,
-                'language' => 'en',
-                'certificate_available' => true,
+                'status' => 'active'
+            ],
+
+            // Enterprise Java Development
+            [
+                'track' => 'Backend Course',
+                'title' => 'Java + Spring Boot (Basic/Advance - Java required)',
+                'level' => 'advanced',
+                'status' => 'active'
+            ],
+
+            // Mobile App Course
+            [
+                'track' => 'Mobile App Course',
+                'title' => 'Dart + Flutter (Basic/Advance - Java Required)',
+                'level' => 'intermediate',
+                'status' => 'active'
+            ],
+
+            // Desktop App Course
+            [
+                'track' => 'Desktop App Course',
+                'title' => 'C# + MySQL + Projects (Basic/Advance)',
+                'level' => 'intermediate',
+                'status' => 'active'
+            ],
+            [
+                'track' => 'Desktop App Course',
+                'title' => 'Java + MySQL + Projects (Basic/Advance)',
+                'level' => 'intermediate',
+                'status' => 'active'
+            ],
+
+            // Graphic Design Course
+            [
+                'track' => 'Graphic Design Course',
+                'title' => 'Adobe Photoshop + UX/UI Designer',
+                'level' => 'beginner',
+                'status' => 'active'
+            ],
+            [
+                'track' => 'Graphic Design Course',
+                'title' => 'Adobe Photoshop + Illustrator + Projects',
+                'level' => 'intermediate',
+                'status' => 'active'
+            ],
+
+            // Network Course
+            [
+                'track' => 'Network Course',
+                'title' => 'Basic Network + IT Support + Install',
+                'level' => 'beginner',
+                'status' => 'active'
+            ],
+            [
+                'track' => 'Network Course',
+                'title' => 'Basic Network + Basic Cyber + Tool Config',
+                'level' => 'intermediate',
+                'status' => 'active'
+            ],
+            [
+                'track' => 'Network Course',
+                'title' => 'Advance CISCO + Configuration',
+                'level' => 'advanced',
                 'status' => 'active'
             ],
         ];
 
         $usedSlugs = [];
-        
+
         foreach ($courses as $course) {
             $slug = Str::slug($course['title']);
-            
+
             // Make slug unique if duplicate
             $counter = 1;
             $originalSlug = $slug;
@@ -172,22 +155,31 @@ class CourseSeeder extends Seeder
                 $counter++;
             }
             $usedSlugs[] = $slug;
-            
-            Course::create([
-                'course_track_id' => $course['course_track_id'],
-                'title' => $course['title'],
-                'slug' => $slug,
-                'level' => $course['level'],
-                'price' => $course['price'],
-                'language' => $course['language'],
-                'certificate_available' => $course['certificate_available'],
-                'status' => $course['status']
-            ]);
+
+            Course::updateOrCreate(
+                ['title' => $course['title']],
+                [
+                    'course_track_id' => $this->getTrackId($course['track']),
+                    'slug' => $slug,
+                    'level' => $course['level'],
+                    'status' => $course['status']
+                ]
+            );
         }
     }
 
-    private function getTrackId($trackName)
+    private function getTrackId(?string $trackName): ?int
     {
-        return CourseTrack::where('name', $trackName)->first()->id;
+        if (empty($trackName)) {
+            return null;
+        }
+
+        $track = CourseTrack::where('name', $trackName)->first();
+
+        if (! $track) {
+            throw new \RuntimeException("CourseTrack '{$trackName}' not found. Run CourseTrackSeeder first.");
+        }
+
+        return $track->id;
     }
 }

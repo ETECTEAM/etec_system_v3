@@ -1,5 +1,8 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   items: {
@@ -62,7 +65,7 @@ onBeforeUnmount(() => {
     <button
       type="button"
       class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-      aria-label="More actions"
+      :aria-label="t('More actions')"
       @click="toggle"
     >
       <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -85,7 +88,7 @@ onBeforeUnmount(() => {
         :disabled="item.disabled"
         @click="selectItem(item)"
       >
-        <span>{{ item.label }}</span>
+        <span>{{ t(item.label) }}</span>
         <span v-if="item.hint" class="text-xs text-slate-400 dark:text-gray-500">{{ item.hint }}</span>
       </button>
     </div>

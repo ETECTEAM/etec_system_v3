@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Session\TokenMismatchException;
+use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Auth\Middleware\AuthenticateWithBasicAuth;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -40,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'auth' => Authenticate::class,
+            'active' => EnsureAccountIsActive::class,
             'auth.basic' => AuthenticateWithBasicAuth::class,
             'auth.session' => AuthenticateSession::class,
             'cache.headers' => SetCacheHeaders::class,
@@ -72,5 +75,27 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return redirect()->route('login')->with('error', 'Session expired. Please login again.');
+        });
+
+        $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, \Illuminate\Http\Request $request) {
+            $retryAfter = (int) ($e->getHeaders()['Retry-After'] ?? 60);
+            $message = "Too many attempts. Please try again in {$retryAfter} seconds.";
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $message,
+                    'retry_after' => $retryAfter,
+                ], 429, ['Retry-After' => (string) $retryAfter]);
+            }
+
+            // Stay on the same form instead of navigating to a dedicated error page - 'login'
+            // surfaces inline under the login field the same way a wrong-password error does,
+            // 'throttle' is available for any other form that wants to show it, 'error' triggers
+            // a toast on pages that watch page.props.flash, and retryAfter drives a countdown
+            // that disables the submit button until the block actually lifts.
+            return back()
+                ->withErrors(['login' => $message, 'throttle' => $message])
+                ->with(['error' => $message, 'retryAfter' => $retryAfter])
+                ->header('Retry-After', (string) $retryAfter);
         });
     })->create();

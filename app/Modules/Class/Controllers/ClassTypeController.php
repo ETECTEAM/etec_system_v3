@@ -12,10 +12,8 @@ class ClassTypeController extends Controller
 {
     public function index()
     {
-        $classTypes = ClassType::orderBy('type_name')->paginate(10); 
-
         return Inertia::render('backend/classes/class-type/index', [
-            'classTypes' => $classTypes,
+            'classTypes' => ClassType::orderBy('type_name')->get(),
         ]);
     }
 

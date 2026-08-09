@@ -52,12 +52,7 @@ class CourseController extends Controller
         $validated = $request->validate([
             'course_track_id' => 'required|exists:course_tracks,id',
             'title' => 'required|string|max:255|unique:courses,title',
-            'description' => 'nullable|string',
             'level' => 'nullable|in:beginner,intermediate,advanced',
-            'duration' => 'nullable|integer|min:0',
-            'price' => 'nullable|numeric|min:0',
-            'language' => 'nullable|string|max:50',
-            'certificate_available' => 'nullable|boolean',
             'status' => 'nullable|in:active,inactive',
             'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
@@ -72,12 +67,7 @@ class CourseController extends Controller
             'course_track_id' => $validated['course_track_id'],
             'title' => $validated['title'],
             'slug' => Str::slug($validated['title']),
-            'description' => $validated['description'] ?? null,
             'level' => $validated['level'] ?? 'beginner',
-            'duration' => $validated['duration'] ?? 0,
-            'price' => $validated['price'] ?? 0,
-            'language' => $validated['language'] ?? 'en',
-            'certificate_available' => $validated['certificate_available'] ?? false,
             'status' => $validated['status'] ?? 'active',
             'thumbnail' => $thumbnailPath
         ]);
@@ -95,6 +85,8 @@ class CourseController extends Controller
 
     public function edit(Course $course)
     {
+        $course->load('track.subCategory.category');
+
         $categories = Category::where('status', 'active')->get();
         $subCategories = SubCategory::where('status', 'active')->get();
         $tracks = CourseTrack::where('status', 'active')->get();
@@ -112,12 +104,7 @@ class CourseController extends Controller
         $validated = $request->validate([
             'course_track_id' => 'required|exists:course_tracks,id',
             'title' => 'required|string|max:255|unique:courses,title,' . $course->id,
-            'description' => 'nullable|string',
             'level' => 'nullable|in:beginner,intermediate,advanced',
-            'duration' => 'nullable|integer|min:0',
-            'price' => 'nullable|numeric|min:0',
-            'language' => 'nullable|string|max:50',
-            'certificate_available' => 'nullable|boolean',
             'status' => 'nullable|in:active,inactive',
             'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
@@ -142,12 +129,7 @@ class CourseController extends Controller
             'course_track_id' => $validated['course_track_id'],
             'title' => $validated['title'],
             'slug' => Str::slug($validated['title']),
-            'description' => $validated['description'] ?? null,
             'level' => $validated['level'] ?? 'beginner',
-            'duration' => $validated['duration'] ?? 0,
-            'price' => $validated['price'] ?? 0,
-            'language' => $validated['language'] ?? 'en',
-            'certificate_available' => $validated['certificate_available'] ?? false,
             'status' => $validated['status'] ?? 'active',
             'thumbnail' => $validated['thumbnail'] ?? $course->thumbnail
         ]);

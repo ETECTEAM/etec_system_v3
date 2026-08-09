@@ -41,6 +41,18 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by(strtolower($email).'|'.$request->ip());
         });
 
+        // Two independently-keyed buckets: an account can't be spammed past
+        // 3/hour regardless of source IP, and a single IP can't hammer many
+        // different accounts past 20/hour.
+        RateLimiter::for('password-email', function (Request $request): array {
+            $email = strtolower(trim((string) $request->input('email', '')));
+
+            return [
+                Limit::perHour(3)->by('email:'.$email),
+                Limit::perHour(20)->by('ip:'.$request->ip()),
+            ];
+        });
+
         RateLimiter::for('otp-verify', function (Request $request): Limit {
             $userId = (string) $request->input('user_id', '');
 

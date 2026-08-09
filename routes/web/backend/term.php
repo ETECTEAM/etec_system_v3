@@ -3,7 +3,7 @@
 use App\Modules\Terms\Controllers\TermController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth')
+Route::middleware(['auth', 'active'])
     ->prefix('/dashboard/terms')
     ->name('terms.')
     ->group(function () {

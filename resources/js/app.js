@@ -1,25 +1,12 @@
-// import { createApp, h } from 'vue'
-// import '../css/app.css'
-// import './bootstrap'
-// import { createInertiaApp } from '@inertiajs/vue3'
-// import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers'
-
-// createInertiaApp({
-//     resolve: (name) =>
-//         resolvePageComponent(`./pages/${name}.vue`, import.meta.glob('./pages/**/*.vue')),
-//     setup({ el, App, props, plugin }) {
-//         createApp({ render: () => h(App, props) })
-//             .use(plugin)
-//             .mount(el)
-//     },
-// })
-import { createApp, h } from 'vue'
+import { createApp, Fragment, h } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers'
 import { ZiggyVue } from 'ziggy-js';
 import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import '../css/app.css'
+import { createI18n } from './i18n'
+import FlashToasts from './components/FlashToasts.vue'
 
 const toastOptions = {
     position: 'bottom-right',
@@ -33,8 +20,11 @@ const toastOptions = {
 createInertiaApp({
     resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob('./pages/**/*.vue')),
     setup({ el, App, props, plugin }) {
-        createApp({ render: () => h(App, props) })
+        const initialLocale = props.initialPage?.props?.locale?.current ?? 'en'
+
+        createApp({ render: () => h(Fragment, [h(App, props), h(FlashToasts)]) })
             .use(plugin)
+            .use(createI18n(initialLocale))
             .use(ZiggyVue)
             .use(Toast, toastOptions)
             .mount(el)

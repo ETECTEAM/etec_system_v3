@@ -5,6 +5,7 @@ namespace Database\Seeders\Term;
 use App\Models\Term;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class TermSeeder extends Seeder
 {
@@ -13,21 +14,40 @@ class TermSeeder extends Seeder
      */
     public function run(): void
     {
-        Term::query()->delete();
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+        Term::truncate();
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         Term::insert([
             [
-                'term_name' => 'Term 1',
+                'term_name' => 'Sunday',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'term_name' => 'Term 2',
+                'term_name' => 'Saturday',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'term_name' => 'Term 3',
+                'term_name' => 'Wed & Thu',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'term_name' => 'Mon & Tue',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'term_name' => 'Sat & Sun',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'term_name' => 'Mon & Thu',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

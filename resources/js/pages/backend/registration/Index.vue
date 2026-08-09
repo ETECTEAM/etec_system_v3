@@ -41,12 +41,12 @@ const filteredEnrollments = computed(() => {
 </script>
 
 <template>
-  <Head title="Registration Management" />
+  <Head :title="$t('Registration Management')" />
   <div class="p-8">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Registration Management</h1>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ $t('Registration Management') }}</h1>
         <div class="space-x-4">
-            <Link href="/dashboard/admin/classes" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition shadow-sm font-medium">View Classes</Link>
+            <Link href="/dashboard/admin/classes" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition shadow-sm font-medium">{{ $t('View Classes') }}</Link>
         </div>
     </div>
 
@@ -66,38 +66,38 @@ const filteredEnrollments = computed(() => {
               
               <form @submit.prevent="submit" class="space-y-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Full Name *</label>
-                  <input v-model="form.full_name" type="text" class="block w-full rounded-md border-gray-300 shadow-sm border p-2.5 focus:ring-blue-500 focus:border-blue-500 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" required placeholder="Ex: John Doe">
+                  <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">{{ $t('Full Name *') }}</label>
+                  <input v-model="form.full_name" type="text" class="block w-full rounded-md border-gray-300 shadow-sm border p-2.5 focus:ring-blue-500 focus:border-blue-500 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" required :placeholder="$t('Ex: John Doe')">
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Gender *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">{{ $t('Gender *') }}</label>
                     <select v-model="form.gender" class="block w-full rounded-md border-gray-300 shadow-sm border p-2.5 focus:ring-blue-500 focus:border-blue-500 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20">
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
+                      <option value="male">{{ $t('Male') }}</option>
+                      <option value="female">{{ $t('Female') }}</option>
                     </select>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Date of Birth</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">{{ $t('Date of Birth') }}</label>
                     <input v-model="form.date_of_birth" type="date" class="block w-full rounded-md border-gray-300 shadow-sm border p-2.5 focus:ring-blue-500 focus:border-blue-500 text-sm xl:text-xs 2xl:text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20">
                   </div>
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Phone *</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">{{ $t('Phone *') }}</label>
                   <input v-model="form.phone" type="text" class="block w-full rounded-md border-gray-300 shadow-sm border p-2.5 focus:ring-blue-500 focus:border-blue-500 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" required placeholder="012 345 678">
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Address</label>
-                  <textarea v-model="form.address" style="height: 112.2px;" class="block w-full rounded-md border-gray-300 shadow-sm border p-3 focus:ring-blue-500 focus:border-blue-500 text-sm resize-y dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" placeholder="Student address"></textarea>
+                  <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">{{ $t('Address') }}</label>
+                  <textarea v-model="form.address" style="height: 112.2px;" class="block w-full rounded-md border-gray-300 shadow-sm border p-3 focus:ring-blue-500 focus:border-blue-500 text-sm resize-y dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" :placeholder="$t('Student address')"></textarea>
                 </div>
 
                 <div >
-                  <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Select Class & Time *</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">{{ $t('Select Class & Time *') }}</label>
                   <select v-model="form.class_id" class="block w-full rounded-md border-gray-300 shadow-sm border p-2.5 focus:ring-blue-500 focus:border-blue-500 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" required>
-                    <option value="" disabled>Choose a class...</option>
+                    <option value="" disabled>{{ $t('Choose a class...') }}</option>
                     <option v-for="cls in classes" :key="cls.id" :value="cls.id">
                       {{ cls.class_name }} - {{ cls.time?.time_name }} ({{ cls.registered_count }}/{{ cls.capacity }})
                     </option>
@@ -110,7 +110,7 @@ const filteredEnrollments = computed(() => {
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    {{ form.processing ? 'Registering...' : 'Register Student' }}
+                    {{ form.processing ? $t('Registering...') : $t('Register Student') }}
                   </button>
                 </div>
               </form>
@@ -131,7 +131,7 @@ const filteredEnrollments = computed(() => {
                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                  <svg class="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                </div>
-               <input v-model="searchQuery" type="text" placeholder="Search by name or phone..." class="w-full pl-9 border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 border bg-white dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20">
+               <input v-model="searchQuery" type="text" :placeholder="$t('Search by name or phone...')" class="w-full pl-9 border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 border bg-white dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20">
             </div>
           </div>
 
@@ -139,11 +139,11 @@ const filteredEnrollments = computed(() => {
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
               <thead class="bg-gray-50 sticky top-0 z-10 shadow-sm dark:bg-gray-800">
                 <tr>
-                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-400">Student Info</th>
-                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-400">Contact</th>
-                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-400">Course / Class</th>
-                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-400">Enroll. Date</th>
-                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-400">Created At</th>
+                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-400">{{ $t('Student Info') }}</th>
+                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-400">{{ $t('Contact') }}</th>
+                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-400">{{ $t('Course / Class') }}</th>
+                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-400">{{ $t('Enroll. Date') }}</th>
+                  <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-400">{{ $t('Created At') }}</th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-800">
@@ -205,7 +205,7 @@ const filteredEnrollments = computed(() => {
                     <svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                     </svg>
-                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No students found</h3>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $t('No students found') }}</h3>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                       {{ searchQuery ? 'Try adjusting your search query.' : 'Get started by creating a new registration.' }}
                     </p>

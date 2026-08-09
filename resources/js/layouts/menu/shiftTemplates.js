@@ -3,10 +3,11 @@ export function build(ctx) {
 
   return {
     label: "Shift Templates",
+    labelKey: "navigation.shiftTemplates",
     href: "/dashboard/shift-templates",
     match: ["/dashboard/shift-templates"],
     exact: false,
-    icon: "schdule",
+    icon: "shift",
     isActive: (path) => path.startsWith("/dashboard/shift-templates"),
   };
 }

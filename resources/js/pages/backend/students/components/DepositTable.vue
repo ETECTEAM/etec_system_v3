@@ -15,8 +15,12 @@ const props = defineProps({
     default: () => [],
   },
 });
+const emit = defineEmits(["record-deposit", "print-receipt"]);
 
 const search = ref("");
+function refresh() {
+  search.value = "";
+}
 
 const filtered = computed(() => {
   if (!search.value) return props.students;
@@ -24,6 +28,7 @@ const filtered = computed(() => {
   return props.students.filter(
     (s) =>
       s.name?.toLowerCase().includes(q) ||
+      String(s.roster_no).includes(q) ||
       String(s.id).includes(q) ||
       s.phone?.toLowerCase().includes(q)
   );
@@ -41,6 +46,16 @@ function statusBadge(status) {
       return "bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300";
   }
 }
+
+function formatGender(value) {
+  if (!value) return "—";
+
+  const normalized = String(value).toLowerCase();
+  if (normalized === "male") return "Male";
+  if (normalized === "female") return "Female";
+
+  return value;
+}
 </script>
 
 <template>
@@ -52,7 +67,7 @@ function statusBadge(status) {
       class="flex flex-col gap-3 border-b border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800"
     >
       <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">
-        Student Deposits
+        {{ $t('Student Deposits') }}
         <span class="ml-1.5 text-sm font-normal text-slate-400 dark:text-gray-500">
           ({{ filtered.length }})
         </span>
@@ -65,7 +80,7 @@ function statusBadge(status) {
           <input
             v-model="search"
             type="text"
-            placeholder="Search student..."
+            :placeholder="$t('Search student...')"
             class="w-full rounded-xl border border-slate-300 px-4 py-2 pl-10 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
           />
 
@@ -80,7 +95,7 @@ function statusBadge(status) {
           class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
         >
           <RotateCcw class="w-4 h-4" />
-          Reset
+          {{ $t('Reset') }}
         </button>
       </div>
     </div>
@@ -90,15 +105,15 @@ function statusBadge(status) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Student ID</TableHead>
-            <TableHead>Student Name</TableHead>
-            <TableHead>Gender</TableHead>
-            <TableHead>Phone Number</TableHead>
-            <TableHead>Deposit Amount</TableHead>
-            <TableHead>Payment Date</TableHead>
-            <TableHead>Payment Status</TableHead>
-            <TableHead>Remaining Balance</TableHead>
-            <TableHead class="text-center">Action</TableHead>
+            <TableHead>{{ $t('Student ID') }}</TableHead>
+            <TableHead>{{ $t('Student Name') }}</TableHead>
+            <TableHead>{{ $t('Gender') }}</TableHead>
+            <TableHead>{{ $t('Phone Number') }}</TableHead>
+            <TableHead>{{ $t('Deposit Amount') }}</TableHead>
+            <TableHead>{{ $t('Payment Date') }}</TableHead>
+            <TableHead>{{ $t('Payment Status') }}</TableHead>
+            <TableHead>{{ $t('Remaining Balance') }}</TableHead>
+            <TableHead class="text-center">{{ $t('Action') }}</TableHead>
           </TableRow>
         </TableHeader>
 
@@ -110,12 +125,12 @@ function statusBadge(status) {
             <TableCell class="whitespace-nowrap font-medium text-slate-900 dark:text-gray-100">
               {{ student.name }}
             </TableCell>
-            <TableCell>{{ student.gender }}</TableCell>
+            <TableCell>{{ formatGender(student.gender) }}</TableCell>
             <TableCell class="whitespace-nowrap">
               {{ student.phone ?? "—" }}
             </TableCell>
             <TableCell class="whitespace-nowrap font-medium">
-              ${{ student.deposit_amount?.toFixed(2) }}
+              ${{ Number(student.amount_paid ?? student.deposit_amount ?? 0).toFixed(2) }}
             </TableCell>
             <TableCell class="whitespace-nowrap">
               {{ student.payment_date ?? "—" }}
@@ -129,25 +144,27 @@ function statusBadge(status) {
               </span>
             </TableCell>
             <TableCell class="whitespace-nowrap font-medium">
-              ${{ student.remaining_balance?.toFixed(2) }}
+              ${{ Number(student.remaining_balance ?? 0).toFixed(2) }}
             </TableCell>
             <TableCell>
               <div class="flex justify-center gap-1.5">
                 <button
                   class="rounded-lg bg-blue-50 p-2 text-blue-600 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
-                  title="View Payment"
+                  :title="$t('View Payment')"
                 >
                   <Eye class="h-4 w-4" />
                 </button>
                 <button
+                  @click="emit('record-deposit', student)"
                   class="rounded-lg bg-amber-50 p-2 text-amber-600 transition-colors hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
-                  title="Edit Deposit"
+                  :title="$t('Edit Deposit')"
                 >
                   <Pencil class="h-4 w-4" />
                 </button>
                 <button
+                  @click="emit('print-receipt', student)"
                   class="rounded-lg bg-slate-50 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                  title="Print Receipt"
+                  :title="$t('Print Receipt')"
                 >
                   <Printer class="h-4 w-4" />
                 </button>
@@ -159,7 +176,7 @@ function statusBadge(status) {
           <TableRow v-if="filtered.length === 0">
             <TableCell colspan="9">
               <div class="py-12 text-center text-slate-400 dark:text-gray-500">
-                <p class="text-base font-medium">No students found</p>
+                <p class="text-base font-medium">{{ $t('No students found') }}</p>
                 <p class="mt-1 text-sm">
                   {{
                     search

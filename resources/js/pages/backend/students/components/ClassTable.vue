@@ -1,6 +1,8 @@
 <script setup>
-import { Eye, Pencil, Trash2 } from "@lucide/vue";
 import { router } from "@inertiajs/vue3";
+import { route } from "ziggy-js";
+import { Eye, Pencil, Trash2, Copy } from "@lucide/vue";
+// import { router } from "@inertiajs/vue3";
 
 import Table from "../../../../components/ui/table/Table.vue";
 import TableHeader from "../../../../components/ui/table/TableHeader.vue";
@@ -17,16 +19,20 @@ const props = defineProps({
 });
 
 const viewClass = (id) => {
-  router.get(`/dashboard/students/view/${id}`);
+  router.get(`/dashboard/enroll/view/${id}`);
 };
 
 const editClass = (id) => {
-  router.get(`/dashboard/students/edit/${id}`);
+  router.get(`/dashboard/enroll/edit/${id}`);
+};
+
+const copyClass = (id) => {
+  router.get(`/dashboard/enroll/copy/${id}`);
 };
 
 const deleteClass = (id) => {
   if (confirm("Are you sure you want to delete this class?")) {
-    router.delete(`/dashboard/students/${id}`);
+    router.delete(`/dashboard/enroll/${id}`);
   }
 };
 </script>
@@ -36,15 +42,15 @@ const deleteClass = (id) => {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>ID</TableHead>
-          <TableHead>Class</TableHead>
-          <TableHead>Lesson</TableHead>
-          <TableHead>Building</TableHead>
-          <TableHead>Room</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Students</TableHead>
-          <TableHead>Time</TableHead>
-          <TableHead class="text-center">Action</TableHead>
+          <TableHead>{{ $t('ID') }}</TableHead>
+          <TableHead>{{ $t('Class') }}</TableHead>
+          <TableHead>{{ $t('Lesson') }}</TableHead>
+          <TableHead>{{ $t('Building') }}</TableHead>
+          <TableHead>{{ $t('Room') }}</TableHead>
+          <TableHead>{{ $t('Status') }}</TableHead>
+          <TableHead>{{ $t('Students') }}</TableHead>
+          <TableHead>{{ $t('Time') }}</TableHead>
+          <TableHead class="text-center">{{ $t('Action') }}</TableHead>
         </TableRow>
       </TableHeader>
 
@@ -104,6 +110,13 @@ const deleteClass = (id) => {
                 class="rounded-lg bg-yellow-100 p-2 text-yellow-600 transition hover:bg-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:hover:bg-yellow-500/20"
               >
                 <Pencil class="h-4 w-4" />
+              </button>
+
+              <button
+                @click="copyClass(item.id)"
+                class="rounded-lg bg-teal-100 p-2 text-teal-600 transition hover:bg-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:hover:bg-teal-500/20"
+              >
+                <Copy class="h-4 w-4" />
               </button>
 
               <button

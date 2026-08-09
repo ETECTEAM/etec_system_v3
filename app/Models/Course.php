@@ -15,10 +15,7 @@ class Course extends Model
         'title',
         'slug',
         'level',
-        'price',
         'thumbnail',
-        'language',
-        'certificate_available',
         'status'
     ];
 
@@ -30,5 +27,10 @@ class Course extends Model
     public function lessons()
     {
         return $this->hasMany(CourseLesson::class);
+    }
+
+    public function enrollConfig()
+    {
+        return $this->hasOne(CourseEnrollConfig::class);
     }
 }

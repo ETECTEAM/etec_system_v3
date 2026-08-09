@@ -4,7 +4,7 @@ use App\Modules\Registration\Controllers\AdminClassController;
 use App\Modules\Registration\Controllers\AdminRegistrationController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth')->prefix('dashboard/admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'active'])->prefix('dashboard/admin')->name('admin.')->group(function () {
     // Classes setup
     Route::resource('classes', AdminClassController::class)->only(['index', 'create', 'store']);
 

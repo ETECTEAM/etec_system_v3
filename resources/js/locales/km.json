@@ -1,0 +1,72 @@
+{
+  "app": {
+    "brand": "ETEC",
+    "controlCenter": "មជ្ឈមណ្ឌលគ្រប់គ្រង",
+    "fallbackName": "មជ្ឈមណ្ឌលគ្រប់គ្រង ETEC"
+  },
+  "common": {
+    "approved": "បានអនុម័ត",
+    "approve": "អនុម័ត",
+    "drawOnPage": "គូរលើទំព័រ",
+    "guest": "ភ្ញៀវ",
+    "language": "ភាសា",
+    "loading": "កំពុងផ្ទុក...",
+    "notSignedIn": "មិនទាន់ចូលគណនី",
+    "reject": "បដិសេធ",
+    "rejected": "បានបដិសេធ",
+    "signOut": "ចេញពីគណនី",
+    "stopDrawing": "បញ្ឈប់ការគូរ",
+    "theme": "រចនាប័ទ្ម",
+    "toggleSidebar": "បើក/បិទម៉ឺនុយចំហៀង",
+    "viewAll": "មើលទាំងអស់"
+  },
+  "locale": {
+    "en": "English",
+    "km": "ខ្មែរ"
+  },
+  "navigation": {
+    "accountSecurity": "សុវត្ថិភាពគណនី",
+    "blockedAccounts": "គណនីដែលបានបិទ",
+    "buildingManagement": "គ្រប់គ្រងអគារ",
+    "buildings": "អគារ",
+    "categories": "ប្រភេទ",
+    "classList": "បញ្ជីថ្នាក់",
+    "classManagement": "គ្រប់គ្រងថ្នាក់",
+    "classType": "ប្រភេទថ្នាក់",
+    "courseManagement": "គ្រប់គ្រងវគ្គសិក្សា",
+    "courses": "វគ្គសិក្សា",
+    "dashboard": "ផ្ទាំងគ្រប់គ្រង",
+    "enrollConfig": "កំណត់ការចុះឈ្មោះ",
+    "enrollManagement": "គ្រប់គ្រងការចុះឈ្មោះ",
+    "floors": "ជាន់",
+    "lessons": "មេរៀន",
+    "lockoutSettings": "ការកំណត់ការចាក់សោ",
+    "loginSecurity": "សុវត្ថិភាពចូលគណនី",
+    "menuManagement": "គ្រប់គ្រងម៉ឺនុយ",
+    "myProfile": "ប្រវត្តិរូបខ្ញុំ",
+    "navigation": "ការរុករក",
+    "newsManagement": "គ្រប់គ្រងព័ត៌មាន",
+    "notifications": "ការជូនដំណឹង",
+    "pageManagement": "គ្រប់គ្រងទំព័រ",
+    "registerStudent": "ចុះឈ្មោះសិស្ស",
+    "rolePermission": "តួនាទី និងសិទ្ធិ",
+    "rooms": "បន្ទប់",
+    "scheduleManagement": "គ្រប់គ្រងកាលវិភាគ",
+    "schedules": "កាលវិភាគ",
+    "schoolSettings": "ការកំណត់សាលា",
+    "shiftTemplates": "គំរូវេន",
+    "subCategories": "ប្រភេទរង",
+    "terms": "វគ្គសិក្សា/ឆមាស",
+    "times": "ម៉ោង",
+    "tracks": "ជំនាញ",
+    "user": "អ្នកប្រើប្រាស់",
+    "userManagement": "គ្រប់គ្រងអ្នកប្រើប្រាស់",
+    "userPermission": "អ្នកប្រើប្រាស់ និងសិទ្ធិ",
+    "videoManagement": "គ្រប់គ្រងវីដេអូ",
+    "websiteManagement": "គ្រប់គ្រងគេហទំព័រ"
+  },
+  "notifications": {
+    "empty": "មិនទាន់មានការជូនដំណឹង។",
+    "title": "ការជូនដំណឹង"
+  }
+}

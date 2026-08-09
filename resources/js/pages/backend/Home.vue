@@ -14,50 +14,50 @@ const primaryRole = computed(() => {
 </script>
 
 <template>
-  <Head title="Dashboard" />
+  <Head :title="$t('Dashboard')" />
   <DashboardLayout>
     
     <section class="space-y-6 p-4 sm:p-6">
       <div class="rounded-3xl bg-gradient-to-r from-blue-950 via-blue-900 to-sky-800 p-6 text-white shadow-xl">
-        <p class="text-sm uppercase tracking-[0.3em] text-blue-100">ETEC Dashboard</p>
+        <p class="text-sm uppercase tracking-[0.3em] text-blue-100">{{ $t('ETEC Dashboard') }}</p>
 
         <h1 class="mt-3 text-3xl font-black">
-          {{ user ? `Welcome back, ${user.name}` : 'Welcome to ETEC System' }}
+          {{ user ? $t('Welcome back, :name', { name: user.name }) : $t('Welcome to ETEC System') }}
         </h1>
 
         <p class="mt-2 max-w-2xl text-sm text-blue-100/90">
-          {{ user ? 'You are now logged in and inside the dashboard area.' : 'Please sign in to access your dashboard.' }}
+          {{ user ? $t('You are now logged in and inside the dashboard area.') : $t('Please sign in to access your dashboard.') }}
         </p>
       </div>
 
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-gray-400">Account</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-gray-400">{{ $t('Account') }}</p>
           <p class="mt-3 text-lg font-bold text-slate-900 dark:text-gray-100">
-            {{ user?.email ?? 'Guest session' }}
+            {{ user?.email ?? $t('Guest session') }}
           </p>
           <p class="mt-2 text-sm text-slate-600 dark:text-gray-400">
-            Authenticated email for the current dashboard session.
+            {{ $t('Authenticated email for the current dashboard session.') }}
           </p>
         </article>
 
         <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-gray-400">Primary Role</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-gray-400">{{ $t('Primary Role') }}</p>
           <p class="mt-3 text-lg font-bold capitalize text-slate-900 dark:text-gray-100">
-            {{ primaryRole.replace('_', ' ') }}
+            {{ $t(primaryRole.replace('_', ' ')) }}
           </p>
           <p class="mt-2 text-sm text-slate-600 dark:text-gray-400">
-            Permissions and navigation can be tailored from this role.
+            {{ $t('Permissions and navigation can be tailored from this role.') }}
           </p>
         </article>
 
         <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-gray-400">Status</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-gray-400">{{ $t('Status') }}</p>
           <p class="mt-3 text-lg font-bold text-emerald-600 dark:text-emerald-400">
-            {{ user ? 'Logged in' : 'Signed out' }}
+            {{ user ? $t('Logged in') : $t('Signed out') }}
           </p>
           <p class="mt-2 text-sm text-slate-600 dark:text-gray-400">
-            You are inside the dashboard area.
+            {{ $t('You are inside the dashboard area.') }}
           </p>
         </article>
       </div>

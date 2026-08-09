@@ -1,20 +1,12 @@
 <script setup>
-import {
-    GraduationCap,
-    Building2,
-    DoorOpen,
-    CalendarDays,
-    Clock3,
-    Users,
-    BookOpen,
-    MonitorSmartphone,
-} from "@lucide/vue";
-
+import { router } from "@inertiajs/vue3";
+import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,BookOpen,} from "@lucide/vue";
 import { ref, computed } from "vue";
+import { QrcodeCanvas } from "qrcode.vue";
 import NotificationBadge from "../notification-badge/NotificationBadge.vue";
 import ClassActionMenu from "./ClassActionMenu.vue";
 import BarClass from "../../../pages/backend/students/components/BarClass.vue";
-import { router } from "@inertiajs/vue3";
+// import { router } from "@inertiajs/vue3";
 
 const props = defineProps({
     classData: Object,
@@ -26,6 +18,7 @@ const props = defineProps({
 
 const emit = defineEmits([
     "edit",
+    "copy",
     "add-student",
     "qr",
     "switch-teacher",
@@ -37,19 +30,61 @@ const emit = defineEmits([
 ]);
 
 const capacity = computed(() => props.classData.capacity);
+const online = computed(() =>
+    props.classData.class_type === "online" ||
+    String(props.classData.status ?? "").toLowerCase().includes("online")
+);
 
 const fill = computed(() => {
+    if (!capacity.value) return 0;
     return (props.classData.students / capacity.value) * 100;
 });
 
-const online = computed(() => {
-    return props.classData.status === "Online Class";
+const statusStyle = computed(() => {
+    switch (props.classData.status) {
+        case 'active':    return 'bg-emerald-50 text-emerald-700 ring-emerald-600/20';
+        case 'inactive':  return 'bg-slate-100 text-slate-600 ring-slate-400/20';
+        case 'completed': return 'bg-blue-50 text-blue-700 ring-blue-600/20';
+        default:          return 'bg-blue-50 text-blue-700 ring-blue-600/20';
+    }
 });
 
 const showBarDialog = ref(false);
+const showQrDialog = ref(false);
+const qrUrl = computed(() => `${window.location.origin}/dashboard/enroll/${props.classData.id}/students/create`);
 
 function showViewClass () { 
-   router.get(`/dashboard/students/view/${props.classData.id}`);
+   router.get(`/dashboard/enroll/view/${props.classData.id}`);
+}
+
+function showEditClass() {
+    router.get(`/dashboard/enroll/edit/${props.classData.id}`);
+}
+
+function showCopyClass() {
+    router.get(`/dashboard/enroll/copy/${props.classData.id}`);
+}
+
+function showAddStudent() {
+    router.get(`/dashboard/enroll/${props.classData.id}/students/create`);
+}
+
+function showQr() {
+    emit("qr", props.classData);
+    showQrDialog.value = true;
+}
+
+function notifyPendingAction(label) {
+    window.alert(`${label} is not available yet.`);
+}
+
+function updateStatus(status) {
+    router.post(`/dashboard/enroll/${props.classData.id}/status`, { status }, {
+        preserveScroll: true,
+        onFinish: () => {
+            showBarDialog.value = false;
+        },
+    });
 }
 </script>
 
@@ -58,10 +93,9 @@ function showViewClass () {
     class="group relative flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-0.5 hover:border-indigo-200 transition-all duration-300 dark:bg-gray-900 dark:border-gray-800 dark:hover:border-indigo-500/40"
 >
     <NotificationBadge :count="props.count" />
-
     <div class="p-5 sm:p-6 flex flex-col flex-1">
 
-        <!-- ─── Header ─── -->
+        <!-- Header -->
         <div class="flex items-start justify-between gap-3">
             <div class="flex items-start gap-3 min-w-0">
                 <div
@@ -96,7 +130,7 @@ function showViewClass () {
             />
         </div>
 
-        <!-- ─── Information ─── -->
+        <!-- Information -->
         <div class="mt-4 sm:mt-5 space-y-3 flex-1">
 
             <div class="flex items-center justify-between gap-2">
@@ -142,10 +176,9 @@ function showViewClass () {
                     <span
                         :class="[
                             'w-1.5 h-1.5 rounded-full',
-                            online ? 'bg-emerald-500' : 'bg-blue-500'
+                            classData.status === 'active' ? 'bg-emerald-500' : classData.status === 'inactive' ? 'bg-slate-400' : 'bg-blue-500',
                         ]"
                     ></span>
-                    <MonitorSmartphone v-if="online" class="w-3 h-3" />
                     {{ classData.status }}
                 </span>
             </div>
@@ -219,5 +252,40 @@ function showViewClass () {
     :show="showBarDialog"
     :classData="classData"
     @close="showBarDialog = false"
+    @view="showViewClass"
+    @edit="showEditClass"
+    @copy="showCopyClass"
+    @add-student="showAddStudent"
+    @qr="showQr"
+    @switch-teacher="notifyPendingAction('Switch teacher')"
+    @attendance="notifyPendingAction('Attendance')"
+    @export="notifyPendingAction('Export student list')"
+    @pre-end="updateStatus('inactive')"
+    @end="updateStatus('completed')"
 />
+
+<Teleport to="body">
+    <div v-if="showQrDialog" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/50 px-4" @click.self="showQrDialog = false">
+        <div class="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl dark:bg-gray-900">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">
+                Generate QR
+            </h3>
+            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">
+                {{ classData.title }}
+            </p>
+
+            <div class="mt-5 inline-flex rounded-2xl bg-white p-4 shadow-inner">
+                <QrcodeCanvas :value="qrUrl" :size="220" level="H" />
+            </div>
+
+            <a :href="qrUrl" target="_blank" class="mt-4 block break-all text-xs text-blue-700 hover:underline dark:text-blue-400">
+                {{ qrUrl }}
+            </a>
+
+            <button type="button" @click="showQrDialog = false" class="mt-5 w-full rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500">
+                Close
+            </button>
+        </div>
+    </div>
+</Teleport>
 </template>

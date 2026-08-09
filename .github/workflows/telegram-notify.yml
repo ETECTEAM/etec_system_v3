@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Send Telegram Notification
         run: |
-          MESSAGE="🚀 ETEC System Update
+          MESSAGE="🚀 ETEC Backend Update
 
           👤 Developer: ${{ github.actor }}
 

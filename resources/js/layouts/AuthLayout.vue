@@ -28,7 +28,7 @@ onBeforeUnmount(() => {
     <div class="grid min-h-screen w-full grid-cols-1 lg:grid-cols-[1.1fr_0.9fr]">
       <AuthHero />
 
-      <section class="flex min-h-screen items-center justify-center bg-white p-6 sm:p-10 xl:border-l xl:border-gray-200 xl:p-16 xl:shadow-[-12px_0_32px_-16px_rgba(15,23,42,0.35)] dark:bg-gray-900 dark:xl:border-gray-800 dark:xl:shadow-[-12px_0_40px_-16px_rgba(0,0,0,0.85)]">
+      <section class="relative z-10 flex min-h-screen items-center justify-center bg-white p-6 sm:p-10 lg:border-l lg:border-gray-200 lg:shadow-[-24px_0_48px_-20px_rgba(15,23,42,0.55)] xl:p-16 dark:bg-gray-900 dark:lg:border-gray-800 dark:lg:shadow-[-24px_0_48px_-20px_rgba(0,0,0,0.9)]">
         <slot />
 
       </section>

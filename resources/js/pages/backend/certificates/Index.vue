@@ -21,15 +21,15 @@ function printCertificate() {
 </script>
 
 <template>
-    <Head title="Certificates" />
+    <Head :title="$t('Certificates')" />
 
     <DashboardLayout>
         <section class="certificate-page mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
             <header class="no-print flex flex-col gap-4 rounded-2xl bg-gradient-to-r from-indigo-950 via-indigo-900 to-blue-800 p-5 text-white shadow-lg sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.25em] text-indigo-200">ETEC documents</p>
-                    <h1 class="mt-1 text-2xl font-bold">Certificate of Completion</h1>
-                    <p class="mt-1 text-sm text-indigo-100">Check the details, then print a clean certificate.</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.25em] text-indigo-200">{{ $t('ETEC documents') }}</p>
+                    <h1 class="mt-1 text-2xl font-bold">{{ $t('Certificate of Completion') }}</h1>
+                    <p class="mt-1 text-sm text-indigo-100">{{ $t('Check the details, then print a clean certificate.') }}</p>
                 </div>
                 <button type="button" class="rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-indigo-900 shadow transition hover:bg-indigo-50" @click="printCertificate">
                     Print certificate
@@ -37,34 +37,34 @@ function printCertificate() {
             </header>
 
             <div class="no-print grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-3 dark:border-gray-800 dark:bg-gray-900">
-                <label class="certificate-field">Recipient name<input v-model="certificate.recipient" type="text" /></label>
-                <label class="certificate-field">Course name<input v-model="certificate.course" type="text" /></label>
-                <label class="certificate-field">Granted date<input v-model="certificate.grantedDate" type="text" /></label>
-                <label class="certificate-field">Certificate ID<input v-model="certificate.certificateId" type="text" /></label>
-                <label class="certificate-field">Director<input v-model="certificate.director" type="text" /></label>
+                <label class="certificate-field">{{ $t('Recipient name') }}<input v-model="certificate.recipient" type="text" /></label>
+                <label class="certificate-field">{{ $t('Course name') }}<input v-model="certificate.course" type="text" /></label>
+                <label class="certificate-field">{{ $t('Granted date') }}<input v-model="certificate.grantedDate" type="text" /></label>
+                <label class="certificate-field">{{ $t('Certificate ID') }}<input v-model="certificate.certificateId" type="text" /></label>
+                <label class="certificate-field">{{ $t('Director') }}<input v-model="certificate.director" type="text" /></label>
             </div>
 
             <div class="certificate-preview-wrap overflow-auto rounded-2xl bg-slate-200 p-3 shadow-inner sm:p-6 dark:bg-gray-800">
-                <article class="certificate-sheet" aria-label="Certificate preview">
+                <article class="certificate-sheet" :aria-label="$t('Certificate preview')">
                     <div class="certificate-inner">
                         <header class="certificate-government">
-                            <p>KINGDOM OF CAMBODIA</p>
-                            <p>NATION &nbsp; RELIGION &nbsp; KING</p>
-                            <div class="ornament" aria-hidden="true">&mdash; * * * &mdash;</div>
+                            <p>{{ $t('KINGDOM OF CAMBODIA') }}</p>
+                            <p>{{ $t('NATION &nbsp; RELIGION &nbsp; KING') }}</p>
+                            <div class="ornament" aria-hidden="true">{{ $t('&mdash; * * * &mdash;') }}</div>
                         </header>
 
-                        <div class="etec-mark" aria-label="ETEC Center logo">
-                            <span class="etec-e">E</span><span class="etec-s">S</span><i></i>
-                            <small>ETEC Center</small>
+                        <div class="etec-mark" :aria-label="$t('ETEC Center logo')">
+                            <span class="etec-e">{{ $t('E') }}</span><span class="etec-s">{{ $t('S') }}</span><i></i>
+                            <small>{{ $t('ETEC Center') }}</small>
                         </div>
 
                         <div class="certificate-organization">
                             <p class="khmer-title">វិស្វកម្មបច្ចេកវិទ្យា និងអេឡិចត្រូនិក</p>
-                            <p>Engineering of Technology and Electronic Center</p>
+                            <p>{{ $t('Engineering of Technology and Electronic Center') }}</p>
                         </div>
 
-                        <h2>Certificate of Completion</h2>
-                        <p class="certificate-intro">This is to certify that</p>
+                        <h2>{{ $t('Certificate of Completion') }}</h2>
+                        <p class="certificate-intro">{{ $t('This is to certify that') }}</p>
                         <p class="certificate-recipient">{{ certificate.recipient || '---' }}</p>
                         <p class="certificate-statement">{{ issueStatement }}</p>
                         <p class="certificate-course">{{ certificate.course || '---' }}</p>
@@ -75,7 +75,7 @@ function printCertificate() {
                             <div class="signature">
                                 <div class="signature-line"></div>
                                 <p>{{ certificate.director || '---' }}</p>
-                                <strong>Director</strong>
+                                <strong>{{ $t('Director') }}</strong>
                             </div>
                         </footer>
                     </div>

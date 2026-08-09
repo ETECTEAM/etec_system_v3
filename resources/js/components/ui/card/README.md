@@ -61,7 +61,7 @@ No internal navigation. The "View Class" button is presentational (no handler wi
 
 ## Future Improvements
 
-- Wire "View Class" button to route `/dashboard/students/{id}`
+- Wire "View Class" button to route `/dashboard/enroll/{id}`
 - Add `EllipsisVertical` dropdown menu (edit, delete)
 - Emit events for parent consumption
 - Skeleton loading placeholder

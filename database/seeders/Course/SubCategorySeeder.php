@@ -22,84 +22,37 @@ class SubCategorySeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
         
         $subCategories = [
-            // Programming
+            // Fundamental Category
             [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Python'
+                'category_id' => $this->getCategoryId('Fundamental'),
+                'name' => 'Basic IT'
             ],
+            // Programming Category
             [
                 'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Java'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'JavaScript'
+                'name' => 'Programming Fundamentals'
             ],
             [
                 'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'C++'
+                'name' => 'Web Development'
             ],
             [
                 'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'C#'
+                'name' => 'Mobile Development'
             ],
             [
                 'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'PHP'
+                'name' => 'Desktop Development'
             ],
+            // Graphic Design Category
             [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Ruby'
+                'category_id' => $this->getCategoryId('Graphic Design'),
+                'name' => 'Graphic & UI/UX Design'
             ],
+            // Networking Category
             [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Go'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Programming'),
-                'name' => 'Rust'
-            ],
-
-            // Web Development
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Frontend'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Backend'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Full Stack'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'React'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Vue.js'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Angular'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Laravel'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Node.js'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Django'
-            ],
-            [
-                'category_id' => $this->getCategoryId('Web Development'),
-                'name' => 'Spring Boot'
+                'category_id' => $this->getCategoryId('Networking'),
+                'name' => 'Network & Systems'
             ],
         ];
 
@@ -117,17 +70,25 @@ class SubCategorySeeder extends Seeder
             }
             $usedSlugs[] = $slug;
             
-            SubCategory::create([
-                'category_id' => $subCategory['category_id'],
-                'name' => $subCategory['name'],
-                'slug' => $slug,
-                'status' => 'active'
-            ]);
+            SubCategory::updateOrCreate(
+                ['name' => $subCategory['name']],
+                [
+                    'category_id' => $subCategory['category_id'],
+                    'slug' => $slug,
+                    'status' => 'active'
+                ]
+            );
         }
     }
 
     private function getCategoryId($categoryName)
     {
-        return Category::where('name', $categoryName)->first()->id;
+        $category = Category::where('name', $categoryName)->first();
+
+        if (! $category) {
+            throw new \RuntimeException("Category '{$categoryName}' not found. Run CategorySeeder first.");
+        }
+
+        return $category->id;
     }
-}
+}   

@@ -22,6 +22,9 @@ class PermissionSeeder extends Seeder
             // គ្រប់គ្រង Terms & Times
             'view-terms', 'manage-terms',
             'view-times', 'manage-times',
+            // គ្រប់គ្រង Login Security (lockout tiers)
+            'manage-login-security',
+            'unblock-login-accounts',
         ];
 
         foreach ($permissions as $permission) {

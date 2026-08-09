@@ -182,44 +182,44 @@ function submit() {
 </script>
 
 <template>
-  <Head title="My Instructor Profile" />
+  <Head :title="$t('My Instructor Profile')" />
 
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :breadcrumbItems="breadcrumbItems" />
-      <PageHero eyebrow="Instructor" title="My Instructor Profile" description="Complete or update your instructor profile information." />
+      <PageHero eyebrow="Instructor" :title="$t('My Instructor Profile')" description="Complete or update your instructor profile information." />
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form @submit.prevent="submit">
 
           <!-- Basic Information -->
           <div class="mb-8">
-            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Basic Information</h2>
-            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">Your core account and employment details.</p>
+            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Basic Information') }}</h2>
+            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">{{ $t('Your core account and employment details.') }}</p>
             <div class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
               <div class="md:col-span-2 md:grid md:grid-cols-3 md:gap-x-6">
                 <label class="block md:col-span-1">
-                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Email</span>
+                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Email') }}</span>
                   <input
                     v-model="form.email"
                     type="email"
                     class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                    placeholder="your@email.com"
+                    :placeholder="$t('your@email.com')"
                   >
                   <span v-if="form.errors.email" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.email }}</span>
                 </label>
                 <label class="block md:col-span-1">
-                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Full Name <span class="text-red-500">*</span></span>
+                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Full Name') }} <span class="text-red-500">*</span></span>
                   <input
                     v-model="form.full_name"
                     type="text"
                     class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                    placeholder="Your full name"
+                    :placeholder="$t('Your full name')"
                   >
                   <span v-if="form.errors.full_name" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.full_name }}</span>
                 </label>
                 <label class="block md:col-span-1">
-                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Instructor Code</span>
+                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Instructor Code') }}</span>
                   <input
                     v-model="form.instructor_code"
                     type="text"
@@ -231,37 +231,37 @@ function submit() {
               </div>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Employment Type <span class="text-red-500">*</span></span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Employment Type') }} <span class="text-red-500">*</span></span>
                 <SelectSearch
                   v-model="form.employment_type"
                   :options="employmentTypeOptions"
-                  placeholder="Select employment type"
+                  :placeholder="$t('Select employment type')"
                   button-class="flex w-full h-11 items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-900 dark:disabled:text-gray-500"
                 />
                 <span v-if="form.errors.employment_type" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.employment_type }}</span>
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Phone</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Phone') }}</span>
                 <input
                   v-model="form.phone"
                   type="text"
                   class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                  placeholder="Phone number"
+                  :placeholder="$t('Phone number')"
                 >
                 <span v-if="form.errors.phone" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.phone }}</span>
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Shift Template</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Shift Template') }}</span>
                 <SelectSearch
                   v-model="form.shift_template_id"
                   :options="filteredShiftTemplateOptions"
                   :disabled="!form.employment_type"
-                  placeholder="Select a shift template"
+                  :placeholder="$t('Select a shift template')"
                   button-class="flex w-full h-11 items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-900 dark:disabled:text-gray-500"
                 />
-                <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">Availabilities will be auto-generated from the selected template.</p>
+                <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">{{ $t('Availabilities will be auto-generated from the selected template.') }}</p>
                 <span v-if="form.errors.shift_template_id" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.shift_template_id }}</span>
               </label>
             </div>
@@ -271,17 +271,17 @@ function submit() {
 
           <!-- Profile Details -->
           <div class="mb-8">
-            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Profile Details</h2>
-            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">Optional CV-style information about yourself.</p>
+            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Profile Details') }}</h2>
+            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">{{ $t('Optional CV-style information about yourself.') }}</p>
             <div class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
               <div class="md:col-span-2">
                 <label class="block">
-                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Headline</span>
+                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Headline') }}</span>
                   <input
                     v-model="form.headline"
                     type="text"
                     class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                    placeholder="e.g. Senior Math Instructor | 10+ Years Experience"
+                    :placeholder="$t('e.g. Senior Math Instructor | 10+ Years Experience')"
                   >
                   <span v-if="form.errors.headline" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.headline }}</span>
                 </label>
@@ -289,19 +289,19 @@ function submit() {
 
               <div class="md:col-span-2">
                 <label class="block">
-                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Bio</span>
+                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Bio') }}</span>
                   <textarea
                     v-model="form.bio"
                     rows="4"
                     class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                    placeholder="A short professional summary about yourself..."
+                    :placeholder="$t('A short professional summary about yourself...')"
                   />
                   <span v-if="form.errors.bio" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.bio }}</span>
                 </label>
               </div>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Date of Birth</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Date of Birth') }}</span>
                 <input
                   v-model="form.date_of_birth"
                   type="date"
@@ -311,11 +311,11 @@ function submit() {
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Gender</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Gender') }}</span>
                 <SelectSearch
                   v-model="form.gender"
                   :options="genderOptions"
-                  placeholder="Select gender"
+                  :placeholder="$t('Select gender')"
                   button-class="flex w-full h-11 items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-900 dark:disabled:text-gray-500"
                 />
                 <span v-if="form.errors.gender" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.gender }}</span>
@@ -323,12 +323,12 @@ function submit() {
 
               <div class="md:col-span-2">
                 <label class="block">
-                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Address</span>
+                  <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Address') }}</span>
                   <input
                     v-model="form.address"
                     type="text"
                     class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                    placeholder="Your address"
+                    :placeholder="$t('Your address')"
                   >
                   <span v-if="form.errors.address" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.address }}</span>
                 </label>
@@ -340,49 +340,49 @@ function submit() {
 
           <!-- Social Links -->
           <div class="mb-8">
-            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Social Links</h2>
-            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">Connect your professional online profiles.</p>
+            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Social Links') }}</h2>
+            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">{{ $t('Connect your professional online profiles.') }}</p>
             <div class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Telegram</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Telegram') }}</span>
                 <input
                   v-model="form.telegram"
                   type="text"
                   class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                  placeholder="Telegram username or link"
+                  :placeholder="$t('Telegram username or link')"
                 >
                 <span v-if="form.errors.telegram" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.telegram }}</span>
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">LinkedIn</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('LinkedIn') }}</span>
                 <input
                   v-model="form.linkedin"
                   type="url"
                   class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                  placeholder="https://linkedin.com/in/..."
+                  :placeholder="$t('https://linkedin.com/in/...')"
                 >
                 <span v-if="form.errors.linkedin" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.linkedin }}</span>
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">GitHub</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('GitHub') }}</span>
                 <input
                   v-model="form.github"
                   type="url"
                   class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                  placeholder="https://github.com/..."
+                  :placeholder="$t('https://github.com/...')"
                 >
                 <span v-if="form.errors.github" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.github }}</span>
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Portfolio URL</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Portfolio URL') }}</span>
                 <input
                   v-model="form.portfolio_url"
                   type="url"
                   class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                  placeholder="https://your-portfolio.com"
+                  :placeholder="$t('https://your-portfolio.com')"
                 >
                 <span v-if="form.errors.portfolio_url" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.portfolio_url }}</span>
               </label>
@@ -393,13 +393,13 @@ function submit() {
 
           <!-- Attachments -->
           <div class="mb-8">
-            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Attachments</h2>
-            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">Upload your profile photo, CV, and other documents.</p>
+            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Attachments') }}</h2>
+            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">{{ $t('Upload your profile photo, CV, and other documents.') }}</p>
             <div class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
 
               <!-- Profile Photo -->
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Profile Photo</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Profile Photo') }}</span>
                 <div class="flex items-center gap-4">
                   <div class="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-50 dark:border-gray-700 dark:bg-gray-800">
                     <img
@@ -419,7 +419,7 @@ function submit() {
                       class="block w-full text-sm text-slate-500 file:mr-3 file:h-9 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:text-sm file:font-semibold file:text-blue-900 hover:file:bg-blue-100 dark:text-gray-400 dark:file:bg-blue-500/10 dark:file:text-blue-400 dark:hover:file:bg-blue-500/20"
                       @change="onProfilePhotoChange"
                     >
-                    <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">JPEG, PNG, GIF, WebP. Max 2MB.</p>
+                    <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">{{ $t('JPEG, PNG, GIF, WebP. Max 2MB.') }}</p>
                     <span v-if="form.errors.profile_photo" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.profile_photo }}</span>
                   </div>
                 </div>
@@ -427,7 +427,7 @@ function submit() {
 
               <!-- CV -->
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">CV / Resume</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('CV / Resume') }}</span>
                 <div class="space-y-2">
                   <div v-if="cvFileName" class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
                     <svg class="h-4 w-4 shrink-0 text-blue-900 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -437,7 +437,7 @@ function submit() {
                       :href="cvFileProp.url"
                       target="_blank"
                       class="ml-auto shrink-0 text-blue-900 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                    >View</a>
+                    >{{ $t('View') }}</a>
                   </div>
                   <input
                     type="file"
@@ -445,7 +445,7 @@ function submit() {
                     class="block w-full text-sm text-slate-500 file:mr-3 file:h-9 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:text-sm file:font-semibold file:text-blue-900 hover:file:bg-blue-100 dark:text-gray-400 dark:file:bg-blue-500/10 dark:file:text-blue-400 dark:hover:file:bg-blue-500/20"
                     @change="onCvFileChange"
                   >
-                  <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">PDF, DOC, DOCX. Max 5MB.</p>
+                  <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">{{ $t('PDF, DOC, DOCX. Max 5MB.') }}</p>
                   <span v-if="form.errors.cv_file" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.cv_file }}</span>
                 </div>
               </label>
@@ -458,28 +458,28 @@ function submit() {
 
           <!-- Change Password -->
           <div class="mb-8">
-            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Change Password</h2>
-            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">Leave blank to keep your current password.</p>
+            <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Change Password') }}</h2>
+            <p class="mb-5 text-sm text-slate-500 dark:text-gray-400">{{ $t('Leave blank to keep your current password.') }}</p>
             <div class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">New Password</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('New Password') }}</span>
                 <input
                   v-model="form.password"
                   type="password"
                   class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                  placeholder="New password"
+                  :placeholder="$t('New password')"
                   autocomplete="new-password"
                 >
                 <span v-if="form.errors.password" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.password }}</span>
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">Confirm New Password</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Confirm New Password') }}</span>
                 <input
                   v-model="form.password_confirmation"
                   type="password"
                   class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                  placeholder="Confirm new password"
+                  :placeholder="$t('Confirm new password')"
                   autocomplete="new-password"
                 >
                 <span v-if="form.errors.password_confirmation" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.password_confirmation }}</span>
@@ -494,7 +494,7 @@ function submit() {
               :disabled="!isDirty || form.processing"
               class="h-11 rounded-lg bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
-              {{ form.processing ? 'Saving...' : 'Save Profile' }}
+              {{ form.processing ? $t('Saving...') : $t('Save Profile') }}
             </button>
           </div>
         </form>

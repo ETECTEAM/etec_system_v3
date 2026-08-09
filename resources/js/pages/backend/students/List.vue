@@ -59,19 +59,19 @@ const students = ref([
                         <thead class="bg-slate-100 dark:bg-gray-800">
                             <tr>
                                 <th class="px-6 py-4 text-left">
-                                    ID
+                                    {{ $t('ID') }}
                                 </th>
                                 <th class="px-6 py-4 text-left">
-                                    Name
+                                    {{ $t('Name') }}
                                 </th>
                                 <th class="px-6 py-4 text-left">
-                                    Course
+                                    {{ $t('Course') }}
                                 </th>
                                 <th class="px-6 py-4 text-left">
-                                    Time
+                                    {{ $t('Time') }}
                                 </th>
                                 <th class="px-6 py-4 text-left">
-                                    Status
+                                    {{ $t('Status') }}
                                 </th>
                             </tr>
                         </thead>

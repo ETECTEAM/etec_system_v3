@@ -6,7 +6,6 @@ namespace Database\Seeders\Course;
 use App\Models\Category;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class CategorySeeder extends Seeder
 {
@@ -14,42 +13,28 @@ class CategorySeeder extends Seeder
     {
         // Disable foreign key checks
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        
+
         Category::truncate();
-        
+
         // Re-enable foreign key checks
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
-        
+
         $categories = [
             'Programming',
-            'Web Development',
-            'Mobile Development',
-            'Data Science',
-            'DevOps',
+            'Fundamental',
+            'Graphic Design',
+            'Networking',
             'Cybersecurity',
-            'Cloud Computing',
-            'Database',
+            'Internship',
+            'Maintenance',
+            'Computer Basic'
         ];
 
-        $usedSlugs = [];
-        
         foreach ($categories as $category) {
-            $slug = Str::slug($category);
-            
-            // Make slug unique if duplicate
-            $counter = 1;
-            $originalSlug = $slug;
-            while (in_array($slug, $usedSlugs)) {
-                $slug = $originalSlug . '-' . $counter;
-                $counter++;
-            }
-            $usedSlugs[] = $slug;
-            
-            Category::create([
-                'name' => $category,
-                'slug' => $slug,
-                'status' => 'active'
-            ]);
+            Category::updateOrCreate(
+                ['name' => $category],
+                ['status' => 'active']
+            );
         }
     }
 }

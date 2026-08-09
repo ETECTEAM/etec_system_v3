@@ -1,6 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   items: {
@@ -16,7 +19,7 @@ const normalizedItems = computed(() => props.items.map((item, index) => ({
 </script>
 
 <template>
-  <nav aria-label="Breadcrumb" class="flex flex-wrap items-center text-sm font-medium">
+  <nav :aria-label="$t('Breadcrumb')" class="flex flex-wrap items-center text-sm font-medium">
     <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-slate-500 dark:text-gray-400">
       <li v-for="(item, index) in normalizedItems" :key="item.label + index" class="flex items-center">
         <template v-if="index > 0">
@@ -26,17 +29,17 @@ const normalizedItems = computed(() => props.items.map((item, index) => ({
         </template>
 
         <span v-if="item.current" class="text-blue-600 dark:text-blue-400">
-          {{ item.label }}
+          {{ t(item.label) }}
         </span>
         <Link
           v-else-if="item.href"
           :href="item.href"
           class="text-slate-500 transition hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
-          {{ item.label }}
+          {{ t(item.label) }}
         </Link>
         <span v-else class="text-slate-500 dark:text-gray-400">
-          {{ item.label }}
+          {{ t(item.label) }}
         </span>
       </li>
     </ol>
