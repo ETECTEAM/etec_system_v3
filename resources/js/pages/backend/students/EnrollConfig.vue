@@ -6,6 +6,7 @@ import { useToast } from 'vue-toastification'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { Pagination } from '../../../components/ui/pagination'
 import { PageHero } from '../../../components/ui/page-hero'
+import { PageLoading } from '../../../components/ui/page-loading'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import { useConfirm } from '../../../composables/useConfirm'
 import { useI18n } from '@/i18n'
@@ -141,6 +142,8 @@ function paginationEnd() {
 <template>
   <Head :title="$t('Student Enroll Config')" />
 
+  <PageLoading v-if="!hasLoaded" />
+
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
@@ -180,7 +183,7 @@ function paginationEnd() {
           >
         </div>
 
-        <div class="mt-5 overflow-x-auto">
+        <div class="relative mt-5 overflow-x-auto">
           <table class="w-full min-w-[640px] text-left text-sm">
             <thead class="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-400">
               <tr>
@@ -190,15 +193,11 @@ function paginationEnd() {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-gray-800">
-              <tr v-if="isLoading">
-                <td colspan="3" class="px-4 py-8 text-center text-slate-500 dark:text-gray-400">{{ $t('Loading courses...') }}</td>
-              </tr>
-
-              <tr v-else-if="hasLoaded && courses.length === 0">
+              <tr v-if="hasLoaded && !isLoading && courses.length === 0">
                 <td colspan="3" class="px-4 py-8 text-center text-slate-500 dark:text-gray-400">{{ $t('No courses found.') }}</td>
               </tr>
 
-              <tr v-for="course in courses" v-else :key="course.id" class="transition hover:bg-slate-50 dark:hover:bg-gray-800">
+              <tr v-for="course in courses" :key="course.id" class="transition hover:bg-slate-50 dark:hover:bg-gray-800">
                 <td class="px-4 py-3 font-medium text-slate-900 dark:text-gray-100">{{ course.title }}</td>
                 <td class="px-4 py-3">
                   <input
@@ -223,6 +222,13 @@ function paginationEnd() {
               </tr>
             </tbody>
           </table>
+
+          <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-sm dark:bg-slate-900/10">
+            <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <div class="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
+              <span class="text-sm text-slate-600 dark:text-gray-300">{{ $t('Loading courses...') }}</span>
+            </div>
+          </div>
         </div>
 
         <div class="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">

@@ -365,5 +365,6 @@ export const backendFinalTranslations = {
     "This overwrites the start date on every course with :date.": "វានឹងសរសេរជាន់លើថ្ងៃចាប់ផ្តើមរបស់វគ្គសិក្សាទាំងអស់ជា :date។",
     "This clears the start date on every course.": "វានឹងលុបថ្ងៃចាប់ផ្តើមរបស់វគ្គសិក្សាទាំងអស់។",
     "Start date applied to every course.": "បានកំណត់ថ្ងៃចាប់ផ្តើមទៅវគ្គសិក្សាទាំងអស់។",
+    "Loading, please wait...": "កំពុងផ្ទុក សូមរង់ចាំ...",
   },
 }
