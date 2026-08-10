@@ -308,7 +308,6 @@ const contextMenuActions = [
                 {{ roles.length === 0 ? $t('No roles available or roles could not be loaded.') : $t('No users found.') }}
               </TableCell>
             </TableRow>
-          </template>
         </TableBody>
       </Table>
     </div>
