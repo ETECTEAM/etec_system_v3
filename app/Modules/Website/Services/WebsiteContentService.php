@@ -272,7 +272,8 @@ class WebsiteContentService
         /** @var LengthAwarePaginator $paginator */
         $query = StudyClass::query()
             ->with([
-                'course:id,title,thumbnail',
+                'course:id,course_track_id,title,thumbnail',
+                'course.track.subCategory.category:id,name',
                 'teacher:id,name',
                 'room.floor.building',
             ])
@@ -332,6 +333,7 @@ class WebsiteContentService
             'id' => $studyClass->id,
             'title' => $studyClass->title,
             'course_title' => $studyClass->course?->title,
+            'course_category' => $studyClass->course?->track?->subCategory?->category?->name,
             'course_thumbnail_url' => $this->publicImageDataUri($studyClass->course?->thumbnail),
             'class_type' => $studyClass->class_type,
             'class_type_label' => $studyClass->class_type === 'online' ? 'Online Class' : 'Physical Class',
@@ -349,6 +351,9 @@ class WebsiteContentService
             'start_date' => optional($studyClass->start_date)->format('Y-m-d'),
             'end_date' => optional($studyClass->end_date)->format('Y-m-d'),
             'teacher_name' => $studyClass->teacher?->name,
+            'building_name' => $studyClass->room?->floor?->building?->name,
+            'floor_name' => $studyClass->room?->floor?->name,
+            'room_number' => $studyClass->room?->room_number,
             'location' => $studyClass->class_type === 'online'
                 ? 'Online'
                 : (trim(implode(', ', array_filter([
