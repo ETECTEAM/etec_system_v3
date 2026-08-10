@@ -36,6 +36,7 @@ const initialValues = {
   email: user?.email ?? '',
   full_name: instructorData?.full_name ?? user?.name ?? '',
   phone: instructorData?.phone ?? '',
+  specialization: instructorData?.specialization ?? '',
   employment_type: instructorData?.employment_type ?? '',
   shift_template_id: instructorData?.shift_template_id ? String(instructorData.shift_template_id) : '',
   headline: instructorData?.headline ?? '',
@@ -54,6 +55,7 @@ const form = useForm({
   full_name: instructorData?.full_name ?? user?.name ?? '',
   instructor_code: instructorData?.instructor_code ?? '',
   phone: instructorData?.phone ?? '',
+  specialization: instructorData?.specialization ?? '',
   employment_type: instructorData?.employment_type ?? '',
   shift_template_id: instructorData?.shift_template_id ? String(instructorData.shift_template_id) : '',
   headline: instructorData?.headline ?? '',
@@ -80,6 +82,7 @@ const isDirty = computed(() => {
   if (form.email !== initialValues.email) return true
   if (form.full_name !== initialValues.full_name) return true
   if (form.phone !== initialValues.phone) return true
+  if (form.specialization !== initialValues.specialization) return true
   if (form.employment_type !== initialValues.employment_type) return true
   if (form.shift_template_id !== initialValues.shift_template_id) return true
   if (form.headline !== initialValues.headline) return true
@@ -150,6 +153,7 @@ function submit() {
       initialValues.email = form.email
       initialValues.full_name = form.full_name
       initialValues.phone = form.phone
+      initialValues.specialization = form.specialization
       initialValues.employment_type = form.employment_type
       initialValues.shift_template_id = form.shift_template_id
       initialValues.headline = form.headline
@@ -250,6 +254,17 @@ function submit() {
                   :placeholder="$t('Phone number')"
                 >
                 <span v-if="form.errors.phone" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.phone }}</span>
+              </label>
+
+              <label class="block">
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Specialization') }}</span>
+                <input
+                  v-model="form.specialization"
+                  type="text"
+                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+                  :placeholder="$t('e.g. Web Development, Laravel, Flutter')"
+                >
+                <span v-if="form.errors.specialization" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.specialization }}</span>
               </label>
 
               <label class="block">

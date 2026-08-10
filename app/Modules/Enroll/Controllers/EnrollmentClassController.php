@@ -24,6 +24,7 @@ use App\Modules\Enroll\Requests\RecordDepositRequest;
 use App\Modules\Enroll\Requests\RegisterStudentRequest;
 use App\Modules\Enroll\Requests\SaveStudyClassRequest;
 use App\Modules\Enroll\Requests\StoreClassStudentRequest;
+use App\Modules\Website\Actions\RegisterStudentForSchedule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -70,9 +71,14 @@ class EnrollmentClassController extends Controller
         ]);
     }
 
-    public function edit(StudyClass $studyClass, GetClassFormOptions $options): Response
+    public function edit(
+        StudyClass $studyClass,
+        GetClassFormOptions $options,
+        RegisterStudentForSchedule $registrations
+    ): Response
     {
         $this->ensureInstructorOwnsClass($studyClass);
+        $registrations->repairClass($studyClass);
 
         $studyClass->load([
             'room.floor.building',
@@ -90,9 +96,14 @@ class EnrollmentClassController extends Controller
         ]);
     }
 
-    public function copy(StudyClass $studyClass, GetClassFormOptions $options): Response
+    public function copy(
+        StudyClass $studyClass,
+        GetClassFormOptions $options,
+        RegisterStudentForSchedule $registrations
+    ): Response
     {
         $this->ensureInstructorOwnsClass($studyClass);
+        $registrations->repairClass($studyClass);
 
         $studyClass->load([
             'room.floor.building',

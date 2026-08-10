@@ -156,6 +156,7 @@ class UpdateUserRequest extends FormRequest
             'instructor_code' => $data['instructor_code'] ?? null,
             'full_name' => $data['instructor_full_name'] ?? null,
             'phone' => $data['instructor_phone'] ?? null,
+            'specialization' => $data['specialization'] ?? null,
             'employment_type' => $data['employment_type'] ?? null,
             'shift_group' => $data['shift_preference'] ?? null,
             'available_for_class' => $data['available_for_class'] ?? true,

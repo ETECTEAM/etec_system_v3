@@ -14,6 +14,7 @@ class InstructorData extends Model
         'full_name',
         'instructor_code',
         'phone',
+        'specialization',
         'employment_type',
         'shift_group',
         'shift_template_id',
