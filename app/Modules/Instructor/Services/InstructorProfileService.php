@@ -21,6 +21,7 @@ class InstructorProfileService
                     'full_name' => $data['full_name'],
                     'instructor_code' => $data['instructor_code'],
                     'phone' => $data['phone'],
+                    'specialization' => $data['specialization'] ?? null,
                     'employment_type' => $data['employment_type'],
                     'shift_group' => $data['shift_group'] ?? null,
                     'shift_template_id' => $data['shift_template_id'] ?? null,

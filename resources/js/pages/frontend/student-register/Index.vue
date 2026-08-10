@@ -1,0 +1,250 @@
+<script setup>
+import { computed, ref, watch } from "vue";
+import { useForm, usePage } from "@inertiajs/vue3";
+import {
+  BookOpen,
+  Calendar,
+  Check,
+  Clock,
+  GraduationCap,
+  Phone,
+  Sparkles,
+  UserRound,
+} from "@lucide/vue";
+
+const props = defineProps({
+  categories: {
+    type: Array,
+    default: () => [],
+  },
+  courses: {
+    type: Array,
+    default: () => [],
+  },
+  terms: {
+    type: Array,
+    default: () => [],
+  },
+  times: {
+    type: Array,
+    default: () => [],
+  },
+});
+
+const page = usePage();
+const flashSuccess = computed(() => page.props.flash?.success);
+
+const form = useForm({
+  name: "",
+  gender: "",
+  phone: "",
+  category_id: "",
+  course_id: "",
+  term_id: "",
+  time_id: "",
+});
+
+// A decorative pass number — purely cosmetic, regenerated once per visit.
+const ticketCode = ref(
+  Math.random().toString(36).slice(2, 7).toUpperCase()
+);
+
+const categoryOptions = computed(() => props.categories);
+const courseOptions = computed(() =>
+  props.courses.filter((course) => String(course.category_id) === String(form.category_id))
+);
+
+const selectedCategory = computed(() =>
+  props.categories.find((category) => String(category.id) === String(form.category_id))
+);
+const selectedCourse = computed(() =>
+  props.courses.find((course) => String(course.id) === String(form.course_id))
+);
+const selectedTerm = computed(() =>
+  props.terms.find((term) => String(term.id) === String(form.term_id))
+);
+const selectedTime = computed(() =>
+  props.times.find((time) => String(time.id) === String(form.time_id))
+);
+
+const trackedFields = ["name", "gender", "phone", "category_id", "course_id", "term_id", "time_id"];
+const filledCount = computed(
+  () => trackedFields.filter((field) => String(form[field] ?? "").length > 0).length
+);
+const progressPercent = computed(() => Math.round((filledCount.value / trackedFields.length) * 100));
+
+watch(() => form.category_id, () => {
+  form.course_id = "";
+});
+
+function submit() {
+  form.post("/student-register", {
+    preserveScroll: true,
+    onSuccess: () => form.reset(),
+  });
+}
+</script>
+
+<template>
+  <div class="min-h-screen bg-[#F5F8FC] px-3 py-5 font-sans text-slate-900 selection:bg-[#1A66FF]/20 selection:text-[#1A66FF] sm:px-6 sm:py-12 lg:px-8">
+    <main class="mx-auto max-w-6xl">
+      <header class="mb-5 max-w-2xl sm:mb-8">
+        <p class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#1A66FF] sm:text-xs sm:tracking-[0.2em]">
+          <Sparkles class="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Enrollment
+        </p>
+        <h1 class="mt-1.5 text-2xl font-black tracking-tight sm:mt-2 sm:text-4xl">Register for a class</h1>
+        <p class="mt-1.5 text-xs font-semibold text-slate-500 sm:mt-2 sm:text-sm">
+          Fill in your details and pick a course, term, and time. Your pass fills in as you go.
+        </p>
+      </header>
+
+      <div v-if="flashSuccess" class="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-700 sm:mb-6 sm:gap-3 sm:px-5 sm:py-4 sm:text-sm">
+        <Check class="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
+        {{ flashSuccess }}
+      </div>
+
+      <form class="grid gap-5 sm:gap-8 lg:grid-cols-5" @submit.prevent="submit">
+        <!-- Form fields -->
+        <div class="space-y-4 lg:col-span-3 lg:space-y-6">
+          <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-7">
+            <div class="flex items-center gap-2.5 sm:gap-3">
+              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#1A66FF]/10 font-mono text-xs font-black text-[#1A66FF] sm:h-9 sm:w-9 sm:text-sm">01</span>
+              <div>
+                <h2 class="text-base font-black sm:text-lg">Student information</h2>
+                <p class="text-[11px] font-semibold text-slate-400 sm:text-xs">Tell us who's enrolling</p>
+              </div>
+            </div>
+
+            <div class="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
+              <label class="grid gap-1.5 text-xs font-bold sm:gap-2 sm:text-sm">
+                Full name
+                <span class="relative">
+                  <UserRound class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 sm:left-4 sm:h-5 sm:w-5" />
+                  <input
+                    v-model="form.name"
+                    type="text"
+                    class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-base font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:py-3 sm:pl-12"
+                    placeholder="Your full name"
+                  />
+                </span>
+                <span v-if="form.errors.name" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.name }}</span>
+              </label>
+
+              <div class="grid gap-1.5 text-xs font-bold sm:gap-2 sm:text-sm">
+                Gender
+                <div class="grid grid-cols-2 gap-2.5 sm:gap-3">
+                  <button
+                    type="button"
+                    class="rounded-xl border-2 px-3 py-2.5 text-xs font-bold transition sm:px-4 sm:py-3 sm:text-sm"
+                    :class="form.gender === 'male'
+                      ? 'border-[#1A66FF] bg-[#1A66FF]/10 text-[#1A66FF]'
+                      : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'"
+                    @click="form.gender = 'male'"
+                  >
+                    Male
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded-xl border-2 px-3 py-2.5 text-xs font-bold transition sm:px-4 sm:py-3 sm:text-sm"
+                    :class="form.gender === 'female'
+                      ? 'border-[#1A66FF] bg-[#1A66FF]/10 text-[#1A66FF]'
+                      : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'"
+                    @click="form.gender = 'female'"
+                  >
+                    Female
+                  </button>
+                </div>
+                <span v-if="form.errors.gender" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.gender }}</span>
+              </div>
+
+              <label class="grid gap-1.5 text-xs font-bold sm:gap-2 sm:text-sm">
+                Phone number
+                <span class="relative">
+                  <Phone class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 sm:left-4 sm:h-5 sm:w-5" />
+                  <input
+                    v-model="form.phone"
+                    type="text"
+                    class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-base font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:py-3 sm:pl-12"
+                    placeholder="012 345 678"
+                  />
+                </span>
+                <span v-if="form.errors.phone" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.phone }}</span>
+              </label>
+            </div>
+          </section>
+
+          <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-7">
+            <div class="flex items-center gap-2.5 sm:gap-3">
+              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#FFB800]/20 font-mono text-xs font-black text-slate-900 sm:h-9 sm:w-9 sm:text-sm">02</span>
+              <div>
+                <h2 class="text-base font-black sm:text-lg">Class preference</h2>
+                <p class="text-[11px] font-semibold text-slate-400 sm:text-xs">Pick a course, term, and time</p>
+              </div>
+            </div>
+
+            <div class="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
+              <label class="grid gap-1.5 text-xs font-bold sm:gap-2 sm:text-sm">
+                Category
+                <select
+                  v-model="form.category_id"
+                  class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-base font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:px-4 sm:py-3"
+                >
+                  <option value="" disabled>Select category</option>
+                  <option v-for="category in categoryOptions" :key="category.id" :value="String(category.id)">{{ category.name }}</option>
+                </select>
+                <span v-if="form.errors.category_id" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.category_id }}</span>
+              </label>
+
+              <label class="grid gap-1.5 text-xs font-bold sm:gap-2 sm:text-sm">
+                Course
+                <select
+                  v-model="form.course_id"
+                  :disabled="!form.category_id"
+                  class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-base font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 disabled:cursor-not-allowed disabled:text-slate-400 sm:px-4 sm:py-3"
+                >
+                  <option value="" disabled>{{ form.category_id ? "Select course" : "Select category first" }}</option>
+                  <option v-for="course in courseOptions" :key="course.id" :value="String(course.id)">{{ course.title }}</option>
+                </select>
+                <span v-if="form.errors.course_id" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.course_id }}</span>
+              </label>
+
+              <div class="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                <label class="grid gap-1.5 text-xs font-bold sm:gap-2 sm:text-sm">
+                  Term
+                  <select
+                    v-model="form.term_id"
+                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-base font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:px-4 sm:py-3"
+                  >
+                    <option value="" disabled>Select term</option>
+                    <option v-for="term in terms" :key="term.id" :value="String(term.id)">{{ term.term_name }}</option>
+                  </select>
+                  <span v-if="form.errors.term_id" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.term_id }}</span>
+                </label>
+
+                <label class="grid gap-1.5 text-xs font-bold sm:gap-2 sm:text-sm">
+                  Time
+                  <select
+                    v-model="form.time_id"
+                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-base font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:px-4 sm:py-3"
+                  >
+                    <option value="" disabled>Select time</option>
+                    <option v-for="time in times" :key="time.id" :value="String(time.id)">{{ time.time_name }}</option>
+                  </select>
+                  <span v-if="form.errors.time_id" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.time_id }}</span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <button
+            type="submit"
+            :disabled="form.processing"
+            class="flex w-full items-center justify-center gap-2 rounded-full bg-[#1A66FF] px-6 py-3.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(26,102,255,0.22)] transition hover:bg-[#1555D9] disabled:cursor-not-allowed disabled:opacity-70 sm:px-8 sm:py-4 sm:text-base"
+          >
+            {{ form.processing ? "Registering…" : "Register student" }}
+          </button>
+        </div>
+      </form>
+    </main>
+  </div>
+</template>

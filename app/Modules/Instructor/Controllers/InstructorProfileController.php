@@ -74,6 +74,7 @@ class InstructorProfileController extends Controller
             || !$instructorData
             || $data['full_name'] !== $instructorData->full_name
             || $data['phone'] !== $instructorData->phone
+            || ($data['specialization'] ?? null) !== $instructorData->specialization
             || $data['employment_type'] !== $instructorData->employment_type
             || $data['shift_template_id'] != $instructorData->shift_template_id
             || $data['headline'] !== $instructorData->headline

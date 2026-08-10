@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Website\Controllers\PublicPageController;
+use App\Modules\Website\Controllers\StudentRegisterController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/classes', [PublicPageController::class, 'classes'])
@@ -15,3 +16,10 @@ Route::post('/classes/{studyClass}/register', [PublicPageController::class, 'reg
 
 Route::get('/public/enrollments/{enrollment}/status', [PublicPageController::class, 'enrollmentStatus'])
     ->name('frontend.enrollments.status');
+
+Route::get('/student-register', [StudentRegisterController::class, 'create'])
+    ->name('frontend.student-register.create');
+
+Route::post('/student-register', [StudentRegisterController::class, 'store'])
+    ->middleware('throttle:5,10')
+    ->name('frontend.student-register.store');
