@@ -27,8 +27,6 @@ class CourseSeeder extends Seeder
                 'track' => 'Code & Network',
                 'title' => 'Basic IT',
                 'level' => 'beginner',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
             // Basic Code Track
@@ -36,16 +34,12 @@ class CourseSeeder extends Seeder
                 'track' => 'Basic Code',
                 'title' => 'Basic / Advance C++ / OOP + Algorithm + Projects',
                 'level' => 'beginner',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
             [
                 'track' => 'Basic Code',
                 'title' => 'Basic / Advance Basic Python / OOP + Projects',
                 'level' => 'beginner',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
 
@@ -54,24 +48,18 @@ class CourseSeeder extends Seeder
                 'track' => 'Frontend Course',
                 'title' => 'HTML, CSS, Bootstrap',
                 'level' => 'beginner',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
             [
                 'track' => 'Frontend Course',
                 'title' => 'JavaScript + React.js, Domain Hosting',
                 'level' => 'intermediate',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
             [
                 'track' => 'Frontend Course',
                 'title' => 'Web Design Frontend (Basic/Advance)',
                 'level' => 'beginner',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
 
@@ -80,16 +68,12 @@ class CourseSeeder extends Seeder
                 'track' => 'Backend Course',
                 'title' => 'PHP / MySQL + Ajax + Projects Web Backend (Basic/Advance)',
                 'level' => 'intermediate',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
             [
                 'track' => 'Backend Course',
                 'title' => 'PHP / MySQL + Laravel + Projects Web Backend (Basic/Advance)',
                 'level' => 'advanced',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
 
@@ -98,8 +82,6 @@ class CourseSeeder extends Seeder
                 'track' => 'Backend Course',
                 'title' => 'Java + Spring Boot (Basic/Advance - Java required)',
                 'level' => 'advanced',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
 
@@ -108,8 +90,6 @@ class CourseSeeder extends Seeder
                 'track' => 'Mobile App Course',
                 'title' => 'Dart + Flutter (Basic/Advance - Java Required)',
                 'level' => 'intermediate',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
 
@@ -118,16 +98,12 @@ class CourseSeeder extends Seeder
                 'track' => 'Desktop App Course',
                 'title' => 'C# + MySQL + Projects (Basic/Advance)',
                 'level' => 'intermediate',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
             [
                 'track' => 'Desktop App Course',
                 'title' => 'Java + MySQL + Projects (Basic/Advance)',
                 'level' => 'intermediate',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
 
@@ -136,16 +112,12 @@ class CourseSeeder extends Seeder
                 'track' => 'Graphic Design Course',
                 'title' => 'Adobe Photoshop + UX/UI Designer',
                 'level' => 'beginner',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
             [
                 'track' => 'Graphic Design Course',
                 'title' => 'Adobe Photoshop + Illustrator + Projects',
                 'level' => 'intermediate',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
 
@@ -154,24 +126,18 @@ class CourseSeeder extends Seeder
                 'track' => 'Network Course',
                 'title' => 'Basic Network + IT Support + Install',
                 'level' => 'beginner',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
             [
                 'track' => 'Network Course',
                 'title' => 'Basic Network + Basic Cyber + Tool Config',
                 'level' => 'intermediate',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
             [
                 'track' => 'Network Course',
                 'title' => 'Advance CISCO + Configuration',
                 'level' => 'advanced',
-                'language' => 'en',
-                'certificate_available' => true,
                 'status' => 'active'
             ],
         ];
@@ -196,8 +162,6 @@ class CourseSeeder extends Seeder
                     'course_track_id' => $this->getTrackId($course['track']),
                     'slug' => $slug,
                     'level' => $course['level'],
-                    'language' => $course['language'],
-                    'certificate_available' => $course['certificate_available'],
                     'status' => $course['status']
                 ]
             );

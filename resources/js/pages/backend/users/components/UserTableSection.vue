@@ -8,7 +8,6 @@ import { Card } from '@/components/ui/card'
 import RightClick from '@/components/ui/rightclick/RightClick.vue'
 import { SelectSearch } from '@/components/ui/select-search'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { TableSkeleton } from '@/components/ui/skeleton'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()
@@ -239,22 +238,6 @@ const contextMenuActions = [
         </TableHeader>
 
         <TableBody>
-          <TableSkeleton
-            v-if="isLoading"
-            :rows="5"
-            :columns="[
-              { width: '1.5rem' },
-              { width: '70%' },
-              { width: '85%' },
-              { width: '5rem', rounded: 'rounded-full' },
-              { width: '4rem', rounded: 'rounded-full' },
-              { width: '60%' },
-              { width: '75%' },
-              { width: '2rem', align: 'right' },
-            ]"
-          />
-
-          <template v-else>
             <TableRow v-for="(user, index) in users" :key="user.id" class="cursor-pointer transition-opacity duration-200 hover:bg-slate-50 dark:hover:bg-gray-800/60" @click="viewUser(user.id)" @contextmenu.prevent="openRowContextMenu($event, user)">
               <TableCell class="text-slate-500 dark:text-gray-400">{{ rowNumber(index) }}</TableCell>
               <TableCell class="font-medium text-slate-900 dark:text-gray-100">

@@ -14,6 +14,9 @@ use Database\Seeders\Permission\UserSeeder;
 // Core / base seeders
 use Database\Seeders\Core\CoreSeeder;
 
+// Building / Floor / Room seeders
+use Database\Seeders\Building\BuildingSeeder;
+
 // Course seeders
 use Database\Seeders\Course\CategorySeeder;
 use Database\Seeders\Course\SubCategorySeeder;
@@ -24,6 +27,7 @@ use Database\Seeders\Course\CourseLessonSeeder;
 // Class seeders
 use Database\Seeders\Class\ClassTypeSeeder;
 use Database\Seeders\Class\ClassSeeder;
+use Database\Seeders\Class\StudyClassSeeder;
 
 // Other base seeders
 use Database\Seeders\Term\TermSeeder;
@@ -32,7 +36,6 @@ use Database\Seeders\Schedule\ScheduleSeeder;
 
 // Shift template seeders
 use Database\Seeders\Schedule\ShiftTemplateSeeder;
-use Database\Seeders\Enroll\StudyClassAndEnrollmentSeeder;
 use Database\Seeders\Website\WebsiteMenuSeeder;
 
 // Login security seeders
@@ -55,6 +58,7 @@ class DatabaseSeeder extends Seeder
             ClassTypeSeeder::class,
             TermSeeder::class,
             TimeSeeder::class,
+            BuildingSeeder::class,
 
             // 3. Course data
             CategorySeeder::class,
@@ -64,17 +68,15 @@ class DatabaseSeeder extends Seeder
             CourseLessonSeeder::class,
 
             // 4. Class relation data
-            // ClassSeeder already calls ClassTypeSeeder + ClassListSeeder internally.
+            // ClassSeeder already calls ClassTypeSeeder internally.
             ClassSeeder::class,
+            StudyClassSeeder::class,
             ScheduleSeeder::class,
 
             // 5. Shift templates
             ShiftTemplateSeeder::class,
 
-            // 6. Test enrollment data
-            StudyClassAndEnrollmentSeeder::class,
-
-            // 7. Public website defaults
+            // 6. Public website defaults
             WebsiteMenuSeeder::class,
         ]);
     }

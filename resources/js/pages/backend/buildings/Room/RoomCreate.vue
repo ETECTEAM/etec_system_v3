@@ -1,9 +1,9 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
-import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
-import { PageHero } from '../../../components/ui/page-hero'
-import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import { Breadcrumbs } from '../../../../components/ui/breadcrumbs'
+import { PageHero } from '../../../../components/ui/page-hero'
+import DashboardLayout from '../../../../layouts/DashboardLayout.vue'
 
 const mode = ref('single')
 

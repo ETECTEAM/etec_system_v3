@@ -7,6 +7,7 @@ import {
   MoreVertical,
   Eye,
   SquarePen,
+  Copy,
   UserPlus,
   QrCode,
   UserCog,
@@ -69,6 +70,11 @@ const menus = [
     label: "Edit Class",
     icon: SquarePen,
     action: () => router.get(`/dashboard/enroll/edit/${props.classData.id}`),
+  },
+  {
+    label: "Copy Class",
+    icon: Copy,
+    action: () => router.get(`/dashboard/enroll/copy/${props.classData.id}`),
   },
   {
     label: "Add Student",

@@ -19,7 +19,7 @@
             />
 
             <!-- Card summary -->
-            <div class="grid grid-cols-1 gap-3 mb-6 sm:grid-cols-3">
+            <!-- <div class="grid grid-cols-1 gap-3 mb-6 sm:grid-cols-3">
                 <Card padding="px-4 py-3.5">
                     <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Total') }}</p>
                     <p class="mt-1 text-xl font-bold text-slate-900 dark:text-gray-100">{{ courses.length }}</p>
@@ -28,11 +28,7 @@
                     <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Active') }}</p>
                     <p class="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">{{ activeCount }}</p>
                 </Card>
-                <Card padding="px-4 py-3.5">
-                    <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('With Certificate') }}</p>
-                    <p class="mt-1 text-xl font-bold text-slate-900 dark:text-gray-100">{{ certificateCount }}</p>
-                </Card>
-            </div>
+            </div> -->
 
             <Card padding="p-0">
                 <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
@@ -106,7 +102,6 @@
                                 <TableHead>{{ $t('Category') }}</TableHead>
                                 <TableHead>{{ $t('Sub Category') }}</TableHead>
                                 <TableHead>{{ $t('Track') }}</TableHead>
-                                <TableHead>{{ $t('Certificate') }}</TableHead>
                                 <TableHead>{{ $t('Status') }}</TableHead>
                                 <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
                             </TableRow>
@@ -144,12 +139,6 @@
                                     <span class="text-sm text-slate-600 dark:text-gray-300">{{ course.track?.name || $t('N/A') }}</span>
                                 </TableCell>
                                 <TableCell>
-                                    <span class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium"
-                                        :class="course.certificate_available ? 'bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400' : 'bg-slate-100 text-slate-500 dark:bg-gray-800 dark:text-gray-400'">
-                                        {{ course.certificate_available ? $t('Yes') : $t('No value') }}
-                                    </span>
-                                </TableCell>
-                                <TableCell>
                                     <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="course.status === 'active' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'">
                                         {{ course.status === 'active' ? $t('Active') : $t('Inactive') }}
                                     </span>
@@ -180,7 +169,7 @@
 
                             <!-- Empty state: no courses exist at all -->
                             <TableRow v-if="paginatedCourses.length === 0 && courses.length === 0">
-                                <TableCell colspan="9" class="px-4 py-16 text-center">
+                                <TableCell colspan="7" class="px-4 py-16 text-center">
                                     <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -197,7 +186,7 @@
 
                             <!-- Empty state: filters found nothing -->
                             <TableRow v-else-if="paginatedCourses.length === 0">
-                                <TableCell colspan="9" class="px-4 py-16 text-center">
+                                <TableCell colspan="7" class="px-4 py-16 text-center">
                                     <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -320,9 +309,6 @@ const filteredCourses = ref([]);
 // Stats
 const activeCount = computed(() =>
     props.courses.filter(c => c.status === 'active').length
-);
-const certificateCount = computed(() =>
-    props.courses.filter(c => c.certificate_available).length
 );
 
 // Total pages

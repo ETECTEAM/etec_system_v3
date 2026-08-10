@@ -1,7 +1,7 @@
 <script setup>
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
-import { PageHero } from '../../../components/ui/page-hero'
-import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import { PageHero } from '../../../../components/ui/page-hero'
+import DashboardLayout from '../../../../layouts/DashboardLayout.vue'
 
 const page = usePage()
 const building = page.props.building ?? {}

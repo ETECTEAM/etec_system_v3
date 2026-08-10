@@ -1,7 +1,7 @@
 <script setup>
 import { router } from "@inertiajs/vue3";
 import { route } from "ziggy-js";
-import { Eye, Pencil, Trash2 } from "@lucide/vue";
+import { Eye, Pencil, Trash2, Copy } from "@lucide/vue";
 // import { router } from "@inertiajs/vue3";
 
 import Table from "../../../../components/ui/table/Table.vue";
@@ -24,6 +24,10 @@ const viewClass = (id) => {
 
 const editClass = (id) => {
   router.get(`/dashboard/enroll/edit/${id}`);
+};
+
+const copyClass = (id) => {
+  router.get(`/dashboard/enroll/copy/${id}`);
 };
 
 const deleteClass = (id) => {
@@ -106,6 +110,13 @@ const deleteClass = (id) => {
                 class="rounded-lg bg-yellow-100 p-2 text-yellow-600 transition hover:bg-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:hover:bg-yellow-500/20"
               >
                 <Pencil class="h-4 w-4" />
+              </button>
+
+              <button
+                @click="copyClass(item.id)"
+                class="rounded-lg bg-teal-100 p-2 text-teal-600 transition hover:bg-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:hover:bg-teal-500/20"
+              >
+                <Copy class="h-4 w-4" />
               </button>
 
               <button

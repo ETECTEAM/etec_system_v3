@@ -9,6 +9,6 @@ export function build(ctx) {
     href: "/dashboard/enroll",
     match: ["/dashboard/enroll"],
     exact: false,
-    isActive: (path) => path.startsWith("/dashboard/enroll") && !path.startsWith("/dashboard/enroll/students/create"),
+    isActive: (path) => path.startsWith("/dashboard/enroll") && !path.startsWith("/dashboard/enroll/students/create") && !path.startsWith("/dashboard/enroll/config"),
   };
 }

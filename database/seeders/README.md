@@ -31,13 +31,14 @@ Run invoice test seeder only:
 php artisan db:seed --class="Database\Seeders\Feature\Invoice\InvoiceTestSeeder"
 ```
 
+Run building/floor/room seeders only:
+
+```bash
+php artisan db:seed --class="Database\Seeders\Building\BuildingSeeder"
+```
+
 Run one core seeder only:
 
 ```bash
 php artisan db:seed --class="Database\Seeders\Core\UserSeeder"
-```
-
-Run enroll and student enroll only
-```bash
-php artisan db:seed --class="Database\\Seeders\\Enroll\\StudyClassAndEnrollmentSeeder"
 ```

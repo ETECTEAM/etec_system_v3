@@ -21,4 +21,9 @@ class ClassType extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    public function isOnline(): bool
+    {
+        return str_contains(strtolower($this->type_name ?? ''), 'online');
+    }
 }

@@ -1,17 +1,21 @@
-.git
-.gitignore
-.env
-.env.testing
-node_modules
+# PHP and Node dependencies (installed fresh in the image)
 vendor
+node_modules
+
+# Laravel storage caches
+storage/framework/cache
+storage/framework/sessions
+storage/framework/views
 storage/logs
-storage/framework/cache/*
-storage/framework/sessions/*
-storage/framework/testing/*
-storage/framework/views/*
-bootstrap/cache/*
-.phpunit.result.cache
-docker-compose*.yml
-README.md
-docs
-tests
+bootstrap/cache
+
+# Locally built/dev-only assets (production stage builds its own; a stale
+# public/hot would make Vite think a dev server is running)
+public/build
+public/hot
+public/storage
+
+# Version control and env files
+.git
+.env
+.env.*

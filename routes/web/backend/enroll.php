@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Enroll\Controllers\CourseEnrollConfigController;
 use App\Modules\Enroll\Controllers\EnrollmentClassController;
 use Illuminate\Support\Facades\Route;
 
@@ -7,6 +8,15 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
     // Enrollment Management: browsing, creating, and administering classes — super_admin only.
     Route::middleware(['auth', 'role:super_admin'])->group(function (): void {
         Route::get('/', [EnrollmentClassController::class, 'index'])->name('enroll.index');
+
+        // Route to list every course with its enrollment open/closed status and start date.
+        Route::get('/config', [CourseEnrollConfigController::class, 'index'])->name('enroll.config.index');
+        // Route to fetch paginated, searchable course enroll-config data for the config page's table.
+        Route::get('/config/data', [CourseEnrollConfigController::class, 'data'])->name('enroll.config.data');
+        // Route to set the same enrollment start date on every course at once.
+        Route::post('/config/bulk-start-date', [CourseEnrollConfigController::class, 'bulkUpdateStartDate'])->name('enroll.config.bulk-start-date');
+        // Route to set a single course's enrollment status/start date.
+        Route::put('/config/{course}', [CourseEnrollConfigController::class, 'update'])->name('enroll.config.update');
         Route::get('/registrations/data', [EnrollmentClassController::class, 'publicRegistrations'])->name('enroll.registrations.data');
         Route::get('/create', [EnrollmentClassController::class, 'create'])->name('enroll.create');
         Route::post('/', [EnrollmentClassController::class, 'store'])->name('enroll.store');
@@ -26,6 +36,8 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
     // EnrollmentClassController::ensureInstructorOwnsClass().
     Route::middleware(['auth'])->group(function (): void {
         Route::get('/edit/{studyClass}', [EnrollmentClassController::class, 'edit'])->name('enroll.edit');
+        // Pre-fill the create form with an existing class's values so it can be duplicated with a new term/time.
+        Route::get('/copy/{studyClass}', [EnrollmentClassController::class, 'copy'])->name('enroll.copy');
         Route::put('/{studyClass}', [EnrollmentClassController::class, 'update'])->name('enroll.update');
 
         Route::get('/buildings/{building}/floors', [EnrollmentClassController::class, 'floors'])->name('enroll.floors');

@@ -107,7 +107,7 @@ class WebsiteContentService
     public function paginatedPublicCourses(int $perPage = 12, array $filters = []): array
     {
         $perPage = min(max($perPage, 1), 24);
-        $sortBy = in_array($filters['sort_by'] ?? null, ['title', 'level', 'duration', 'price', 'created_at'], true)
+        $sortBy = in_array($filters['sort_by'] ?? null, ['title', 'level', 'price', 'created_at'], true)
             ? $filters['sort_by']
             : 'id';
         $sortDirection = ($filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
@@ -121,7 +121,6 @@ class WebsiteContentService
             $query->where(function ($query) use ($search): void {
                 $query->where('title', 'like', "%{$search}%")
                     ->orWhere('slug', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
                     ->orWhereHas('track', fn ($trackQuery) => $trackQuery->where('name', 'like', "%{$search}%"))
                     ->orWhereHas('track.subCategory', fn ($subCategoryQuery) => $subCategoryQuery->where('name', 'like', "%{$search}%"))
                     ->orWhereHas('track.subCategory.category', fn ($categoryQuery) => $categoryQuery->where('name', 'like', "%{$search}%"));
@@ -130,10 +129,6 @@ class WebsiteContentService
 
         if ($level = trim((string) ($filters['level'] ?? ''))) {
             $query->where('level', $level);
-        }
-
-        if ($duration = trim((string) ($filters['duration'] ?? ''))) {
-            $query->where('duration', '<=', (int) $duration);
         }
 
         if ($category = trim((string) ($filters['category'] ?? ''))) {
@@ -210,11 +205,7 @@ class WebsiteContentService
             'id' => $course->id,
             'title' => $course->title,
             'slug' => $course->slug,
-            'description' => $course->description,
             'level' => $course->level,
-            'duration' => $course->duration,
-            'language' => $course->language,
-            'certificate_available' => $course->certificate_available,
             'thumbnail' => null,
             'thumbnail_url' => $this->publicImageDataUri($course->thumbnail),
             'track' => $course->track?->name,
@@ -276,6 +267,9 @@ class WebsiteContentService
                 'course.track.subCategory.category:id,name',
                 'teacher:id,name',
                 'room.floor.building',
+                'classType:class_type_id,type_name',
+                'term:id,term_name',
+                'time:id,time_name',
             ])
             ->withCount([
                 'enrollments as current_students' => fn ($query) => $query->where('enrollment_status', 'active'),
@@ -290,7 +284,7 @@ class WebsiteContentService
         }
 
         if ($classType = trim((string) ($filters['class_type'] ?? ''))) {
-            $query->where('class_type', $classType);
+            $query->whereHas('classType', fn ($typeQuery) => $typeQuery->where('type_name', 'like', "%{$classType}%"));
         }
 
         $paginator = $query
@@ -328,6 +322,7 @@ class WebsiteContentService
         $capacity = (int) $studyClass->capacity;
         $currentStudents = (int) ($studyClass->current_students ?? 0);
         $availableSeats = max($capacity - $currentStudents, 0);
+        $classTypeValue = $studyClass->classTypeValue();
 
         return [
             'id' => $studyClass->id,
@@ -335,11 +330,12 @@ class WebsiteContentService
             'course_title' => $studyClass->course?->title,
             'course_category' => $studyClass->course?->track?->subCategory?->category?->name,
             'course_thumbnail_url' => $this->publicImageDataUri($studyClass->course?->thumbnail),
-            'class_type' => $studyClass->class_type,
-            'class_type_label' => $studyClass->class_type === 'online' ? 'Online Class' : 'Physical Class',
-            'study_days' => $studyClass->study_days ?? [],
-            'start_time' => $this->formatTime($studyClass->start_time),
-            'end_time' => $this->formatTime($studyClass->end_time),
+            'class_type' => $classTypeValue,
+            'class_type_label' => $studyClass->classType?->type_name
+                ?? ($classTypeValue === 'online' ? 'Online Class' : 'Physical Class'),
+            'study_days' => $studyClass->scheduleStudyDays(),
+            'start_time' => $this->formatTime($studyClass->scheduleStartTime()),
+            'end_time' => $this->formatTime($studyClass->scheduleEndTime()),
             'price' => (float) $studyClass->price,
             'document_price' => (float) $studyClass->document_price,
             'capacity' => $capacity,
@@ -354,7 +350,7 @@ class WebsiteContentService
             'building_name' => $studyClass->room?->floor?->building?->name,
             'floor_name' => $studyClass->room?->floor?->name,
             'room_number' => $studyClass->room?->room_number,
-            'location' => $studyClass->class_type === 'online'
+            'location' => $studyClass->isOnline()
                 ? 'Online'
                 : (trim(implode(', ', array_filter([
                     $studyClass->room?->floor?->building?->name,

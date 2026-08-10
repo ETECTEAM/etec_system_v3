@@ -8,6 +8,7 @@ import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
 import ClassTable from "./components/ClassTable.vue";
 import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
 import PageHero from "../../../components/ui/page-hero/PageHero.vue";
+import EmptyState from "../../../components/ui/empty-state/EmptyState.vue";
 import DepositSummaryCard from "./components/DepositSummaryCard.vue";
 import ReceiptPrint from "./components/ReceiptPrint.vue";
 import { getEcho } from "@/echo";
@@ -17,67 +18,6 @@ import TableHead from "../../../components/ui/table/TableHead.vue";
 import TableBody from "../../../components/ui/table/TableBody.vue";
 import TableRow from "../../../components/ui/table/TableRow.vue";
 import TableCell from "../../../components/ui/table/TableCell.vue";
-
-// const search = ref("");
-// const viewMode = ref("card");
-const classes = ref([
-  {
-    id: 366,
-    title: "Web Design + React.js",
-    lesson: "Bootstrap",
-    building: "Building B",
-    floor: "Floor 1",
-    room: "ETEC B102",
-    status: "Physical Class",
-    term: "Mon & Thu",
-    time: "09:00 am - 10:30 am",
-    students: 8,
-    capacity: 20,
-    notifications: 5,
-  },
-  {
-    id: 367,
-    title: "Laravel 12",
-    lesson: "Authentication",
-    building: "Building A",
-    floor: "Floor 2",
-    room: "ETEC A203",
-    status: "Physical Class",
-    term: "Tue & Fri",
-    time: "10:45 am - 12:15 pm",
-    students: 15,
-    capacity: 25,
-    notifications: 2,
-  },
-  {
-    id: 368,
-    title: "UI/UX Design",
-    lesson: "Figma Prototype",
-    building: "Building C",
-    floor: "Floor 3",
-    room: "ETEC C301",
-    status: "Online Class",
-    term: "Wednesday",
-    time: "01:30 pm - 03:00 pm",
-    students: 22,
-    capacity: 30,
-    notifications: 1,
-  },
-  {
-    id: 369,
-    title: "Java Programming",
-    lesson: "Collections Framework",
-    building: "Building B",
-    floor: "Floor 2",
-    room: "ETEC B205",
-    status: "Physical Class",
-    term: "Saturday",
-    time: "08:00 am - 11:00 am",
-    students: 18,
-    capacity: 20,
-    notifications: 3,
-  },
-]);
 
 // Remembers the active tab across page refreshes (Card/Table/Registrations),
 // defaulting to Registrations on a first-ever visit.
@@ -113,7 +53,6 @@ const props = defineProps({
   },
 });
 
-// const search = ref(props.filters.search ?? "");
 const filteredClasses = computed(() => props.classes?.data ?? []);
 let searchTimer = null;
 
@@ -129,7 +68,6 @@ function runSearch() {
 }
 
 const search = ref(props.filters?.search ?? "");
-// const viewMode = ref("card");
 
 const breadcrumbItems = [
   { label: "Dashboard", href: "/dashboard" },
@@ -451,7 +389,7 @@ onBeforeUnmount(() => {
 
       <!-- Card View -->
       <div
-        v-if="viewMode === 'card'"
+        v-if="viewMode === 'card' && filteredClasses.length > 0"
         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-5"
       >
         <ClassCrad
@@ -463,9 +401,12 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- Table View -->
-      <div v-else-if="viewMode === 'table'" class="w-full overflow-x-auto">
+      <div v-else-if="viewMode === 'table' && filteredClasses.length > 0" class="w-full overflow-x-auto">
         <ClassTable :items="filteredClasses" />
       </div>
+
+      <!-- Empty State (Card/Table only; Registrations keeps its own empty row) -->
+      <EmptyState v-else-if="viewMode !== 'registrations' && filteredClasses.length === 0" @action="goCreateClass" />
 
       <!-- Registrations View -->
       <div v-else class="w-full overflow-x-auto">
