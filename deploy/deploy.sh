@@ -18,7 +18,7 @@ git checkout "${BRANCH}"
 git reset --hard "origin/${BRANCH}"
 
 echo "==> Building images (composer install --no-dev + npm run build happen inside the Dockerfile)"
-docker compose -f "${COMPOSE_FILE}" build app queue scheduler nginx
+docker compose -f "${COMPOSE_FILE}" build app reverb nginx
 
 echo "==> Starting mysql first so migrations have something to run against"
 docker compose -f "${COMPOSE_FILE}" up -d mysql
@@ -28,16 +28,13 @@ docker compose -f "${COMPOSE_FILE}" exec -T mysql sh -c \
 echo "==> Running migrations"
 docker compose -f "${COMPOSE_FILE}" run --rm app php artisan migrate --force
 
-echo "==> Recreating app, queue, scheduler, nginx with the new images"
-docker compose -f "${COMPOSE_FILE}" up -d app queue scheduler nginx
+echo "==> Recreating app, reverb, nginx with the new images"
+docker compose -f "${COMPOSE_FILE}" up -d app reverb nginx
 
 echo "==> Warming config/route/view caches"
 docker compose -f "${COMPOSE_FILE}" exec -T app php artisan config:cache
 docker compose -f "${COMPOSE_FILE}" exec -T app php artisan route:cache
 docker compose -f "${COMPOSE_FILE}" exec -T app php artisan view:cache
-
-echo "==> Restarting queue worker so it picks up the new code"
-docker compose -f "${COMPOSE_FILE}" restart queue
 
 echo "==> Pruning old images"
 docker image prune -f
