@@ -17,7 +17,7 @@ class StudentRegisterController extends Controller
 {
     public function create(): Response
     {
-        return Inertia::render('frontend/student-register/Index', [
+        return Inertia::render('frontend/student-register/StudentRegister', [
             'categories' => $this->categories(),
             'courses' => $this->courses(),
             'terms' => Term::query()->select('id', 'term_name')->orderBy('term_name')->get(),

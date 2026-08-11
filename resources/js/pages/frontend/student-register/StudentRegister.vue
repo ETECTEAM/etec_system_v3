@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useForm, usePage } from "@inertiajs/vue3";
 import {
   BookOpen,
@@ -11,6 +11,8 @@ import {
   Sparkles,
   UserRound,
 } from "@lucide/vue";
+import { SelectSearch } from "@/components/ui/select-search";
+import { useTheme } from "@/composables/useTheme";
 
 const props = defineProps({
   categories: {
@@ -34,6 +36,13 @@ const props = defineProps({
 const page = usePage();
 const flashSuccess = computed(() => page.props.flash?.success);
 
+// This page has no dark-mode styling of its own; it's public and shouldn't
+// inherit a dashboard visitor's stored theme preference from app.blade.php's
+// FOUC-prevention script, which sets `.dark` on <html> before Vue mounts.
+const { resolvedTheme } = useTheme();
+onMounted(() => document.documentElement.classList.remove("dark"));
+onBeforeUnmount(() => document.documentElement.classList.toggle("dark", resolvedTheme.value === "dark"));
+
 const form = useForm({
   name: "",
   gender: "",
@@ -49,10 +58,19 @@ const ticketCode = ref(
   Math.random().toString(36).slice(2, 7).toUpperCase()
 );
 
-const categoryOptions = computed(() => props.categories);
 const courseOptions = computed(() =>
-  props.courses.filter((course) => String(course.category_id) === String(form.category_id))
+  props.courses.map((course) => ({ value: String(course.id), label: course.title }))
 );
+const termOptions = computed(() =>
+  props.terms.map((term) => ({ value: String(term.id), label: term.term_name }))
+);
+const timeOptions = computed(() =>
+  props.times.map((time) => ({ value: String(time.id), label: time.time_name }))
+);
+
+// Matches this page's own input styling since SelectSearch's default button style assumes a dashboard/dark-mode context.
+const selectClass =
+  "flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-left text-sm font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 disabled:cursor-not-allowed disabled:text-slate-400 sm:rounded-xl sm:px-4 sm:py-3 sm:text-base";
 
 const selectedCategory = computed(() =>
   props.categories.find((category) => String(category.id) === String(form.category_id))
@@ -67,14 +85,17 @@ const selectedTime = computed(() =>
   props.times.find((time) => String(time.id) === String(form.time_id))
 );
 
-const trackedFields = ["name", "gender", "phone", "category_id", "course_id", "term_id", "time_id"];
+const trackedFields = ["name", "gender", "phone", "course_id", "term_id", "time_id"];
 const filledCount = computed(
   () => trackedFields.filter((field) => String(form[field] ?? "").length > 0).length
 );
 const progressPercent = computed(() => Math.round((filledCount.value / trackedFields.length) * 100));
 
-watch(() => form.category_id, () => {
-  form.course_id = "";
+// Category isn't a user-facing field anymore — derive it from whichever
+// course gets picked so the backend's category_id/course_id match check still passes.
+watch(() => form.course_id, (courseId) => {
+  const course = props.courses.find((c) => String(c.id) === String(courseId));
+  form.category_id = course ? String(course.category_id) : "";
 });
 
 function submit() {
@@ -184,52 +205,40 @@ function submit() {
 
             <div class="mt-3.5 space-y-3.5 sm:mt-5 sm:space-y-5">
               <label class="grid gap-1.5 text-[11px] font-bold sm:gap-2 sm:text-sm">
-                Category
-                <select
-                  v-model="form.category_id"
-                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:rounded-xl sm:px-4 sm:py-3 sm:text-base"
-                >
-                  <option value="" disabled>Select category</option>
-                  <option v-for="category in categoryOptions" :key="category.id" :value="String(category.id)">{{ category.name }}</option>
-                </select>
-                <span v-if="form.errors.category_id" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.category_id }}</span>
-              </label>
-
-              <label class="grid gap-1.5 text-[11px] font-bold sm:gap-2 sm:text-sm">
                 Course
-                <select
+                <SelectSearch
                   v-model="form.course_id"
-                  :disabled="!form.category_id"
-                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 disabled:cursor-not-allowed disabled:text-slate-400 sm:rounded-xl sm:px-4 sm:py-3 sm:text-base"
-                >
-                  <option value="" disabled>{{ form.category_id ? "Select course" : "Select category first" }}</option>
-                  <option v-for="course in courseOptions" :key="course.id" :value="String(course.id)">{{ course.title }}</option>
-                </select>
+                  :options="courseOptions"
+                  placeholder="Select course"
+                  search-placeholder="Search course..."
+                  :button-class="selectClass"
+                />
                 <span v-if="form.errors.course_id" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.course_id }}</span>
+                <span v-if="form.errors.category_id" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.category_id }}</span>
               </label>
 
               <div class="grid gap-3 sm:grid-cols-2 sm:gap-4">
                 <label class="grid gap-1.5 text-[11px] font-bold sm:gap-2 sm:text-sm">
                   Term
-                  <select
+                  <SelectSearch
                     v-model="form.term_id"
-                    class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:rounded-xl sm:px-4 sm:py-3 sm:text-base"
-                  >
-                    <option value="" disabled>Select term</option>
-                    <option v-for="term in terms" :key="term.id" :value="String(term.id)">{{ term.term_name }}</option>
-                  </select>
+                    :options="termOptions"
+                    placeholder="Select term"
+                    search-placeholder="Search term..."
+                    :button-class="selectClass"
+                  />
                   <span v-if="form.errors.term_id" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.term_id }}</span>
                 </label>
 
                 <label class="grid gap-1.5 text-[11px] font-bold sm:gap-2 sm:text-sm">
                   Time
-                  <select
+                  <SelectSearch
                     v-model="form.time_id"
-                    class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:rounded-xl sm:px-4 sm:py-3 sm:text-base"
-                  >
-                    <option value="" disabled>Select time</option>
-                    <option v-for="time in times" :key="time.id" :value="String(time.id)">{{ time.time_name }}</option>
-                  </select>
+                    :options="timeOptions"
+                    placeholder="Select time"
+                    search-placeholder="Search time..."
+                    :button-class="selectClass"
+                  />
                   <span v-if="form.errors.time_id" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.time_id }}</span>
                 </label>
               </div>

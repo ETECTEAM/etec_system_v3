@@ -17,6 +17,13 @@ function bindListenersOnce() {
   listenersBound = true
 
   router.on('start', (event) => {
+    // Only the login -> dashboard handoff should show the full-screen
+    // PageLoading overlay; regular in-app navigation between dashboard
+    // pages should feel instant, not interrupted by it.
+    if (window.location.pathname !== '/login') {
+      return
+    }
+
     isNavigating.value = true
     targetUrl.value = event.detail.visit.url.pathname
   })
