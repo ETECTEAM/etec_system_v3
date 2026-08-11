@@ -3,7 +3,7 @@
 use App\Modules\Room\Controllers\RoomController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'active'])->prefix('/dashboard/rooms')->group(function () {
+Route::middleware(['auth', 'active', 'role:super_admin|admin'])->prefix('/dashboard/rooms')->group(function () {
     Route::get('/', [RoomController::class, 'index']);
     Route::get('/data', [RoomController::class, 'paginatedIndex']);
     Route::get('/create', [RoomController::class, 'create']);

@@ -11,4 +11,7 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
 
     Route::get('/classes/create', [InstructorClassController::class, 'create'])->name('instructor.classes.create');
     Route::post('/classes', [InstructorClassController::class, 'store'])->name('instructor.classes.store');
+    Route::get('/classes/{studyClass}', [InstructorClassController::class, 'show'])->name('instructor.classes.show');
+    Route::get('/classes/{studyClass}/attendance', [InstructorClassController::class, 'attendance'])->name('instructor.classes.attendance');
+    Route::get('/classes/{studyClass}/attendance/track', [InstructorClassController::class, 'trackAttendance'])->name('instructor.classes.attendance.track');
 });

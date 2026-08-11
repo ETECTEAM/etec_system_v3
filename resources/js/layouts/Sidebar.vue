@@ -32,7 +32,7 @@ const isAdmin = computed(() => roles.value.includes("admin"));
 const canAccessNotifications = computed(() => isSuperAdmin.value || isAdmin.value);
 
 const canAccessFloors = computed(
-  () => isSuperAdmin.value || isAdmin.value || roles.value.includes("instructor"),
+  () => isSuperAdmin.value || isAdmin.value,
 );
 
 const menuContext = computed(() => ({

@@ -11,6 +11,7 @@ use App\Models\StudyClass;
 use App\Models\Term;
 use App\Models\Time;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
+use App\Modules\Instructor\Queries\GetInstructorClasses;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -19,6 +20,8 @@ use Inertia\Response;
 
 class InstructorClassController extends Controller
 {
+    public function __construct(private readonly GetInstructorClasses $instructorClasses) {}
+
     public function create(): Response
     {
         return Inertia::render('backend/instructors/CreateClass', [
@@ -52,5 +55,32 @@ class InstructorClassController extends Controller
         StudyClass::create($validated);
 
         return redirect()->route('dashboard')->with('success', 'Class created successfully.');
+    }
+
+    public function show(Request $request, StudyClass $studyClass): RedirectResponse
+    {
+        $this->instructorClasses->findForInstructor($request->user(), $studyClass);
+
+        return redirect()->route('instructor.classes.attendance', $studyClass);
+    }
+
+    public function attendance(Request $request, StudyClass $studyClass): Response
+    {
+        $studyClass = $this->instructorClasses->findForInstructor($request->user(), $studyClass);
+
+        return Inertia::render('backend/instructors/AttendanceRecord', [
+            'classData' => $this->instructorClasses->presentClass($studyClass),
+            'students' => $this->instructorClasses->students($studyClass),
+        ]);
+    }
+
+    public function trackAttendance(Request $request, StudyClass $studyClass): Response
+    {
+        $studyClass = $this->instructorClasses->findForInstructor($request->user(), $studyClass);
+
+        return Inertia::render('backend/instructors/TrackAttendance', [
+            'classData' => $this->instructorClasses->presentClass($studyClass),
+            'students' => $this->instructorClasses->students($studyClass),
+        ]);
     }
 }

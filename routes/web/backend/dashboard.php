@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Modules\Instructor\Queries\GetInstructorClasses;
 
 /*
 |--------------------------------------------------------------------------
@@ -9,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware(['auth', 'active', 'permission:dashboard.view'])->group(function () {
-    Route::get('/dashboard', function () {
+    Route::get('/dashboard', function (GetInstructorClasses $instructorClasses) {
         $user = request()->user();
 
         if ($user->hasRole('instructor')) {
@@ -19,6 +20,8 @@ Route::middleware(['auth', 'active', 'permission:dashboard.view'])->group(functi
 
             return inertia('backend/InstructorDashboard', [
                 'instructorData' => $instructorData,
+                'classes' => $instructorClasses->classes($user),
+                'summary' => $instructorClasses->summary($user),
                 'profilePhoto' => $instructorData?->profilePhoto,
                 'cvFile' => $instructorData?->cvFile,
                 'otherAttachments' => $instructorData?->attachments

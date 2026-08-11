@@ -3,7 +3,7 @@
 use App\Modules\Floor\Controller\FloorController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'active', 'role:super_admin|admin|instructor'])->prefix('/dashboard/floors')->group(function (): void {
+Route::middleware(['auth', 'active', 'role:super_admin|admin'])->prefix('/dashboard/floors')->group(function (): void {
     Route::get('/', [FloorController::class, 'index']);
     Route::get('/data', [FloorController::class, 'paginatedIndex']);
     Route::get('/create', [FloorController::class, 'create']);
