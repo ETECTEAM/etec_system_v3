@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Modules\Instructor\Queries\GetInstructorClasses;
+use App\Modules\Instructor\Services\InstructorClassService;
 
 /*
 |--------------------------------------------------------------------------
@@ -10,7 +10,7 @@ use App\Modules\Instructor\Queries\GetInstructorClasses;
 */
 
 Route::middleware(['auth', 'active', 'permission:dashboard.view'])->group(function () {
-    Route::get('/dashboard', function (GetInstructorClasses $instructorClasses) {
+    Route::get('/dashboard', function (InstructorClassService $instructorClasses) {
         $user = request()->user();
 
         if ($user->hasRole('instructor')) {

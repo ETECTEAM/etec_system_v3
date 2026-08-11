@@ -3,20 +3,19 @@
 namespace App\Modules\Website\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Page;
-use App\Modules\Website\Services\WebsiteContentService;
+use App\Modules\Website\Services\PublicApiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PublicApiController extends Controller
 {
     public function __construct(
-        private readonly WebsiteContentService $website,
+        private readonly PublicApiService $publicApiService,
     ) {}
 
     public function schoolSettings(): JsonResponse
     {
-        $settings = $this->website->publicSettings();
+        $settings = $this->publicApiService->publicSettings();
 
         return $this->success([
             'school_name' => $settings['school_name'],
@@ -27,45 +26,22 @@ class PublicApiController extends Controller
 
     public function navigation(): JsonResponse
     {
-        return $this->success($this->website->publicMenus());
+        return $this->success($this->publicApiService->publicMenus());
     }
 
     public function home(): JsonResponse
     {
-        $homePage = Page::query()
-            ->with('hero.images')
-            ->where('slug', 'home')
-            ->where('is_active', true)
-            ->first();
-
-        return $this->success([
-            'page' => $homePage ? $this->website->presentPage($homePage) : null,
-            'courses' => $this->website->publicCourses(6),
-            'news' => $this->website->publicFeaturedNews(6),
-            'events' => [],
-            'videos' => $this->website->publicFeaturedVideos(6),
-            'testimonials' => [],
-        ]);
+        return $this->success($this->publicApiService->home());
     }
 
     public function featured(): JsonResponse
     {
-        return $this->success([
-            'courses' => $this->website->publicCourses(6),
-            'news' => $this->website->publicFeaturedNews(6),
-            'videos' => $this->website->publicFeaturedVideos(6),
-        ]);
+        return $this->success($this->publicApiService->featured());
     }
 
     public function page(string $slug): JsonResponse
     {
-        $page = Page::query()
-            ->with('hero.images')
-            ->where('slug', $slug)
-            ->where('is_active', true)
-            ->firstOrFail();
-
-        return $this->success($this->website->presentPage($page));
+        return $this->success($this->publicApiService->publicPageBySlug($slug));
     }
 
     public function courses(Request $request): JsonResponse
@@ -83,13 +59,13 @@ class PublicApiController extends Controller
 
         return response()->json([
             'success' => true,
-            ...$this->website->paginatedPublicCourses((int) ($validated['per_page'] ?? 12), $validated),
+            ...$this->publicApiService->paginatedPublicCourses((int) ($validated['per_page'] ?? 12), $validated),
         ]);
     }
 
     public function course(string $slug): JsonResponse
     {
-        return $this->success($this->website->publicCourseDetail($slug));
+        return $this->success($this->publicApiService->publicCourseDetail($slug));
     }
 
     public function news(Request $request): JsonResponse
@@ -103,13 +79,13 @@ class PublicApiController extends Controller
 
         return response()->json([
             'success' => true,
-            ...$this->website->paginatedPublicNews((int) ($validated['per_page'] ?? 12), $validated),
+            ...$this->publicApiService->paginatedPublicNews((int) ($validated['per_page'] ?? 12), $validated),
         ]);
     }
 
     public function newsDetail(string $slug): JsonResponse
     {
-        return $this->success($this->website->publicNewsDetail($slug));
+        return $this->success($this->publicApiService->publicNewsDetail($slug));
     }
 
     public function videos(Request $request): JsonResponse
@@ -123,13 +99,13 @@ class PublicApiController extends Controller
 
         return response()->json([
             'success' => true,
-            ...$this->website->paginatedPublicVideos((int) ($validated['per_page'] ?? 12), $validated),
+            ...$this->publicApiService->paginatedPublicVideos((int) ($validated['per_page'] ?? 12), $validated),
         ]);
     }
 
     public function video(int $video): JsonResponse
     {
-        return $this->success($this->website->publicVideoDetail($video));
+        return $this->success($this->publicApiService->publicVideoDetail($video));
     }
 
     public function emptyCollection(): JsonResponse
