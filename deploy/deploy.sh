@@ -8,7 +8,7 @@
 set -euo pipefail
 
 COMPOSE_FILE="docker-compose.prod.yml"
-BRANCH="production"
+BRANCH="dev"
 
 cd "$(git rev-parse --show-toplevel)"
 
