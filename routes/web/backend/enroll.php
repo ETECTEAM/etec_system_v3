@@ -18,6 +18,8 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         // Route to set a single course's enrollment status/start date.
         Route::put('/config/{course}', [CourseEnrollConfigController::class, 'update'])->name('enroll.config.update');
         Route::get('/registrations/data', [EnrollmentClassController::class, 'publicRegistrations'])->name('enroll.registrations.data');
+        // Route to edit a public registration's name/gender/phone from the Registrations tab.
+        Route::put('/registrations/{enrollment}', [EnrollmentClassController::class, 'updateRegistration'])->name('enroll.registrations.update');
         Route::get('/create', [EnrollmentClassController::class, 'create'])->name('enroll.create');
         Route::post('/', [EnrollmentClassController::class, 'store'])->name('enroll.store');
         Route::get('/view/{studyClass}', [EnrollmentClassController::class, 'show'])->name('enroll.show');

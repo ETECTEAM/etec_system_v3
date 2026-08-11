@@ -14,6 +14,8 @@ class SetCourseEnrollConfig
             [
                 'status' => $data['status'],
                 'start_date' => $data['start_date'] ?? null,
+                'price' => $data['price'] ?? 0,
+                'document_price' => $data['document_price'] ?? 5,
             ]
         );
     }

@@ -15,7 +15,7 @@ class GetCourseEnrollConfigs
 
         $courses = Course::query()
             ->select(['id', 'title'])
-            ->with('enrollConfig:id,course_id,status,start_date')
+            ->with('enrollConfig:id,course_id,status,start_date,price,document_price')
             ->when($search !== '', fn (Builder $query) => $query->where('title', 'like', "%{$search}%"))
             ->orderBy('title')
             ->paginate($this->resolvePerPage($request))
@@ -29,8 +29,10 @@ class GetCourseEnrollConfigs
         return [
             'id' => $course->id,
             'title' => $course->title,
-            'enroll_status' => $course->enrollConfig?->status ?? 'closed',
+            'enroll_status' => $course->enrollConfig?->status ?? 'open',
             'start_date' => optional($course->enrollConfig?->start_date)->format('Y-m-d'),
+            'price' => (float) ($course->enrollConfig?->price ?? 0),
+            'document_price' => (float) ($course->enrollConfig?->document_price ?? 5),
         ];
     }
 

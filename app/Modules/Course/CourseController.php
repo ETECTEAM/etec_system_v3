@@ -5,6 +5,7 @@ namespace App\Modules\Course;
 
 use App\Models\Course;
 use App\Models\Category;
+use App\Models\CourseEnrollConfig;
 use App\Models\SubCategory;
 use App\Models\CourseTrack;
 use Illuminate\Http\Request;
@@ -53,6 +54,7 @@ class CourseController extends Controller
             'course_track_id' => 'required|exists:course_tracks,id',
             'title' => 'required|string|max:255|unique:courses,title',
             'level' => 'nullable|in:beginner,intermediate,advanced',
+            'price' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:active,inactive',
             'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
@@ -72,6 +74,13 @@ class CourseController extends Controller
             'thumbnail' => $thumbnailPath
         ]);
 
+        // Price lives on CourseEnrollConfig, not the courses table (see the
+        // migration that dropped price/document_price from courses).
+        CourseEnrollConfig::query()->updateOrCreate(
+            ['course_id' => $course->id],
+            ['price' => $validated['price'] ?? 0]
+        );
+
         return redirect()->route('course.courses')->with('success', 'Course created successfully');
     }
 
@@ -85,7 +94,7 @@ class CourseController extends Controller
 
     public function edit(Course $course)
     {
-        $course->load('track.subCategory.category');
+        $course->load('track.subCategory.category', 'enrollConfig');
 
         $categories = Category::where('status', 'active')->get();
         $subCategories = SubCategory::where('status', 'active')->get();
@@ -105,6 +114,7 @@ class CourseController extends Controller
             'course_track_id' => 'required|exists:course_tracks,id',
             'title' => 'required|string|max:255|unique:courses,title,' . $course->id,
             'level' => 'nullable|in:beginner,intermediate,advanced',
+            'price' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:active,inactive',
             'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
@@ -133,6 +143,11 @@ class CourseController extends Controller
             'status' => $validated['status'] ?? 'active',
             'thumbnail' => $validated['thumbnail'] ?? $course->thumbnail
         ]);
+
+        CourseEnrollConfig::query()->updateOrCreate(
+            ['course_id' => $course->id],
+            ['price' => $validated['price'] ?? 0]
+        );
 
         return redirect()->route('course.courses')->with('success', 'Course updated successfully');
     }

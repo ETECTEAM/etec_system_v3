@@ -14,6 +14,7 @@ use App\Modules\Enroll\Actions\CreateStudyClass;
 use App\Modules\Enroll\Actions\EnrollStudent;
 use App\Modules\Enroll\Actions\RecordEnrollmentDeposit;
 use App\Modules\Enroll\Actions\RegisterStudent;
+use App\Modules\Enroll\Actions\UpdatePublicRegistrationDetails;
 use App\Modules\Enroll\Actions\UpdateStudyClass;
 use App\Modules\Enroll\Queries\GetClassDetails;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
@@ -24,6 +25,7 @@ use App\Modules\Enroll\Requests\RecordDepositRequest;
 use App\Modules\Enroll\Requests\RegisterStudentRequest;
 use App\Modules\Enroll\Requests\SaveStudyClassRequest;
 use App\Modules\Enroll\Requests\StoreClassStudentRequest;
+use App\Modules\Enroll\Requests\UpdatePublicRegistrationRequest;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -248,6 +250,16 @@ class EnrollmentClassController extends Controller
         }
 
         return back()->with('success', 'Deposit recorded successfully.');
+    }
+
+    public function updateRegistration(
+        UpdatePublicRegistrationRequest $request,
+        StudentEnrollment $enrollment,
+        UpdatePublicRegistrationDetails $updateDetails
+    ): JsonResponse {
+        $updateDetails->handle($enrollment, $request->validated());
+
+        return response()->json(['success' => true]);
     }
 
     private function studentsForSelect(): array

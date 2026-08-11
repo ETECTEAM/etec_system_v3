@@ -13,6 +13,8 @@ class CourseEnrollConfig extends Model
         'course_id',
         'status',
         'start_date',
+        'price',
+        'document_price',
     ];
 
     protected function casts(): array
@@ -20,6 +22,8 @@ class CourseEnrollConfig extends Model
         return [
             'course_id' => 'integer',
             'start_date' => 'date',
+            'price' => 'decimal:2',
+            'document_price' => 'decimal:2',
         ];
     }
 

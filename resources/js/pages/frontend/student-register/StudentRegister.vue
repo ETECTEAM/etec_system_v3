@@ -19,6 +19,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  subCategories: {
+    type: Array,
+    default: () => [],
+  },
   courses: {
     type: Array,
     default: () => [],
@@ -58,15 +62,53 @@ const ticketCode = ref(
   Math.random().toString(36).slice(2, 7).toUpperCase()
 );
 
+// UI-only filter — narrows the course list but isn't submitted itself;
+// category_id is still derived from the picked course below.
+const subCategoryFilter = ref("");
+
+const subCategoryOptions = computed(() =>
+  props.subCategories.map((subCategory) => ({ value: String(subCategory.id), label: subCategory.name }))
+);
 const courseOptions = computed(() =>
-  props.courses.map((course) => ({ value: String(course.id), label: course.title }))
+  props.courses
+    .filter((course) => !subCategoryFilter.value || String(course.sub_category_id) === subCategoryFilter.value)
+    .map((course) => ({ value: String(course.id), label: course.title }))
 );
 const termOptions = computed(() =>
   props.terms.map((term) => ({ value: String(term.id), label: term.term_name }))
 );
-const timeOptions = computed(() =>
-  props.times.map((time) => ({ value: String(time.id), label: time.time_name }))
-);
+// time_name has no dedicated sortable column, just a label like "09:00 am -
+// 10:30 am" — parse the start time so options list morning-first instead of
+// alphabetically (which puts "02:00 pm" before "08:00 am").
+function timeSortKey(timeName) {
+  const match = String(timeName).match(/^(\d{1,2}):(\d{2})\s*(am|pm)/i);
+
+  if (!match) {
+    return 0;
+  }
+
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const meridiem = match[3].toLowerCase();
+
+  if (meridiem === "am" && hour === 12) hour = 0;
+  if (meridiem === "pm" && hour !== 12) hour += 12;
+
+  return hour * 60 + minute;
+}
+
+// Times are scoped to whichever term is picked — driven by the real
+// schedules data (see StudentRegisterController::timeIdsForTerm), not a
+// fixed list, since different terms run different slots.
+const timeOptions = computed(() => {
+  const term = props.terms.find((t) => String(t.id) === String(form.term_id));
+  const allowedIds = (term?.time_ids ?? []).map(String);
+
+  return props.times
+    .filter((time) => allowedIds.includes(String(time.id)))
+    .sort((a, b) => timeSortKey(a.time_name) - timeSortKey(b.time_name))
+    .map((time) => ({ value: String(time.id), label: time.time_name }));
+});
 
 // Matches this page's own input styling since SelectSearch's default button style assumes a dashboard/dark-mode context.
 const selectClass =
@@ -93,9 +135,30 @@ const progressPercent = computed(() => Math.round((filledCount.value / trackedFi
 
 // Category isn't a user-facing field anymore — derive it from whichever
 // course gets picked so the backend's category_id/course_id match check still passes.
+// Picking a course also syncs the sub-category filter back to match it.
 watch(() => form.course_id, (courseId) => {
   const course = props.courses.find((c) => String(c.id) === String(courseId));
   form.category_id = course ? String(course.category_id) : "";
+
+  if (course) {
+    subCategoryFilter.value = String(course.sub_category_id);
+  }
+});
+
+// Only clear the course if it no longer belongs to the newly picked sub-category —
+// this stays a no-op when the filter was just synced from the course watcher above.
+watch(subCategoryFilter, (subCategoryId) => {
+  const course = props.courses.find((c) => String(c.id) === String(form.course_id));
+
+  if (course && subCategoryId && String(course.sub_category_id) !== subCategoryId) {
+    form.course_id = "";
+  }
+});
+
+// A time slot picked under one term rarely exists under another, so clear it
+// whenever the term changes rather than leaving a now-invalid selection.
+watch(() => form.term_id, () => {
+  form.time_id = "";
 });
 
 function submit() {
@@ -205,6 +268,17 @@ function submit() {
 
             <div class="mt-3.5 space-y-3.5 sm:mt-5 sm:space-y-5">
               <label class="grid gap-1.5 text-[11px] font-bold sm:gap-2 sm:text-sm">
+                Sub category
+                <SelectSearch
+                  v-model="subCategoryFilter"
+                  :options="subCategoryOptions"
+                  placeholder="All sub categories"
+                  search-placeholder="Search sub category..."
+                  :button-class="selectClass"
+                />
+              </label>
+
+              <label class="grid gap-1.5 text-[11px] font-bold sm:gap-2 sm:text-sm">
                 Course
                 <SelectSearch
                   v-model="form.course_id"
@@ -235,7 +309,8 @@ function submit() {
                   <SelectSearch
                     v-model="form.time_id"
                     :options="timeOptions"
-                    placeholder="Select time"
+                    :disabled="!form.term_id"
+                    :placeholder="form.term_id ? 'Select time' : 'Select term first'"
                     search-placeholder="Search time..."
                     :button-class="selectClass"
                   />

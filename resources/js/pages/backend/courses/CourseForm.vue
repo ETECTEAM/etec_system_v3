@@ -129,15 +129,28 @@
                         </div>
                     </div>
 
-                    <!-- Status -->
-                    <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 dark:bg-gray-800/40 dark:border-gray-700">
-                        <input v-model="form.status" type="checkbox"
-                            class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 focus:ring-2 transition dark:border-gray-600 dark:bg-gray-800"
-                            true-value="active" false-value="inactive" />
-                        <label class="text-sm font-medium text-slate-700 cursor-pointer dark:text-gray-300">{{ $t('Active') }}</label>
-                        <span class="text-xs text-slate-500 ml-auto dark:text-gray-500">
-                            {{ form.status === 'active' ? $t('Course will be visible to students') : $t('Course will be hidden') }}
-                        </span>
+                    <!-- Price, Status -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1 dark:text-gray-300">{{ $t('Price') }}</label>
+                            <div class="relative">
+                                <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
+                                <input v-model="form.price" type="number" min="0" step="0.01"
+                                    class="w-full rounded-lg border border-slate-200 pl-8 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:ring-blue-500/20"
+                                    :placeholder="$t('0.00')" />
+                            </div>
+                            <p v-if="errors.price" class="mt-1 text-sm text-rose-600 dark:text-rose-400">{{ errors.price }}</p>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 dark:bg-gray-800/40 dark:border-gray-700">
+                            <input v-model="form.status" type="checkbox"
+                                class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 focus:ring-2 transition dark:border-gray-600 dark:bg-gray-800"
+                                true-value="active" false-value="inactive" />
+                            <label class="text-sm font-medium text-slate-700 cursor-pointer dark:text-gray-300">{{ $t('Active') }}</label>
+                            <span class="text-xs text-slate-500 ml-auto dark:text-gray-500">
+                                {{ form.status === 'active' ? $t('Course will be visible to students') : $t('Course will be hidden') }}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -208,6 +221,7 @@ const form = useForm({
     category_id: courseCategoryId.value,
     sub_category_id: courseSubCategoryId.value,
     course_track_id: props.course?.course_track_id || '',
+    price: props.course?.enroll_config?.price ?? '',
     status: props.course?.status || 'active',
     thumbnail: null
 });

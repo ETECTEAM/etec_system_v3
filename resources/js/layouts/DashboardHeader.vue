@@ -381,6 +381,15 @@ function handleEscape(event) {
             </div>
             <div class="border-t border-slate-200 dark:border-gray-700">
               <Link
+                href="/dashboard/account-security"
+                class="block w-full px-4 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                @click="closeProfile"
+              >
+                {{ t("navigation.accountSecurity") }}
+              </Link>
+            </div>
+            <div class="border-t border-slate-200 dark:border-gray-700">
+              <Link
                 href="/logout"
                 method="post"
                 as="button"

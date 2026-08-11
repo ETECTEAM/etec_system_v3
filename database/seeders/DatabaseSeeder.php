@@ -22,7 +22,6 @@ use Database\Seeders\Course\CategorySeeder;
 use Database\Seeders\Course\SubCategorySeeder;
 use Database\Seeders\Course\CourseTrackSeeder;
 use Database\Seeders\Course\CourseSeeder;
-use Database\Seeders\Course\CourseLessonSeeder;
 
 // Class seeders
 use Database\Seeders\Class\ClassTypeSeeder;
@@ -65,7 +64,6 @@ class DatabaseSeeder extends Seeder
             SubCategorySeeder::class,
             CourseTrackSeeder::class,
             CourseSeeder::class,
-            CourseLessonSeeder::class,
 
             // 4. Class relation data
             // ClassSeeder already calls ClassTypeSeeder internally.

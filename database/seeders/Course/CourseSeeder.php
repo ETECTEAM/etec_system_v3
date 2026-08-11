@@ -4,6 +4,7 @@
 namespace Database\Seeders\Course;
 
 use App\Models\Course;
+use App\Models\CourseEnrollConfig;
 use App\Models\CourseTrack;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,9 @@ class CourseSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
         Course::truncate();
+        // Truncated alongside courses (not cascaded, since FK checks are off here)
+        // so re-seeding doesn't leave orphaned config rows pointing at old course IDs.
+        CourseEnrollConfig::truncate();
 
         // Re-enable foreign key checks
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
@@ -156,7 +160,7 @@ class CourseSeeder extends Seeder
             }
             $usedSlugs[] = $slug;
 
-            Course::updateOrCreate(
+            $createdCourse = Course::updateOrCreate(
                 ['title' => $course['title']],
                 [
                     'course_track_id' => $this->getTrackId($course['track']),
@@ -164,6 +168,12 @@ class CourseSeeder extends Seeder
                     'level' => $course['level'],
                     'status' => $course['status']
                 ]
+            );
+
+            // Price/status live on CourseEnrollConfig, not the courses table itself.
+            CourseEnrollConfig::updateOrCreate(
+                ['course_id' => $createdCourse->id],
+                ['price' => 100, 'status' => 'open']
             );
         }
     }

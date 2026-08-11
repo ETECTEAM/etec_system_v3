@@ -66,7 +66,7 @@ async function fetchCourses(pageNumber = 1) {
 
 // Optimistic row update: apply the change immediately, roll back on failure.
 async function saveConfig(course, changes) {
-  const previous = { enroll_status: course.enroll_status, start_date: course.start_date }
+  const previous = { enroll_status: course.enroll_status, start_date: course.start_date, price: course.price, document_price: course.document_price }
   Object.assign(course, changes)
   savingId.value = course.id
 
@@ -74,9 +74,13 @@ async function saveConfig(course, changes) {
     const response = await axios.put(`/dashboard/enroll/config/${course.id}`, {
       status: course.enroll_status,
       start_date: course.start_date,
+      price: course.price,
+      document_price: course.document_price,
     })
     course.enroll_status = response.data.status
     course.start_date = response.data.start_date
+    course.price = response.data.price
+    course.document_price = response.data.document_price
   } catch (error) {
     console.error('Failed to save course enroll config', error)
     Object.assign(course, previous)
@@ -92,6 +96,14 @@ function toggleStatus(course) {
 
 function updateStartDate(course, value) {
   saveConfig(course, { start_date: value || null })
+}
+
+function updatePrice(course, value) {
+  saveConfig(course, { price: value === '' ? 0 : Number(value) })
+}
+
+function updateDocumentPrice(course, value) {
+  saveConfig(course, { document_price: value === '' ? 0 : Number(value) })
 }
 
 async function applyStartDateToAll() {
@@ -186,12 +198,14 @@ function paginationEnd() {
               <tr>
                 <th class="px-4 py-3">{{ $t('Course') }}</th>
                 <th class="px-4 py-3">{{ $t('Start Date') }}</th>
+                <th class="px-4 py-3">{{ $t('Price') }}</th>
+                <th class="px-4 py-3">{{ $t('Document Price') }}</th>
                 <th class="px-4 py-3">{{ $t('Status') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-gray-800">
               <tr v-if="hasLoaded && !isLoading && courses.length === 0">
-                <td colspan="3" class="px-4 py-8 text-center text-slate-500 dark:text-gray-400">{{ $t('No courses found.') }}</td>
+                <td colspan="5" class="px-4 py-8 text-center text-slate-500 dark:text-gray-400">{{ $t('No courses found.') }}</td>
               </tr>
 
               <tr v-for="course in courses" :key="course.id" class="transition hover:bg-slate-50 dark:hover:bg-gray-800">
@@ -204,6 +218,34 @@ function paginationEnd() {
                     class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
                     @change="updateStartDate(course, $event.target.value)"
                   >
+                </td>
+                <td class="px-4 py-3">
+                  <div class="relative w-28">
+                    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      :value="course.price"
+                      :disabled="savingId === course.id"
+                      class="w-full rounded-lg border border-slate-300 py-1.5 pl-6 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                      @change="updatePrice(course, $event.target.value)"
+                    >
+                  </div>
+                </td>
+                <td class="px-4 py-3">
+                  <div class="relative w-28">
+                    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      :value="course.document_price"
+                      :disabled="savingId === course.id"
+                      class="w-full rounded-lg border border-slate-300 py-1.5 pl-6 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                      @change="updateDocumentPrice(course, $event.target.value)"
+                    >
+                  </div>
                 </td>
                 <td class="px-4 py-3">
                   <button

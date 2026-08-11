@@ -29,6 +29,8 @@ class CourseEnrollConfigController extends Controller
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:open,closed'],
             'start_date' => ['nullable', 'date'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'document_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $config = $setConfig->handle($course, $validated);
@@ -36,6 +38,8 @@ class CourseEnrollConfigController extends Controller
         return response()->json([
             'status' => $config->status,
             'start_date' => optional($config->start_date)->format('Y-m-d'),
+            'price' => (float) $config->price,
+            'document_price' => (float) $config->document_price,
         ]);
     }
 
