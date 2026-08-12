@@ -28,8 +28,17 @@ docker compose -f "${COMPOSE_FILE}" exec -T mysql sh -c \
 echo "==> Running migrations"
 docker compose -f "${COMPOSE_FILE}" run --rm app php artisan migrate --force
 
-echo "==> Recreating app, reverb, nginx with the new images"
-docker compose -f "${COMPOSE_FILE}" up -d app reverb nginx
+echo "==> Recreating app, reverb with the new images"
+docker compose -f "${COMPOSE_FILE}" up -d app reverb
+
+# `up -d` only recreates nginx when nginx's own image/config changed - but app
+# and reverb just got new container IPs above, and nginx caches their resolved
+# IP for its whole process lifetime. Without this, nginx keeps proxying to the
+# old (now-gone) IP and every request 502s until someone notices and manually
+# restarts it.
+echo "==> Restarting nginx so it re-resolves app/reverb's current IPs"
+docker compose -f "${COMPOSE_FILE}" up -d nginx
+docker compose -f "${COMPOSE_FILE}" restart nginx
 
 echo "==> Warming config/route/view caches"
 docker compose -f "${COMPOSE_FILE}" exec -T app php artisan config:cache
