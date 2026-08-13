@@ -2,11 +2,9 @@
 
 namespace App\Modules\Enroll\Actions;
 
-use App\Models\Student;
-use App\Models\User;
+use App\Modules\Enroll\Services\StudentRegistrationService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use stdClass;
 
 /**
  * Pre-registers a student with no class assigned yet. They get enrolled into a
@@ -15,39 +13,10 @@ use Illuminate\Support\Str;
  */
 class RegisterStudent
 {
-    public function handle(array $data): Student
+    public function __construct(private readonly StudentRegistrationService $registrations) {}
+
+    public function handle(array $data): stdClass
     {
-        return DB::transaction(function () use ($data): Student {
-            $user = User::create([
-                'name' => $data['name'],
-                'email' => $this->studentEmail(),
-                'password' => Hash::make(Str::random(32)),
-                'role' => 'student',
-                'status' => 'active',
-                'created_by' => auth()->id(),
-            ]);
-
-            return Student::create([
-                'user_id' => $user->id,
-                'full_name' => $data['name'],
-                'gender' => $data['gender'],
-                'phone' => $data['phone'],
-                'student_status' => 'active',
-                'course_id' => $data['course_id'],
-                'term_id' => $data['term_id'],
-                'time_id' => $data['time_id'],
-                'fee_amount' => round((float) $data['price'], 2),
-                'document_fee_amount' => round((float) ($data['document_price'] ?? 0), 2),
-            ]);
-        });
-    }
-
-    private function studentEmail(): string
-    {
-        do {
-            $email = 'student-'.Str::lower(Str::random(16)).'@etec.local';
-        } while (User::query()->where('email', $email)->exists());
-
-        return $email;
+        return DB::transaction(fn (): stdClass => $this->registrations->createStudent($data, auth()->id()));
     }
 }

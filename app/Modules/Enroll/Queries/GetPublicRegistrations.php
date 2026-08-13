@@ -16,8 +16,7 @@ class GetPublicRegistrations
         return StudentEnrollment::query()
             ->where('source', 'public_website')
             ->with([
-                'student:id,name',
-                'student.student:id,user_id,gender,phone',
+                'student:id,full_name,gender,phone',
                 'studyClass:id,title,course_id,term_id,time_id',
                 'studyClass.course:id,title',
                 'studyClass.term:id,term_name',
@@ -35,9 +34,9 @@ class GetPublicRegistrations
     {
         return [
             'enrollment_id' => $enrollment->id,
-            'name' => $enrollment->student?->name ?? '-',
-            'gender' => $enrollment->student?->student?->gender ?? '-',
-            'phone' => $enrollment->student?->student?->phone ?? '-',
+            'name' => $enrollment->student?->full_name ?? '-',
+            'gender' => $enrollment->student?->gender ?? '-',
+            'phone' => $enrollment->student?->phone ?? '-',
             'class_id' => $enrollment->study_class_id,
             'class_title' => $enrollment->studyClass?->title ?? '-',
             'course_title' => $enrollment->studyClass?->course?->title,

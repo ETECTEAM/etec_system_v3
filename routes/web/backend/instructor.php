@@ -14,4 +14,6 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
     Route::get('/classes/{studyClass}', [InstructorClassController::class, 'show'])->name('instructor.classes.show');
     Route::get('/classes/{studyClass}/attendance', [InstructorClassController::class, 'attendance'])->name('instructor.classes.attendance');
     Route::get('/classes/{studyClass}/attendance/track', [InstructorClassController::class, 'trackAttendance'])->name('instructor.classes.attendance.track');
+    Route::get('/classes/{studyClass}/attendance/students/{student}', [InstructorClassController::class, 'studentAttendance'])->name('instructor.classes.attendance.students.show');
+    Route::post('/classes/{studyClass}/attendance', [InstructorClassController::class, 'storeAttendance'])->middleware('throttle:20,1')->name('instructor.classes.attendance.store');
 });

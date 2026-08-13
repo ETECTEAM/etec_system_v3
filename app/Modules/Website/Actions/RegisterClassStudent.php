@@ -2,16 +2,12 @@
 
 namespace App\Modules\Website\Actions;
 
-use App\Models\Notification;
-use App\Models\Student;
-use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
-use App\Models\User;
+use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Notification\Events\NotificationsUpdated;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use stdClass;
 
 /**
  * Public, no-login self-registration from the /classes page — same shape as
@@ -21,71 +17,36 @@ use Illuminate\Validation\ValidationException;
  */
 class RegisterClassStudent
 {
-    public function handle(StudyClass $studyClass, array $data): StudentEnrollment
+    public function __construct(private readonly StudentRegistrationService $registrations) {}
+
+    public function handle(StudyClass $studyClass, array $data): stdClass
     {
-        $enrollment = DB::transaction(function () use ($studyClass, $data): StudentEnrollment {
-            $studyClass = StudyClass::query()->lockForUpdate()->findOrFail($studyClass->id);
+        $enrollment = DB::transaction(function () use ($studyClass, $data): stdClass {
+            $class = $this->registrations->lockStudyClass($studyClass->id);
+            $this->registrations->ensureClassHasSeat($class, 'name');
 
-            $activeCount = $studyClass->enrollments()
-                ->where('enrollment_status', 'active')
-                ->count();
+            $student = $this->registrations->findOrCreatePublicStudent($data);
 
-            if ($activeCount >= $studyClass->capacity) {
+            if ($this->registrations->activeEnrollmentExistsForClass($class->id, $student->id)) {
                 throw ValidationException::withMessages([
-                    'name' => 'This class is full.',
+                    'phone' => 'This phone number is already registered for this class.',
                 ]);
             }
 
-            $student = Student::query()->where('phone', $data['phone'])->first();
-
-            if ($student !== null) {
-                $alreadyEnrolled = StudentEnrollment::query()
-                    ->where('study_class_id', $studyClass->id)
-                    ->where('enrollment_status', 'active')
-                    ->where('student_id', $student->user_id)
-                    ->exists();
-
-                if ($alreadyEnrolled) {
-                    throw ValidationException::withMessages([
-                        'phone' => 'This phone number is already registered for this class.',
-                    ]);
-                }
-            }
-
-            if ($student === null) {
-                $user = User::create([
-                    'name' => $data['name'],
-                    'email' => $this->studentEmail(),
-                    'password' => Hash::make(Str::random(32)),
-                    'role' => 'student',
-                    'status' => 'active',
-                ]);
-
-                $student = Student::create([
-                    'user_id' => $user->id,
-                    'full_name' => $data['name'],
-                    'gender' => $data['gender'],
-                    'phone' => $data['phone'],
-                    'student_status' => 'active',
-                ]);
-            }
-
-            $enrollment = StudentEnrollment::create([
-                'study_class_id' => $studyClass->id,
-                'student_id' => $student->user_id,
-                'enrollment_status' => 'active',
-                'payment_status' => 'unpaid',
+            $enrollment = $this->registrations->createEnrollment([
+                'study_class_id' => $class->id,
+                'student_id' => $student->id,
                 'source' => 'public_website',
-                'fee_amount' => $studyClass->price,
-                'document_fee_amount' => $studyClass->document_price,
-                'amount_paid' => 0,
-                'enrolled_at' => now(),
+                'fee_amount' => $class->price,
+                'document_fee_amount' => $class->document_price,
             ]);
 
-            Notification::create([
+            DB::table('notifications')->insert([
                 'title' => 'New Class Registration',
-                'message' => "{$data['name']} registered for \"{$studyClass->title}\".",
+                'message' => "{$data['name']} registered for \"{$class->title}\".",
                 'type' => 'class_registration',
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             return $enrollment;
@@ -94,14 +55,5 @@ class RegisterClassStudent
         NotificationsUpdated::dispatch();
 
         return $enrollment;
-    }
-
-    private function studentEmail(): string
-    {
-        do {
-            $email = 'student-'.Str::lower(Str::random(16)).'@etec.local';
-        } while (User::query()->where('email', $email)->exists());
-
-        return $email;
     }
 }

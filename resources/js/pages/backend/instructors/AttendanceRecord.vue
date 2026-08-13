@@ -178,7 +178,7 @@ const totalPresent = computed(() =>
                 </td>
                 <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
                   <div class="flex justify-center gap-2">
-                    <button class="grid h-9 w-9 place-items-center rounded-lg bg-slate-50 text-slate-900 hover:bg-slate-100 dark:bg-gray-800 dark:text-gray-100"><Eye class="h-4 w-4" /></button>
+                    <Link :href="`/dashboard/instructor/classes/${classData.id}/attendance/students/${student.id}`" class="grid h-9 w-9 place-items-center rounded-lg bg-slate-50 text-slate-900 hover:bg-slate-100 dark:bg-gray-800 dark:text-gray-100"><Eye class="h-4 w-4" /></Link>
                     <button class="grid h-9 w-9 place-items-center rounded-lg bg-slate-50 text-slate-900 hover:bg-slate-100 dark:bg-gray-800 dark:text-gray-100"><RefreshCw class="h-4 w-4" /></button>
                     <button class="grid h-9 w-9 place-items-center rounded-lg border border-slate-300 bg-white text-slate-900 hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"><Pencil class="h-4 w-4" /></button>
                     <button class="grid h-9 w-9 place-items-center rounded-lg bg-rose-500 text-white hover:bg-rose-600"><Trash2 class="h-4 w-4" /></button>

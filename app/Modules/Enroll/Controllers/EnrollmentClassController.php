@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Building;
 use App\Models\Course;
 use App\Models\Floor;
+use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
-use App\Models\User;
 use App\Modules\Enroll\Actions\CreateClassStudent;
 use App\Modules\Enroll\Actions\CreateStudyClass;
 use App\Modules\Enroll\Actions\EnrollStudent;
@@ -264,16 +264,14 @@ class EnrollmentClassController extends Controller
 
     private function studentsForSelect(): array
     {
-        return User::query()
-            ->whereHas('student')
-            ->with('student:id,user_id,phone')
-            ->select('id', 'name')
-            ->orderBy('name')
+        return Student::query()
+            ->select('id', 'full_name', 'phone')
+            ->orderBy('full_name')
             ->get()
-            ->map(fn (User $user) => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'phone' => $user->student?->phone,
+            ->map(fn (Student $student) => [
+                'id' => $student->id,
+                'name' => $student->full_name,
+                'phone' => $student->phone,
             ])
             ->all();
     }

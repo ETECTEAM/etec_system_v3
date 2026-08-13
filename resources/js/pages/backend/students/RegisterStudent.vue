@@ -3,6 +3,7 @@ import { computed, nextTick, ref } from "vue";
 import { router, useForm } from "@inertiajs/vue3";
 import { ArrowLeft, Save, UserPlus } from "@lucide/vue";
 import { SelectSearch } from "@/components/ui/select-search";
+import { latinNameError } from "@/composables/useLatinNameValidation";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
 import PageHero from "../../../components/ui/page-hero/PageHero.vue";
@@ -57,6 +58,7 @@ const selectedCourse = computed(() =>
 );
 
 const totalFee = computed(() => Math.round((Number(form.price || 0) + Number(form.document_price || 0)) * 100) / 100);
+const nameLiveError = computed(() => latinNameError(form.name));
 
 const scheduleTypeOptions = computed(() =>
   props.scheduleGroups.map((group) => ({
@@ -108,6 +110,10 @@ const receiptClassData = ref(null);
 const today = new Date().toLocaleDateString("en-CA");
 
 function submit() {
+  if (nameLiveError.value) {
+    return;
+  }
+
   form.term_id = selectedTerm.value;
   form.time_id = selectedTime.value;
 
@@ -193,11 +199,14 @@ function classList() {
             <input
               v-model="form.name"
               type="text"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
+              :class="[
+                'w-full rounded-xl border px-4 py-3 text-sm outline-none focus:ring-2 dark:bg-gray-800 dark:text-gray-200',
+                nameLiveError ? 'border-red-300 focus:border-red-500 focus:ring-red-100 dark:border-red-500/60' : 'border-slate-300 focus:border-indigo-400 focus:ring-indigo-100 dark:border-gray-600 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20',
+              ]"
               :placeholder="$t('Enter student name')"
             />
-            <p v-if="form.errors.name" class="mt-1 text-xs text-red-600">
-              {{ form.errors.name }}
+            <p v-if="nameLiveError || form.errors.name" class="mt-1 text-xs text-red-600">
+              {{ nameLiveError || form.errors.name }}
             </p>
           </div>
 
@@ -322,8 +331,8 @@ function classList() {
 
         <div class="mt-6 flex justify-end">
           <button
-            type="submit"
-            :disabled="form.processing"
+              type="submit"
+              :disabled="form.processing || !!nameLiveError"
             class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
           >
             <Save class="h-4 w-4" />

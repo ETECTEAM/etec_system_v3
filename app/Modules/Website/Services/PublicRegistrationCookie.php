@@ -2,11 +2,12 @@
 
 namespace App\Modules\Website\Services;
 
-use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\DB;
+use stdClass;
 
 /**
  * Marks "this browser already registered for class X" with one encrypted,
@@ -22,7 +23,7 @@ class PublicRegistrationCookie
 {
     private const TTL_MINUTES = 60 * 24 * 30;
 
-    public function remember(StudyClass $studyClass, StudentEnrollment $enrollment): void
+    public function remember(StudyClass $studyClass, stdClass $enrollment): void
     {
         Cookie::queue(self::cookieName($studyClass->id), (string) $enrollment->id, self::TTL_MINUTES);
     }
@@ -50,12 +51,12 @@ class PublicRegistrationCookie
             return [];
         }
 
-        return StudentEnrollment::query()
+        return DB::table('student_enrollments')
             ->where('source', 'public_website')
             ->where('enrollment_status', 'active')
             ->whereIn('study_class_id', $enrollmentIdByClassId->keys())
             ->get(['id', 'study_class_id'])
-            ->filter(fn (StudentEnrollment $enrollment) => $enrollmentIdByClassId->get($enrollment->study_class_id) === (int) $enrollment->id)
+            ->filter(fn (stdClass $enrollment) => $enrollmentIdByClassId->get($enrollment->study_class_id) === (int) $enrollment->id)
             ->pluck('study_class_id')
             ->all();
     }

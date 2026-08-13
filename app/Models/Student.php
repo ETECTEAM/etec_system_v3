@@ -30,7 +30,7 @@ class Student extends Model
 
     public function enrollments(): HasMany
     {
-        return $this->hasMany(Enrollment::class);
+        return $this->hasMany(StudentEnrollment::class);
     }
 
     public function course(): BelongsTo

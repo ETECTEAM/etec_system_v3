@@ -5,13 +5,15 @@ namespace App\Modules\Registration\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\ScheduleClass;
-use App\Models\Student;
+use App\Modules\Enroll\Services\StudentRegistrationService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 
 class AdminRegistrationController extends Controller
 {
+    public function __construct(private readonly StudentRegistrationService $registrations) {}
+
     public function index()
     {
         $enrollments = Enrollment::with(['student', 'scheduleClass.time.term'])->latest()->get();
@@ -51,13 +53,7 @@ class AdminRegistrationController extends Controller
         ]);
 
         DB::transaction(function () use ($validated) {
-            $student = Student::create([
-                'full_name' => $validated['full_name'],
-                'gender' => $validated['gender'],
-                'date_of_birth' => $validated['date_of_birth'] ?? null,
-                'phone' => $validated['phone'],
-                'address' => $validated['address'] ?? null,
-            ]);
+            $student = $this->registrations->createStudent($validated, auth()->id());
 
             Enrollment::create([
                 'student_id' => $student->id,

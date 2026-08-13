@@ -6,10 +6,13 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use stdClass;
 
 class InstructorClassService
 {
+    public const ATTENDANCE_STATUSES = ['absent', 'present', 'permission'];
+
     private ?array $termLabels = null;
 
     public function formOptions(): array
@@ -64,11 +67,11 @@ class InstructorClassService
             'total_classes' => DB::table('study_classes')->where('teacher_id', $instructor->id)->count(),
             'total_students' => (clone $activeEnrollments)->count(),
             'male_students' => (clone $activeEnrollments)
-                ->join('students', 'students.user_id', '=', 'student_enrollments.student_id')
+                ->join('students', 'students.id', '=', 'student_enrollments.student_id')
                 ->where('students.gender', 'male')
                 ->count(),
             'female_students' => (clone $activeEnrollments)
-                ->join('students', 'students.user_id', '=', 'student_enrollments.student_id')
+                ->join('students', 'students.id', '=', 'student_enrollments.student_id')
                 ->where('students.gender', 'female')
                 ->count(),
         ];
@@ -88,22 +91,134 @@ class InstructorClassService
 
     public function students(int $studyClassId): Collection
     {
+        $attendanceStats = $this->attendanceStats($studyClassId);
+        $todayAttendance = $this->todayAttendance($studyClassId);
+
         return DB::table('student_enrollments')
-            ->join('users as students_user', 'students_user.id', '=', 'student_enrollments.student_id')
-            ->leftJoin('students', 'students.user_id', '=', 'students_user.id')
+            ->join('students', 'students.id', '=', 'student_enrollments.student_id')
+            ->leftJoin('users as students_user', 'students_user.id', '=', 'students.user_id')
             ->where('student_enrollments.study_class_id', $studyClassId)
             ->where('student_enrollments.enrollment_status', 'active')
             ->orderBy('student_enrollments.id')
             ->select([
                 'student_enrollments.id as enrollment_id',
-                'students_user.id',
-                'students_user.name',
+                'students.id',
+                'students.full_name',
                 'students_user.email',
                 'students.gender',
                 'students.phone',
             ])
             ->get()
-            ->map(fn (stdClass $student, int $index) => $this->presentStudent($student, $index + 1));
+            ->map(fn (stdClass $student, int $index) => $this->presentStudent(
+                $student,
+                $index + 1,
+                $attendanceStats->get($student->id),
+                $todayAttendance->get($student->id),
+            ));
+    }
+
+    public function saveAttendance(User $instructor, int $studyClassId, array $data): void
+    {
+        $attendanceDate = Carbon::parse($data['attendance_date'] ?? now())->toDateString();
+
+        if ($this->hasAttendanceForDate($studyClassId, $attendanceDate)) {
+            throw ValidationException::withMessages([
+                'records' => 'Attendance has already been submitted for this class today.',
+            ]);
+        }
+
+        $enrollments = DB::table('student_enrollments')
+            ->where('study_class_id', $studyClassId)
+            ->where('enrollment_status', 'active')
+            ->get(['id', 'student_id'])
+            ->keyBy('id');
+
+        DB::transaction(function () use ($data, $attendanceDate, $enrollments, $instructor, $studyClassId) {
+            foreach ($data['records'] as $record) {
+                $enrollmentId = (int) $record['enrollment_id'];
+                $studentId = (int) $record['student_id'];
+                $enrollment = $enrollments->get($enrollmentId);
+
+                if (! $enrollment || (int) $enrollment->student_id !== $studentId) {
+                    throw ValidationException::withMessages([
+                        'records' => 'Attendance can only be saved for active students in this class.',
+                    ]);
+                }
+
+                DB::table('student_attendances')->updateOrInsert(
+                    [
+                        'study_class_id' => $studyClassId,
+                        'student_enrollment_id' => $enrollmentId,
+                        'attendance_date' => $attendanceDate,
+                    ],
+                    [
+                        'student_id' => $studentId,
+                        'tracked_by' => $instructor->id,
+                        'status' => $record['status'],
+                        'note' => $record['note'] ?? null,
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ],
+                );
+            }
+        });
+    }
+
+    public function hasAttendanceForDate(int $studyClassId, Carbon|string $attendanceDate): bool
+    {
+        return DB::table('student_attendances')
+            ->where('study_class_id', $studyClassId)
+            ->whereDate('attendance_date', Carbon::parse($attendanceDate)->toDateString())
+            ->exists();
+    }
+
+    public function studentAttendanceDetail(int $studyClassId, int $studentId): array
+    {
+        $student = DB::table('student_enrollments')
+            ->join('students', 'students.id', '=', 'student_enrollments.student_id')
+            ->leftJoin('users as students_user', 'students_user.id', '=', 'students.user_id')
+            ->where('student_enrollments.study_class_id', $studyClassId)
+            ->where('student_enrollments.student_id', $studentId)
+            ->where('student_enrollments.enrollment_status', 'active')
+            ->select([
+                'student_enrollments.id as enrollment_id',
+                'students.id',
+                'students.full_name',
+                'students_user.email',
+                'students.gender',
+                'students.phone',
+            ])
+            ->first();
+
+        abort_unless($student, 404);
+
+        $records = DB::table('student_attendances')
+            ->leftJoin('users as trackers', 'trackers.id', '=', 'student_attendances.tracked_by')
+            ->where('student_attendances.study_class_id', $studyClassId)
+            ->where('student_attendances.student_id', $studentId)
+            ->orderByDesc('student_attendances.attendance_date')
+            ->select([
+                'student_attendances.attendance_date',
+                'student_attendances.status',
+                'student_attendances.note',
+                'student_attendances.updated_at',
+                'trackers.name as tracked_by_name',
+            ])
+            ->get()
+            ->map(fn (stdClass $record) => [
+                'date' => Carbon::parse($record->attendance_date)->format('Y-m-d'),
+                'status' => $record->status,
+                'note' => $record->note ?? '-',
+                'tracked_by' => $record->tracked_by_name ?? '-',
+                'updated_at' => $record->updated_at ? Carbon::parse($record->updated_at)->format('Y-m-d H:i') : '-',
+            ]);
+
+        $stats = $this->attendanceStats($studyClassId)->get($studentId);
+
+        return [
+            ...$this->presentStudent($student, 1, $stats),
+            'records' => $records,
+        ];
     }
 
     public function presentClass(stdClass $class): array
@@ -172,21 +287,48 @@ class InstructorClassService
             ]);
     }
 
-    private function presentStudent(stdClass $student, int $rosterNo): array
+    private function attendanceStats(int $studyClassId): Collection
+    {
+        return DB::table('student_attendances')
+            ->where('study_class_id', $studyClassId)
+            ->select([
+                'student_id',
+                DB::raw('count(*) as total'),
+                DB::raw("sum(case when status = 'present' then 1 else 0 end) as present"),
+                DB::raw("sum(case when status = 'permission' then 1 else 0 end) as permission_count"),
+                DB::raw("sum(case when status = 'absent' then 1 else 0 end) as absent"),
+            ])
+            ->groupBy('student_id')
+            ->get()
+            ->keyBy('student_id');
+    }
+
+    private function todayAttendance(int $studyClassId): Collection
+    {
+        return DB::table('student_attendances')
+            ->where('study_class_id', $studyClassId)
+            ->whereDate('attendance_date', today())
+            ->get(['student_id', 'status', 'note'])
+            ->keyBy('student_id');
+    }
+
+    private function presentStudent(stdClass $student, int $rosterNo, ?stdClass $attendanceStats = null, ?stdClass $todayAttendance = null): array
     {
         return [
             'id' => $student->id,
             'roster_no' => $rosterNo,
             'enrollment_id' => $student->enrollment_id,
-            'name' => $student->name ?? '-',
-            'email' => $student->email,
+            'name' => $student->full_name ?? '-',
+            'email' => $student->email ?? '-',
             'gender' => $student->gender ?? '-',
             'phone' => $student->phone ?? '-',
             'attendance' => [
-                'total' => 0,
-                'present' => 0,
-                'permission' => 0,
-                'absent' => 0,
+                'total' => (int) ($attendanceStats->total ?? 0),
+                'present' => (int) ($attendanceStats->present ?? 0),
+                'permission' => (int) ($attendanceStats->permission_count ?? 0),
+                'absent' => (int) ($attendanceStats->absent ?? 0),
+                'current_status' => $todayAttendance->status ?? 'absent',
+                'note' => $todayAttendance->note ?? '',
             ],
             'scores' => [
                 'attendance' => 0,

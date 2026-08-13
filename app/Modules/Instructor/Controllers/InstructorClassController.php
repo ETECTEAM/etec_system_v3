@@ -63,6 +63,37 @@ class InstructorClassController extends Controller
         return Inertia::render('backend/instructors/TrackAttendance', [
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
+            'attendanceLocked' => $this->instructorClasses->hasAttendanceForDate($class->id, today()),
         ]);
+    }
+
+    public function studentAttendance(Request $request, string $studyClass, string $student): Response
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        return Inertia::render('backend/instructors/StudentAttendanceDetail', [
+            'classData' => $this->instructorClasses->presentClass($class),
+            'student' => $this->instructorClasses->studentAttendanceDetail($class->id, (int) $student),
+        ]);
+    }
+
+    public function storeAttendance(Request $request, string $studyClass): RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        $validated = $request->validate([
+            'attendance_date' => ['nullable', 'date'],
+            'records' => ['required', 'array', 'min:1'],
+            'records.*.student_id' => ['required', 'integer', 'exists:students,id'],
+            'records.*.enrollment_id' => ['required', 'integer', 'exists:student_enrollments,id'],
+            'records.*.status' => ['required', 'string', Rule::in(InstructorClassService::ATTENDANCE_STATUSES)],
+            'records.*.note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $this->instructorClasses->saveAttendance($request->user(), $class->id, $validated);
+
+        return redirect()
+            ->route('instructor.classes.attendance', $class->id)
+            ->with('success', 'Attendance saved successfully.');
     }
 }

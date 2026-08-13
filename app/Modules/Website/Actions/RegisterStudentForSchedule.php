@@ -5,43 +5,32 @@ namespace App\Modules\Website\Actions;
 use App\Models\ClassType;
 use App\Models\Course;
 use App\Models\InstructorData;
-use App\Models\Notification;
 use App\Models\Room;
 use App\Models\Schedule;
-use App\Models\Student;
-use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Models\Term;
 use App\Models\Time;
-use App\Models\User;
+use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Notification\Events\NotificationsUpdated;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use stdClass;
 
 class RegisterStudentForSchedule
 {
     private const DEFAULT_CAPACITY = 20;
     private const OPEN_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
 
-    public function handle(array $data): StudentEnrollment
+    public function __construct(private readonly StudentRegistrationService $registrations) {}
+
+    public function handle(array $data): stdClass
     {
-        $enrollment = DB::transaction(function () use ($data): StudentEnrollment {
+        $enrollment = DB::transaction(function () use ($data): stdClass {
             $course = Course::query()->lockForUpdate()->findOrFail($data['course_id']);
-            $student = $this->student($data);
+            $student = $this->registrations->findOrCreatePublicStudent($data);
 
-            $alreadyEnrolled = StudentEnrollment::query()
-                ->where('student_id', $student->user_id)
-                ->where('enrollment_status', 'active')
-                ->whereHas('studyClass', fn ($query) => $query
-                    ->where('course_id', $course->id)
-                    ->where('term_id', $data['term_id'])
-                    ->where('time_id', $data['time_id']))
-                ->exists();
-
-            if ($alreadyEnrolled) {
+            if ($this->registrations->activeEnrollmentExistsForCourseSchedule($student->id, $course->id, $data['term_id'], $data['time_id'])) {
                 throw ValidationException::withMessages([
                     'phone' => 'This phone number is already registered for this course, term, and time.',
                 ]);
@@ -50,22 +39,20 @@ class RegisterStudentForSchedule
             $studyClass = $this->availableClass($course, $data)
                 ?? $this->createClass($course, $data);
 
-            $enrollment = StudentEnrollment::create([
+            $enrollment = $this->registrations->createEnrollment([
                 'study_class_id' => $studyClass->id,
-                'student_id' => $student->user_id,
-                'enrollment_status' => 'active',
-                'payment_status' => 'unpaid',
+                'student_id' => $student->id,
                 'source' => 'public_website',
                 'fee_amount' => $studyClass->price,
                 'document_fee_amount' => $studyClass->document_price,
-                'amount_paid' => 0,
-                'enrolled_at' => now(),
             ]);
 
-            Notification::create([
+            DB::table('notifications')->insert([
                 'title' => 'New Student Registration',
                 'message' => "{$data['name']} registered for \"{$studyClass->title}\".",
                 'type' => 'class_registration',
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             return $enrollment;
@@ -74,31 +61,6 @@ class RegisterStudentForSchedule
         NotificationsUpdated::dispatch();
 
         return $enrollment;
-    }
-
-    private function student(array $data): Student
-    {
-        $student = Student::query()->where('phone', $data['phone'])->first();
-
-        if ($student !== null) {
-            return $student;
-        }
-
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $this->studentEmail(),
-            'password' => Hash::make(Str::random(32)),
-            'role' => 'student',
-            'status' => 'active',
-        ]);
-
-        return Student::create([
-            'user_id' => $user->id,
-            'full_name' => $data['name'],
-            'gender' => $data['gender'],
-            'phone' => $data['phone'],
-            'student_status' => 'active',
-        ]);
     }
 
     private function availableClass(Course $course, array $data): ?StudyClass
@@ -481,12 +443,4 @@ class RegisterStudentForSchedule
         return null;
     }
 
-    private function studentEmail(): string
-    {
-        do {
-            $email = 'student-'.Str::lower(Str::random(16)).'@etec.local';
-        } while (User::query()->where('email', $email)->exists());
-
-        return $email;
-    }
 }

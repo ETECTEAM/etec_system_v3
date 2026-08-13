@@ -1,7 +1,8 @@
 <script setup>
 import { computed, reactive } from "vue";
-import { Head, Link } from "@inertiajs/vue3";
+import { Head, Link, useForm } from "@inertiajs/vue3";
 import { ArrowLeft, Clock, Save } from "@lucide/vue";
+import { useToast } from "vue-toastification";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 
@@ -13,6 +14,10 @@ const props = defineProps({
   students: {
     type: Array,
     default: () => [],
+  },
+  attendanceLocked: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -37,13 +42,20 @@ const statuses = [
   },
 ];
 
+const toast = useToast();
+
 const attendance = reactive(
-  Object.fromEntries(props.students.map((student) => [student.id, "absent"])),
+  Object.fromEntries(props.students.map((student) => [student.id, student.attendance?.current_status ?? "absent"])),
 );
 
 const permissionNotes = reactive(
-  Object.fromEntries(props.students.map((student) => [student.id, ""])),
+  Object.fromEntries(props.students.map((student) => [student.id, student.attendance?.note ?? ""])),
 );
+
+const form = useForm({
+  attendance_date: new Date().toISOString().slice(0, 10),
+  records: [],
+});
 
 const totals = computed(() => {
   const values = Object.values(attendance);
@@ -54,6 +66,26 @@ const totals = computed(() => {
     absent: values.filter((value) => value === "absent").length,
   };
 });
+
+const submit = () => {
+  if (props.attendanceLocked) {
+    toast.warning("Attendance has already been submitted for this class today.");
+    return;
+  }
+
+  form.records = props.students.map((student) => ({
+    student_id: student.id,
+    enrollment_id: student.enrollment_id,
+    status: attendance[student.id],
+    note: permissionNotes[student.id] || null,
+  }));
+
+  form.post(`/dashboard/instructor/classes/${props.classData.id}/attendance`, {
+    preserveScroll: true,
+    onSuccess: () => toast.success("Attendance saved successfully."),
+    onError: () => toast.error("Failed to save attendance."),
+  });
+};
 </script>
 
 <template>
@@ -82,12 +114,18 @@ const totals = computed(() => {
 
           <button
             type="button"
-            class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
+            :disabled="form.processing || !students.length || attendanceLocked"
+            class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+            @click="submit"
           >
             <Save class="h-4 w-4" />
-            Save Attendance
+            {{ attendanceLocked ? "Submitted Today" : form.processing ? "Saving..." : "Save Attendance" }}
           </button>
         </div>
+      </div>
+
+      <div v-if="attendanceLocked" class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
+        Attendance has already been submitted for this class today. You can view the saved result, but cannot track again today.
       </div>
 
       <div class="grid gap-3 sm:grid-cols-3">
@@ -106,6 +144,7 @@ const totals = computed(() => {
       </div>
 
       <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <p v-if="form.errors.records" class="border-b border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">{{ form.errors.records }}</p>
         <div class="overflow-x-auto">
           <table class="min-w-[920px] w-full border-collapse text-sm">
             <thead>
@@ -139,7 +178,7 @@ const totals = computed(() => {
                       v-for="status in statuses"
                       :key="status.value"
                       type="button"
-                      :disabled="attendance[student.id] === status.value"
+                      :disabled="attendance[student.id] === status.value || attendanceLocked"
                       :class="[
                         'h-10 rounded-lg border px-3 text-xs font-black transition disabled:cursor-not-allowed',
                         attendance[student.id] === status.value
@@ -156,8 +195,9 @@ const totals = computed(() => {
                   <input
                     v-model="permissionNotes[student.id]"
                     type="text"
+                    :disabled="attendanceLocked"
                     placeholder="Enter note..."
-                    class="h-10 w-48 max-w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:focus:ring-blue-500/10"
+                    class="h-10 w-48 max-w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:disabled:bg-gray-800 dark:disabled:text-gray-500 dark:focus:ring-blue-500/10"
                   />
                 </td>
               </tr>

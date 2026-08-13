@@ -2,49 +2,27 @@
 
 namespace App\Modules\Enroll\Actions;
 
-use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
+use App\Modules\Enroll\Services\StudentRegistrationService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
+use stdClass;
 
 class EnrollStudent
 {
-    public function handle(StudyClass $studyClass, int $studentId): StudentEnrollment
+    public function __construct(private readonly StudentRegistrationService $registrations) {}
+
+    public function handle(StudyClass $studyClass, int $studentId): stdClass
     {
-        return DB::transaction(function () use ($studyClass, $studentId): StudentEnrollment {
-            $studyClass = StudyClass::query()->lockForUpdate()->findOrFail($studyClass->id);
+        return DB::transaction(function () use ($studyClass, $studentId): stdClass {
+            $class = $this->registrations->lockStudyClass($studyClass->id);
+            $this->registrations->ensureStudentIsNotEnrolledInClass($class->id, $studentId);
+            $this->registrations->ensureClassHasSeat($class);
 
-            $alreadyEnrolled = StudentEnrollment::query()
-                ->where('study_class_id', $studyClass->id)
-                ->where('student_id', $studentId)
-                ->exists();
-
-            if ($alreadyEnrolled) {
-                throw ValidationException::withMessages([
-                    'student_id' => 'This student is already enrolled in this class.',
-                ]);
-            }
-
-            $activeCount = StudentEnrollment::query()
-                ->where('study_class_id', $studyClass->id)
-                ->where('enrollment_status', 'active')
-                ->count();
-
-            if ($activeCount >= $studyClass->capacity) {
-                throw ValidationException::withMessages([
-                    'student_id' => 'This class is full.',
-                ]);
-            }
-
-            return StudentEnrollment::create([
-                'study_class_id' => $studyClass->id,
+            return $this->registrations->createEnrollment([
+                'study_class_id' => $class->id,
                 'student_id' => $studentId,
-                'enrollment_status' => 'active',
-                'payment_status' => 'unpaid',
-                'fee_amount' => $studyClass->price,
-                'document_fee_amount' => $studyClass->document_price,
-                'amount_paid' => 0,
-                'enrolled_at' => now(),
+                'fee_amount' => $class->price,
+                'document_fee_amount' => $class->document_price,
             ]);
         });
     }

@@ -29,7 +29,7 @@ class GetClassDetails
         $enrollments = StudentEnrollment::query()
             ->where('study_class_id', $studyClass->id)
             ->where('enrollment_status', 'active')
-            ->with(['student:id,name', 'student.student:id,user_id,gender,phone'])
+            ->with(['student:id,full_name,gender,phone'])
             ->orderBy('id')
             ->get();
 
@@ -52,9 +52,9 @@ class GetClassDetails
             'id' => $enrollment->student_id,
             'roster_no' => $rosterNo,
             'enrollment_id' => $enrollment->id,
-            'name' => $enrollment->student?->name ?? '-',
-            'gender' => $enrollment->student?->student?->gender ?? '-',
-            'phone' => $enrollment->student?->student?->phone,
+            'name' => $enrollment->student?->full_name ?? '-',
+            'gender' => $enrollment->student?->gender ?? '-',
+            'phone' => $enrollment->student?->phone,
             'fee_amount' => $feeAmount,
             'document_fee_amount' => $documentFeeAmount,
             'amount_paid' => $amountPaid,

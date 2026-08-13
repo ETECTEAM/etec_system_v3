@@ -10,11 +10,9 @@ class UpdatePublicRegistrationDetails
     public function handle(StudentEnrollment $enrollment, array $data): StudentEnrollment
     {
         DB::transaction(function () use ($enrollment, $data): void {
-            $enrollment->loadMissing('student.student');
+            $enrollment->loadMissing('student');
 
-            $enrollment->student?->forceFill(['name' => $data['name']])->save();
-
-            $enrollment->student?->student?->forceFill([
+            $enrollment->student?->forceFill([
                 'full_name' => $data['name'],
                 'gender' => $data['gender'],
                 'phone' => $data['phone'],

@@ -13,6 +13,7 @@ import {
 } from "@lucide/vue";
 import { SelectSearch } from "@/components/ui/select-search";
 import { useTheme } from "@/composables/useTheme";
+import { latinNameError } from "@/composables/useLatinNameValidation";
 
 const props = defineProps({
   categories: {
@@ -132,6 +133,7 @@ const filledCount = computed(
   () => trackedFields.filter((field) => String(form[field] ?? "").length > 0).length
 );
 const progressPercent = computed(() => Math.round((filledCount.value / trackedFields.length) * 100));
+const nameLiveError = computed(() => latinNameError(form.name));
 
 // Category isn't a user-facing field anymore — derive it from whichever
 // course gets picked so the backend's category_id/course_id match check still passes.
@@ -162,6 +164,10 @@ watch(() => form.term_id, () => {
 });
 
 function submit() {
+  if (nameLiveError.value) {
+    return;
+  }
+
   form.post("/student-register", {
     preserveScroll: true,
     onSuccess: () => form.reset(),
@@ -207,11 +213,14 @@ function submit() {
                   <input
                     v-model="form.name"
                     type="text"
-                    class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:rounded-xl sm:py-3 sm:pl-12 sm:pr-4 sm:text-base"
+                    :class="[
+                      'w-full rounded-lg border bg-slate-50 py-2.5 pl-9 pr-3 text-sm font-semibold outline-none transition focus:bg-white focus:ring-4 sm:rounded-xl sm:py-3 sm:pl-12 sm:pr-4 sm:text-base',
+                      nameLiveError ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200 focus:border-[#1A66FF] focus:ring-[#1A66FF]/10',
+                    ]"
                     placeholder="Your full name"
                   />
                 </span>
-                <span v-if="form.errors.name" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.name }}</span>
+                <span v-if="nameLiveError || form.errors.name" class="text-xs font-semibold text-red-600 sm:text-sm">{{ nameLiveError || form.errors.name }}</span>
               </label>
 
               <div class="grid gap-1.5 text-[11px] font-bold sm:gap-2 sm:text-sm">
@@ -322,7 +331,7 @@ function submit() {
 
           <button
             type="submit"
-            :disabled="form.processing"
+            :disabled="form.processing || !!nameLiveError"
             class="flex w-full items-center justify-center gap-2 rounded-full bg-[#1A66FF] px-6 py-3 text-sm font-black text-white shadow-[0_12px_24px_rgba(26,102,255,0.22)] transition hover:bg-[#1555D9] disabled:cursor-not-allowed disabled:opacity-70 sm:px-8 sm:py-4 sm:text-base"
           >
             {{ form.processing ? "Registering…" : "Register" }}

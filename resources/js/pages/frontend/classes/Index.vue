@@ -5,6 +5,7 @@ import axios from "axios";
 import { useToast } from "vue-toastification";
 import { Search, CalendarDays, Clock, MapPin, CheckCircle2, Loader2, X } from "@lucide/vue";
 import FrontendFooter from "@/components/frontend/FrontendFooter.vue";
+import { latinNameError } from "@/composables/useLatinNameValidation";
 
 const toast = useToast();
 
@@ -128,6 +129,7 @@ const registerForm = useForm({
   gender: "",
   phone: "",
 });
+const registerNameLiveError = computed(() => latinNameError(registerForm.name));
 
 const REGISTRATION_STORAGE = {
   id: "active_registration_id",
@@ -151,6 +153,10 @@ function closeRegisterModal() {
 }
 
 function submitRegister() {
+  if (registerNameLiveError.value) {
+    return;
+  }
+
   const classId = activeRegisterClass.value?.id;
   const classTitle = activeRegisterClass.value?.title ?? "";
   const name = registerForm.name;
@@ -402,8 +408,8 @@ onUnmounted(() => {
           <form @submit.prevent="submitRegister" class="grid gap-4">
             <label class="grid gap-2 text-sm font-bold text-slate-900">
               Full Name
-              <input v-model="registerForm.name" type="text" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-medium outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10" placeholder="Your full name" />
-              <span v-if="registerForm.errors.name" class="text-sm font-semibold text-red-600">{{ registerForm.errors.name }}</span>
+              <input v-model="registerForm.name" type="text" :class="['w-full rounded-2xl border bg-slate-50 px-4 py-3 text-base font-medium outline-none transition focus:bg-white focus:ring-4', registerNameLiveError ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200 focus:border-[#1A66FF] focus:ring-[#1A66FF]/10']" placeholder="Your full name" />
+              <span v-if="registerNameLiveError || registerForm.errors.name" class="text-sm font-semibold text-red-600">{{ registerNameLiveError || registerForm.errors.name }}</span>
             </label>
 
             <label class="grid gap-2 text-sm font-bold text-slate-900">
@@ -422,7 +428,7 @@ onUnmounted(() => {
               <span v-if="registerForm.errors.phone" class="text-sm font-semibold text-red-600">{{ registerForm.errors.phone }}</span>
             </label>
 
-            <button type="submit" class="mt-2 rounded-full bg-[#1A66FF] px-8 py-4 text-base font-black text-white shadow-[0_10px_20px_rgba(26,102,255,0.2)] transition-all hover:bg-[#1555D9] disabled:cursor-not-allowed disabled:opacity-70" :disabled="registerForm.processing">
+            <button type="submit" class="mt-2 rounded-full bg-[#1A66FF] px-8 py-4 text-base font-black text-white shadow-[0_10px_20px_rgba(26,102,255,0.2)] transition-all hover:bg-[#1555D9] disabled:cursor-not-allowed disabled:opacity-70" :disabled="registerForm.processing || !!registerNameLiveError">
               {{ registerForm.processing ? "Registering..." : "Register" }}
             </button>
           </form>

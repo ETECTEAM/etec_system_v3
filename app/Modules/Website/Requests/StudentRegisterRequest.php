@@ -3,6 +3,7 @@
 namespace App\Modules\Website\Requests;
 
 use App\Models\Course;
+use App\Rules\LatinName;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -17,7 +18,7 @@ class StudentRegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', new LatinName],
             'gender' => ['required', 'string', Rule::in(['male', 'female'])],
             'phone' => ['required', 'string', 'max:20'],
             'category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('status', 'active')],

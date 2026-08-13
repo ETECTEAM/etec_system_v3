@@ -49,7 +49,7 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
 
     // Self-registration via the "Generate QR" link an instructor shares with a prospective
     // student: no ETEC account or login required — the student fills this in themselves,
-    // whenever they choose, and CreateClassStudent creates their account + enrollment.
+    // whenever they choose, and CreateClassStudent creates their student row + enrollment.
     Route::get('/{studyClass}/students/create', [EnrollmentClassController::class, 'createStudent'])->name('enroll.class-students.create');
     Route::post('/{studyClass}/students', [EnrollmentClassController::class, 'storeStudent'])->name('enroll.class-students.store');
 });

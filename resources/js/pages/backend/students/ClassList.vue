@@ -12,6 +12,7 @@ import EmptyState from "../../../components/ui/empty-state/EmptyState.vue";
 import DepositSummaryCard from "./components/DepositSummaryCard.vue";
 import ReceiptPrint from "./components/ReceiptPrint.vue";
 import { getEcho } from "@/echo";
+import { latinNameError } from "@/composables/useLatinNameValidation";
 import Table from "../../../components/ui/table/Table.vue";
 import TableHeader from "../../../components/ui/table/TableHeader.vue";
 import TableHead from "../../../components/ui/table/TableHead.vue";
@@ -261,6 +262,7 @@ const editingRow = ref(null);
 const editForm = ref({ name: "", gender: "", phone: "" });
 const editErrors = ref({});
 const editSaving = ref(false);
+const editNameLiveError = computed(() => latinNameError(editForm.value.name));
 
 function openEditModal(row) {
   editingRow.value = row;
@@ -275,7 +277,7 @@ function cancelEdit() {
 }
 
 async function submitEdit() {
-  if (!editingRow.value) return;
+  if (!editingRow.value || editNameLiveError.value) return;
 
   editSaving.value = true;
   editErrors.value = {};
@@ -635,9 +637,12 @@ onBeforeUnmount(() => {
               <input
                 v-model="editForm.name"
                 type="text"
-                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                :class="[
+                  'w-full rounded-xl border px-4 py-3 text-sm outline-none focus:ring-2 dark:bg-gray-800 dark:text-gray-200',
+                  editNameLiveError ? 'border-red-300 focus:border-red-500 focus:ring-red-100 dark:border-red-500/60' : 'border-slate-300 focus:border-indigo-400 focus:ring-indigo-100 dark:border-gray-600',
+                ]"
               />
-              <span v-if="editErrors.name" class="text-xs font-semibold text-red-600">{{ editErrors.name[0] }}</span>
+              <span v-if="editNameLiveError || editErrors.name" class="text-xs font-semibold text-red-600">{{ editNameLiveError || editErrors.name[0] }}</span>
             </label>
 
             <div class="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-gray-300">
@@ -685,7 +690,7 @@ onBeforeUnmount(() => {
             <button
               type="button"
               @click="submitEdit"
-              :disabled="editSaving"
+              :disabled="editSaving || !!editNameLiveError"
               class="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
               {{ editSaving ? $t('Saving...') : $t('Save Changes') }}

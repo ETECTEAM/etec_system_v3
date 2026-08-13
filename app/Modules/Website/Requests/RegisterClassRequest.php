@@ -2,12 +2,12 @@
 
 namespace App\Modules\Website\Requests;
 
-use App\Models\Student;
-use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Modules\Website\Services\PublicRegistrationCookie;
+use App\Rules\LatinName;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class RegisterClassRequest extends FormRequest
@@ -21,7 +21,7 @@ class RegisterClassRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', new LatinName],
             'gender' => ['required', 'string', Rule::in(['male', 'female'])],
             'phone' => [
                 'required', 'string', 'max:20',
@@ -32,12 +32,12 @@ class RegisterClassRequest extends FormRequest
                         return;
                     }
 
-                    $userIds = Student::query()->where('phone', $value)->pluck('user_id');
+                    $studentIds = DB::table('students')->where('phone', $value)->pluck('id');
 
-                    $alreadyRegistered = StudentEnrollment::query()
+                    $alreadyRegistered = DB::table('student_enrollments')
                         ->where('study_class_id', $studyClass->id)
                         ->where('enrollment_status', 'active')
-                        ->whereIn('student_id', $userIds)
+                        ->whereIn('student_id', $studentIds)
                         ->exists();
 
                     if ($alreadyRegistered) {
