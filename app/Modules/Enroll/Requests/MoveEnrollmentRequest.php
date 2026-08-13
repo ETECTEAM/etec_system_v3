@@ -4,7 +4,7 @@ namespace App\Modules\Enroll\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class EnrollStudentRequest extends FormRequest
+class MoveEnrollmentRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -14,8 +14,7 @@ class EnrollStudentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'student_id' => ['required', 'integer', 'exists:students,id'],
-            // 'student_id' => ['required', 'integer', 'exists:users,id'],
+            'study_class_id' => ['required', 'integer', 'exists:study_classes,id'],
             'force' => ['nullable', 'boolean'],
         ];
     }

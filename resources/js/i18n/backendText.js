@@ -63,6 +63,7 @@ export const backendTranslations = {
     "Class ID": "លេខសម្គាល់ថ្នាក់",
     "Class summary": "សង្ខេបថ្នាក់",
     "Class type": "ប្រភេទថ្នាក់",
+    "Closed": "បិទ",
     "Completed": "បានបញ្ចប់",
     "Confirm New Password": "បញ្ជាក់ពាក្យសម្ងាត់ថ្មី",
     "Connect your professional online profiles.": "ភ្ជាប់ប្រវត្តិអនឡាញវិជ្ជាជីវៈរបស់អ្នក។",

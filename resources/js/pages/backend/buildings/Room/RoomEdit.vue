@@ -80,6 +80,7 @@ function submit() {
               <option value="available">{{ $t('Available') }}</option>
               <option value="occupied">{{ $t('Occupied') }}</option>
               <option value="maintenance">{{ $t('Maintenance') }}</option>
+              <option value="closed">{{ $t('Closed') }}</option>
             </select>
             <span v-if="form.errors.status" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.status }}</span>
           </label>

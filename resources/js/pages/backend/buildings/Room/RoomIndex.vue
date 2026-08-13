@@ -96,6 +96,8 @@ function statusClass(status) {
     return 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20'
   if (status === 'maintenance')
     return 'bg-rose-50 text-rose-700 ring-1 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/20'
+  if (status === 'closed')
+    return 'bg-slate-100 text-slate-600 ring-1 ring-slate-300 dark:bg-slate-500/10 dark:text-slate-400 dark:ring-slate-500/20'
 
   return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20'
 }

@@ -26,7 +26,7 @@ class StoreRoomRequest extends FormRequest
                 }),
             ],
             'capacity' => ['nullable', 'integer', 'min:1'],
-            'status' => ['required', 'string', Rule::in(['available', 'occupied', 'maintenance'])],
+            'status' => ['required', 'string', Rule::in(['available', 'occupied', 'maintenance', 'closed'])],
         ];
     }
 

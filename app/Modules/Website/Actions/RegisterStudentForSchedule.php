@@ -5,6 +5,8 @@ namespace App\Modules\Website\Actions;
 use App\Models\ClassType;
 use App\Models\Course;
 use App\Models\InstructorData;
+use App\Models\Notification;
+use App\Models\PendingRegistration;
 use App\Models\Room;
 use App\Models\Schedule;
 use App\Models\StudyClass;
@@ -22,11 +24,9 @@ class RegisterStudentForSchedule
     private const DEFAULT_CAPACITY = 20;
     private const OPEN_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
 
-    public function __construct(private readonly StudentRegistrationService $registrations) {}
-
-    public function handle(array $data): stdClass
+    public function handle(array $data): ?StudentEnrollment
     {
-        $enrollment = DB::transaction(function () use ($data): stdClass {
+        $enrollment = DB::transaction(function () use ($data): ?StudentEnrollment {
             $course = Course::query()->lockForUpdate()->findOrFail($data['course_id']);
             $student = $this->registrations->findOrCreatePublicStudent($data);
 
@@ -39,7 +39,13 @@ class RegisterStudentForSchedule
             $studyClass = $this->availableClass($course, $data)
                 ?? $this->createClass($course, $data);
 
-            $enrollment = $this->registrations->createEnrollment([
+            if ($studyClass === null) {
+                $this->savePendingRegistration($student, $course, $data);
+
+                return null;
+            }
+
+            $enrollment = StudentEnrollment::create([
                 'study_class_id' => $studyClass->id,
                 'student_id' => $student->id,
                 'source' => 'public_website',
@@ -61,6 +67,53 @@ class RegisterStudentForSchedule
         NotificationsUpdated::dispatch();
 
         return $enrollment;
+    }
+
+    // No open class had space, and creating a new one wasn't possible (no
+    // free room and/or no free instructor for that term/time), so the
+    // student/course/term/time is parked here instead of silently creating a
+    // roomless/teacherless class. Staff resolve it manually by force-adding
+    // the student to an existing class (see EnrollStudent).
+    private function savePendingRegistration(Student $student, Course $course, array $data): void
+    {
+        PendingRegistration::create([
+            'student_id' => $student->user_id,
+            'course_id' => $course->id,
+            'term_id' => $data['term_id'],
+            'time_id' => $data['time_id'],
+            'status' => 'pending',
+        ]);
+
+        Notification::create([
+            'title' => 'Registration needs manual scheduling',
+            'message' => "{$data['name']} wants to join \"{$course->title}\" but no room or instructor is available for that term and time. Assign them to a class manually.",
+            'type' => 'pending_registration',
+        ]);
+    }
+
+    private function student(array $data): Student
+    {
+        $student = Student::query()->where('phone', $data['phone'])->first();
+
+        if ($student !== null) {
+            return $student;
+        }
+
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $this->studentEmail(),
+            'password' => Hash::make(Str::random(32)),
+            'role' => 'student',
+            'status' => 'active',
+        ]);
+
+        return Student::create([
+            'user_id' => $user->id,
+            'full_name' => $data['name'],
+            'gender' => $data['gender'],
+            'phone' => $data['phone'],
+            'student_status' => 'active',
+        ]);
     }
 
     private function availableClass(Course $course, array $data): ?StudyClass
@@ -128,7 +181,10 @@ class RegisterStudentForSchedule
         }
     }
 
-    private function createClass(Course $course, array $data): StudyClass
+    // Returns null (instead of creating a roomless/teacherless class) when a
+    // physical room is required but none is free, or no instructor is free,
+    // for this term/time.
+    private function createClass(Course $course, array $data): ?StudyClass
     {
         $course->loadMissing('track.subCategory.category');
 
@@ -139,14 +195,24 @@ class RegisterStudentForSchedule
 
         $classTypeId = $this->classTypeId($data, $defaults) ?? $defaults?->class_type_id;
         $baseCapacity = $defaults?->capacity ?: self::DEFAULT_CAPACITY;
-        $room = $this->isOnline($classTypeId) ? null : $this->availableRoom($data, $baseCapacity);
+        $isOnline = $this->isOnline($classTypeId);
+        $room = $isOnline ? null : $this->availableRoom($data, $baseCapacity);
+
+        if (! $isOnline && $room === null) {
+            return null;
+        }
+
         $teacher = $this->availableInstructor($course, $data);
+
+        if ($teacher === null) {
+            return null;
+        }
 
         return StudyClass::create([
             'title' => $course->title,
             'course_id' => $course->id,
             'lesson_id' => $defaults?->lesson_id,
-            'teacher_id' => $teacher?->user_id,
+            'teacher_id' => $teacher->user_id,
             'room_id' => $room?->id,
             'class_type_id' => $classTypeId,
             'term_id' => $data['term_id'],

@@ -12,6 +12,7 @@ use App\Models\StudyClass;
 use App\Modules\Enroll\Actions\CreateClassStudent;
 use App\Modules\Enroll\Actions\CreateStudyClass;
 use App\Modules\Enroll\Actions\EnrollStudent;
+use App\Modules\Enroll\Actions\MoveStudentEnrollment;
 use App\Modules\Enroll\Actions\RecordEnrollmentDeposit;
 use App\Modules\Enroll\Actions\RegisterStudent;
 use App\Modules\Enroll\Actions\UpdatePublicRegistrationDetails;
@@ -21,6 +22,7 @@ use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Queries\GetClassList;
 use App\Modules\Enroll\Queries\GetPublicRegistrations;
 use App\Modules\Enroll\Requests\EnrollStudentRequest;
+use App\Modules\Enroll\Requests\MoveEnrollmentRequest;
 use App\Modules\Enroll\Requests\RecordDepositRequest;
 use App\Modules\Enroll\Requests\RegisterStudentRequest;
 use App\Modules\Enroll\Requests\SaveStudyClassRequest;
@@ -43,6 +45,28 @@ class EnrollmentClassController extends Controller
     public function publicRegistrations(GetPublicRegistrations $query): JsonResponse
     {
         return response()->json(['data' => $query->handle()]);
+    }
+
+    // Lightweight, unpaginated class list for the "move student to another
+    // class" picker on the Registrations tab.
+    public function classesForSelect(GetClassList $classes): JsonResponse
+    {
+        return response()->json(['data' => $classes->forSelect()]);
+    }
+
+    // Moves a public registration's student into a different existing class
+    // (e.g. joining a friend's class instead of the one auto-assigned to
+    // them), optionally overriding that class's capacity.
+    public function moveRegistration(
+        MoveEnrollmentRequest $request,
+        StudentEnrollment $enrollment,
+        MoveStudentEnrollment $moveStudentEnrollment
+    ): JsonResponse {
+        $targetClass = StudyClass::query()->findOrFail($request->validated('study_class_id'));
+
+        $moveStudentEnrollment->handle($enrollment, $targetClass, $request->boolean('force'));
+
+        return response()->json(['success' => true]);
     }
 
     public function create(GetClassFormOptions $options): Response
@@ -215,7 +239,11 @@ class EnrollmentClassController extends Controller
         StudyClass $studyClass,
         EnrollStudent $enrollStudent
     ): RedirectResponse {
-        $enrollStudent->handle($studyClass, (int) $request->validated('student_id'));
+        $enrollStudent->handle(
+            $studyClass,
+            (int) $request->validated('student_id'),
+            $request->boolean('force'),
+        );
 
         return back()->with('success', 'Student added to class successfully.');
     }

@@ -63,6 +63,40 @@ class GetClassList
         ];
     }
 
+    // Full (unpaginated) class list for the "move student to another class"
+    // picker — needs every open class, not just the current page.
+    public function forSelect(): array
+    {
+        return StudyClass::query()
+            ->select(['id', 'title', 'term_id', 'time_id', 'capacity'])
+            ->with(['term:id,term_name', 'time:id,time_name'])
+            ->withCount([
+                'enrollments as current_students' => fn (Builder $query) => $query->where('enrollment_status', 'active'),
+            ])
+            ->whereIn('status', ['upcoming', 'active', 'pre_end'])
+            ->orderBy('title')
+            ->get()
+            ->map(function (StudyClass $studyClass): array {
+                $currentStudents = (int) ($studyClass->current_students ?? 0);
+                $capacity = (int) $studyClass->capacity;
+
+                return [
+                    'id' => $studyClass->id,
+                    'label' => sprintf(
+                        '%s — %s, %s (%d/%d)',
+                        $studyClass->title,
+                        $studyClass->term?->term_name ?? '-',
+                        $studyClass->time?->time_name ?? '-',
+                        $currentStudents,
+                        $capacity,
+                    ),
+                    'is_full' => $currentStudents >= $capacity,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
     private function applySearch(Builder $query, string $search): void
     {
         $query->where(function (Builder $query) use ($search): void {

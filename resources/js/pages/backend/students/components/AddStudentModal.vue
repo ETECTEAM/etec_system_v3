@@ -20,6 +20,7 @@ const emit = defineEmits(["close"]);
 
 const form = useForm({
   student_id: "",
+  force: false,
 });
 
 function close() {
@@ -33,6 +34,14 @@ function submit() {
     preserveScroll: true,
     onSuccess: close,
   });
+}
+
+// Shown only after the capacity check rejects a normal submit, so staff can
+// deliberately place a student anyway (e.g. resolving a pending registration
+// that had no room for a new class).
+function submitAnyway() {
+  form.force = true;
+  submit();
 }
 </script>
 
@@ -50,6 +59,14 @@ function submit() {
           </option>
         </select>
         <p v-if="form.errors.student_id" class="mt-1 text-xs text-red-600">{{ form.errors.student_id }}</p>
+        <button
+          v-if="form.errors.student_id === 'This class is full.'"
+          type="button"
+          @click="submitAnyway"
+          class="mt-2 text-xs font-semibold text-amber-700 underline hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+        >
+          {{ $t('Class is full — add the student anyway') }}
+        </button>
       </div>
 
       <div class="mt-6 flex justify-end gap-3">

@@ -30,11 +30,17 @@ class StudentRegisterController extends Controller
 
     public function store(StudentRegisterRequest $request, RegisterStudentForSchedule $register): RedirectResponse
     {
-        $register->handle($request->validated());
+        $enrollment = $register->handle($request->validated());
+
+        $message = match (true) {
+            $enrollment === null => 'Registration received. No class is available for that time right now — our staff will confirm your class shortly.',
+            $enrollment->wasRecentlyCreated => 'Registration received. We added you to the matching class schedule.',
+            default => "You're already registered for that class.",
+        };
 
         return redirect()
             ->route('frontend.student-register.create')
-            ->with('success', 'Registration received. We added you to the matching class schedule.');
+            ->with('success', $message);
     }
 
     private function categories(): array

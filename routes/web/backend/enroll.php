@@ -20,6 +20,10 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         Route::get('/registrations/data', [EnrollmentClassController::class, 'publicRegistrations'])->name('enroll.registrations.data');
         // Route to edit a public registration's name/gender/phone from the Registrations tab.
         Route::put('/registrations/{enrollment}', [EnrollmentClassController::class, 'updateRegistration'])->name('enroll.registrations.update');
+        // Route to list every open class for the "move to another class" picker.
+        Route::get('/classes/select', [EnrollmentClassController::class, 'classesForSelect'])->name('enroll.classes.select');
+        // Route to move a registered student into a different existing class, e.g. joining a friend's class.
+        Route::put('/registrations/{enrollment}/move', [EnrollmentClassController::class, 'moveRegistration'])->name('enroll.registrations.move');
         Route::get('/create', [EnrollmentClassController::class, 'create'])->name('enroll.create');
         Route::post('/', [EnrollmentClassController::class, 'store'])->name('enroll.store');
         Route::get('/view/{studyClass}', [EnrollmentClassController::class, 'show'])->name('enroll.show');

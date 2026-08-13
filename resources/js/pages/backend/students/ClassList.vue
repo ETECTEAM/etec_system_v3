@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { router } from "@inertiajs/vue3";
 import axios from "axios";
-import { Search, RotateCcw, Plus, LayoutGrid, Table2, UserPlus, UserCheck, Printer, Pencil } from "@lucide/vue";
+import { Search, RotateCcw, Plus, LayoutGrid, Table2, UserPlus, UserCheck, Printer, Pencil, ArrowRightLeft } from "@lucide/vue";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
 import ClassTable from "./components/ClassTable.vue";
@@ -11,6 +11,7 @@ import PageHero from "../../../components/ui/page-hero/PageHero.vue";
 import EmptyState from "../../../components/ui/empty-state/EmptyState.vue";
 import DepositSummaryCard from "./components/DepositSummaryCard.vue";
 import ReceiptPrint from "./components/ReceiptPrint.vue";
+import MoveEnrollmentModal from "./components/MoveEnrollmentModal.vue";
 import { getEcho } from "@/echo";
 import { latinNameError } from "@/composables/useLatinNameValidation";
 import Table from "../../../components/ui/table/Table.vue";
@@ -294,6 +295,21 @@ async function submitEdit() {
   }
 }
 
+// Move a registered student into a different existing class (e.g. joining a
+// friend's class instead of the one they were auto-assigned to).
+const moveModalOpen = ref(false);
+const movingRow = ref(null);
+
+function openMoveModal(row) {
+  movingRow.value = row;
+  moveModalOpen.value = true;
+}
+
+function closeMoveModal() {
+  moveModalOpen.value = false;
+  movingRow.value = null;
+}
+
 let notificationsChannel = null;
 
 onMounted(() => {
@@ -530,6 +546,15 @@ onBeforeUnmount(() => {
 
                     <button
                       type="button"
+                      class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                      :title="$t('Move to Another Class')"
+                      @click="openMoveModal(row)"
+                    >
+                      <ArrowRightLeft class="h-4 w-4 shrink-0" />
+                    </button>
+
+                    <button
+                      type="button"
                       class="inline-flex w-[150px] items-center justify-center gap-1.5 rounded-lg bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
                       :disabled="printingId === row.enrollment_id"
                       :title="row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record payment')"
@@ -557,6 +582,13 @@ onBeforeUnmount(() => {
       </div>
 
       <ReceiptPrint :classData="receiptClassData" :student="receiptStudent" />
+
+      <MoveEnrollmentModal
+        :show="moveModalOpen"
+        :enrollment="movingRow"
+        @close="closeMoveModal"
+        @moved="fetchRegistrations"
+      />
 
       <!-- Record Payment & Print confirmation -->
       <div v-if="confirmPaidModalOpen && pendingRow" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4">
