@@ -159,7 +159,7 @@ function timeWithTerm() {
           <span class="label">ឈ្មោះ / Name</span>
           <strong class="line">{{ valueOrDash(student.name) }}</strong>
           <span class="label tiny">ភេទ / Gender</span>
-          <strong class="line short">{{ formatGender(student.gender) }}</strong>
+          <strong class="line time-term">{{ formatGender(student.gender) }}</strong>
         </div>
         <div class="receipt-row">
           <span class="label">វគ្គសិក្សា / Course</span>
@@ -171,7 +171,7 @@ function timeWithTerm() {
           <span class="label">តម្លៃ / Fee</span>
           <strong class="line">{{ money(courseFeeAmount()) }}</strong>
           <span class="label tiny">កាលបរិច្ឆេទចូលរៀន</span>
-          <strong class="line time-term">{{ valueOrDash(student.payment_date ?? today) }}</strong>
+          <strong class="line time-term">{{ valueOrDash(classData?.enroll_start_date) }}</strong>
         </div>
         <div class="receipt-row">
           <span class="label">ប្រាក់ត្រូវបង់</span>
@@ -209,9 +209,11 @@ function timeWithTerm() {
           <div>
              <div class="date">
               <span class="label tiny">កាលបរិច្ឆេទ / Date :</span>
-              <strong class="line">{{ valueOrDash(student.payment_date ?? today) }}</strong>
+              <div class="date-value">
+                <strong class="line">{{ valueOrDash(student.payment_date ?? today) }}</strong>
+                <strong class="cashier">បេឡា/Cashier</strong>
+              </div>
              </div>
-             <strong class="cashier">បេឡា/Cashier</strong>
              <strong class="sigature">គ្រូអាយធីចិត្តល្អ</strong>
           </div>
         </div>
@@ -309,7 +311,7 @@ function timeWithTerm() {
   }
 
   .receipt-left p {
-    margin: 1.2mm 0 0;
+    margin: 1mm 0 0;
     color: #374151;
     font-family: Arial, sans-serif;
     font-size: 9pt;
@@ -373,7 +375,7 @@ function timeWithTerm() {
   .receipt-rule {
     display: grid;
     grid-template-columns: 1fr;
-    margin: 0.9mm 0 0;
+    margin: 5mm 0 0;
     border-top: 0.55mm solid #374151;
   }
 
@@ -404,6 +406,7 @@ function timeWithTerm() {
     font-size: 11.5pt;
     font-weight: 700;
     line-height: 1.15;
+    margin-top: 5px;
   }
 
   .receipt-meta {
@@ -430,7 +433,7 @@ function timeWithTerm() {
   .receipt-row {
     display: flex;
     align-items: end;
-    min-height: 8.5mm;
+    min-height: 7mm;
     gap: 2mm;
     font-size: 10pt;
   }
@@ -439,11 +442,12 @@ function timeWithTerm() {
     flex: 0 0 30mm;
     color: #111827;
     font-weight: 700;
+    line-height: 4.8mm;
     white-space: nowrap;
   }
 
   .label.tiny {
-    flex-basis: 22mm;
+    flex-basis: 30mm;
     margin-left: 4mm;
   }
 
@@ -451,20 +455,21 @@ function timeWithTerm() {
     display: block;
     flex: 1 1 auto;
     min-width: 24mm;
-    min-height: 6mm;
+    min-height: 4.2mm;
     border-bottom: 0.35mm dotted #6b7280;
     font-family: Arial, "Noto Sans Khmer", sans-serif;
     font-size: 10pt;
     font-weight: 700;
-    line-height: 6mm;
+    line-height: 4.2mm;
     text-align: start;
   }
 
-  .line.short {
-    max-width: 35mm;
-  }
-
+  /* Fixed (not flex-sized) so every row's right-hand column is identical -
+     otherwise each value sizes to its own content, the flexible .line before
+     it absorbs a different amount, and the .label.tiny beside it starts at a
+     different x on each row. */
   .line.time-term {
+    flex: 0 0 48mm;
     max-width: 48mm;
     overflow: hidden;
     white-space: nowrap;
@@ -500,6 +505,7 @@ function timeWithTerm() {
     margin-top: 5mm;
     padding-top: 1mm;
     border-top: 0.50mm solid #3d4048;
+    padding-bottom: 2mm;
   }
 
   .note-left {
@@ -523,8 +529,13 @@ function timeWithTerm() {
 
   .date {
     display: flex;
-    align-items: center;
-    gap: 2mm;
+    align-items: baseline;
+    /* gap: 0.8mm; */
+  }
+
+  .date-value {
+    min-width: 0;
+    flex: 0 1 auto;
   }
 
   .date .label.tiny {
@@ -541,22 +552,22 @@ function timeWithTerm() {
     border-bottom: 0;
     font-size: 8.5pt;
     font-weight: 600;
-    line-height: 5mm;
-    text-align: start;
+    line-height: 1.3;
+    text-align: center;
     white-space: nowrap;
   }
 
   .cashier {
     display: block;
-    margin-top: 1mm;
+    margin-top: 0.5mm;
     font-size: 8.5pt;
     font-weight: 600;
-    text-align: start;
+    text-align: center;
   }
 
   .sigature {
     display: block;
-    margin-top: 15mm;
+    margin-top: 28mm;
     font-size: 10pt;
     font-weight: 700;
     text-align: center;
@@ -580,7 +591,7 @@ function timeWithTerm() {
   .class-info-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 1.2mm;
+    /* gap: 1mm; */
   }
 
   .class-info-item {
@@ -606,7 +617,7 @@ function timeWithTerm() {
     text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
-    line-height: 1.2;
+    /* line-height: 1; */
   }
 
   .receipt-contact {

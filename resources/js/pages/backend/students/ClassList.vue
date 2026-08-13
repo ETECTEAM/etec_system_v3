@@ -166,6 +166,7 @@ async function printReceipt(row) {
     building: row.building,
     floor: row.floor,
     room: row.room,
+    enroll_start_date: row.enroll_start_date,
   };
   receiptStudent.value = {
     name: row.name,

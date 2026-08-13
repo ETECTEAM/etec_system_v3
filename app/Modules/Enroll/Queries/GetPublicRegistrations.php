@@ -20,6 +20,7 @@ class GetPublicRegistrations
                 'student:id,full_name,gender,phone',
                 'studyClass:id,title,course_id,term_id,time_id,teacher_id,room_id',
                 'studyClass.course:id,title',
+                'studyClass.course.enrollConfig:id,course_id,start_date',
                 'studyClass.term:id,term_name',
                 'studyClass.time:id,time_name',
                 'studyClass.teacher:id,name',
@@ -45,6 +46,10 @@ class GetPublicRegistrations
             'class_id' => $enrollment->study_class_id,
             'class_title' => $enrollment->studyClass?->title ?? '-',
             'course_title' => $enrollment->studyClass?->course?->title,
+            // The class start date staff set per course on the Enroll Config
+            // page (course_enroll_configs.start_date) - this is what the
+            // receipt's "កាលបរិច្ឆេទចូលរៀន" field prints, not the payment date.
+            'enroll_start_date' => optional($enrollment->studyClass?->course?->enrollConfig?->start_date)->format('Y-m-d'),
             'teacher_name' => $enrollment->studyClass?->teacher?->name,
             'building' => $enrollment->studyClass?->room?->floor?->building?->name,
             'floor' => $enrollment->studyClass?->room?->floor?->name,
