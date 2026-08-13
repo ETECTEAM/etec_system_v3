@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { usePage } from "@inertiajs/vue3";
+import logoSrc from "@/assets/etecLogoBase64.js";
 
 const props = defineProps({
   classData: {
@@ -19,7 +20,6 @@ const settings = computed(() => page.props.website?.settings ?? {});
 const schoolName = computed(
   () => settings.value.school_name || "Engineering of Technology and Electronic Center"
 );
-const logoUrl = computed(() => settings.value.logo_url || "");
 const today = computed(() => new Date().toISOString().slice(0, 10));
 
 const receiptNo = computed(() => {
@@ -127,8 +127,7 @@ function timeWithTerm() {
       <header class="receipt-header">
         <div class="receipt-left">
           <div class="receipt-logo" aria-hidden="true">
-            <img v-if="logoUrl" :src="logoUrl" :alt="schoolName" />
-            <span v-else>ETEC</span>
+            <img :src="logoSrc" :alt="schoolName" />
           </div>
           <p>Since 2012</p>
         </div>
@@ -172,7 +171,7 @@ function timeWithTerm() {
           <span class="label">តម្លៃ / Fee</span>
           <strong class="line">{{ money(courseFeeAmount()) }}</strong>
           <span class="label tiny">កាលបរិច្ឆេទចូលរៀន</span>
-          <strong class="line short">{{ valueOrDash(student.payment_date ?? today) }}</strong>
+          <strong class="line time-term">{{ valueOrDash(student.payment_date ?? today) }}</strong>
         </div>
         <div class="receipt-row">
           <span class="label">ប្រាក់ត្រូវបង់</span>
@@ -181,15 +180,38 @@ function timeWithTerm() {
           </strong>
         </div>
         <div class="note">
-          <span>***ប្រាក់ដែលបានបង់រួច មិនអាចដកវិញបានទេ/None refundable***</span>
+          <div class="note-left">
+            <span>***ប្រាក់ដែលបានបង់រួច មិនអាចដកវិញបានទេ/None refundable***</span>
+
+            <div class="class-info">
+              <p class="class-info-title">ព័ត៌មានថ្នាក់រៀន / Class Info</p>
+              <div class="class-info-grid">
+                <div class="class-info-item">
+                  <span class="label tiny">គ្រូបង្រៀន / Instructor:</span>
+                  <strong>{{ valueOrDash(classData?.teacher) }}</strong>
+                </div>
+                <div class="class-info-item">
+                  <span class="label tiny">អាគារ / Building:</span>
+                  <strong>{{ valueOrDash(classData?.building) }}</strong>
+                </div>
+                <div class="class-info-item">
+                  <span class="label tiny">ជាន់ / Floor:</span>
+                  <strong>{{ valueOrDash(classData?.floor) }}</strong>
+                </div>
+                <div class="class-info-item">
+                  <span class="label tiny">បន្ទប់ / Room:</span>
+                  <strong>{{ valueOrDash(classData?.room) }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div>
              <div class="date">
-              <span class="label tiny">កាលបរិច្ឆេទ / Date</span>
-              <div>
-                <strong class="line">{{ valueOrDash(student.payment_date ?? today) }}</strong>
-                <strong class="cashier">បេឡា/Cashier</strong>
-              </div>
+              <span class="label tiny">កាលបរិច្ឆេទ / Date :</span>
+              <strong class="line">{{ valueOrDash(student.payment_date ?? today) }}</strong>
              </div>
+             <strong class="cashier">បេឡា/Cashier</strong>
              <strong class="sigature">គ្រូអាយធីចិត្តល្អ</strong>
           </div>
         </div>
@@ -273,7 +295,7 @@ function timeWithTerm() {
 
   .receipt-header {
     display: grid;
-    grid-template-columns: 33mm 1fr 48mm;
+    grid-template-columns: 33mm 1fr 33mm;
     align-items: end;
     gap: 4mm;
     min-height: 23mm;
@@ -326,11 +348,11 @@ function timeWithTerm() {
   }
 
   .receipt-title h1 {
-    margin: 0.6mm 0 0;
+    margin: 1mm 0 0;
     font-family: Georgia, "Times New Roman", serif;
     font-size: 12pt;
     font-weight: 700;
-    line-height: 1.15;
+    line-height: 1.4;
   }
 
   .receipt-title p {
@@ -340,7 +362,7 @@ function timeWithTerm() {
   .kh-title {
     font-size: 15pt;
     font-weight: 700;
-    line-height: 1.15;
+    line-height: 1.4;
     white-space: nowrap;
   }
 
@@ -444,7 +466,9 @@ function timeWithTerm() {
 
   .line.time-term {
     max-width: 48mm;
+    overflow: hidden;
     white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .line.wide {
@@ -478,9 +502,18 @@ function timeWithTerm() {
     border-top: 0.50mm solid #3d4048;
   }
 
-  .note > span {
-    font-size: 9pt;
+  .note-left {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2mm;
+  }
+
+  .note-left > span {
+    font-size: 8pt;
     font-weight: 700;
+    white-space: nowrap;
     opacity: 0.85;
   }
 
@@ -500,18 +533,17 @@ function timeWithTerm() {
     font-size: 8.5pt;
   }
 
-  .date > div {
-    flex: 1;
-  }
-
   .date .line {
     display: block;
-    min-width: 28mm;
+    flex: 0 0 auto;
+    min-width: 0;
     margin-top: 0;
+    border-bottom: 0;
     font-size: 8.5pt;
     font-weight: 600;
     line-height: 5mm;
     text-align: start;
+    white-space: nowrap;
   }
 
   .cashier {
@@ -528,6 +560,53 @@ function timeWithTerm() {
     font-size: 10pt;
     font-weight: 700;
     text-align: center;
+  }
+
+  .class-info {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0;
+  }
+
+  .class-info-title {
+    margin: 0 0 1.5mm;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.2mm;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+
+  .class-info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.2mm;
+  }
+
+  .class-info-item {
+    display: flex;
+    align-items: baseline;
+    gap: 1.5mm;
+    font-size: 8pt;
+  }
+
+  .class-info-item .label.tiny {
+    flex: 0 0 auto;
+    margin-left: 0;
+    font-size: 7.5pt;
+    font-weight: 700;
+    opacity: 0.75;
+  }
+
+  .class-info-item strong {
+    overflow: hidden;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 700;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
   }
 
   .receipt-contact {

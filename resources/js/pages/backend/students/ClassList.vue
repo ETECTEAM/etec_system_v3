@@ -140,10 +140,14 @@ const dayAbbreviations = {
   Sunday: "Sun",
 };
 
+function studyDaysLabel(row) {
+  return (row.study_days ?? []).map((day) => dayAbbreviations[day] ?? day).join(" & ") || "-";
+}
+
 function scheduleLabel(row) {
-  const days = (row.study_days ?? []).map((day) => dayAbbreviations[day] ?? day).join(" & ");
+  const days = studyDaysLabel(row);
   const time = row.start_time && row.end_time ? `${row.start_time} - ${row.end_time}` : "";
-  return [days, time].filter(Boolean).join(", ") || "-";
+  return [days === "-" ? "" : days, time].filter(Boolean).join(", ") || "-";
 }
 
 // Feeds the same ReceiptPrint.vue component RegisterStudent.vue/ViewClass.vue use.
@@ -156,8 +160,12 @@ async function printReceipt(row) {
     course: row.course_title ?? row.class_title,
     price: row.fee_amount,
     document_price: row.document_fee_amount,
-    term: scheduleLabel(row),
+    term: studyDaysLabel(row),
     time: row.start_time && row.end_time ? `${row.start_time} - ${row.end_time}` : "-",
+    teacher: row.teacher_name,
+    building: row.building,
+    floor: row.floor,
+    room: row.room,
   };
   receiptStudent.value = {
     name: row.name,
