@@ -1,6 +1,6 @@
 <script setup>
 import { router } from "@inertiajs/vue3";
-import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,BookOpen,} from "@lucide/vue";
+import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,BookOpen,UserRound,} from "@lucide/vue";
 import { ref, computed } from "vue";
 import { QrcodeCanvas } from "qrcode.vue";
 import NotificationBadge from "../notification-badge/NotificationBadge.vue";
@@ -140,6 +140,16 @@ function updateStatus(status) {
                 </div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">
                     {{ classData.lesson }}
+                </span>
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
+                    <UserRound class="w-3.5 h-3.5 shrink-0" />
+                    <span class="text-xs sm:text-sm">Instructor</span>
+                </div>
+                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">
+                    {{ classData.teacher }}
                 </span>
             </div>
 

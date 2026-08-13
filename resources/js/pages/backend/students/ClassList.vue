@@ -310,6 +310,15 @@ function closeMoveModal() {
   movingRow.value = null;
 }
 
+// The modal's move request is a plain axios call, not an Inertia visit, so
+// nothing here refreshes on its own - reload the classes prop (Card/Table
+// counts) alongside the Registrations tab data so both reflect the move
+// immediately instead of only after a manual page refresh.
+function onStudentMoved() {
+  fetchRegistrations();
+  router.reload({ only: ["classes", "depositSummary"], preserveScroll: true });
+}
+
 let notificationsChannel = null;
 
 onMounted(() => {
@@ -321,6 +330,11 @@ onMounted(() => {
     ?.private("admin-notifications")
     .listen(".notifications.updated", () => {
       if (registrationsLoaded.value) fetchRegistrations();
+
+      // Card/Table views' student counts come from the classes prop, which
+      // a websocket push doesn't touch on its own — reload it too so a new
+      // registration's seat shows up without the user refreshing manually.
+      router.reload({ only: ["classes", "depositSummary"], preserveScroll: true });
     });
 });
 
@@ -447,7 +461,7 @@ onBeforeUnmount(() => {
       <!-- Card View -->
       <div
         v-if="viewMode === 'card' && filteredClasses.length > 0"
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-5"
+        class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-5"
       >
         <ClassCrad
           v-for="item in filteredClasses"
@@ -587,7 +601,7 @@ onBeforeUnmount(() => {
         :show="moveModalOpen"
         :enrollment="movingRow"
         @close="closeMoveModal"
-        @moved="fetchRegistrations"
+        @moved="onStudentMoved"
       />
 
       <!-- Record Payment & Print confirmation -->

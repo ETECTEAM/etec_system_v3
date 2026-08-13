@@ -200,7 +200,7 @@ function attendance(classData) {
           </div>
         </div>
 
-        <div v-if="filteredClasses.length" class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div v-if="filteredClasses.length" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <article
             v-for="classData in filteredClasses"
             :key="classData.id"

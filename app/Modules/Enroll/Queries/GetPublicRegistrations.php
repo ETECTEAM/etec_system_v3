@@ -15,6 +15,7 @@ class GetPublicRegistrations
     {
         return StudentEnrollment::query()
             ->where('source', 'public_website')
+            ->where('enrollment_status', 'active')
             ->with([
                 'student:id,full_name,gender,phone',
                 'studyClass:id,title,course_id,term_id,time_id',
@@ -47,7 +48,7 @@ class GetPublicRegistrations
             'document_fee_amount' => (float) $enrollment->document_fee_amount,
             'amount_paid' => (float) $enrollment->amount_paid,
             'payment_status' => ucfirst($enrollment->payment_status),
-            'enrolled_at' => $enrollment->enrolled_at?->format('Y-m-d'),
+            'enrolled_at' => $enrollment->enrolled_at?->format('Y-m-d h:i A'),
         ];
     }
 

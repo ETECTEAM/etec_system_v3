@@ -49,6 +49,7 @@ class GetClassList
             ->withCount([
                 'enrollments as current_students' => fn (Builder $query) => $query->where('enrollment_status', 'active'),
             ])
+            ->where('status', '!=', 'cancelled')
             ->when($search !== '', fn (Builder $query) => $this->applySearch($query, $search))
             ->latest('id')
             ->paginate(12)

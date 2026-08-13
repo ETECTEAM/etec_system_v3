@@ -11,19 +11,29 @@ class EnrollStudent
 {
     public function __construct(private readonly StudentRegistrationService $registrations) {}
 
-    public function handle(StudyClass $studyClass, int $studentId): stdClass
+    // $overrides lets callers that are re-creating an enrollment on behalf of
+    // an existing one (see MoveStudentEnrollment) carry fields like source,
+    // amount_paid, paid_at and enrolled_at forward instead of losing them to
+    // createEnrollment()'s fresh-registration defaults. study_class_id and
+    // student_id are always the ones this method resolves, never the caller's.
+    public function handle(StudyClass $studyClass, int $studentId, bool $force = false, array $overrides = []): stdClass
     {
-        return DB::transaction(function () use ($studyClass, $studentId): stdClass {
+        return DB::transaction(function () use ($studyClass, $studentId, $force, $overrides): stdClass {
             $class = $this->registrations->lockStudyClass($studyClass->id);
             $this->registrations->ensureStudentIsNotEnrolledInClass($class->id, $studentId);
-            $this->registrations->ensureClassHasSeat($class);
 
-            return $this->registrations->createEnrollment([
+            if ($force) {
+                $this->registrations->expandCapacityToFit($class);
+            } else {
+                $this->registrations->ensureClassHasSeat($class);
+            }
+
+            return $this->registrations->createEnrollment(array_merge($overrides, [
                 'study_class_id' => $class->id,
                 'student_id' => $studentId,
                 'fee_amount' => $class->price,
                 'document_fee_amount' => $class->document_price,
-            ]);
+            ]));
         });
     }
 }

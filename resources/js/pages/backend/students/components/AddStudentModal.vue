@@ -1,5 +1,9 @@
 <script setup>
-import { useForm } from "@inertiajs/vue3";
+import { computed } from "vue";
+import { useForm, usePage } from "@inertiajs/vue3";
+
+const page = usePage();
+const isSuperAdmin = computed(() => (page.props.auth?.roles ?? []).includes("super_admin"));
 
 const props = defineProps({
   show: {
@@ -60,7 +64,7 @@ function submitAnyway() {
         </select>
         <p v-if="form.errors.student_id" class="mt-1 text-xs text-red-600">{{ form.errors.student_id }}</p>
         <button
-          v-if="form.errors.student_id === 'This class is full.'"
+          v-if="form.errors.student_id === 'This class is full.' && isSuperAdmin"
           type="button"
           @click="submitAnyway"
           class="mt-2 text-xs font-semibold text-amber-700 underline hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"

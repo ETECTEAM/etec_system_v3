@@ -1,5 +1,5 @@
 <script setup>
-import { Eye, Pencil, Printer, RotateCcw, Search } from "@lucide/vue";
+import { Eye, Pencil, RotateCcw, Search } from "@lucide/vue";
 import { ref, computed } from "vue";
 
 import Table from "../../../../components/ui/table/Table.vue";
@@ -15,7 +15,7 @@ const props = defineProps({
     default: () => [],
   },
 });
-const emit = defineEmits(["record-deposit", "print-receipt"]);
+const emit = defineEmits(["record-deposit"]);
 
 const search = ref("");
 function refresh() {
@@ -160,13 +160,6 @@ function formatGender(value) {
                   :title="$t('Edit Deposit')"
                 >
                   <Pencil class="h-4 w-4" />
-                </button>
-                <button
-                  @click="emit('print-receipt', student)"
-                  class="rounded-lg bg-slate-50 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                  :title="$t('Print Receipt')"
-                >
-                  <Printer class="h-4 w-4" />
                 </button>
               </div>
             </TableCell>

@@ -76,6 +76,21 @@ class StudentRegistrationService
         }
     }
 
+    // Force-enrolling past capacity is a deliberate override (see EnrollStudent),
+    // not an error case - bump capacity to fit instead of leaving the class
+    // permanently reading as over 100% filled.
+    public function expandCapacityToFit(stdClass $studyClass): void
+    {
+        $seatsNeeded = $this->activeEnrollmentCount((int) $studyClass->id) + 1;
+
+        if ($seatsNeeded > (int) $studyClass->capacity) {
+            DB::table('study_classes')->where('id', $studyClass->id)->update([
+                'capacity' => $seatsNeeded,
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
     public function ensureStudentIsNotEnrolledInClass(int $studyClassId, int $studentId): void
     {
         if ($this->activeEnrollmentExistsForClass($studyClassId, $studentId)) {

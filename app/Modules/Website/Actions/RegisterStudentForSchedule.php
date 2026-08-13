@@ -23,7 +23,7 @@ use stdClass;
 
 class RegisterStudentForSchedule
 {
-    private const DEFAULT_CAPACITY = 20;
+    private const DEFAULT_CAPACITY = 12;
     private const OPEN_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
 
     public function __construct(private readonly StudentRegistrationService $registrations) {}
@@ -36,7 +36,7 @@ class RegisterStudentForSchedule
 
             if ($this->registrations->activeEnrollmentExistsForCourseSchedule($student->id, $course->id, $data['term_id'], $data['time_id'])) {
                 throw ValidationException::withMessages([
-                    'phone' => 'This phone number is already registered for this course, term, and time.',
+                    'phone' => 'You are already registered in that class.',
                 ]);
             }
 
@@ -55,6 +55,7 @@ class RegisterStudentForSchedule
                 'source' => 'public_website',
                 'fee_amount' => $studyClass->price,
                 'document_fee_amount' => $studyClass->document_price,
+                'enrolled_at' => now(),
             ]);
 
             DB::table('notifications')->insert([
@@ -165,7 +166,7 @@ class RegisterStudentForSchedule
     // for this term/time.
     private function createClass(Course $course, array $data): ?StudyClass
     {
-        $course->loadMissing('track.subCategory.category');
+        $course->loadMissing('track.subCategory.category', 'enrollConfig');
 
         $defaults = StudyClass::query()
             ->where('course_id', $course->id)
@@ -198,8 +199,8 @@ class RegisterStudentForSchedule
             'time_id' => $data['time_id'],
             'status' => 'upcoming',
             'capacity' => $room?->capacity ?: $baseCapacity,
-            'price' => $defaults?->price ?? 0,
-            'document_price' => $defaults?->document_price ?? 0,
+            'price' => $course->enrollConfig?->price ?? $defaults?->price ?? 0,
+            'document_price' => $course->enrollConfig?->document_price ?? $defaults?->document_price ?? 5,
             'enrollment_start_date' => now()->toDateString(),
             'start_date' => null,
             'end_date' => null,

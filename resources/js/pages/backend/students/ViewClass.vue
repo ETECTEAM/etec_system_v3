@@ -1,7 +1,7 @@
 <script setup>
 import { router } from "@inertiajs/vue3";
 import { ArrowLeft } from "@lucide/vue";
-import { nextTick, ref } from "vue";
+import { ref } from "vue";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
@@ -13,7 +13,6 @@ import DepositSummaryCard from "./components/DepositSummaryCard.vue";
 import QuickActions from "./components/QuickActions.vue";
 import RecordDepositModal from "./components/RecordDepositModal.vue";
 import AddStudentModal from "./components/AddStudentModal.vue";
-import ReceiptPrint from "./components/ReceiptPrint.vue";
 
 const props = defineProps({
   classData: {
@@ -35,7 +34,6 @@ const props = defineProps({
 });
 
 const depositEnrollment = ref(null);
-const receiptStudent = ref(null);
 const showEnrollExistingStudent = ref(false);
 
 function openDeposit(enrollment) {
@@ -48,12 +46,6 @@ function addStudent() {
 
 function enrollExistingStudent() {
   showEnrollExistingStudent.value = true;
-}
-
-async function printReceipt(student) {
-  receiptStudent.value = student;
-  await nextTick();
-  window.print();
 }
 
 const breadcrumbItems = [
@@ -101,7 +93,6 @@ function goBack() {
           <DepositTable
             :students="students"
             @record-deposit="openDeposit"
-            @print-receipt="printReceipt"
           />
         </div>
 
@@ -117,8 +108,6 @@ function goBack() {
           :students="studentsForSelect"
           @close="showEnrollExistingStudent = false"
         />
-
-        <ReceiptPrint :classData="classData" :student="receiptStudent" />
       </template>
     </div>
   </DashboardLayout>

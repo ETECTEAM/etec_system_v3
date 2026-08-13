@@ -6,48 +6,48 @@ import { useToast } from "vue-toastification";
 const page = usePage();
 const toast = useToast();
 
-let lastFlashSignature = "";
-let lastErrorSignature = "";
+let lastSignature = "";
 
-function showFlash(flash = {}) {
-  const entries = [
+// Some backend handlers (e.g. the throttle-lockout exception renderer in
+// bootstrap/app.php) put the same message in both the errors bag (so a page
+// can show it inline under a field) and flash.error (so pages without that
+// field still get a toast). Treating those as one combined, de-duped source
+// avoids toasting the identical message twice on pages like student-register
+// that don't render errors.login/errors.throttle inline.
+function collectMessages(flash = {}, errors = {}) {
+  const flashEntries = [
     ["success", flash.success],
     ["error", flash.error],
     ["warning", flash.warning],
     ["info", flash.info],
   ].filter(([, message]) => Boolean(message));
 
-  const signature = JSON.stringify(entries);
-  if (!entries.length || signature === lastFlashSignature) return;
-
-  lastFlashSignature = signature;
-
-  entries.forEach(([type, message]) => {
-    toast[type](message);
-  });
-}
-
-function showValidationErrors(errors = {}) {
-  const messages = Object.values(errors)
+  const flashTexts = new Set(flashEntries.map(([, message]) => message));
+  const errorMessage = Object.values(errors)
     .flat()
-    .filter(Boolean);
-  const signature = JSON.stringify(messages);
+    .filter(Boolean)
+    .find((message) => !flashTexts.has(message));
 
-  if (!messages.length || signature === lastErrorSignature) return;
+  return { flashEntries, errorMessage };
+}
 
-  lastErrorSignature = signature;
-  toast.error(messages[0] ?? "Please fix the validation errors.");
+function showAll() {
+  const { flashEntries, errorMessage } = collectMessages(page.props.flash, page.props.errors);
+
+  const signature = JSON.stringify([flashEntries, errorMessage]);
+  if (signature === lastSignature) return;
+  lastSignature = signature;
+
+  flashEntries.forEach(([type, message]) => toast[type](message));
+
+  if (errorMessage) {
+    toast.error(errorMessage);
+  }
 }
 
 watch(
-  () => page.props.flash,
-  (flash) => showFlash(flash),
-  { deep: true, immediate: true },
-);
-
-watch(
-  () => page.props.errors,
-  (errors) => showValidationErrors(errors),
+  () => [page.props.flash, page.props.errors],
+  () => showAll(),
   { deep: true, immediate: true },
 );
 </script>

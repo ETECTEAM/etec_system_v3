@@ -1,7 +1,15 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import axios from "axios";
+import { usePage } from "@inertiajs/vue3";
+import { useToast } from "vue-toastification";
 import { SelectSearch } from "@/components/ui/select-search";
+import { useI18n } from "@/i18n";
+
+const page = usePage();
+const toast = useToast();
+const { t } = useI18n();
+const isSuperAdmin = computed(() => (page.props.auth?.roles ?? []).includes("super_admin"));
 
 const props = defineProps({
   show: {
@@ -69,6 +77,7 @@ async function submit() {
       study_class_id: Number(selectedClassId.value),
       force: force.value,
     });
+    toast.success(t('Student moved successfully.'));
     emit("moved");
     close();
   } catch (error) {
@@ -105,7 +114,7 @@ function submitAnyway() {
         />
         <p v-if="errorMessage" class="mt-1 text-xs font-semibold text-red-600">{{ errorMessage }}</p>
         <button
-          v-if="errorMessage === 'This class is full.'"
+          v-if="errorMessage === 'This class is full.' && isSuperAdmin"
           type="button"
           @click="submitAnyway"
           class="mt-2 text-xs font-semibold text-amber-700 underline hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
