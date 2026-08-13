@@ -9,6 +9,7 @@ use App\Models\Notification;
 use App\Models\PendingRegistration;
 use App\Models\Room;
 use App\Models\Schedule;
+use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Models\Term;
 use App\Models\Time;
@@ -16,6 +17,7 @@ use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Notification\Events\NotificationsUpdated;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use stdClass;
 
@@ -23,6 +25,8 @@ class RegisterStudentForSchedule
 {
     private const DEFAULT_CAPACITY = 20;
     private const OPEN_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
+
+    public function __construct(private readonly StudentRegistrationService $registrations) {}
 
     public function handle(array $data): ?StudentEnrollment
     {
@@ -74,10 +78,10 @@ class RegisterStudentForSchedule
     // student/course/term/time is parked here instead of silently creating a
     // roomless/teacherless class. Staff resolve it manually by force-adding
     // the student to an existing class (see EnrollStudent).
-    private function savePendingRegistration(Student $student, Course $course, array $data): void
+    private function savePendingRegistration(stdClass $student, Course $course, array $data): void
     {
         PendingRegistration::create([
-            'student_id' => $student->user_id,
+            'student_id' => $student->id,
             'course_id' => $course->id,
             'term_id' => $data['term_id'],
             'time_id' => $data['time_id'],
@@ -88,31 +92,6 @@ class RegisterStudentForSchedule
             'title' => 'Registration needs manual scheduling',
             'message' => "{$data['name']} wants to join \"{$course->title}\" but no room or instructor is available for that term and time. Assign them to a class manually.",
             'type' => 'pending_registration',
-        ]);
-    }
-
-    private function student(array $data): Student
-    {
-        $student = Student::query()->where('phone', $data['phone'])->first();
-
-        if ($student !== null) {
-            return $student;
-        }
-
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $this->studentEmail(),
-            'password' => Hash::make(Str::random(32)),
-            'role' => 'student',
-            'status' => 'active',
-        ]);
-
-        return Student::create([
-            'user_id' => $user->id,
-            'full_name' => $data['name'],
-            'gender' => $data['gender'],
-            'phone' => $data['phone'],
-            'student_status' => 'active',
         ]);
     }
 

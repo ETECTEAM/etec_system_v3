@@ -11,9 +11,9 @@ return new class extends Migration
         Schema::create('pending_registrations', function (Blueprint $table) {
             $table->id();
 
-            // The Student/User row is created immediately at registration time
-            // (see RegisterStudentForSchedule::student()) even when no room is
-            // available, so this just points at it.
+            // Points at users here; a later migration
+            // (2026_08_13_000003_use_students_table_for_pending_registrations)
+            // repoints this at the students table instead.
             $table->foreignId('student_id')
                 ->constrained('users')
                 ->cascadeOnDelete();
