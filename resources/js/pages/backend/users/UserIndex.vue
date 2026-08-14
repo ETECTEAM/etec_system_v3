@@ -3,7 +3,6 @@ import { ref } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
-import { PageLoading } from '../../../components/ui/page-loading'
 import UserTableSection from './components/UserTableSection.vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import { useUserIndex } from './composables/useUserIndex'
@@ -35,10 +34,6 @@ const {
 
 <template>
   <Head :title="$t('User')" />
-
-  <!-- Shown until the very first fetch resolves, so a hard refresh sees the same
-       loading screen as an in-app navigation, not just the inner table's row placeholders. -->
-  <PageLoading v-if="!hasLoadedUsers" />
 
   <DashboardLayout>
     <section class="space-y-6">

@@ -52,8 +52,6 @@ import { ref } from 'vue'
 import Sidebar from './Sidebar.vue'
 import DashboardHeader from './DashboardHeader.vue'
 import { ConfirmDialog } from '../components/ui/confirm-dialog'
-import { PageLoading } from '../components/ui/page-loading'
-import { useRouteLoading } from '../composables/useRouteLoading'
 
 const isSidebarOpen = ref(false)
 const isSidebarCollapsed = ref(false)
@@ -69,11 +67,6 @@ function closeSidebar() {
 function toggleSidebarCollapse() {
     isSidebarCollapsed.value = !isSidebarCollapsed.value
 }
-
-// While Inertia is still fetching the destination page, its component hasn't
-// mounted yet, so it can't show its own loading state — the still-mounted
-// layout from the page being left has to render one on its behalf.
-const { isNavigating } = useRouteLoading()
 </script>
 
 <template>
@@ -94,9 +87,8 @@ const { isNavigating } = useRouteLoading()
 
                 <main class="flex-1 px-4 pb-10 pt-6 sm:px-6 lg:px-8">
                     <div class="w-full">
-                        <PageLoading v-if="isNavigating" />
                         <!-- This is where all page content will appear -->
-                        <slot v-else />
+                        <slot />
                     </div>
                 </main>
             </div>
