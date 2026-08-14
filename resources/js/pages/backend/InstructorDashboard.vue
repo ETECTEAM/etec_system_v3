@@ -3,14 +3,8 @@ import { computed, ref } from "vue";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 import {
   BookOpen,
-  Building2,
-  CalendarDays,
-  Clock3,
-  DoorOpen,
-  Eye,
   GraduationCap,
   Mars,
-  MoreVertical,
   Presentation,
   RefreshCw,
   Search,
@@ -19,6 +13,7 @@ import {
 } from "@lucide/vue";
 
 import DashboardLayout from "../../layouts/DashboardLayout.vue";
+import ClassCrad from "../../components/ui/card/ClassCrad.vue";
 
 const props = defineProps({
   instructorData: {
@@ -42,7 +37,6 @@ const props = defineProps({
 
 const page = usePage();
 const search = ref("");
-const openMenu = ref(null);
 
 const instructorName = computed(() => page.props.auth?.user?.name ?? "Instructor");
 const instructorId = computed(() => page.props.auth?.user?.id ?? "-");
@@ -99,12 +93,30 @@ function refresh() {
   router.reload({ only: ["classes", "summary"], preserveScroll: true });
 }
 
-function viewClass(classData) {
-  router.get(`/dashboard/instructor/classes/${classData.id}/attendance`);
+// The class card is shared with the admin class list, which sends "View Class" to the
+// super_admin-only enrollment page; instructors go to their own class screen instead.
+function viewUrl(classData) {
+  return `/dashboard/instructor/classes/${classData.id}/attendance`;
 }
 
-function attendance(classData) {
-  router.get(`/dashboard/instructor/classes/${classData.id}/attendance`);
+// A class shared with this instructor ("Collapse Class") is taught by them but owned by
+// someone else, so the owner-only actions are dropped rather than left to 403.
+const OWNER_ONLY_ACTIONS = ["Edit Class", "Add Student", "Switch Teacher", "Collapse Class", "Pre-End", "End"];
+
+function hiddenItems(classData) {
+  return classData.is_owner ? ["Copy Class"] : ["Copy Class", ...OWNER_ONLY_ACTIONS];
+}
+
+// Appended to the shared action menu: attendance tracking is instructor-only, so it
+// has no place on the admin class list the menu was built for.
+function attendanceItem(classData) {
+  return [
+    {
+      label: "Attendance",
+      icon: Presentation,
+      action: () => router.get(`/dashboard/instructor/classes/${classData.id}/attendance/track`),
+    },
+  ];
 }
 </script>
 
@@ -200,87 +212,16 @@ function attendance(classData) {
           </div>
         </div>
 
-        <div v-if="filteredClasses.length" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <article
+        <div v-if="filteredClasses.length" class="grid grid-cols-1 gap-5 md:grid-cols-3 xl:grid-cols-4">
+          <ClassCrad
             v-for="classData in filteredClasses"
             :key="classData.id"
-            class="relative rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-blue-500/40 sm:p-5"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex min-w-0 items-center gap-3">
-                <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-900 dark:bg-blue-500/10 dark:text-blue-400">
-                  <BookOpen class="h-5 w-5" />
-                </div>
-                <div class="min-w-0">
-                  <h2 class="truncate text-base font-black text-slate-950 dark:text-gray-100 sm:text-lg">
-                    {{ classData.title }}
-                  </h2>
-                  <p class="mt-1 text-xs font-semibold text-slate-500 dark:text-gray-400">
-                    Class id: <span class="rounded-md bg-blue-900 px-2 py-0.5 text-white">#{{ classData.id }}</span>
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-gray-800 dark:hover:text-gray-100"
-                @click="openMenu = openMenu === classData.id ? null : classData.id"
-              >
-                <MoreVertical class="h-5 w-5" />
-              </button>
-
-              <div
-                v-if="openMenu === classData.id"
-                class="absolute right-4 top-14 z-10 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
-              >
-                <button type="button" class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-semibold hover:bg-slate-50 dark:hover:bg-gray-800" @click="viewClass(classData)">
-                  <Eye class="h-4 w-4" /> View Student
-                </button>
-                <button type="button" class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-semibold hover:bg-slate-50 dark:hover:bg-gray-800" @click="attendance(classData)">
-                  <Presentation class="h-4 w-4" /> Attendance
-                </button>
-              </div>
-            </div>
-
-            <dl class="mt-4 divide-y divide-slate-200 text-sm dark:divide-gray-800">
-              <div class="grid grid-cols-5 gap-3 py-2">
-                <dt class="col-span-2 flex items-center gap-2 font-black"><BookOpen class="h-4 w-4 text-slate-400" /> Class Lessons:</dt>
-                <dd class="col-span-3 truncate font-semibold text-slate-700 dark:text-gray-300">{{ classData.lesson }}</dd>
-              </div>
-              <div class="grid grid-cols-5 gap-3 py-2">
-                <dt class="col-span-2 flex items-center gap-2 font-black"><Building2 class="h-4 w-4 text-slate-400" /> Building:</dt>
-                <dd class="col-span-3 truncate font-semibold text-slate-700 dark:text-gray-300">{{ classData.building }}</dd>
-              </div>
-              <div class="grid grid-cols-5 gap-3 py-2">
-                <dt class="col-span-2 flex items-center gap-2 font-black"><DoorOpen class="h-4 w-4 text-slate-400" /> Floor & Room:</dt>
-                <dd class="col-span-3 truncate font-semibold text-blue-900 dark:text-blue-400">{{ classData.floor }} - Room: {{ classData.room }}</dd>
-              </div>
-              <div class="grid grid-cols-5 gap-3 py-2">
-                <dt class="col-span-2 font-black">Status:</dt>
-                <dd class="col-span-3 font-semibold text-blue-900 dark:text-blue-400">{{ classData.status }}</dd>
-              </div>
-              <div class="grid grid-cols-5 gap-3 py-2">
-                <dt class="col-span-2 flex items-center gap-2 font-black"><CalendarDays class="h-4 w-4 text-slate-400" /> Term:</dt>
-                <dd class="col-span-3 font-semibold text-slate-700 dark:text-gray-300">{{ classData.term }}</dd>
-              </div>
-              <div class="grid grid-cols-5 gap-3 py-2">
-                <dt class="col-span-2 flex items-center gap-2 font-black"><Clock3 class="h-4 w-4 text-slate-400" /> Time:</dt>
-                <dd class="col-span-3 font-black text-emerald-600 dark:text-emerald-400">{{ classData.time }}</dd>
-              </div>
-              <div class="grid grid-cols-5 gap-3 py-2">
-                <dt class="col-span-2 flex items-center gap-2 font-black"><Users class="h-4 w-4 text-slate-400" /> Total Stu:</dt>
-                <dd class="col-span-3 font-semibold text-slate-700 dark:text-gray-300">{{ classData.students }}</dd>
-              </div>
-            </dl>
-
-            <button
-              type="button"
-              class="mt-4 flex h-10 w-full items-center justify-center rounded-lg border border-slate-300 bg-slate-50 text-sm font-semibold text-blue-900 transition hover:border-blue-300 hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-950 dark:text-blue-400 dark:hover:border-blue-500/50"
-              @click="viewClass(classData)"
-            >
-              View Class
-            </button>
-          </article>
+            :classData="classData"
+            :viewUrl="viewUrl(classData)"
+            :extraItems="attendanceItem(classData)"
+            :showInstructor="false"
+            :hiddenItems="hiddenItems(classData)"
+          />
         </div>
 
         <div v-else class="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-gray-700 dark:bg-gray-900">

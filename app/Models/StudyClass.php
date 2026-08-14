@@ -90,6 +90,18 @@ class StudyClass extends Model
         return $this->hasMany(StudentEnrollment::class);
     }
 
+    /**
+     * Instructors sharing this class, each with their own term/time — see the
+     * study_class_instructors migration. Empty until the class is shared, in which
+     * case teacher() is the only instructor.
+     */
+    public function instructors()
+    {
+        return $this->belongsToMany(User::class, 'study_class_instructors')
+            ->withPivot(['term_id', 'time_id', 'subject'])
+            ->withTimestamps();
+    }
+
     // ─── Derived schedule values ───────────────────────────────────────────
     // study_days / start_time / end_time are no longer stored; they are derived
     // from the related term (name encodes the days) and time (name encodes the

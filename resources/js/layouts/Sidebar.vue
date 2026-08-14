@@ -61,6 +61,9 @@ const menuItems = computed(() => {
       match: ["/dashboard"],
       exact: true,
       icon: "home",
+      // An instructor's class screens (attendance, tracking) are drilled into from the
+      // dashboard, so they keep Dashboard highlighted rather than nothing at all.
+      isActive: (path) => path === "/dashboard" || path.startsWith("/dashboard/instructor/classes"),
     },
   ];
 

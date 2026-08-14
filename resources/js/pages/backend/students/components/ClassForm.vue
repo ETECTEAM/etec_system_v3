@@ -4,6 +4,7 @@ import { useForm, router, usePage } from "@inertiajs/vue3";
 import { Save } from "@lucide/vue";
 import axios from "axios";
 import { SelectSearch } from "@/components/ui/select-search";
+import { useClassListUrl } from "@/composables/useClassListUrl";
 
 function toStringOrEmpty(value) {
   return value === null || value === undefined || value === "" ? "" : String(value);
@@ -18,6 +19,7 @@ const roles = computed(() => page.props.auth?.roles ?? []);
 // Admins/super admins assign a class to an instructor; the instructor then picks
 // the Building/Floor/Room once they take ownership of the class.
 const isAdminUser = computed(() => roles.value.includes("super_admin") || roles.value.includes("admin"));
+const classListUrl = useClassListUrl();
 
 const props = defineProps({
   classData: {
@@ -299,7 +301,7 @@ watch(
 );
 
 function back() {
-  router.get("/dashboard/enroll");
+  router.get(classListUrl.value);
 }
 
 function submit(copy = false) {

@@ -1,9 +1,11 @@
 <script setup>
+import { computed } from "vue";
 import { router } from "@inertiajs/vue3";
 import { ArrowLeft } from "@lucide/vue";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
 import PageHero from "../../../components/ui/page-hero/PageHero.vue";
+import { useClassListUrl } from "@/composables/useClassListUrl";
 import ClassForm from "./components/ClassForm.vue";
 
 defineProps({
@@ -17,14 +19,16 @@ defineProps({
   },
 });
 
-const breadcrumbItems = [
+const classListUrl = useClassListUrl();
+
+const breadcrumbItems = computed(() => [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Class List", href: "/dashboard/enroll" },
+  { label: "Class List", href: classListUrl.value },
   { label: "Edit Class", current: true },
-];
+]);
 
 function back() {
-  router.get("/dashboard/enroll");
+  router.get(classListUrl.value);
 }
 </script>
 

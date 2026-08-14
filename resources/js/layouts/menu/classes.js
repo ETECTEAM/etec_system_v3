@@ -9,7 +9,11 @@ export function isRoute(path) {
   );
 }
 
-export function build() {
+export function build(ctx) {
+  // Class types and the class list are admin screens; instructors manage their own
+  // classes from the dashboard instead.
+  if (!ctx.isSuperAdmin && !ctx.isAdmin) return null;
+
   return {
     label: "Class Management",
     labelKey: "navigation.classManagement",

@@ -2,7 +2,6 @@
 import { computed } from "vue";
 import { Head, Link } from "@inertiajs/vue3";
 import {
-  ArrowLeft,
   ClipboardCheck,
   Eye,
   FileText,
@@ -16,6 +15,7 @@ import {
 } from "@lucide/vue";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
+import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
 
 const props = defineProps({
   classData: {
@@ -31,6 +31,11 @@ const props = defineProps({
 const totalPresent = computed(() =>
   props.students.reduce((total, student) => total + Number(student.attendance?.present ?? 0), 0),
 );
+
+const breadcrumbItems = computed(() => [
+  { label: "Dashboard", href: "/dashboard" },
+  { label: props.classData.title, current: true },
+]);
 </script>
 
 <template>
@@ -40,13 +45,7 @@ const totalPresent = computed(() =>
     <section class="space-y-5">
       <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <Link
-            href="/dashboard"
-            class="inline-flex h-9 items-center gap-2 rounded-lg bg-slate-700 px-3 text-xs font-semibold text-white transition hover:bg-slate-800 sm:text-sm"
-          >
-            <ArrowLeft class="h-4 w-4" />
-            Back to Dashboard
-          </Link>
+          <Breadcrumbs :items="breadcrumbItems" />
           <h1 class="mt-4 text-xl font-black text-blue-950 dark:text-gray-100 sm:text-3xl">{{ classData.title }}</h1>
           <p class="mt-1 text-xs font-semibold text-slate-500 dark:text-gray-400 sm:text-sm">
             Created Date: <span class="rounded-md bg-slate-100 px-2 py-0.5 font-mono dark:bg-gray-800">{{ classData.created_date ?? "-" }}</span>

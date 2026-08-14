@@ -17,6 +17,21 @@ import {
 
 const props = defineProps({
   classData: Object,
+  // "View Class" target. Instructors get their own class page — the enrollment one is admin only.
+  viewUrl: {
+    type: String,
+    default: null,
+  },
+  // Extra { label, icon, action } entries appended to the menu, e.g. the instructor's Attendance page.
+  extraItems: {
+    type: Array,
+    default: () => [],
+  },
+  // Labels to leave out, e.g. "Copy Class" on the instructor dashboard.
+  hiddenItems: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const open = ref(false);
@@ -60,11 +75,11 @@ function updateStatus(status) {
   });
 }
 
-const menus = [
+const menus = computed(() => [
   {
     label: "View Class",
     icon: Eye,
-    action: () => router.get(`/dashboard/enroll/view/${props.classData.id}`),
+    action: () => router.get(props.viewUrl ?? `/dashboard/enroll/view/${props.classData.id}`),
   },
   {
     label: "Edit Class",
@@ -83,12 +98,14 @@ const menus = [
   },
   { label: "Generate QR", icon: QrCode, action: () => { showQr.value = true; open.value = false; } },
   { label: "Switch Teacher", icon: UserCog, action: () => window.alert("Switch teacher is not available yet.") },
-];
+]
+  .filter((item) => !props.hiddenItems.includes(item.label))
+  .concat(props.extraItems));
 
-const actions = [
+const actions = computed(() => [
   { label: "Pre-End", icon: CirclePause, class: "text-yellow-600", action: () => updateStatus("inactive") },
   { label: "End", icon: CircleX, class: "text-red-600", action: () => updateStatus("completed") },
-];
+].filter((item) => !props.hiddenItems.includes(item.label)));
 </script>
 
 <template>
@@ -112,10 +129,10 @@ const actions = [
         {{ t(item.label) }}
       </button>
 
-      <div class="my-2 border-t dark:border-gray-700"></div>
+      <div v-if="actions.length" class="my-2 border-t dark:border-gray-700"></div>
 
       <!-- Pre-End & End -->
-      <div class="grid grid-cols-2 gap-2 px-3">
+      <div v-if="actions.length" class="grid grid-cols-2 gap-2 px-3">
         <button
           v-for="item in actions"
           :key="item.label"

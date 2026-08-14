@@ -22,6 +22,7 @@ import DashboardLayout from "@/layouts/DashboardLayout.vue";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHero } from "@/components/ui/page-hero";
 import { useI18n } from "@/i18n";
+import { useClassListUrl } from "@/composables/useClassListUrl";
 import ClassForm from "./components/ClassForm.vue";
 
 const toast = useToast();
@@ -181,15 +182,17 @@ function generateCode() {
 }
 
 // ─── Breadcrumbs ────────────────────────────────────────────────────────
+const classListUrl = useClassListUrl();
+
 const breadcrumbItems = computed(() => [
     { label: "Dashboard", href: "/dashboard" },
-    { label: "Students", href: "/dashboard/enroll" },
+    { label: "Students", href: classListUrl.value },
     { label: isCopy.value ? "Copy Class" : "Create Class", current: true },
 ]);
 
 // ─── Navigation ─────────────────────────────────────────────────────────
 function back() {
-    router.visit("/dashboard/enroll");
+    router.visit(classListUrl.value);
 }
 
 function resetForm() {

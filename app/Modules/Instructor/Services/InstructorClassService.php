@@ -49,8 +49,7 @@ class InstructorClassService
 
     public function classes(User $instructor): Collection
     {
-        return $this->classesQuery()
-            ->where('study_classes.teacher_id', $instructor->id)
+        return $this->classesQuery($instructor)
             ->orderByDesc('study_classes.id')
             ->get()
             ->map(fn (stdClass $class) => $this->presentClass($class));
@@ -79,9 +78,8 @@ class InstructorClassService
 
     public function findForInstructor(User $instructor, int $studyClassId): stdClass
     {
-        $class = $this->classesQuery()
+        $class = $this->classesQuery($instructor)
             ->where('study_classes.id', $studyClassId)
-            ->where('study_classes.teacher_id', $instructor->id)
             ->first();
 
         abort_unless($class, 403);
@@ -242,20 +240,56 @@ class InstructorClassService
             'class_status' => $class->class_status,
             'term' => $this->termLabel($studyDays),
             'time' => ($timeRange['start'] ?? '-').' - '.($timeRange['end'] ?? '-'),
+            // Set when the class is shared and this instructor teaches a named part of
+            // it, e.g. "Network" on a Basic IT class split with another instructor.
+            'subject' => $class->my_subject ?? null,
+            'is_owner' => (bool) ($class->is_owner ?? true),
+            'is_shared' => ! empty($class->co_instructor_names),
+            'shared_with' => $class->co_instructor_names ?? null,
             'capacity' => (int) $class->capacity,
             'students' => (int) $class->current_students,
             'created_date' => $class->created_at ? Carbon::parse($class->created_at)->format('Y-m-d H:i:s') : null,
         ];
     }
 
-    private function classesQuery()
+    /**
+     * A class belongs to an instructor when it is assigned to them, or when it has been
+     * shared with them ("Collapse Class"). A shared class shows that instructor their own
+     * term/time — their half of the week — rather than the class-wide schedule.
+     */
+    private function classesQuery(User $instructor)
     {
         $activeStudentCounts = DB::table('student_enrollments')
             ->select('study_class_id', DB::raw('count(*) as current_students'))
             ->where('enrollment_status', 'active')
             ->groupBy('study_class_id');
 
+        // The other instructor(s) sharing a class with this one — empty for an unshared
+        // class, since it has no study_class_instructors rows at all. Lets the card show
+        // "Shared with <name>" rather than leaving a Collapse Class share invisible.
+        $coInstructors = DB::table('study_class_instructors')
+            ->join('users', 'users.id', '=', 'study_class_instructors.user_id')
+            ->where('study_class_instructors.user_id', '!=', $instructor->id)
+            ->groupBy('study_class_instructors.study_class_id')
+            ->select([
+                'study_class_instructors.study_class_id',
+                DB::raw("group_concat(users.name separator ', ') as co_instructor_names"),
+            ]);
+
         return DB::table('study_classes')
+            ->leftJoinSub($coInstructors, 'co_instructors', function ($join) {
+                $join->on('co_instructors.study_class_id', '=', 'study_classes.id');
+            })
+            ->leftJoin('study_class_instructors as my_slot', function ($join) use ($instructor) {
+                $join->on('my_slot.study_class_id', '=', 'study_classes.id')
+                    ->where('my_slot.user_id', '=', $instructor->id);
+            })
+            ->leftJoin('terms as my_terms', 'my_terms.id', '=', 'my_slot.term_id')
+            ->leftJoin('times as my_times', 'my_times.id', '=', 'my_slot.time_id')
+            ->where(function ($query) use ($instructor) {
+                $query->where('study_classes.teacher_id', $instructor->id)
+                    ->orWhereNotNull('my_slot.id');
+            })
             ->leftJoin('courses', 'courses.id', '=', 'study_classes.course_id')
             ->leftJoin('course_lessons', 'course_lessons.id', '=', 'study_classes.lesson_id')
             ->leftJoin('users as teachers', 'teachers.id', '=', 'study_classes.teacher_id')
@@ -281,10 +315,18 @@ class InstructorClassService
                 'floors.name as floor_name',
                 'buildings.name as building_name',
                 'class_type.type_name as class_type_name',
-                'terms.term_name',
-                'times.time_name',
+                // A shared class shows this instructor their own days/time; unshared
+                // classes fall back to the class-wide schedule.
+                DB::raw('coalesce(my_terms.term_name, terms.term_name) as term_name'),
+                DB::raw('coalesce(my_times.time_name, times.time_name) as time_name'),
+                'my_slot.subject as my_subject',
+                'co_instructors.co_instructor_names',
                 DB::raw('coalesce(active_student_counts.current_students, 0) as current_students'),
-            ]);
+            ])
+            // Appended after select(), which would otherwise reset the column list. Shared
+            // instructors teach the class but don't own it, so the card can hide the actions
+            // (edit, end, share) the backend would reject for them anyway.
+            ->selectRaw('(study_classes.teacher_id = ?) as is_owner', [$instructor->id]);
     }
 
     private function attendanceStats(int $studyClassId): Collection

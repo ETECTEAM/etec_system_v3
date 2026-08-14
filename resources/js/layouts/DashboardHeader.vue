@@ -362,9 +362,9 @@ function handleEscape(event) {
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
               {{ initials }}
             </span>
-            <span class="hidden sm:block">
-              <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ user?.name ?? t("common.guest") }}</span>
-              <span class="block text-xs text-slate-500 dark:text-gray-400">{{ user?.email ?? t("common.notSignedIn") }}</span>
+            <span class="hidden max-w-52 sm:block" :title="user?.name ?? t('common.guest')">
+              <span class="block truncate text-sm font-semibold text-slate-800 dark:text-gray-100">{{ user?.name ?? t("common.guest") }}</span>
+              <span class="block truncate text-xs text-slate-500 dark:text-gray-400">{{ user?.email ?? t("common.notSignedIn") }}</span>
             </span>
             <svg class="h-4 w-4 text-slate-400 dark:text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 0 1 1.08 1.04l-4.25 4.512a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
@@ -373,11 +373,11 @@ function handleEscape(event) {
 
           <div
             v-if="profileOpen"
-            class="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+            class="absolute right-0 z-30 mt-2 w-max min-w-56 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
           >
             <div class="px-4 py-3">
-              <p class="text-sm font-semibold text-slate-900 dark:text-gray-100">{{ user?.name ?? t("common.guest") }}</p>
-              <p class="text-xs text-slate-500 dark:text-gray-400">{{ user?.email ?? t("common.notSignedIn") }}</p>
+              <p class="truncate text-sm font-semibold text-slate-900 dark:text-gray-100">{{ user?.name ?? t("common.guest") }}</p>
+              <p class="truncate text-xs text-slate-500 dark:text-gray-400">{{ user?.email ?? t("common.notSignedIn") }}</p>
             </div>
             <div class="border-t border-slate-200 dark:border-gray-700">
               <Link

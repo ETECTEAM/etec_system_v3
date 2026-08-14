@@ -20,6 +20,13 @@ class GetClassFormOptions
     public const STATUSES = ['upcoming', 'active', 'pre_end', 'ended', 'cancelled'];
     public const STUDY_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+    /**
+     * Generic terms that exist for the enrollment receipt, not for a real teaching
+     * schedule — an instructor's actual days are a split like Mon & Tue or Wed & Thu.
+     * Mirrors RECEIPT_ONLY_TERM_NAMES in resources/js/pages/backend/students/components/ClassForm.vue.
+     */
+    public const RECEIPT_ONLY_TERMS = ['Mon & Thu', 'Sat & Sun'];
+
     public function handle(?StudyClass $studyClass = null): array
     {
         $buildingId = $studyClass?->room?->floor?->building_id;

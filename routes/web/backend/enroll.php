@@ -25,26 +25,36 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         // Route to move a registered student into a different existing class, e.g. joining a friend's class.
         Route::put('/registrations/{enrollment}/move', [EnrollmentClassController::class, 'moveRegistration'])->name('enroll.registrations.move');
         Route::get('/create', [EnrollmentClassController::class, 'create'])->name('enroll.create');
-        Route::post('/', [EnrollmentClassController::class, 'store'])->name('enroll.store');
         Route::get('/view/{studyClass}', [EnrollmentClassController::class, 'show'])->name('enroll.show');
         Route::delete('/{studyClass}', [EnrollmentClassController::class, 'destroy'])->name('enroll.destroy');
 
         // Pre-register a student with no class yet — they're enrolled into one later.
         Route::get('/students/create', [EnrollmentClassController::class, 'createRegisteredStudent'])->name('enroll.students.create');
         Route::post('/students', [EnrollmentClassController::class, 'storeRegisteredStudent'])->name('enroll.students.store');
-        Route::post('/{studyClass}/status', [EnrollmentClassController::class, 'updateStatus'])->name('enroll.status');
         Route::post('/{studyClass}/enrollments', [EnrollmentClassController::class, 'enroll'])->name('enroll.enrollments.store');
         Route::post('/enrollments/{enrollment}/deposit', [EnrollmentClassController::class, 'deposit'])->name('enroll.enrollments.deposit');
     });
 
-    // Editing a class (and the cascading Building/Floor/Room + Course/Lesson lookups its
-    // form needs): super_admin, or the instructor the class is assigned to — enforced in
-    // EnrollmentClassController::ensureInstructorOwnsClass().
-    Route::middleware(['auth'])->group(function (): void {
+    // Creating/editing/ending a class (and the cascading Building/Floor/Room + Course/Lesson
+    // lookups its form needs): admins, or the instructor the class is assigned to — ownership
+    // enforced in EnrollmentClassController::ensureInstructorOwnsClass(). These back the class
+    // action menu, which instructors get on their dashboard for their own classes.
+    Route::middleware(['auth', 'role:super_admin|admin|instructor'])->group(function (): void {
+        // An instructor only reaches this by copying one of their own classes, so the
+        // controller pins the copy to them rather than letting them assign a teacher.
+        Route::post('/', [EnrollmentClassController::class, 'store'])->name('enroll.store');
         Route::get('/edit/{studyClass}', [EnrollmentClassController::class, 'edit'])->name('enroll.edit');
         // Pre-fill the create form with an existing class's values so it can be duplicated with a new term/time.
         Route::get('/copy/{studyClass}', [EnrollmentClassController::class, 'copy'])->name('enroll.copy');
         Route::put('/{studyClass}', [EnrollmentClassController::class, 'update'])->name('enroll.update');
+        // Pre-End / End from the class action menu.
+        Route::post('/{studyClass}/status', [EnrollmentClassController::class, 'updateStatus'])->name('enroll.status');
+
+        // "Collapse Class": split one class between two instructors, each teaching their
+        // own days (e.g. Code on Mon & Tue, Network on Wed & Thu).
+        Route::get('/{studyClass}/instructors', [EnrollmentClassController::class, 'instructors'])->name('enroll.instructors.index');
+        Route::post('/{studyClass}/instructors', [EnrollmentClassController::class, 'shareWithInstructor'])->name('enroll.instructors.store');
+        Route::delete('/{studyClass}/instructors/{user}', [EnrollmentClassController::class, 'removeInstructor'])->name('enroll.instructors.destroy');
 
         Route::get('/buildings/{building}/floors', [EnrollmentClassController::class, 'floors'])->name('enroll.floors');
         Route::get('/floors/{floor}/rooms', [EnrollmentClassController::class, 'rooms'])->name('enroll.rooms');

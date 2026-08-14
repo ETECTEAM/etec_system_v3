@@ -9,12 +9,14 @@ use App\Models\Floor;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
+use App\Models\User;
 use App\Modules\Enroll\Actions\CreateClassStudent;
 use App\Modules\Enroll\Actions\CreateStudyClass;
 use App\Modules\Enroll\Actions\EnrollStudent;
 use App\Modules\Enroll\Actions\MoveStudentEnrollment;
 use App\Modules\Enroll\Actions\RecordEnrollmentDeposit;
 use App\Modules\Enroll\Actions\RegisterStudent;
+use App\Modules\Enroll\Actions\ShareClassWithInstructor;
 use App\Modules\Enroll\Actions\UpdatePublicRegistrationDetails;
 use App\Modules\Enroll\Actions\UpdateStudyClass;
 use App\Modules\Enroll\Queries\GetClassDetails;
@@ -26,6 +28,7 @@ use App\Modules\Enroll\Requests\MoveEnrollmentRequest;
 use App\Modules\Enroll\Requests\RecordDepositRequest;
 use App\Modules\Enroll\Requests\RegisterStudentRequest;
 use App\Modules\Enroll\Requests\SaveStudyClassRequest;
+use App\Modules\Enroll\Requests\ShareClassInstructorRequest;
 use App\Modules\Enroll\Requests\StoreClassStudentRequest;
 use App\Modules\Enroll\Requests\UpdatePublicRegistrationRequest;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
@@ -78,15 +81,27 @@ class EnrollmentClassController extends Controller
 
     public function store(SaveStudyClassRequest $request, CreateStudyClass $createStudyClass): RedirectResponse
     {
-        $createStudyClass->handle($request->validated());
+        $data = $request->validated();
+
+        // Instructors only reach this by copying one of their own classes, so the copy stays
+        // theirs — picking which instructor a class belongs to is an admin-only decision.
+        if ($this->isSelfManagingInstructor()) {
+            $data['teacher_id'] = $request->user()->id;
+        }
+
+        $createStudyClass->handle($data);
 
         // "Save & Copy": keep the user on the create form (front end preserves its state)
         // so they can duplicate the class with a different term/time/teacher.
         if ($request->boolean('create_another')) {
-            return redirect()->route('enroll.create')->with('success', 'Class created. Adjust the details and save again to create another.');
+            $message = 'Class created. Adjust the details and save again to create another.';
+
+            return $this->isSelfManagingInstructor()
+                ? back()->with('success', $message)
+                : redirect()->route('enroll.create')->with('success', $message);
         }
 
-        return redirect()->route('enroll.index')->with('success', 'Class created successfully.');
+        return $this->redirectToClassList()->with('success', 'Class created successfully.');
     }
 
     public function show(StudyClass $studyClass, GetClassDetails $details): Response
@@ -190,11 +205,13 @@ class EnrollmentClassController extends Controller
 
         $updateStudyClass->handle($studyClass, $request->validated());
 
-        return redirect()->route('enroll.index')->with('success', 'Class updated successfully.');
+        return $this->redirectToClassList()->with('success', 'Class updated successfully.');
     }
 
     public function updateStatus(Request $request, StudyClass $studyClass): RedirectResponse
     {
+        $this->ensureInstructorOwnsClass($studyClass);
+
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:upcoming,active,pre_end,ended,cancelled,inactive,completed'],
         ]);
@@ -217,6 +234,85 @@ class EnrollmentClassController extends Controller
         $studyClass->delete();
 
         return redirect()->route('enroll.index')->with('success', 'Class deleted successfully.');
+    }
+
+    /**
+     * Everything the "Collapse Class" dialog needs to split a class between two
+     * instructors: who already teaches it, who else could, and the schedules on offer.
+     */
+    public function instructors(StudyClass $studyClass, GetClassFormOptions $options): JsonResponse
+    {
+        $this->ensureInstructorOwnsClass($studyClass);
+
+        $studyClass->load(['instructors:id,name', 'teacher:id,name']);
+
+        return response()->json([
+            'owner' => $studyClass->teacher ? [
+                'id' => $studyClass->teacher->id,
+                'name' => $studyClass->teacher->name,
+            ] : null,
+            'classTypeId' => $studyClass->class_type_id,
+            'termId' => $studyClass->term_id,
+            'timeId' => $studyClass->time_id,
+            'shared' => $studyClass->instructors->map(fn (User $instructor) => [
+                'id' => $instructor->id,
+                'name' => $instructor->name,
+                'term_id' => $instructor->pivot->term_id,
+                'time_id' => $instructor->pivot->time_id,
+                'subject' => $instructor->pivot->subject,
+                'is_owner' => $instructor->id === $studyClass->teacher_id,
+            ])->values(),
+            'teachers' => User::role('instructor')
+                ->where('id', '!=', $studyClass->teacher_id)
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get(),
+            'schedules' => $this->shareableSchedules($studyClass, $options),
+        ]);
+    }
+
+    /**
+     * Terms a shared class can be split by. The day-splits an instructor actually teaches
+     * (Mon & Tue, Wed & Thu, ...) are configured under the Basic class type; the other
+     * types only carry the generic terms used on the receipt. Falls back to the class's
+     * own type when Basic isn't configured, and drops the receipt terms either way —
+     * splitting a class across them would put both instructors on the same days.
+     */
+    private function shareableSchedules(StudyClass $studyClass, GetClassFormOptions $options): array
+    {
+        $groups = collect($options->scheduleGroups());
+
+        $group = $groups->first(fn (array $item) => strtolower($item['class_type_name'] ?? '') === 'basic')
+            ?? $groups->first(fn (array $item) => (int) $item['class_type_id'] === (int) $studyClass->class_type_id);
+
+        return collect($group['schedules'] ?? [])
+            ->reject(fn ($schedule) => in_array($schedule['term_name'], GetClassFormOptions::RECEIPT_ONLY_TERMS, true))
+            ->values()
+            ->all();
+    }
+
+    public function shareWithInstructor(
+        ShareClassInstructorRequest $request,
+        StudyClass $studyClass,
+        ShareClassWithInstructor $shareClass
+    ): RedirectResponse {
+        $this->ensureInstructorOwnsClass($studyClass);
+
+        $shareClass->handle($studyClass, $request->validated());
+
+        return back()->with('success', 'Class shared with the instructor successfully.');
+    }
+
+    public function removeInstructor(
+        StudyClass $studyClass,
+        User $user,
+        ShareClassWithInstructor $shareClass
+    ): RedirectResponse {
+        $this->ensureInstructorOwnsClass($studyClass);
+
+        $shareClass->remove($studyClass, $user->id);
+
+        return back()->with('success', 'Instructor removed from the class successfully.');
     }
 
     public function floors(Building $building, GetClassFormOptions $options): JsonResponse
@@ -342,10 +438,30 @@ class EnrollmentClassController extends Controller
      */
     private function ensureInstructorOwnsClass(StudyClass $studyClass): void
     {
+        if ($this->isSelfManagingInstructor()) {
+            abort_unless($studyClass->teacher_id === auth()->id(), 403, 'You can only manage classes assigned to you.');
+        }
+    }
+
+    /**
+     * An instructor acting on their own classes — i.e. not also an admin, who manages every
+     * class and works from the admin screens rather than the instructor dashboard.
+     */
+    private function isSelfManagingInstructor(): bool
+    {
         $user = auth()->user();
 
-        if ($user->hasRole('instructor') && ! $user->hasAnyRole(['admin', 'super_admin'])) {
-            abort_unless($studyClass->teacher_id === $user->id, 403, 'You can only manage classes assigned to you.');
-        }
+        return $user !== null
+            && $user->hasRole('instructor')
+            && ! $user->hasAnyRole(['admin', 'super_admin']);
+    }
+
+    /**
+     * After saving a class: the admin class list, or the instructor dashboard, which is
+     * the only class list an instructor can reach.
+     */
+    private function redirectToClassList(): RedirectResponse
+    {
+        return redirect()->route($this->isSelfManagingInstructor() ? 'dashboard' : 'enroll.index');
     }
 }

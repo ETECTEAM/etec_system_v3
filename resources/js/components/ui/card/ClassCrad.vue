@@ -1,10 +1,11 @@
 <script setup>
 import { router } from "@inertiajs/vue3";
-import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,BookOpen,UserRound,} from "@lucide/vue";
+import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,} from "@lucide/vue";
 import { ref, computed } from "vue";
 import { QrcodeCanvas } from "qrcode.vue";
 import NotificationBadge from "../notification-badge/NotificationBadge.vue";
 import ClassActionMenu from "./ClassActionMenu.vue";
+import CollapseClassModal from "./CollapseClassModal.vue";
 import BarClass from "../../../pages/backend/students/components/BarClass.vue";
 // import { router } from "@inertiajs/vue3";
 
@@ -13,6 +14,27 @@ const props = defineProps({
     count: {
         type: Number,
         default: 0,
+    },
+    // "View Class" target. The default enrollment page is super_admin only, so the
+    // instructor dashboard points this at the instructor's own class screen.
+    viewUrl: {
+        type: String,
+        default: null,
+    },
+    // Extra { label, icon, action } entries for the action menu, e.g. Attendance.
+    extraItems: {
+        type: Array,
+        default: () => [],
+    },
+    // Off on the instructor dashboard, where every class is the viewer's own.
+    showInstructor: {
+        type: Boolean,
+        default: true,
+    },
+    // Labels the action menu should leave out, e.g. "Copy Class" for instructors.
+    hiddenItems: {
+        type: Array,
+        default: () => [],
     },
 });
 
@@ -51,10 +73,24 @@ const statusStyle = computed(() => {
 
 const showBarDialog = ref(false);
 const showQrDialog = ref(false);
+const showCollapseDialog = ref(false);
+
+// "Collapse Class" splits the class between two instructors, each teaching their own
+// days. The card owns the dialog, so it hands the menu the entry that opens it.
+const menuItems = computed(() => [
+    ...props.extraItems,
+    {
+        label: "Collapse Class",
+        icon: Users,
+        action: () => {
+            showCollapseDialog.value = true;
+        },
+    },
+]);
 const qrUrl = computed(() => `${window.location.origin}/dashboard/enroll/${props.classData.id}/students/create`);
 
-function showViewClass () { 
-   router.get(`/dashboard/enroll/view/${props.classData.id}`);
+function showViewClass () {
+   router.get(props.viewUrl ?? `/dashboard/enroll/view/${props.classData.id}`);
 }
 
 function showEditClass() {
@@ -76,6 +112,14 @@ function showQr() {
 
 function notifyPendingAction(label) {
     window.alert(`${label} is not available yet.`);
+}
+
+// The dialog lists the same actions as the menu, so an extra item (the instructor's
+// Attendance page) wins over the "not available yet" placeholder.
+function runExtraAction(label) {
+    const item = props.extraItems.find((extra) => extra.label === label);
+
+    return item ? item.action?.() : notifyPendingAction(label);
 }
 
 function updateStatus(status) {
@@ -105,11 +149,20 @@ function updateStatus(status) {
                 </div>
 
                 <div class="min-w-0">
-                    <h3
-                        class="text-sm sm:text-base font-semibold text-slate-900 truncate group-hover:text-indigo-600 transition-colors dark:text-gray-100 dark:group-hover:text-indigo-400"
-                    >
-                        {{ classData.title }}
-                    </h3>
+                    <div class="flex items-center gap-2 min-w-0">
+                        <h3
+                            class="text-sm sm:text-base font-semibold text-slate-900 truncate group-hover:text-indigo-600 transition-colors dark:text-gray-100 dark:group-hover:text-indigo-400"
+                        >
+                            {{ classData.title }}
+                        </h3>
+                        <span
+                            v-if="classData.is_shared"
+                            class="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700 dark:bg-violet-500/10 dark:text-violet-400"
+                        >
+                            <Users2 class="h-3 w-3" />
+                            {{ $t('Shared') }}
+                        </span>
+                    </div>
 
                     <div class="flex items-center gap-2 mt-1.5">
                         <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-gray-500">
@@ -121,11 +174,19 @@ function updateStatus(status) {
                             #{{ classData.id }}
                         </span>
                     </div>
+
+                    <p v-if="classData.is_shared" class="mt-1 truncate text-[11px] font-medium text-slate-500 dark:text-gray-400">
+                        {{ $t('Shared with') }}: <span class="font-semibold text-slate-700 dark:text-gray-300">{{ classData.shared_with }}</span>
+                        <span v-if="classData.subject"> · {{ $t('Teaching') }}: <span class="font-semibold text-slate-700 dark:text-gray-300">{{ classData.subject }}</span></span>
+                    </p>
                 </div>
             </div>
 
             <ClassActionMenu
                 :classData="classData"
+                :viewUrl="viewUrl"
+                :extraItems="menuItems"
+                :hiddenItems="hiddenItems"
                 @open-bar="showBarDialog = true"
             />
         </div>
@@ -143,7 +204,7 @@ function updateStatus(status) {
                 </span>
             </div>
 
-            <div class="flex items-center justify-between gap-2">
+            <div v-if="showInstructor" class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <UserRound class="w-3.5 h-3.5 shrink-0" />
                     <span class="text-xs sm:text-sm">Instructor</span>
@@ -258,6 +319,12 @@ function updateStatus(status) {
     </div>
 </div>
 
+<CollapseClassModal
+    :show="showCollapseDialog"
+    :classData="classData"
+    @close="showCollapseDialog = false"
+/>
+
 <BarClass
     :show="showBarDialog"
     :classData="classData"
@@ -268,7 +335,7 @@ function updateStatus(status) {
     @add-student="showAddStudent"
     @qr="showQr"
     @switch-teacher="notifyPendingAction('Switch teacher')"
-    @attendance="notifyPendingAction('Attendance')"
+    @attendance="runExtraAction('Attendance')"
     @export="notifyPendingAction('Export student list')"
     @pre-end="updateStatus('inactive')"
     @end="updateStatus('completed')"
