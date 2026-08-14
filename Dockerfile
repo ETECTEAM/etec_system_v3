@@ -16,6 +16,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libzip-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# In dev the repo is bind-mounted into the container and owned by the host
+# user, which git treats as "dubious ownership" and refuses to operate on.
+# Mark it safe system-wide so git works for every user in the image.
+RUN git config --system --add safe.directory /var/www
+
 # Required PHP extensions for Laravel + MySQL + media/zip handling
 # pcntl is required by `php artisan reverb:start` for signal handling (SIGINT/SIGTERM)
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
@@ -30,12 +35,25 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # --- dev: code comes from a bind mount, composer/npm install at container
-# start (see docker-compose.yml's `command`) so the image itself stays empty ---
+# start (see docker/entrypoint-dev.sh) so the image itself stays empty ---
 FROM base AS dev
+
+# App user with uid 1000 = the host user that owns the bind-mounted repo.
+# Pre-create its home and cache dirs owned by uid 1000 so Docker seeds the
+# composer/npm named cache volumes (mounted over these paths) writable.
+# Without this, composer fails writing ~/.composer and the container exits
+# immediately -> crash loop.
+# setpriv (util-linux) lets the entrypoint drop from root to the app user.
+RUN useradd --uid 1000 --user-group --home-dir /home/app --create-home --shell /bin/sh app \
+    && mkdir -p /home/app/.composer/cache /home/app/.npm \
+    && chown -R app:app /home/app
+
+COPY docker/entrypoint-dev.sh /usr/local/bin/entrypoint
+RUN chmod +x /usr/local/bin/entrypoint
 
 EXPOSE 8000 5173 8080
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
 
 # --- production: self-contained image, code + built assets baked in, served
 # by php-fpm on 9000 (nginx proxies *.php there, see deploy/nginx/default.conf) ---
@@ -66,7 +84,7 @@ RUN npm ci \
 # path that only exists once storage/ is mounted), so recreate it here.
 RUN php artisan storage:link
 
-RUN chown -R www-data:www-data storage bootstrap/cache \
+RUN chown -R www-data:www-data /var/www \
     && chmod -R ug+rwx storage bootstrap/cache
 
 EXPOSE 9000
