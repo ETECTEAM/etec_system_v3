@@ -309,10 +309,7 @@ function handleEscape(event) {
             </div>
 
             <div class="max-h-96 overflow-y-auto">
-              <p v-if="isLoading && !notifications.length" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-gray-400">
-                {{ t("common.loading") }}
-              </p>
-              <p v-else-if="!notifications.length" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-gray-400">
+              <p v-if="!notifications.length" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-gray-400">
                 {{ t("notifications.empty") }}
               </p>
 

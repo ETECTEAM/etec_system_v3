@@ -47,7 +47,7 @@ function back() {
             </div>
 
             <div v-if="!classData" class="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
-              {{ $t('Loading class data...') }}
+              {{ $t('Class data is not available.') }}
             </div>
 
             <ClassForm v-else :classData="classData" :options="options" mode="edit" />

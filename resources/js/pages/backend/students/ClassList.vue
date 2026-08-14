@@ -490,10 +490,6 @@ onBeforeUnmount(() => {
 
       <!-- Registrations View -->
       <div v-else class="w-full overflow-x-auto">
-        <div v-if="registrationsLoading && !registrations.length" class="rounded-xl bg-white py-10 text-center text-sm text-slate-500 shadow dark:bg-gray-900 dark:text-gray-400">
-          {{ $t('Loading...') }}
-        </div>
-
         <div class="bg-white rounded-xl shadow overflow-hidden dark:bg-gray-900">
           <Table>
             <TableHeader>
@@ -584,15 +580,13 @@ onBeforeUnmount(() => {
                       @click="row.payment_status === 'Paid' ? printReceipt(row) : openPartialPaymentModal(row)"
                     >
                       <Printer class="h-4 w-4 shrink-0" />
-                      <span class="truncate">{{ printingId === row.enrollment_id
-                        ? $t('Saving...')
-                        : (row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record Payment')) }}</span>
+                      <span class="truncate">{{ row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record Payment') }}</span>
                     </button>
                   </div>
                 </TableCell>
               </TableRow>
 
-              <TableRow v-if="!registrationsLoading && registrations.length === 0">
+              <TableRow v-if="registrations.length === 0">
                 <TableCell colspan="9">
                   <div class="py-10 text-center text-slate-500 dark:text-gray-400">
                     {{ $t('No public registrations yet.') }}

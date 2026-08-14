@@ -178,7 +178,7 @@ function paginationEnd() {
               class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
               @click="applyStartDateToAll"
             >
-              {{ isBulkSaving ? $t('Applying...') : $t('Apply to All') }}
+              {{ $t('Apply to All') }}
             </button>
           </div>
         </div>
@@ -204,7 +204,7 @@ function paginationEnd() {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-gray-800">
-              <tr v-if="hasLoaded && !isLoading && courses.length === 0">
+              <tr v-if="courses.length === 0">
                 <td colspan="5" class="px-4 py-8 text-center text-slate-500 dark:text-gray-400">{{ $t('No courses found.') }}</td>
               </tr>
 

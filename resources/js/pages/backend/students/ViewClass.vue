@@ -67,7 +67,7 @@ function goBack() {
         <PageHero  :title="$t('View Class')" />
       </div>
       <div  v-if="!classData" class="mt-6 flex items-center justify-center rounded-xl bg-white py-20 shadow dark:bg-gray-900">
-        <p class="text-slate-400 dark:text-gray-500">{{ $t('Loading class data…') }}</p>
+        <p class="text-slate-400 dark:text-gray-500">{{ $t('Class data is not available.') }}</p>
       </div>
 
       <template v-else>

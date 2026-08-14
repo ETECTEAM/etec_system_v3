@@ -6,7 +6,6 @@ import { Bell, Check, Copy, Mail, Trash2 } from '@lucide/vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
-import { Skeleton } from '../../../components/ui/skeleton'
 import { getEcho } from '@/echo'
 import { useI18n } from '@/i18n'
 
@@ -221,7 +220,7 @@ const breadcrumbItems = computed(() => [
           @click="markAllRead"
         >
           <Check class="h-3.5 w-3.5" />
-          {{ markingAll ? t('Marking...') : t('Mark all as read') }}
+          {{ t('Mark all as read') }}
         </button>
       </div>
 
@@ -241,25 +240,7 @@ const breadcrumbItems = computed(() => [
           </button>
         </div>
 
-        <div v-if="isLoading" class="divide-y divide-slate-100 dark:divide-gray-800">
-          <div
-            v-for="i in 4"
-            :key="i"
-            class="flex flex-wrap items-start gap-4 py-4 sm:flex-nowrap"
-          >
-            <Skeleton width="2.5rem" height="2.5rem" rounded="rounded-xl" />
-
-            <div class="min-w-0 flex-1 space-y-2">
-              <Skeleton width="12rem" height="0.9rem" rounded="rounded" />
-              <Skeleton width="22rem" height="0.8rem" rounded="rounded" />
-              <Skeleton width="5rem" height="0.7rem" rounded="rounded" />
-            </div>
-
-            <Skeleton width="4.5rem" height="1.75rem" rounded="rounded-full" />
-          </div>
-        </div>
-
-        <div v-else-if="filteredNotifications.length === 0" class="py-8 text-center text-sm text-slate-500 dark:text-gray-400">
+        <div v-if="filteredNotifications.length === 0" class="py-8 text-center text-sm text-slate-500 dark:text-gray-400">
           {{ t('No notifications found.') }}
         </div>
 

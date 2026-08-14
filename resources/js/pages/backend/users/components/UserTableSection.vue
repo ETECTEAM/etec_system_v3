@@ -303,7 +303,7 @@ const contextMenuActions = [
               </TableCell>
             </TableRow>
 
-            <TableRow v-if="hasLoaded && users.length === 0">
+            <TableRow v-if="users.length === 0">
               <TableCell colspan="9" class="py-10 text-center text-slate-500 dark:text-gray-400">
                 {{ roles.length === 0 ? $t('No roles available or roles could not be loaded.') : $t('No users found.') }}
               </TableCell>

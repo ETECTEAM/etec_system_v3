@@ -152,11 +152,7 @@ function statusClass(status) {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-gray-800">
-              <tr v-if="isLoading">
-                <td colspan="6" class="px-4 py-8 text-center text-slate-500 dark:text-gray-400">{{ $t('Loading rooms...') }}</td>
-              </tr>
-
-              <tr v-else-if="hasLoaded && rooms.length === 0">
+              <tr v-if="rooms.length === 0">
                 <td colspan="6" class="px-4 py-8 text-center text-slate-500 dark:text-gray-400">{{ $t('No rooms found.') }}</td>
               </tr>
 

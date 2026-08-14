@@ -173,20 +173,13 @@ watch(perPage, () => fetchFloors(1))
                 </TableCell>
               </TableRow>
 
-              <TableRow v-if="hasLoaded && !isLoading && floors.length === 0">
+              <TableRow v-if="floors.length === 0">
                 <TableCell colspan="5" class="py-10 text-center text-slate-500 dark:text-gray-400">
                   {{ $t('No floors found.') }}
                 </TableCell>
               </TableRow>
             </TableBody>
           </Table>
-
-          <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-gray-900/70">
-            <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-              <div class="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
-              <span class="text-sm text-slate-600 dark:text-gray-300">{{ $t('Loading floors...') }}</span>
-            </div>
-          </div>
         </div>
 
         <!-- Footer -->

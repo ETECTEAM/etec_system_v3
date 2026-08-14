@@ -2,7 +2,7 @@
 import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { watch } from 'vue'
 import { useToast } from 'vue-toastification'
-import { Clock, KeyRound, Plus, RotateCcw, Save, ShieldCheck, X } from '@lucide/vue'
+import { KeyRound, Plus, RotateCcw, Save, ShieldCheck, X } from '@lucide/vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
@@ -266,7 +266,6 @@ const breadcrumbItems = [
           </div>
 
           <div class="mt-8 flex items-center justify-end gap-3 border-t border-slate-200 pt-6 dark:border-gray-800">
-            <Clock v-if="form.processing" class="h-4 w-4 animate-spin text-slate-400 dark:text-gray-500" />
             <button
               type="submit"
               :disabled="form.processing"

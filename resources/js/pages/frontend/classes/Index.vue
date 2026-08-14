@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useForm, usePage } from "@inertiajs/vue3";
 import axios from "axios";
 import { useToast } from "vue-toastification";
-import { Search, CalendarDays, Clock, MapPin, CheckCircle2, Loader2, X } from "@lucide/vue";
+import { Search, CalendarDays, Clock, MapPin, CheckCircle2, X } from "@lucide/vue";
 import FrontendFooter from "@/components/frontend/FrontendFooter.vue";
 import { latinNameError } from "@/composables/useLatinNameValidation";
 
@@ -368,17 +368,11 @@ onUnmounted(() => {
               </div>
             </article>
           </div>
-
-          <div v-if="filtering" class="pointer-events-none absolute inset-x-0 top-0 flex justify-center z-20">
-            <span class="rounded-full border border-slate-100 bg-white px-6 py-3 text-sm font-black text-[#1A66FF] shadow-xl animate-pulse">Updating classes...</span>
-          </div>
         </div>
 
-        <div v-else-if="filtering" class="rounded-[2rem] border border-slate-100 bg-white p-12 text-center text-lg font-bold text-slate-600 shadow-sm animate-pulse">Loading classes...</div>
-
-        <div v-if="!filtering && classItems.length && hasMore" class="flex justify-center pt-8">
+        <div v-if="classItems.length && hasMore" class="flex justify-center pt-8">
           <button type="button" class="rounded-full bg-[#FFB800] px-10 py-4 text-base font-black text-slate-900 shadow-[0_10px_30px_rgba(255,184,0,0.3)] transition hover:-translate-y-1 hover:bg-[#ffc833] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0" :disabled="loadingMore" @click="loadMoreClasses">
-            {{ loadingMore ? "Loading..." : "Load More Classes" }}
+            Load More Classes
           </button>
         </div>
 
@@ -462,7 +456,6 @@ onUnmounted(() => {
           </div>
 
           <div class="mt-6 flex items-center justify-center gap-2 text-sm font-bold text-[#1A66FF]">
-            <Loader2 class="h-4 w-4 animate-spin" />
             <span>Waiting for admin payment confirmation...</span>
           </div>
         </div>

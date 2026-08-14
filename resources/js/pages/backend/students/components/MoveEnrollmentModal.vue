@@ -109,7 +109,7 @@ function submitAnyway() {
         <SelectSearch
           v-model="selectedClassId"
           :options="classOptions"
-          :placeholder="classesLoading ? $t('Loading...') : $t('Select class')"
+          :placeholder="$t('Select class')"
           :search-placeholder="$t('Search class...')"
         />
         <p v-if="errorMessage" class="mt-1 text-xs font-semibold text-red-600">{{ errorMessage }}</p>
@@ -133,7 +133,7 @@ function submitAnyway() {
           :disabled="saving || !selectedClassId"
           class="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
         >
-          {{ saving ? $t('Moving...') : $t('Move Student') }}
+          {{ $t('Move Student') }}
         </button>
       </div>
     </div>

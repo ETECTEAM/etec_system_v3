@@ -157,11 +157,7 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
         </div>
 
         <div class="space-y-5 px-5 py-5">
-          <p v-if="loading" class="py-6 text-center text-sm text-slate-500 dark:text-gray-400">
-            {{ t('Loading...') }}
-          </p>
-
-          <template v-else>
+          <template>
             <p v-if="error" class="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:bg-red-500/10 dark:text-red-400">
               {{ error }}
             </p>

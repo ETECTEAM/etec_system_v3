@@ -164,8 +164,8 @@ const scheduleTimeOptions = computed(() =>
   }))
 );
 
-const floorPlaceholder = computed(() => (loading.value.floors ? "Loading..." : "Select Floor"));
-const roomPlaceholder = computed(() => (loading.value.rooms ? "Loading..." : "Select Room"));
+const floorPlaceholder = computed(() => "Select Floor");
+const roomPlaceholder = computed(() => "Select Room");
 
 const selectClass =
   "flex w-full items-center justify-between rounded-xl border border-slate-300 px-4 py-3 text-left text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:disabled:bg-gray-900 dark:disabled:text-gray-500";
