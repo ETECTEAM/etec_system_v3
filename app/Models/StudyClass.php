@@ -124,17 +124,17 @@ class StudyClass extends Model
 
     public function scheduleStudyDays(): array
     {
-        return $this->parseTermDays($this->term?->term_name);
+        return self::parseTermDays($this->term?->term_name);
     }
 
     public function scheduleStartTime(): ?string
     {
-        return $this->timeRange()['start'] ?? null;
+        return self::parseTimeRange($this->time?->time_name)['start'] ?? null;
     }
 
     public function scheduleEndTime(): ?string
     {
-        return $this->timeRange()['end'] ?? null;
+        return self::parseTimeRange($this->time?->time_name)['end'] ?? null;
     }
 
     public function isOnline(): bool
@@ -147,7 +147,12 @@ class StudyClass extends Model
         return $this->isOnline() ? 'online' : 'physical';
     }
 
-    private function parseTermDays(?string $termName): array
+    /**
+     * Parses a Term's term_name ("Mon & Tue") into English weekday names. Static and
+     * public so callers with a term_name that isn't $this->term (e.g. a shared class's
+     * co-instructor slot — see study_class_instructors) can use the same parsing.
+     */
+    public static function parseTermDays(?string $termName): array
     {
         $dayMap = [
             'Mon' => 'Monday', 'Monday' => 'Monday',
@@ -166,21 +171,25 @@ class StudyClass extends Model
             ->all();
     }
 
-    private function timeRange(): array
+    /**
+     * Parses a Time's time_name ("09:00 AM - 10:30 AM") into 24h start/end strings.
+     * Static and public for the same reason as parseTermDays().
+     */
+    public static function parseTimeRange(?string $timeName): array
     {
-        $range = preg_match('/\(([^)]+)\)/', (string) $this->time?->time_name, $match)
+        $range = preg_match('/\(([^)]+)\)/', (string) $timeName, $match)
             ? $match[1]
-            : $this->time?->time_name;
+            : $timeName;
 
         [$start, $end] = array_pad(preg_split('/\s*-\s*/', trim((string) $range)), 2, null);
 
         return [
-            'start' => $this->toHm($start),
-            'end' => $this->toHm($end),
+            'start' => self::toHm($start),
+            'end' => self::toHm($end),
         ];
     }
 
-    private function toHm(?string $time): ?string
+    private static function toHm(?string $time): ?string
     {
         $time = trim((string) $time);
 

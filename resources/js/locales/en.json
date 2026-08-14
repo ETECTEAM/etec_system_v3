@@ -26,6 +26,7 @@
   },
   "navigation": {
     "accountSecurity": "Account Security",
+    "attendanceSettings": "Attendance Settings",
     "blockedAccounts": "Blocked Accounts",
     "buildingManagement": "Building Management",
     "buildings": "Buildings",

@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { Head, Link } from "@inertiajs/vue3";
 import {
+  Bot,
   ClipboardCheck,
   Eye,
   FileText,
@@ -25,6 +26,11 @@ const props = defineProps({
   students: {
     type: Array,
     default: () => [],
+  },
+  // Today's ClassSession row — null if the class doesn't meet today.
+  todaySession: {
+    type: Object,
+    default: null,
   },
 });
 
@@ -76,6 +82,19 @@ const breadcrumbItems = computed(() => [
             Track Attendance
           </Link>
         </div>
+      </div>
+
+      <div
+        v-if="todaySession?.status === 'auto_recorded'"
+        class="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+      >
+        <Bot class="h-4 w-4 shrink-0" />
+        <span v-if="todaySession.can_override">
+          The system recorded today's class at {{ todaySession.recorded_at }}. You can correct it from Track Attendance until {{ todaySession.override_deadline }}.
+        </span>
+        <span v-else>
+          The system recorded today's class at {{ todaySession.recorded_at }}. The window to correct it has closed.
+        </span>
       </div>
 
       <div class="grid gap-3 lg:grid-cols-3">

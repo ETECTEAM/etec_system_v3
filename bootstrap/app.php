@@ -1,5 +1,9 @@
 <?php
 
+use App\Console\Commands\AutoRecordAttendanceCommand;
+use App\Console\Commands\GenerateClassSessionsCommand;
+use App\Console\Commands\SendAttendanceDigestCommand;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -59,6 +63,29 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
         ]);
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        // Interval is fixed at one minute regardless of the configured grace period —
+        // the grace value only changes which sessions the command finds due, not how
+        // often it looks.
+        $schedule->command(AutoRecordAttendanceCommand::class)
+            ->everyMinute()
+            ->timezone('Asia/Phnom_Penh')
+            ->withoutOverlapping();
+
+        // Creates the day's ClassSession rows just after midnight, before any class
+        // could plausibly start.
+        $schedule->command(GenerateClassSessionsCommand::class)
+            ->dailyAt('00:05')
+            ->timezone('Asia/Phnom_Penh')
+            ->withoutOverlapping();
+
+        // Late enough that the day's classes (last slot ends 20:30/8:30pm) have
+        // finished, so the digest reflects the whole day.
+        $schedule->command(SendAttendanceDigestCommand::class)
+            ->dailyAt('22:00')
+            ->timezone('Asia/Phnom_Penh')
+            ->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {

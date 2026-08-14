@@ -9,6 +9,12 @@ class StudentAttendance extends Model
 {
     use HasFactory;
 
+    public const SOURCE_MANUAL = 'manual';
+
+    public const SOURCE_AUTO = 'auto';
+
+    public const SOURCE_ADMIN_EDIT = 'admin_edit';
+
     protected $fillable = [
         'study_class_id',
         'student_enrollment_id',
@@ -16,6 +22,7 @@ class StudentAttendance extends Model
         'tracked_by',
         'attendance_date',
         'status',
+        'source',
         'note',
     ];
 

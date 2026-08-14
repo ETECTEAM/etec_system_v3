@@ -3,6 +3,8 @@
 namespace App\Modules\Instructor\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Attendance\Actions\OverrideAttendanceRecord;
+use App\Modules\Attendance\Queries\GetSessionBanner;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Instructor\Services\InstructorClassService;
 use Illuminate\Http\RedirectResponse;
@@ -13,7 +15,11 @@ use Inertia\Response;
 
 class InstructorClassController extends Controller
 {
-    public function __construct(private readonly InstructorClassService $instructorClasses) {}
+    public function __construct(
+        private readonly InstructorClassService $instructorClasses,
+        private readonly OverrideAttendanceRecord $overrideAttendance,
+        private readonly GetSessionBanner $sessionBanner,
+    ) {}
 
     public function create(): Response
     {
@@ -53,6 +59,7 @@ class InstructorClassController extends Controller
         return Inertia::render('backend/instructors/AttendanceRecord', [
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
+            'todaySession' => $this->sessionBanner->handle($class->id),
         ]);
     }
 
@@ -64,6 +71,7 @@ class InstructorClassController extends Controller
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
             'attendanceLocked' => $this->instructorClasses->hasAttendanceForDate($class->id, today()),
+            'todaySession' => $this->sessionBanner->handle($class->id),
         ]);
     }
 
@@ -95,5 +103,30 @@ class InstructorClassController extends Controller
         return redirect()
             ->route('instructor.classes.attendance', $class->id)
             ->with('success', 'Attendance saved successfully.');
+    }
+
+    public function overrideAttendance(Request $request, string $studyClass): RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        $validated = $request->validate([
+            'attendance_date' => ['required', 'date'],
+            'records' => ['required', 'array', 'min:1'],
+            'records.*.student_id' => ['required', 'integer', 'exists:students,id'],
+            'records.*.enrollment_id' => ['required', 'integer', 'exists:student_enrollments,id'],
+            'records.*.status' => ['required', 'string', Rule::in(InstructorClassService::ATTENDANCE_STATUSES)],
+            'records.*.note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $this->overrideAttendance->handle(
+            $request->user(),
+            $class->id,
+            $validated['attendance_date'],
+            $validated['records'],
+        );
+
+        return redirect()
+            ->route('instructor.classes.attendance', $class->id)
+            ->with('success', 'Attendance correction saved successfully.');
     }
 }

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, reactive } from "vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
-import { ArrowLeft, Clock, Save } from "@lucide/vue";
+import { ArrowLeft, Bot, Clock, Save } from "@lucide/vue";
 import { useToast } from "vue-toastification";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
@@ -19,7 +19,20 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Today's ClassSession row (status/recorded_at/can_override) — null if none was
+  // generated for today (e.g. the class doesn't meet today).
+  todaySession: {
+    type: Object,
+    default: null,
+  },
 });
+
+// The system recorded today's class and the instructor still has time to correct it -
+// the one case attendanceLocked stays true but the table must remain editable.
+const isOverridable = computed(
+  () => props.todaySession?.status === "auto_recorded" && props.todaySession?.can_override,
+);
+const locked = computed(() => props.attendanceLocked && !isOverridable.value);
 
 const statuses = [
   {
@@ -68,7 +81,7 @@ const totals = computed(() => {
 });
 
 const submit = () => {
-  if (props.attendanceLocked) {
+  if (locked.value) {
     toast.warning("Attendance has already been submitted for this class today.");
     return;
   }
@@ -80,11 +93,18 @@ const submit = () => {
     note: permissionNotes[student.id] || null,
   }));
 
-  form.post(`/dashboard/instructor/classes/${props.classData.id}/attendance`, {
+  const url = `/dashboard/instructor/classes/${props.classData.id}/attendance`;
+  const options = {
     preserveScroll: true,
-    onSuccess: () => toast.success("Attendance saved successfully."),
-    onError: () => toast.error("Failed to save attendance."),
-  });
+    onSuccess: () => toast.success(isOverridable.value ? "Correction saved successfully." : "Attendance saved successfully."),
+    onError: () => toast.error(isOverridable.value ? "Failed to save correction." : "Failed to save attendance."),
+  };
+
+  if (isOverridable.value) {
+    form.put(url, options);
+  } else {
+    form.post(url, options);
+  }
 };
 </script>
 
@@ -114,17 +134,31 @@ const submit = () => {
 
           <button
             type="button"
-            :disabled="form.processing || !students.length || attendanceLocked"
+            :disabled="form.processing || !students.length || locked"
             class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
             @click="submit"
           >
             <Save class="h-4 w-4" />
-            {{ attendanceLocked ? "Submitted Today" : form.processing ? "Saving..." : "Save Attendance" }}
+            {{ form.processing ? "Saving..." : locked ? "Submitted Today" : isOverridable ? "Save Correction" : "Save Attendance" }}
           </button>
         </div>
       </div>
 
-      <div v-if="attendanceLocked" class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
+      <div
+        v-if="todaySession?.status === 'auto_recorded'"
+        class="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+      >
+        <Bot class="h-4 w-4 shrink-0" />
+        <span v-if="isOverridable">
+          The system recorded this class at {{ todaySession.recorded_at }} because attendance was not submitted in time.
+          You can correct it until {{ todaySession.override_deadline }}.
+        </span>
+        <span v-else>
+          The system recorded this class at {{ todaySession.recorded_at }}. The window to correct it has closed.
+        </span>
+      </div>
+
+      <div v-else-if="locked" class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
         Attendance has already been submitted for this class today. You can view the saved result, but cannot track again today.
       </div>
 
@@ -178,7 +212,7 @@ const submit = () => {
                       v-for="status in statuses"
                       :key="status.value"
                       type="button"
-                      :disabled="attendance[student.id] === status.value || attendanceLocked"
+                      :disabled="attendance[student.id] === status.value || locked"
                       :class="[
                         'h-10 rounded-lg border px-3 text-xs font-black transition disabled:cursor-not-allowed',
                         attendance[student.id] === status.value
@@ -195,7 +229,7 @@ const submit = () => {
                   <input
                     v-model="permissionNotes[student.id]"
                     type="text"
-                    :disabled="attendanceLocked"
+                    :disabled="locked"
                     placeholder="Enter note..."
                     class="h-10 w-48 max-w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:disabled:bg-gray-800 dark:disabled:text-gray-500 dark:focus:ring-blue-500/10"
                   />

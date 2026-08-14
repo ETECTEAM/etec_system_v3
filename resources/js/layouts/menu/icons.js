@@ -15,6 +15,7 @@ import {
   UserCircle,
   LayoutDashboard,
   SlidersHorizontal,
+  Bot,
 } from "@lucide/vue";
 
 // Maps a menu item's `icon` string to its Lucide component.
@@ -34,6 +35,7 @@ export const menuIcons = {
   login_security: Lock,
   profile: UserCircle,
   "enroll-config": SlidersHorizontal,
+  attendance_settings: Bot,
 };
 
 // Used when an item's `icon` key has no entry above.

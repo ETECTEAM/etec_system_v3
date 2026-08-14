@@ -2,6 +2,8 @@
 
 namespace App\Modules\Instructor\Services;
 
+use App\Models\ClassSession;
+use App\Models\StudentAttendance;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -132,6 +134,25 @@ class InstructorClassService
             ->keyBy('id');
 
         DB::transaction(function () use ($data, $attendanceDate, $enrollments, $instructor, $studyClassId) {
+            // Locked here, not just checked before the transaction: closes the same race
+            // the auto-record scheduler locks against (AutoRecordSession) — an instructor
+            // submitting right as the grace period elapses and the scheduler fires for
+            // the same session. Whichever gets the row lock first wins; the other either
+            // sees 'pending' still (proceeds normally) or 'auto_recorded' (rejected below,
+            // sent to the override flow so every post-auto-record edit goes through one
+            // audited path instead of two).
+            $session = ClassSession::query()
+                ->where('study_class_id', $studyClassId)
+                ->whereDate('session_date', $attendanceDate)
+                ->lockForUpdate()
+                ->first();
+
+            if ($session && $session->status === ClassSession::STATUS_AUTO_RECORDED) {
+                throw ValidationException::withMessages([
+                    'records' => 'The system already auto-recorded this class. Use the override option on the attendance page to correct it.',
+                ]);
+            }
+
             foreach ($data['records'] as $record) {
                 $enrollmentId = (int) $record['enrollment_id'];
                 $studentId = (int) $record['student_id'];
@@ -153,11 +174,16 @@ class InstructorClassService
                         'student_id' => $studentId,
                         'tracked_by' => $instructor->id,
                         'status' => $record['status'],
+                        'source' => StudentAttendance::SOURCE_MANUAL,
                         'note' => $record['note'] ?? null,
                         'updated_at' => now(),
                         'created_at' => now(),
                     ],
                 );
+            }
+
+            if ($session && $session->status === ClassSession::STATUS_PENDING) {
+                $session->update(['status' => ClassSession::STATUS_RECORDED, 'recorded_at' => now()]);
             }
         });
     }

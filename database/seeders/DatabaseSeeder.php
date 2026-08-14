@@ -40,6 +40,9 @@ use Database\Seeders\Website\WebsiteMenuSeeder;
 // Login security seeders
 use Database\Seeders\LoginLockoutSeeder;
 
+// Grading / attendance settings
+use Database\Seeders\GradingSettingSeeder;
+
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
@@ -51,6 +54,7 @@ class DatabaseSeeder extends Seeder
             AssignPermissionSeeder::class,
             UserSeeder::class,
             LoginLockoutSeeder::class,
+            GradingSettingSeeder::class,
 
             // 2. Core/base data
             CoreSeeder::class,
