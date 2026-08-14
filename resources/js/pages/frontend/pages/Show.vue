@@ -313,11 +313,12 @@ watch([courseSearch, selectedCategory, selectedSubCategory], () => {
                         <Heart class="w-5 h-5" stroke-width="1.5" />
                      </button>
                   </div>
-               </div>
+                </div>
             </div>
           </div>
+        </div>
 
-          <div v-if="courseItems.length && hasMoreCourses" class="flex justify-center pt-8">
+        <div v-if="courseItems.length && hasMoreCourses" class="flex justify-center pt-8">
             <button type="button" class="rounded-full bg-[#FFB800] px-10 py-4 text-base font-black text-slate-900 shadow-[0_10px_30px_rgba(255,184,0,0.3)] transition hover:-translate-y-1 hover:bg-[#ffc833] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0" :disabled="loadingMoreCourses" @click="loadMoreCourses">
               Load More Courses
             </button>
