@@ -28,6 +28,16 @@ main() {
   echo "==> Building images (composer install --no-dev + npm run build happen inside the Dockerfile)"
   docker compose -f "${COMPOSE_FILE}" build app reverb nginx
 
+  # The Dockerfile's `npm run build` above runs inside the image, but app/nginx
+  # both bind-mount the host repo over it at runtime (.:/var/www and ./public —
+  # see docker-compose.prod.yml), so that built-in-the-image public/build/ is
+  # immediately shadowed and never actually reaches anything that serves
+  # traffic. Nginx keeps serving whatever public/build/ last existed on the
+  # host, so without rebuilding it here on the host directly, every frontend
+  # change silently never appears no matter how many times this script runs.
+  echo "==> Building frontend assets onto the host (bind-mounted, so this is what nginx actually serves)"
+  docker compose -f "${COMPOSE_FILE}" run --rm app sh -c "npm ci && npm run build"
+
   echo "==> Starting mysql first so migrations have something to run against"
   docker compose -f "${COMPOSE_FILE}" up -d mysql
   docker compose -f "${COMPOSE_FILE}" exec -T mysql sh -c \
