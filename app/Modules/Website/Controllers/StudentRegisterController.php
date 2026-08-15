@@ -5,6 +5,7 @@ namespace App\Modules\Website\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Course;
+use App\Models\CourseEnrollConfig;
 use App\Models\Schedule;
 use App\Models\SubCategory;
 use App\Models\Term;
@@ -100,7 +101,7 @@ class StudentRegisterController extends Controller
     private function courses(): array
     {
         return Course::query()
-            ->with('track.subCategory.category:id,name')
+            ->with('track.subCategory.category:id,name', 'enrollConfigs.time:id,time_name')
             ->where('status', 'active')
             ->select('id', 'course_track_id', 'title')
             ->orderBy('title')
@@ -110,6 +111,15 @@ class StudentRegisterController extends Controller
                 'title' => $course->title,
                 'category_id' => $course->track?->subCategory?->category?->id,
                 'sub_category_id' => $course->track?->subCategory?->id,
+                // The enrollment time slots this course offers - one per open
+                // schedule the admin set on the Enroll Config page. Empty when
+                // the course only has its default (no-slot) schedule, in which
+                // case the chosen term's running slots are offered instead.
+                'time_ids' => $course->enrollConfigs
+                    ->filter(fn (CourseEnrollConfig $config) => $config->time_id !== null && $config->status === 'open')
+                    ->pluck('time_id')
+                    ->values()
+                    ->all(),
             ])
             ->filter(fn (array $course): bool => $course['category_id'] !== null)
             ->values()

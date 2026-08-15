@@ -4,6 +4,7 @@ namespace App\Modules\Enroll\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\CourseEnrollConfig;
 use App\Modules\Enroll\Actions\SetAllCourseStartDates;
 use App\Modules\Enroll\Actions\SetCourseEnrollConfig;
 use App\Modules\Enroll\Queries\GetCourseEnrollConfigs;
@@ -24,23 +25,51 @@ class CourseEnrollConfigController extends Controller
         return response()->json($configs->handle($request));
     }
 
-    public function update(Request $request, Course $course, SetCourseEnrollConfig $setConfig): JsonResponse
+    // Add a new schedule (one time slot) to a course. time_id = null creates the
+    // course's default/general schedule - allowed only when none exists yet.
+    public function store(Request $request, Course $course, SetCourseEnrollConfig $setConfig): JsonResponse
     {
         $validated = $request->validate([
+            'time_id' => ['nullable', 'integer', 'exists:times,id'],
             'status' => ['required', 'string', 'in:open,closed'],
             'start_date' => ['nullable', 'date'],
-            'price' => ['nullable', 'numeric', 'min:0'],
+            'unit_price' => ['nullable', 'numeric', 'min:0'],
+            'course_price' => ['nullable', 'numeric', 'min:0'],
+            'selected_price_type' => ['required', 'string', 'in:unit,course'],
             'document_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $config = $setConfig->handle($course, $validated);
+        $this->ensureNoDuplicateSchedule($course->id, $validated['time_id'] ?? null);
 
-        return response()->json([
-            'status' => $config->status,
-            'start_date' => optional($config->start_date)->format('Y-m-d'),
-            'price' => (float) $config->price,
-            'document_price' => (float) $config->document_price,
+        $config = $setConfig->create($course, $validated['time_id'] ?? null, $validated);
+
+        return response()->json($this->presentConfig($config), 201);
+    }
+
+    public function update(Request $request, CourseEnrollConfig $config, SetCourseEnrollConfig $setConfig): JsonResponse
+    {
+        $validated = $request->validate([
+            'time_id' => ['nullable', 'integer', 'exists:times,id'],
+            'status' => ['required', 'string', 'in:open,closed'],
+            'start_date' => ['nullable', 'date'],
+            'unit_price' => ['nullable', 'numeric', 'min:0'],
+            'course_price' => ['nullable', 'numeric', 'min:0'],
+            'selected_price_type' => ['required', 'string', 'in:unit,course'],
+            'document_price' => ['nullable', 'numeric', 'min:0'],
         ]);
+
+        $this->ensureNoDuplicateSchedule($config->course_id, $validated['time_id'] ?? null, $config->id);
+
+        $updated = $setConfig->update($config, $validated);
+
+        return response()->json($this->presentConfig($updated));
+    }
+
+    public function destroy(CourseEnrollConfig $config): JsonResponse
+    {
+        $config->delete();
+
+        return response()->json(['deleted' => true]);
     }
 
     public function bulkUpdateStartDate(Request $request, SetAllCourseStartDates $setAllStartDates): JsonResponse
@@ -52,5 +81,34 @@ class CourseEnrollConfigController extends Controller
         $updated = $setAllStartDates->handle($validated['start_date'] ?? null);
 
         return response()->json(['updated' => $updated]);
+    }
+
+    private function ensureNoDuplicateSchedule(int $courseId, ?int $timeId, ?int $exceptId = null): void
+    {
+        $query = CourseEnrollConfig::query()
+            ->where('course_id', $courseId)
+            ->where('time_id', $timeId);
+
+        if ($exceptId !== null) {
+            $query->whereKeyNot($exceptId);
+        }
+
+        abort_if($query->exists(), 422, 'This course already has a schedule for that time slot.');
+    }
+
+    private function presentConfig(CourseEnrollConfig $config): array
+    {
+        return [
+            'id' => $config->id,
+            'time_id' => $config->time_id,
+            'time_name' => $config->time?->time_name,
+            'enroll_status' => $config->status,
+            'start_date' => optional($config->start_date)->format('Y-m-d'),
+            'unit_price' => (float) $config->unit_price,
+            'course_price' => (float) $config->course_price,
+            'selected_price_type' => $config->selected_price_type,
+            'resolved_price' => $config->resolvedPrice(),
+            'document_price' => (float) $config->document_price,
+        ];
     }
 }

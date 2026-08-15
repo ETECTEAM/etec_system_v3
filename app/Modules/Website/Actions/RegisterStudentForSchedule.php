@@ -166,12 +166,14 @@ class RegisterStudentForSchedule
     // for this term/time.
     private function createClass(Course $course, array $data): ?StudyClass
     {
-        $course->loadMissing('track.subCategory.category', 'enrollConfig');
+        $course->loadMissing('track.subCategory.category', 'enrollConfigs.time');
 
         $defaults = StudyClass::query()
             ->where('course_id', $course->id)
             ->latest('id')
             ->first();
+
+        $config = $course->enrollConfigForTime(isset($data['time_id']) ? (int) $data['time_id'] : null);
 
         $classTypeId = $this->classTypeId($data, $defaults) ?? $defaults?->class_type_id;
         $baseCapacity = $defaults?->capacity ?: self::DEFAULT_CAPACITY;
@@ -199,8 +201,8 @@ class RegisterStudentForSchedule
             'time_id' => $data['time_id'],
             'status' => 'upcoming',
             'capacity' => $room?->capacity ?: $baseCapacity,
-            'price' => $course->enrollConfig?->price ?? $defaults?->price ?? 0,
-            'document_price' => $course->enrollConfig?->document_price ?? $defaults?->document_price ?? 5,
+            'price' => $config?->resolvedPrice() ?? $defaults?->price ?? 0,
+            'document_price' => $config?->document_price ?? $defaults?->document_price ?? 5,
             'enrollment_start_date' => now()->toDateString(),
             'start_date' => null,
             'end_date' => null,

@@ -100,13 +100,23 @@ function timeSortKey(timeName) {
 
 // Times are scoped to whichever term is picked — driven by the real
 // schedules data (see StudentRegisterController::timeIdsForTerm), not a
-// fixed list, since different terms run different slots.
+// fixed list, since different terms run different slots. When the picked
+// course has its own enrollment time slots (set on the Enroll Config page),
+// the pickable times are narrowed to the slots that course offers AND that
+// run in the chosen term; otherwise the term's slots are offered as before.
 const timeOptions = computed(() => {
   const term = props.terms.find((t) => String(t.id) === String(form.term_id));
   const allowedIds = (term?.time_ids ?? []).map(String);
 
+  const course = props.courses.find((c) => String(c.id) === String(form.course_id));
+  const courseIds = (course?.time_ids ?? []).map(String);
+
+  const scopedIds = courseIds.length > 0
+    ? courseIds.filter((id) => allowedIds.includes(id))
+    : allowedIds;
+
   return props.times
-    .filter((time) => allowedIds.includes(String(time.id)))
+    .filter((time) => scopedIds.includes(String(time.id)))
     .sort((a, b) => timeSortKey(a.time_name) - timeSortKey(b.time_name))
     .map((time) => ({ value: String(time.id), label: time.time_name }));
 });

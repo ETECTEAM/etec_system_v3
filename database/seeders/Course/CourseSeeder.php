@@ -171,9 +171,10 @@ class CourseSeeder extends Seeder
             );
 
             // Price/status live on CourseEnrollConfig, not the courses table itself.
+            // time_id NULL = the course's default/general schedule.
             CourseEnrollConfig::updateOrCreate(
-                ['course_id' => $createdCourse->id],
-                ['price' => 100, 'status' => 'open']
+                ['course_id' => $createdCourse->id, 'time_id' => null],
+                ['course_price' => 100, 'status' => 'open']
             );
         }
     }

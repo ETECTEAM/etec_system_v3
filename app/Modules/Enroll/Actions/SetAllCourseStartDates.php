@@ -18,8 +18,19 @@ class SetAllCourseStartDates
 
         $now = Carbon::now();
 
-        $rows = $courseIds->map(fn (int $courseId) => [
+        // Applies to every schedule a course offers (one config row per time slot).
+        CourseEnrollConfig::query()
+            ->whereIn('course_id', $courseIds)
+            ->update(['start_date' => $startDate, 'updated_at' => $now]);
+
+        $coursesWithoutConfig = Course::query()
+            ->whereIn('id', $courseIds)
+            ->whereDoesntHave('enrollConfigs')
+            ->pluck('id');
+
+        $rows = $coursesWithoutConfig->map(fn (int $courseId) => [
             'course_id' => $courseId,
+            'time_id' => null,
             // Only used when a course has no config row yet — existing rows keep their status.
             'status' => 'closed',
             'start_date' => $startDate,
@@ -27,7 +38,9 @@ class SetAllCourseStartDates
             'updated_at' => $now,
         ])->all();
 
-        CourseEnrollConfig::query()->upsert($rows, ['course_id'], ['start_date', 'updated_at']);
+        if ($rows !== []) {
+            CourseEnrollConfig::query()->insert($rows);
+        }
 
         return $courseIds->count();
     }

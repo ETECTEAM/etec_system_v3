@@ -75,10 +75,11 @@ class CourseController extends Controller
         ]);
 
         // Price lives on CourseEnrollConfig, not the courses table (see the
-        // migration that dropped price/document_price from courses).
+        // migration that dropped price/document_price from courses). The form's
+        // single price input maps to the default schedule's course price.
         CourseEnrollConfig::query()->updateOrCreate(
-            ['course_id' => $course->id],
-            ['price' => $validated['price'] ?? 0]
+            ['course_id' => $course->id, 'time_id' => null],
+            ['course_price' => $validated['price'] ?? 0]
         );
 
         return redirect()->route('course.courses')->with('success', 'Course created successfully');
@@ -145,8 +146,8 @@ class CourseController extends Controller
         ]);
 
         CourseEnrollConfig::query()->updateOrCreate(
-            ['course_id' => $course->id],
-            ['price' => $validated['price'] ?? 0]
+            ['course_id' => $course->id, 'time_id' => null],
+            ['course_price' => $validated['price'] ?? 0]
         );
 
         return redirect()->route('course.courses')->with('success', 'Course updated successfully');
