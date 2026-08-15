@@ -39,6 +39,17 @@ main() {
   echo "==> Recreating app, reverb with the new images"
   docker compose -f "${COMPOSE_FILE}" up -d app reverb
 
+  # app/reverb bind-mount the repo (.:/var/www — see docker-compose.prod.yml),
+  # so the git reset above already updated the code those containers see; no
+  # rebuild needed for that part. But opcache.validate_timestamps=0 (deploy/php/
+  # opcache.ini) means PHP-FPM keeps serving whatever it already compiled into
+  # shared memory regardless — `up -d` above only recreates a container when
+  # Compose thinks its image/config changed, which most deploys don't touch, so
+  # without an explicit restart here PHP-FPM's opcache never learns the code
+  # under it moved and the site keeps serving the previous deploy indefinitely.
+  echo "==> Restarting app, reverb to clear opcache and pick up the new code"
+  docker compose -f "${COMPOSE_FILE}" restart app reverb
+
   # `up -d` only recreates nginx when nginx's own image/config changed - but app
   # and reverb just got new container IPs above, and nginx caches their resolved
   # IP for its whole process lifetime. Without this, nginx keeps proxying to the
