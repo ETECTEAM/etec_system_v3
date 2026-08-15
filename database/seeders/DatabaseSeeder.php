@@ -71,9 +71,8 @@ class DatabaseSeeder extends Seeder
 
             // 4. Class relation data
             // ClassSeeder already calls ClassTypeSeeder internally.
-            // StudyClassSeeder is intentionally not run here — study_classes
-            // is left empty so classes are created organically through the
-            // public registration flow instead of pre-seeded demo data.
+            // study_classes is left empty so classes are created organically
+            // through the public registration flow instead of demo data.
             ClassSeeder::class,
             ScheduleSeeder::class,
 
