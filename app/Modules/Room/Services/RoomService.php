@@ -6,21 +6,28 @@ use App\Models\Room;
 use App\Modules\Room\Data\StoreRoomData;
 use App\Modules\Room\Data\UpdateRoomData;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 
 class RoomService
 {
     public function paginateRooms(array $filters = [], int $perPage = 5): LengthAwarePaginator
     {
-        return Room::query()
-            ->with('floor')
-            ->when($filters['search'] ?? null, function ($query, $search) {
-                $query->where('room_number', 'like', "%{$search}%")
-                    ->orWhere('status', 'like', "%{$search}%");
-            })
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->paginate($perPage)
-            ->withQueryString();
+        $search = (string) ($filters['search'] ?? '');
+        $page = (int) request()->input('page', 1);
+        $cacheKey = sprintf('rooms:list:v%d:per%d:page%d:%s', Room::cacheVersion(), $perPage, $page, md5($search));
+
+        return Cache::remember($cacheKey, Room::CACHE_TTL, function () use ($search, $perPage): LengthAwarePaginator {
+            return Room::query()
+                ->with('floor')
+                ->when($search !== '', function ($query) use ($search) {
+                    $query->where('room_number', 'like', "%{$search}%")
+                        ->orWhere('status', 'like', "%{$search}%");
+                })
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->paginate($perPage)
+                ->withQueryString();
+        });
     }
 
     public function create(StoreRoomData $data): Room

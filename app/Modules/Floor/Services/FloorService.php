@@ -6,25 +6,31 @@ use App\Models\Floor;
 use App\Modules\Floor\Data\FloorData;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 
 class FloorService
 {
     public function paginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
-        $query = Floor::query()->orderByRaw('level is null')->orderBy('level')->orderBy('name');
-
         $search = trim((string) ($filters['search'] ?? ''));
-        if ($search !== '') {
-            $query->where(function (Builder $builder) use ($search): void {
-                $builder
-                    ->where('name', 'like', '%'.$search.'%')
-                    ->orWhere('level', $search);
-            });
-        }
+        $page = (int) request()->input('page', 1);
+        $cacheKey = sprintf('floors:list:v%d:per%d:page%d:%s', Floor::cacheVersion(), $perPage, $page, md5($search));
 
-        return $query
-            ->paginate($perPage)
-            ->through(fn (Floor $floor): array => $this->present($floor));
+        return Cache::remember($cacheKey, Floor::CACHE_TTL, function () use ($search, $perPage): LengthAwarePaginator {
+            $query = Floor::query()->orderByRaw('level is null')->orderBy('level')->orderBy('name');
+
+            if ($search !== '') {
+                $query->where(function (Builder $builder) use ($search): void {
+                    $builder
+                        ->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('level', $search);
+                });
+            }
+
+            return $query
+                ->paginate($perPage)
+                ->through(fn (Floor $floor): array => $this->present($floor));
+        });
     }
 
     public function create(FloorData $data): Floor

@@ -10,6 +10,7 @@ use App\Modules\Floor\Data\FloorData;
 use App\Modules\Room\Data\StoreRoomData;
 use App\Modules\Room\Data\UpdateRoomData;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -20,17 +21,19 @@ class BuildingService
      */
     public function hierarchy(): Collection
     {
-        return Building::query()
-            ->with([
-                'floors' => fn ($query) => $query
-                    ->orderByRaw('level is null')
-                    ->orderBy('level')
-                    ->orderBy('name')
-                    ->with(['rooms' => fn ($roomQuery) => $roomQuery->orderBy('room_number')]),
-            ])
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Building $building): array => $this->presentBuilding($building));
+        return Cache::remember(Building::HIERARCHY_CACHE_KEY, Building::HIERARCHY_CACHE_TTL, function (): Collection {
+            return Building::query()
+                ->with([
+                    'floors' => fn ($query) => $query
+                        ->orderByRaw('level is null')
+                        ->orderBy('level')
+                        ->orderBy('name')
+                        ->with(['rooms' => fn ($roomQuery) => $roomQuery->orderBy('room_number')]),
+                ])
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Building $building): array => $this->presentBuilding($building));
+        });
     }
 
     public function create(BuildingData $data): Building
@@ -57,6 +60,12 @@ class BuildingService
             $building->floors()->delete();
             $building->delete();
         });
+
+        // The two bulk relation ->delete() calls above don't fire Floor/Room
+        // model events, so their list caches (and, via those, the building
+        // hierarchy cache) wouldn't otherwise be busted.
+        Floor::bustCache();
+        Room::bustCache();
     }
 
     public function createFloor(Building $building, FloorData $data): Floor
@@ -172,6 +181,12 @@ class BuildingService
             $floor->rooms()->delete();
             $floor->delete();
         });
+
+        // $floor->delete() above busts the floor (and building hierarchy)
+        // caches via Floor's model events, but the bulk $floor->rooms()
+        // ->delete() doesn't fire Room events, so the room list cache needs
+        // an explicit bust here.
+        Room::bustCache();
     }
 
     public function createRoom(Building $building, Floor $floor, StoreRoomData $data): Room

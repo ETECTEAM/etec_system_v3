@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ShiftTemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,17 +15,30 @@ class ShiftTemplateController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = ShiftTemplate::withCount('blocks');
+        $search = trim((string) $request->search);
+        $page = (int) $request->input('page', 1);
+        $cacheKey = sprintf(
+            'shift_templates:list:v%d:page%d:%s',
+            ShiftTemplate::cacheVersion(),
+            $page,
+            md5($search),
+        );
 
-        if ($search = $request->search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('code', 'like', "%{$search}%");
-            });
-        }
+        $templates = Cache::remember($cacheKey, ShiftTemplate::CACHE_TTL, function () use ($search) {
+            $query = ShiftTemplate::withCount('blocks');
+
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('code', 'like', "%{$search}%");
+                });
+            }
+
+            return $query->orderBy('id')->paginate(10)->withQueryString();
+        });
 
         return Inertia::render('backend/shift-templates/Index', [
-            'templates' => $query->orderBy('id')->paginate(10)->withQueryString(),
+            'templates' => $templates,
             'filters' => ['search' => $request->search ?? ''],
         ]);
     }

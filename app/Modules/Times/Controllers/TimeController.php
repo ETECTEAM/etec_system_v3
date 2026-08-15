@@ -5,6 +5,7 @@ namespace App\Modules\Times\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Time;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
 class TimeController extends Controller
@@ -15,7 +16,7 @@ class TimeController extends Controller
     public function index()
     {
         return Inertia::render('backend/times/Time', [
-            'times' => Time::orderBy('id', 'asc')->get(),
+            'times' => Cache::remember(Time::CACHE_KEY, 3600, fn () => Time::orderBy('id', 'asc')->get()),
         ]);
     }
 

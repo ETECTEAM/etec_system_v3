@@ -120,3 +120,16 @@ input:-webkit-autofill:active {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;     /* Firefox */
 }
+
+/*
+ * Locks background scroll while the mobile/tablet sidebar drawer is open
+ * (see Sidebar.vue). Scoped below the `lg` breakpoint only, since at `lg`
+ * and up the sidebar sits statically in the layout instead of overlaying
+ * the page - locking scroll there would trap desktop users who never
+ * "opened" anything.
+ */
+@media (max-width: 1023.98px) {
+    body.sidebar-scroll-locked {
+        overflow: hidden;
+    }
+}

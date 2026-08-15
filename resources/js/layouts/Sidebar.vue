@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { usePage } from "@inertiajs/vue3";
 import { Pen } from "@lucide/vue";
 import { menuDomains } from "./menu";
@@ -144,6 +144,22 @@ function toggleDrawing(event) {
   event?.stopPropagation();
   isDrawing.value = !isDrawing.value;
 }
+
+// Below `lg`, the drawer overlays the page instead of sitting in the layout
+// (see the backdrop/aside classes in the template), so the page behind it
+// needs its scroll held still while it's open - otherwise touch/wheel input
+// on the backdrop area scrolls the dashboard underneath.
+watch(
+  () => props.open,
+  (isOpen) => {
+    document.body.classList.toggle("sidebar-scroll-locked", isOpen);
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  document.body.classList.remove("sidebar-scroll-locked");
+});
 </script>
 
 <template>

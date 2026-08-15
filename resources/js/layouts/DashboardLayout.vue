@@ -52,6 +52,8 @@ import { ref } from 'vue'
 import Sidebar from './Sidebar.vue'
 import DashboardHeader from './DashboardHeader.vue'
 import { ConfirmDialog } from '../components/ui/confirm-dialog'
+import { PageLoading } from '../components/ui/page-loading'
+import { useRouteLoading } from '../composables/useRouteLoading'
 
 const isSidebarOpen = ref(false)
 const isSidebarCollapsed = ref(false)
@@ -67,6 +69,16 @@ function closeSidebar() {
 function toggleSidebarCollapse() {
     isSidebarCollapsed.value = !isSidebarCollapsed.value
 }
+
+// While Inertia is still fetching the destination page, its component hasn't
+// mounted yet, so it can't show its own loading state - the still-mounted
+// layout from the page being left renders one on its behalf. The current
+// page stays rendered underneath (no v-else swap) so the glass overlay has
+// real content to blur instead of an empty <main>. PageLoading itself is
+// `position: fixed` and mounted as a layout-level sibling (not inside
+// <main>) so its blur covers the sidebar and header too, not just the
+// content area.
+const { isNavigating } = useRouteLoading()
 </script>
 
 <template>
@@ -93,6 +105,11 @@ function toggleSidebarCollapse() {
                 </main>
             </div>
         </div>
+
+        <!-- Sibling of the sidebar/header/main flex above, not a descendant of
+             any of them - fixed-position so its blur/glass covers the whole
+             dashboard (sidebar + navbar + content), not just <main>. -->
+        <PageLoading v-if="isNavigating" />
 
         <!-- Single shared instance: any page can trigger it via useConfirm() -->
         <ConfirmDialog />
