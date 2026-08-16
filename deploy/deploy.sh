@@ -8,7 +8,7 @@
 set -euo pipefail
 
 COMPOSE_FILE="docker-compose.prod.yml"
-BRANCH="dev"
+BRANCH="production"
 
 # Everything runs inside this function, called only at the very bottom. Bash
 # parses a function body fully into memory the moment it's defined, so the

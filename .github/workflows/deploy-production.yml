@@ -1,0 +1,22 @@
+name: Deploy Production
+
+# Runs on the VPS itself via a self-hosted runner (register it with the
+# "production" label) rather than a GitHub-hosted runner + SSH, so no VPS
+# credentials need to live in GitHub secrets.
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, production]
+
+    steps:
+      # deploy.sh does its own git fetch/reset --hard against the real
+      # deployed repo, and docker-compose.prod.yml bind-mounts that same
+      # path — it must run from /opt/etec-system itself, not a fresh
+      # actions/checkout workspace, or it stands up a disconnected stack.
+      - name: Run deploy script
+        working-directory: /opt/etec-system
+        run: ./deploy/deploy.sh
