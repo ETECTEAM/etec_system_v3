@@ -34,6 +34,7 @@ const isBulkSaving = ref(false)
 const selectedCategory = ref('')
 const selectedSubCategory = ref('')
 const selectedTrack = ref('')
+const selectedCourse = ref('')
 
 // The course currently open in the "Manage Time Slots" modal, or null.
 const manageModalCourse = ref(null)
@@ -67,7 +68,12 @@ async function fetchCategories() {
 }
 
 const hasActiveFilters = computed(
-  () => search.value !== '' || selectedCategory.value !== '' || selectedSubCategory.value !== '' || selectedTrack.value !== '',
+  () =>
+    search.value !== '' ||
+    selectedCategory.value !== '' ||
+    selectedSubCategory.value !== '' ||
+    selectedTrack.value !== '' ||
+    selectedCourse.value !== '',
 )
 
 const categoryOptions = computed(() =>
@@ -93,6 +99,19 @@ const trackOptions = computed(() =>
         value: String(track.id),
         label: track.name,
       })),
+    ),
+  ),
+)
+
+const courseOptions = computed(() =>
+  categories.value.flatMap((category) =>
+    category.subCategories.flatMap((subCategory) =>
+      subCategory.tracks.flatMap((track) =>
+        track.courses.map((course) => ({
+          value: String(course.id),
+          label: course.title,
+        })),
+      ),
     ),
   ),
 )
@@ -128,6 +147,25 @@ const filteredCategories = computed(() => {
       .filter((category) => category.subCategories.length > 0)
   }
 
+  if (selectedCourse.value !== '') {
+    list = list
+      .map((category) => ({
+        ...category,
+        subCategories: category.subCategories
+          .map((subCategory) => ({
+            ...subCategory,
+            tracks: subCategory.tracks
+              .map((track) => ({
+                ...track,
+                courses: track.courses.filter((course) => String(course.id) === selectedCourse.value),
+              }))
+              .filter((track) => track.courses.length > 0),
+          }))
+          .filter((subCategory) => subCategory.tracks.length > 0),
+      }))
+      .filter((category) => category.subCategories.length > 0)
+  }
+
   const keyword = search.value.trim().toLowerCase()
   if (keyword !== '') {
     list = list
@@ -156,6 +194,7 @@ function resetFilters() {
   selectedCategory.value = ''
   selectedSubCategory.value = ''
   selectedTrack.value = ''
+  selectedCourse.value = ''
 }
 
 function sortConfigs(course) {
@@ -386,7 +425,7 @@ async function applyStartDateToAll() {
         </div>
 
         <div class="flex flex-col gap-4">
-          <div class="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <!-- Search courses by name -->
             <div class="space-y-1.5 text-left">
               <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">{{ $t('Search') }}</label>
@@ -430,6 +469,17 @@ async function applyStartDateToAll() {
                 v-model="selectedTrack"
                 :options="trackOptions"
                 :placeholder="t('All Tech Stacks')"
+                button-class="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-3 text-left text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+              />
+            </div>
+
+            <!-- Filter by course -->
+            <div class="space-y-1.5 text-left">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">{{ $t('Course') }}</label>
+              <SelectSearch
+                v-model="selectedCourse"
+                :options="courseOptions"
+                :placeholder="t('All Courses')"
                 button-class="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-3 text-left text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
               />
             </div>
