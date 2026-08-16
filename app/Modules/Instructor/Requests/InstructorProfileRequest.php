@@ -2,6 +2,7 @@
 
 namespace App\Modules\Instructor\Requests;
 
+use App\Models\SubCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -32,7 +33,8 @@ class InstructorProfileRequest extends FormRequest
                 Rule::unique('instructor_data', 'instructor_code')->ignore($instructorData?->id),
             ],
             'phone' => ['nullable', 'string', 'max:30'],
-            'specialization' => ['nullable', 'string', 'max:255'],
+            'specialization' => ['nullable', 'array'],
+            'specialization.*' => ['string', Rule::in(SubCategory::where('status', 'active')->pluck('name'))],
             'employment_type' => ['required', Rule::in(['full_time', 'part_time'])],
             'shift_template_id' => ['nullable', 'integer', 'exists:shift_templates,id'],
             'headline' => ['nullable', 'string', 'max:255'],

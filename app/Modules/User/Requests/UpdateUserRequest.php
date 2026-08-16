@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Requests;
 
+use App\Models\SubCategory;
 use App\Modules\User\Data\UpdateUserData;
 use App\Modules\User\Services\UserService;
 use Illuminate\Foundation\Http\FormRequest;
@@ -88,7 +89,8 @@ class UpdateUserRequest extends FormRequest
             'instructor_first_name' => ['nullable', 'string', 'max:255'], 'instructor_last_name' => ['nullable', 'string', 'max:255'],
             'instructor_full_name_kh' => ['nullable', 'string', 'max:255'], 'instructor_gender' => ['nullable', 'string', 'max:20'],
             'instructor_date_of_birth' => ['nullable', 'date'], 'instructor_phone' => ['nullable', 'string', 'max:30'],
-            'instructor_email' => ['nullable', 'email', 'max:255'], 'specialization' => ['nullable', 'string', 'max:255'],
+            'instructor_email' => ['nullable', 'email', 'max:255'], 'specialization' => ['nullable', 'array'],
+            'specialization.*' => ['string', Rule::in(SubCategory::where('status', 'active')->pluck('name'))],
             'employment_type' => ['nullable', Rule::in(['full_time', 'part_time'])],
             'shift_preference' => ['nullable', Rule::in(['morning_afternoon', 'morning_evening', 'afternoon_evening_11', 'afternoon_evening_1230'])],
             'available_for_class' => ['nullable', 'boolean'], 'hire_date' => ['nullable', 'date'],

@@ -409,13 +409,15 @@ class RegisterStudentForSchedule
             ->values();
 
         return $instructors->first(function (InstructorData $instructor) use ($keywords): bool {
-            $specialization = Str::lower((string) $instructor->specialization);
+            $specializations = collect($instructor->specialization ?? [])
+                ->map(fn (string $value): string => Str::lower($value))
+                ->filter(fn (string $value): bool => $value !== '');
 
-            if ($specialization === '') {
-                return false;
-            }
-
-            return $keywords->contains(fn (string $keyword): bool => str_contains($specialization, $keyword) || str_contains($keyword, $specialization));
+            return $specializations->contains(
+                fn (string $specialization): bool => $keywords->contains(
+                    fn (string $keyword): bool => str_contains($specialization, $keyword) || str_contains($keyword, $specialization)
+                )
+            );
         });
     }
 

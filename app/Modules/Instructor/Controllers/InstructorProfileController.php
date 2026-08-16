@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Instructor\Requests\InstructorProfileRequest;
 use App\Modules\Instructor\Services\InstructorProfileService;
 use App\Models\ShiftTemplate;
+use App\Models\SubCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -56,6 +57,12 @@ class InstructorProfileController extends Controller
             'shiftTemplates' => ShiftTemplate::where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name', 'code', 'employment_type']),
+            // Specialization options - instructors pick from the same sub-categories
+            // courses are tagged with, so RegisterStudentForSchedule's specialization
+            // matching (see bestFieldMatch()) has something exact to compare against.
+            'subCategories' => SubCategory::where('status', 'active')
+                ->orderBy('name')
+                ->pluck('name'),
         ]);
     }
 
@@ -74,7 +81,7 @@ class InstructorProfileController extends Controller
             || !$instructorData
             || $data['full_name'] !== $instructorData->full_name
             || $data['phone'] !== $instructorData->phone
-            || ($data['specialization'] ?? null) !== $instructorData->specialization
+            || ($data['specialization'] ?? []) != ($instructorData->specialization ?? [])
             || $data['employment_type'] !== $instructorData->employment_type
             || $data['shift_template_id'] != $instructorData->shift_template_id
             || $data['headline'] !== $instructorData->headline

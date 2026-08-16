@@ -12,6 +12,7 @@ const page = usePage()
 const user = page.props.user ?? {}
 const instructorData = page.props.instructorData ?? null
 const shiftTemplates = computed(() => page.props.shiftTemplates ?? [])
+const subCategories = computed(() => page.props.subCategories ?? [])
 const profilePhotoProp = page.props.profilePhoto ?? null
 const cvFileProp = page.props.cvFile ?? null
 
@@ -36,7 +37,7 @@ const initialValues = {
   email: user?.email ?? '',
   full_name: instructorData?.full_name ?? user?.name ?? '',
   phone: instructorData?.phone ?? '',
-  specialization: instructorData?.specialization ?? '',
+  specialization: [...(instructorData?.specialization ?? [])],
   employment_type: instructorData?.employment_type ?? '',
   shift_template_id: instructorData?.shift_template_id ? String(instructorData.shift_template_id) : '',
   headline: instructorData?.headline ?? '',
@@ -55,7 +56,7 @@ const form = useForm({
   full_name: instructorData?.full_name ?? user?.name ?? '',
   instructor_code: instructorData?.instructor_code ?? '',
   phone: instructorData?.phone ?? '',
-  specialization: instructorData?.specialization ?? '',
+  specialization: [...(instructorData?.specialization ?? [])],
   employment_type: instructorData?.employment_type ?? '',
   shift_template_id: instructorData?.shift_template_id ? String(instructorData.shift_template_id) : '',
   headline: instructorData?.headline ?? '',
@@ -82,7 +83,7 @@ const isDirty = computed(() => {
   if (form.email !== initialValues.email) return true
   if (form.full_name !== initialValues.full_name) return true
   if (form.phone !== initialValues.phone) return true
-  if (form.specialization !== initialValues.specialization) return true
+  if (JSON.stringify([...form.specialization].sort()) !== JSON.stringify([...initialValues.specialization].sort())) return true
   if (form.employment_type !== initialValues.employment_type) return true
   if (form.shift_template_id !== initialValues.shift_template_id) return true
   if (form.headline !== initialValues.headline) return true
@@ -121,6 +122,16 @@ const breadcrumbItems = [
   { label: 'My Instructor Profile', current: true },
 ]
 
+function toggleSpecialization(name) {
+  const index = form.specialization.indexOf(name)
+
+  if (index === -1) {
+    form.specialization.push(name)
+  } else {
+    form.specialization.splice(index, 1)
+  }
+}
+
 function onProfilePhotoChange(e) {
   const file = e.target.files[0]
   if (!file) return
@@ -153,7 +164,7 @@ function submit() {
       initialValues.email = form.email
       initialValues.full_name = form.full_name
       initialValues.phone = form.phone
-      initialValues.specialization = form.specialization
+      initialValues.specialization = [...form.specialization]
       initialValues.employment_type = form.employment_type
       initialValues.shift_template_id = form.shift_template_id
       initialValues.headline = form.headline
@@ -256,16 +267,25 @@ function submit() {
                 <span v-if="form.errors.phone" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.phone }}</span>
               </label>
 
-              <label class="block">
+              <div class="block md:col-span-2">
                 <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Specialization') }}</span>
-                <input
-                  v-model="form.specialization"
-                  type="text"
-                  class="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                  :placeholder="$t('e.g. Web Development, Laravel, Flutter')"
-                >
+                <p class="mb-2 text-xs text-slate-400 dark:text-gray-500">{{ $t('Select every area you can teach - click a skill to add or remove it.') }}</p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="name in subCategories"
+                    :key="name"
+                    type="button"
+                    class="rounded-full border px-3 py-1.5 text-xs font-medium transition"
+                    :class="form.specialization.includes(name)
+                      ? 'border-blue-600 bg-blue-600 text-white dark:border-blue-500 dark:bg-blue-500'
+                      : 'border-slate-300 text-slate-600 hover:border-blue-400 hover:text-blue-600 dark:border-gray-600 dark:text-gray-300 dark:hover:border-blue-500 dark:hover:text-blue-400'"
+                    @click="toggleSpecialization(name)"
+                  >
+                    {{ name }}
+                  </button>
+                </div>
                 <span v-if="form.errors.specialization" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.specialization }}</span>
-              </label>
+              </div>
 
               <label class="block">
                 <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Shift Template') }}</span>

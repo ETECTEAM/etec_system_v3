@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\SubCategory;
 use App\Models\User;
 use App\Modules\User\Requests\StoreUserRequest;
 use App\Modules\User\Requests\UpdateUserRequest;
@@ -112,6 +113,8 @@ class UserController extends Controller
         return Inertia::render('backend/users/UserEdit', [
             'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData', 'creator'])),
             'roleOptions' => $this->userService->roleOptions($request->user()),
+            // Instructor specialization picklist - see InstructorProfileController::edit().
+            'subCategories' => SubCategory::where('status', 'active')->orderBy('name')->pluck('name'),
         ]);
     }
 

@@ -37,6 +37,10 @@ class InstructorData extends Model
             'available_for_class' => 'boolean',
             'status' => 'boolean',
             'date_of_birth' => 'date',
+            // A list of sub-category names now, not a single free-text value -
+            // see the migration that normalizes previously-stored plain strings
+            // into single-element arrays.
+            'specialization' => 'array',
         ];
     }
 

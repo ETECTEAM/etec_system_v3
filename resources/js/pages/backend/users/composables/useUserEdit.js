@@ -47,7 +47,7 @@ export function useUserEdit() {
     instructor_date_of_birth: i.date_of_birth ?? '',
     instructor_phone: i.phone ?? '',
     instructor_email: i.email ?? '',
-    specialization: i.specialization ?? '',
+    specialization: i.specialization ?? [],
     employment_type: i.employment_type ?? 'full_time',
     shift_preference: i.shift_preference ?? 'morning_evening',
     available_for_class: i.available_for_class ?? true,
