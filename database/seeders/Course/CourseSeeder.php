@@ -171,10 +171,15 @@ class CourseSeeder extends Seeder
             );
 
             // Price/status live on CourseEnrollConfig, not the courses table itself.
-            // time_id NULL = the course's default/general schedule.
+            // time_id NULL = the course's default/general schedule. unit_price is
+            // the real, non-discounted price; course_price is the (possibly
+            // discounted) price actually charged and printed on receipts - mirror
+            // the placeholder into both so unit_price never silently sits at 0.
+            // Staff enter real, distinct per-course numbers via the Enroll Config
+            // page afterward; this is just a non-zero starting point.
             CourseEnrollConfig::updateOrCreate(
                 ['course_id' => $createdCourse->id, 'time_id' => null],
-                ['course_price' => 100, 'status' => 'open']
+                ['unit_price' => 100, 'course_price' => 100, 'status' => 'open']
             );
         }
     }

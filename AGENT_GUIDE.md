@@ -78,7 +78,7 @@ nearly empty (only `Controller.php` base + `LocaleController.php`) and is not th
 | `EnRoll` | **DEAD/legacy** | 3 files, imported by nothing; redirects to non-existent `students.*` routes; uses old `ScheduleClass`/`Enrollment` models |
 | `Enroll` | **LIVE** | route-wired via `routes/web/backend/enroll.php`; `Actions/` + `Queries/` pattern; uses `StudyClass`/`StudentEnrollment` |
 | `Floor` | live | **`Controller/` (singular)** folder — differs from every other module |
-| `Instructor` | live | standard |
+| `Instructor` | live | standard; includes `InstructorScheduleBlockController` for instructors to self-block unavailable time slots |
 | `Notification` | live | standard |
 | `Registration` | live | standard |
 | `Room` | live | standard (`Controllers/`, `Data/`, `Requests/`, `Services/`) |
@@ -149,6 +149,7 @@ public routes (e.g. QR self-registration, `frontend.classes.*`).
   `/dashboard/schdule`, name `schdule.`. **The misspelling is the real, in-use value.**
 - `building.php` → `app/Modules/building` (lowercase).
 - `floor.php` → `App\Modules\Floor\Controller\FloorController` (singular `Controller`).
+- `instructor-schedule-block.php` → `App\Modules\Instructor\Controllers\InstructorScheduleBlockController`; prefix `/dashboard/instructor-schedule-blocks`, name `instructor-schedule-blocks.`; gated by `role:instructor` middleware (instructor-only, not admin). Routes have no `{instructor}` parameter — the controller resolves the authenticated instructor via `$request->user()->instructorData()`.
 - `certificate.php` and `dashboard.php` define closures/Inertia renders inline with **no**
   module controller — read them before assuming a module exists.
 - `class.php` uses `prefix('dashboard')` **without a leading slash** — a pre-existing

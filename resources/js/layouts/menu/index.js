@@ -8,6 +8,7 @@ import * as course from "./course";
 import * as profile from "./profile";
 import * as user from "./user";
 import * as shiftTemplates from "./shiftTemplates";
+import * as instructorScheduleBlocks from "./instructorScheduleBlocks";
 import * as schedule from "./schedule";
 import * as loginSecurity from "./loginSecurity";
 import * as attendanceSettings from "./attendanceSettings";
@@ -25,6 +26,7 @@ export const menuDomains = [
   user,
   website,
   shiftTemplates,
+  instructorScheduleBlocks,
   schedule,
   loginSecurity,
   attendanceSettings,

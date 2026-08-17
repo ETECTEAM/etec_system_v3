@@ -21,6 +21,8 @@ class DashboardPermissionSeeder extends Seeder
             'shift_template.update',
             'shift_template.delete',
             'shift_template.manage',
+            'instructor_schedule_block.view',
+            'instructor_schedule_block.manage',
         ];
 
         foreach ($permissions as $permission) {

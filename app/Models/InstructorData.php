@@ -59,6 +59,11 @@ class InstructorData extends Model
         return $this->hasMany(InstructorAvailability::class, 'instructor_id');
     }
 
+    public function scheduleBlocks(): HasMany
+    {
+        return $this->hasMany(InstructorScheduleBlock::class, 'instructor_id');
+    }
+
     public function attachments(): HasMany
     {
         return $this->hasMany(InstructorAttachment::class, 'instructor_id');

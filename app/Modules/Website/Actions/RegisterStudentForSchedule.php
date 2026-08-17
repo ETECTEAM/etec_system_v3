@@ -5,6 +5,7 @@ namespace App\Modules\Website\Actions;
 use App\Models\ClassType;
 use App\Models\Course;
 use App\Models\InstructorData;
+use App\Models\InstructorScheduleBlock;
 use App\Models\Notification;
 use App\Models\PendingRegistration;
 use App\Models\Room;
@@ -329,11 +330,13 @@ class RegisterStudentForSchedule
         $available = $candidates
             ->filter(fn (InstructorData $instructor): bool => $days && $range['start'] !== null && $range['end'] !== null && $this->instructorCoversSchedule($instructor, $days, $range))
             ->filter(fn (InstructorData $instructor): bool => ! $this->instructorHasConflict($instructor, $data))
+            ->filter(fn (InstructorData $instructor): bool => ! $this->instructorHasManualBlock($instructor, $data))
             ->values();
 
         if ($available->isEmpty()) {
             $available = $candidates
                 ->filter(fn (InstructorData $instructor): bool => ! $this->instructorHasConflict($instructor, $data))
+                ->filter(fn (InstructorData $instructor): bool => ! $this->instructorHasManualBlock($instructor, $data))
                 ->values();
         }
 
@@ -344,7 +347,7 @@ class RegisterStudentForSchedule
         $selected = $this->bestFieldMatch($available, $course) ?? $available->first();
         $selected = InstructorData::query()->lockForUpdate()->find($selected?->id);
 
-        if ($selected === null || $this->instructorHasConflict($selected, $data)) {
+        if ($selected === null || $this->instructorHasConflict($selected, $data) || $this->instructorHasManualBlock($selected, $data)) {
             return null;
         }
 
@@ -361,7 +364,7 @@ class RegisterStudentForSchedule
         foreach ($instructors as $instructor) {
             $instructor = InstructorData::query()->lockForUpdate()->find($instructor->id);
 
-            if ($instructor !== null && ! $this->instructorHasConflict($instructor, $data)) {
+            if ($instructor !== null && ! $this->instructorHasConflict($instructor, $data) && ! $this->instructorHasManualBlock($instructor, $data)) {
                 return $instructor;
             }
         }
@@ -393,6 +396,28 @@ class RegisterStudentForSchedule
             ->where('term_id', $data['term_id'])
             ->where('time_id', $data['time_id'])
             ->whereIn('status', self::OPEN_CLASS_STATUSES)
+            ->exists();
+    }
+
+    // A staff-entered exception (see InstructorScheduleBlockController), separate
+    // from ShiftTemplate/InstructorAvailability - never modifies those, just adds
+    // another exclusion checked alongside the conflict check above at every call
+    // site. $data['term_id'] is expanded to its weekday set the same way
+    // instructorCoversSchedule() does, since a block is stored per calendar day,
+    // not per term.
+    private function instructorHasManualBlock(InstructorData $instructor, array $data): bool
+    {
+        $days = $this->termDays((int) $data['term_id']);
+
+        if ($days === [] || ! isset($data['time_id'])) {
+            return false;
+        }
+
+        return InstructorScheduleBlock::query()
+            ->where('instructor_id', $instructor->id)
+            ->where('time_id', $data['time_id'])
+            ->whereIn('day_of_week', $days)
+            ->where('status', InstructorScheduleBlock::STATUS_ACTIVE)
             ->exists();
     }
 

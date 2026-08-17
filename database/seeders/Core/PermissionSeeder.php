@@ -156,6 +156,10 @@ class PermissionSeeder extends Seeder
             // Instructor profile
             'instructor_profile.view',
             'instructor_profile.update',
+
+            // Manual instructor schedule blocks
+            'instructor_schedule_block.view',
+            'instructor_schedule_block.manage',
         ];
 
         foreach ($permissions as $permission) {
