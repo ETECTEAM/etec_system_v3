@@ -157,7 +157,7 @@ class PermissionSeeder extends Seeder
             'instructor_profile.view',
             'instructor_profile.update',
 
-            // Manual instructor schedule blocks
+            // Manual instructor Busy Time
             'instructor_schedule_block.view',
             'instructor_schedule_block.manage',
         ];

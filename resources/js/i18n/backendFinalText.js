@@ -421,8 +421,8 @@ export const backendFinalTranslations = {
     "Controls whether an instructor can fix an auto-recorded session.": "គ្រប់គ្រងថាតើគ្រូអាចកែតម្រូវវគ្គដែលបានកត់ត្រាដោយស្វ័យប្រវត្តិបានឬទេ។",
     "Select status": "ជ្រើសរើសស្ថានភាព",
 
-    // Instructor Schedule Blocks
-    "Instructor Schedule Blocks": "ការទប់ស្កាត់កាលវិភាគគ្រូបង្រៀន",
+    // Instructor Busy Time
+    "Instructor Busy Time": "ការទប់ស្កាត់កាលវិភាគគ្រូបង្រៀន",
     "Manually block a working instructor out of a specific day/time without changing their shift template.": "ទប់ស្កាត់ពេលវេលាធ្វើការរបស់គ្រូបង្រៀនដោយដៃ សម្រាប់ថ្ងៃ/ម៉ោងជាក់លាក់ណាមួយ ដោយមិនផ្លាស់ប្តូរគំរូវេនរបស់ពួកគេ។",
     "Select an instructor": "ជ្រើសរើសគ្រូបង្រៀន",
     "Select an instructor to view and block their working time.": "ជ្រើសរើសគ្រូបង្រៀនម្នាក់ ដើម្បីមើល និងទប់ស្កាត់ពេលវេលាធ្វើការរបស់ពួកគេ។",

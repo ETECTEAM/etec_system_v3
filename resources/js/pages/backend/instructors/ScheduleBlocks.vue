@@ -31,7 +31,7 @@ const isBlocking = ref(false)
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Schedule Blocks', current: true },
+  { label: 'Busy Time', current: true },
 ]
 
 onMounted(() => {
@@ -145,12 +145,12 @@ function applySlotUpdate(dayOfWeek, timeId, changes) {
 </script>
 
 <template>
-  <Head :title="$t('Schedule Blocks')" />
+  <Head :title="$t('Busy Time')" />
 
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="My Schedule" :title="$t('Schedule Blocks')" :description="$t('Block specific time slots when you are not available for class assignment.')" />
+      <PageHero eyebrow="My Schedule" :title="$t('Busy Time')" :description="$t('Block specific time slots when you are not available for class assignment.')" />
 
       <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="mb-4">
