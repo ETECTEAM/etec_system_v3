@@ -28,7 +28,7 @@ class ShiftTemplateSeeder extends Seeder
                 'name' => 'Morning & Evening (Mon-Thu + Weekend Morning)',
                 'code' => 'morning_evening_am',
                 'employment_type' => 'full_time',
-                'description' => 'Mon-Thu 09:00-12:00 & 17:00-20:30 + Sat-Sun 08:00-13:30, Friday off',
+                'description' => 'Mon-Thu 09:00-12:15 & 17:00-20:30 + Sat-Sun 08:00-13:30, Friday off',
                 'day_groups' => [
                     ['days' => $monToThu, 'period' => 'morning', 'start_time' => '09:00', 'end_time' => '12:00'],
                     ['days' => $monToThu, 'period' => 'evening', 'start_time' => '17:00', 'end_time' => '20:30'],
@@ -71,7 +71,7 @@ class ShiftTemplateSeeder extends Seeder
                 'name' => 'Morning & Evening (Mon-Thu + Weekend Afternoon)',
                 'code' => 'morning_evening_pm',
                 'employment_type' => 'full_time',
-                'description' => 'Mon-Thu 09:00-12:00 & 17:00-20:30 + Sat-Sun 11:00-17:00, Friday off',
+                'description' => 'Mon-Thu 09:00-12:15 & 17:00-20:30 + Sat-Sun 11:00-17:00, Friday off',
                 'day_groups' => [
                     ['days' => $monToThu, 'period' => 'morning', 'start_time' => '09:00', 'end_time' => '12:00'],
                     ['days' => $monToThu, 'period' => 'evening', 'start_time' => '17:00', 'end_time' => '20:30'],
