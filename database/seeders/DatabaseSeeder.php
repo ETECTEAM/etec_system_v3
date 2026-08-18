@@ -34,7 +34,6 @@ use Database\Seeders\Schedule\ScheduleSeeder;
 
 // Shift template seeders
 use Database\Seeders\Schedule\ShiftTemplateSeeder;
-use Database\Seeders\Instructor\InstructorAvailabilitySeeder;
 use Database\Seeders\Website\WebsiteMenuSeeder;
 
 // Login security seeders
@@ -56,34 +55,29 @@ class DatabaseSeeder extends Seeder
             LoginLockoutSeeder::class,
             GradingSettingSeeder::class,
 
-            // 2. Core/base data
+            // 2. Course data (needed for instructor specializations)
+            CategorySeeder::class,
+            SubCategorySeeder::class,
+
+            // 3. Core/base data
             CoreSeeder::class,
             ClassTypeSeeder::class,
             TermSeeder::class,
             TimeSeeder::class,
             BuildingSeeder::class,
 
-            // 3. Course data
-            CategorySeeder::class,
-            SubCategorySeeder::class,
+            // 4. Remaining course data
             CourseTrackSeeder::class,
             CourseSeeder::class,
 
-            // 4. Class relation data
-            // ClassSeeder already calls ClassTypeSeeder internally.
-            // study_classes is left empty so classes are created organically
-            // through the public registration flow instead of demo data.
+            // 5. Class relation data
             ClassSeeder::class,
             ScheduleSeeder::class,
 
-            // 5. Shift templates
+            // 6. Shift templates
             ShiftTemplateSeeder::class,
 
-            // One instructor per shift template, fully available, so every
-            // day/time combo has an instructor behind it for testing.
-            InstructorAvailabilitySeeder::class,
-
-            // 6. Public website defaults
+            // 7. Public website defaults
             WebsiteMenuSeeder::class,
         ]);
     }

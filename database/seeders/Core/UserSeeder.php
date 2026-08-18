@@ -2,7 +2,11 @@
 
 namespace Database\Seeders\Core;
 
+use App\Models\InstructorData;
+use App\Models\ShiftTemplate;
+use App\Models\SubCategory;
 use App\Models\User;
+use App\Modules\Instructor\Services\InstructorService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -18,17 +22,23 @@ class UserSeeder extends Seeder
         User::truncate();
         DB::table('model_has_roles')->truncate();
         DB::table('model_has_permissions')->truncate();
+        InstructorData::truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        $users = [
-            ['name' => 'Super Admin',    'email' => 'superadmin@etec.com', 'role' => 'super_admin'],
-            ['name' => 'Admin User',     'email' => 'admin@etec.com',      'role' => 'admin'],
-            ['name' => 'Instructor User','email' => 'instructor@etec.com', 'role' => 'instructor'],
-            ['name' => 'Student User',   'email' => 'student@etec.com',    'role' => 'student'],
-            ['name' => 'Test Student',   'email' => 'teststudent@etec.com','role' => 'student'],
+        $this->createAdmins();
+        $this->createInstructors();
+
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+    }
+
+    private function createAdmins(): void
+    {
+        $admins = [
+            ['name' => 'Super Admin', 'email' => 'superadmin@etec.com', 'role' => 'super_admin'],
+            ['name' => 'Admin User',  'email' => 'admin@etec.com',      'role' => 'admin'],
         ];
 
-        foreach ($users as $data) {
+        foreach ($admins as $data) {
             $user = User::create([
                 'name'     => $data['name'],
                 'email'    => $data['email'],
@@ -39,7 +49,40 @@ class UserSeeder extends Seeder
 
             $user->syncRoles([$data['role']]);
         }
+    }
 
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+    private function createInstructors(): void
+    {
+        $templates = ShiftTemplate::all();
+        $specializations = SubCategory::pluck('id')->toArray();
+
+        $instructors = [
+            ['name' => 'John Doe',   'email' => 'instructor@etec.com',  'phone' => '012345678'],
+            ['name' => 'Jane Smith', 'email' => 'instructor2@etec.com', 'phone' => '012345679'],
+        ];
+
+        foreach ($instructors as $index => $data) {
+            $user = User::create([
+                'name'     => $data['name'],
+                'email'    => $data['email'],
+                'password' => Hash::make('password'),
+                'role'     => 'instructor',
+                'status'   => 'active',
+            ]);
+
+            $user->syncRoles(['instructor']);
+
+            $template = $templates[$index % $templates->count()] ?? null;
+
+            InstructorData::create([
+                'user_id'            => $user->id,
+                'full_name'          => $data['name'],
+                'instructor_code'    => InstructorService::generateInstructorCode(),
+                'phone'              => $data['phone'],
+                'specialization'     => [$specializations[$index % count($specializations)]],
+                'employment_type'    => $template?->employment_type ?? 'full_time',
+                'shift_template_id'  => $template?->id,
+            ]);
+        }
     }
 }
