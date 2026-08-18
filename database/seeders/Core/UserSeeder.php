@@ -57,8 +57,16 @@ class UserSeeder extends Seeder
         $specializations = SubCategory::pluck('id')->toArray();
 
         $instructors = [
-            ['name' => 'John Doe',   'email' => 'instructor@etec.com',  'phone' => '012345678'],
-            ['name' => 'Jane Smith', 'email' => 'instructor2@etec.com', 'phone' => '012345679'],
+            ['name' => 'John Doe',           'email' => 'instructor@etec.com',     'phone' => '012345678'],
+            ['name' => 'Jane Smith',         'email' => 'instructor2@etec.com',    'phone' => '012345679'],
+            ['name' => 'Dara Sokha',         'email' => 'instructor3@etec.com',    'phone' => '012345680'],
+            ['name' => 'Sok Vannak',         'email' => 'instructor4@etec.com',    'phone' => '012345681'],
+            ['name' => 'Chheng Dara',        'email' => 'instructor5@etec.com',    'phone' => '012345682'],
+            ['name' => 'Lim Piseth',         'email' => 'instructor6@etec.com',    'phone' => '012345683'],
+            ['name' => 'Keo Bunny',          'email' => 'instructor7@etec.com',    'phone' => '012345684'],
+            ['name' => 'Srey Neang',         'email' => 'instructor8@etec.com',    'phone' => '012345685'],
+            ['name' => 'Pov Rattana',        'email' => 'instructor9@etec.com',    'phone' => '012345686'],
+            ['name' => 'Bopha Kem',          'email' => 'instructor10@etec.com',   'phone' => '012345687'],
         ];
 
         foreach ($instructors as $index => $data) {
@@ -72,7 +80,7 @@ class UserSeeder extends Seeder
 
             $user->syncRoles(['instructor']);
 
-            $template = $templates[$index % $templates->count()] ?? null;
+            $template = $templates[$index] ?? null;
 
             InstructorData::create([
                 'user_id'            => $user->id,

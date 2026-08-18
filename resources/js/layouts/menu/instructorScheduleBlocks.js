@@ -2,8 +2,8 @@ export function build(ctx) {
   if (ctx.isSuperAdmin || ctx.isAdmin) return null;
 
   return {
-    label: "Schedule Blocks",
-    labelKey: "navigation.instructorScheduleBlocks",
+    label: "Busy Time",
+    labelKey: "Busy Time",
     href: "/dashboard/instructor-schedule-blocks",
     match: ["/dashboard/instructor-schedule-blocks"],
     exact: false,
