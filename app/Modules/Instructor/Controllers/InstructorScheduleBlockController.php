@@ -18,24 +18,47 @@ class InstructorScheduleBlockController extends Controller
         5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday',
     ];
 
+    private const SHORT_DAY_LABELS = [
+        1 => 'Mon', 2 => 'Tue', 3 => 'Wed', 4 => 'Thu',
+        5 => 'Fri', 6 => 'Sat', 7 => 'Sun',
+    ];
+
     public function index(Request $request): Response
     {
-        $instructorData = $request->user()->instructorData()->first(['id', 'full_name']);
+        $instructorData = $request->user()->instructorData()
+            ->with(['workSchedule'])
+            ->first();
 
         abort_unless($instructorData, 404, 'No instructor profile found for this account.');
 
+        $availabilities = $instructorData->availabilities()
+            ->where('is_active', true)
+            ->get(['day_of_week', 'start_time', 'end_time']);
+
+        $workingDays = $availabilities->pluck('day_of_week')->unique()->sort()->values()->all();
+        $workingDayNames = array_map(fn (int $d) => self::SHORT_DAY_LABELS[$d] ?? (string) $d, $workingDays);
+
+        $workingHours = $availabilities->groupBy('day_of_week')->map(function ($daySlots) {
+            return $daySlots->map(fn ($s) => substr($s->start_time, 0, 5) . '–' . substr($s->end_time, 0, 5))->implode(' / ');
+        })->values()->implode(' · ');
+
         return Inertia::render('backend/instructors/ScheduleBlocks', [
             'instructorName' => $instructorData->full_name,
+            'workSchedule' => $instructorData->workSchedule
+                ? ['name' => $instructorData->workSchedule->name]
+                : null,
+            'workingDaysLabel' => $workingDayNames ? implode('–', [$workingDayNames[0], end($workingDayNames)]) : 'None',
+            'workingHours' => $workingHours,
         ]);
     }
 
-    // Everything one instructor's schedule-block page needs in one call, fully
-    // resolved server-side. Working windows come from InstructorAvailability -
-    // the materialized copy of whichever ShiftTemplate/shift_group the
-    // instructor is actually on. Only days with at least one working window
-    // are returned; every real Time record is classified per day as
-    // available / not_working / blocked so the frontend never has to
-    // re-derive time-range overlaps itself.
+    /**
+     * Returns a 7-day calendar structure. Every day of the week is always
+     * present so the frontend can render a fixed 7-column calendar. Days
+     * where the instructor has no WorkScheduleTime entries are marked as
+     * non-working. For working days, only Time records that are linked to
+     * the instructor's WorkSchedule for that day are shown.
+     */
     public function data(Request $request): JsonResponse
     {
         $instructorData = $request->user()->instructorData()->first();
@@ -43,44 +66,90 @@ class InstructorScheduleBlockController extends Controller
         abort_unless($instructorData, 404, 'No instructor profile found for this account.');
 
         $availabilities = $instructorData->availabilities()->where('is_active', true)->get(['day_of_week', 'start_time', 'end_time']);
-        $times = Time::query()->orderBy('id')->get(['id', 'time_name']);
         $blocks = $instructorData->scheduleBlocks()->where('status', InstructorScheduleBlock::STATUS_ACTIVE)->get(['id', 'day_of_week', 'time_id', 'reason']);
 
-        $schedule = $availabilities->pluck('day_of_week')->unique()->sort()->values()
-            ->map(function (int $day) use ($availabilities, $times, $blocks): array {
-                $dayAvailabilities = $availabilities->where('day_of_week', $day);
+        $workingDays = $availabilities->pluck('day_of_week')->unique()->sort()->values()->all();
+        $dayWindows = $availabilities->groupBy('day_of_week')
+            ->map(fn ($slots) => $slots->map(fn ($s) => [
+                'start' => substr($s->start_time, 0, 5),
+                'end' => substr($s->end_time, 0, 5),
+            ])->values());
+
+        // Load WorkScheduleTime records with their Time relation.
+        $workScheduleTimes = $instructorData->workSchedule
+            ? $instructorData->workSchedule->times()->with('time:id,time_name')->get()
+            : collect();
+
+        // Deduplicate by time_name: if the times table has duplicate entries
+        // with the same label but different IDs, we collapse them into one.
+        $timeNameToId = $workScheduleTimes
+            ->filter(fn ($wst) => $wst->time)
+            ->mapWithKeys(fn ($wst) => [$wst->time->time_name => $wst->time_id])
+            ->unique()
+            ->values()
+            ->flip(); // time_name => time_id
+
+        // Build a lookup of Time models keyed by ID.
+        $timeModels = $timeNameToId->isNotEmpty()
+            ? Time::query()->whereIn('id', $timeNameToId->values()->toArray())->get(['id', 'time_name'])->keyBy('id')
+            : collect();
+
+        // Group by day_of_week, deduplicate by time_name per day.
+        $dayTimeIds = $workScheduleTimes->groupBy('day_of_week')
+            ->map(fn ($entries) => $entries
+                ->map(fn ($wst) => [
+                    'time_id' => $wst->time_id,
+                    'time_name' => $wst->time?->time_name ?? '',
+                ])
+                ->unique('time_name')
+                ->pluck('time_id')
+                ->values()
+            );
+
+        $schedule = collect(range(1, 7))->map(function (int $day) use ($dayWindows, $workingDays, $blocks, $dayTimeIds, $timeModels): array {
+            $isWorking = in_array($day, $workingDays);
+
+            // Only Time records assigned to THIS day via WorkScheduleTime.
+            $dayTimeEntries = $dayTimeIds->get($day, collect());
+
+            $slots = $dayTimeEntries->map(function (int $timeId) use ($day, $isWorking, $dayWindows, $blocks, $timeModels): array {
+                $time = $timeModels->get($timeId);
+                $timeName = $time?->time_name ?? '';
+
+                $range = StudyClass::parseTimeRange($timeName);
+                $start = $range['start'] ?? null;
+                $end = $range['end'] ?? null;
+
+                $isAvailable = false;
+                if ($isWorking && $start !== null && $end !== null) {
+                    $isAvailable = ($dayWindows[$day] ?? collect())->contains(
+                        fn (array $w): bool => $w['start'] <= $start && $w['end'] >= $end
+                    );
+                }
+
+                $block = $blocks->first(fn (InstructorScheduleBlock $b): bool => $b->day_of_week === $day && $b->time_id === $timeId);
 
                 return [
-                    'day_of_week' => $day,
-                    'day_label' => self::DAY_LABELS[$day] ?? (string) $day,
-                    'slots' => $times->map(function (Time $time) use ($day, $dayAvailabilities, $blocks): array {
-                        $range = StudyClass::parseTimeRange($time->time_name);
-                        $start = $range['start'] ?? null;
-                        $end = $range['end'] ?? null;
-
-                        $isWorking = $start !== null && $end !== null && $dayAvailabilities->contains(
-                            fn ($availability): bool => substr($availability->start_time, 0, 5) <= $start && substr($availability->end_time, 0, 5) >= $end
-                        );
-
-                        $block = $blocks->first(fn (InstructorScheduleBlock $block): bool => $block->day_of_week === $day && $block->time_id === $time->id);
-
-                        return [
-                            'time_id' => $time->id,
-                            'time_name' => $time->time_name,
-                            'status' => $block !== null ? 'blocked' : ($isWorking ? 'available' : 'not_working'),
-                            'block_id' => $block?->id,
-                            'reason' => $block?->reason,
-                        ];
-                    })->values(),
+                    'time_id' => $timeId,
+                    'time_name' => $timeName,
+                    'status' => $block !== null ? 'blocked' : ($isAvailable ? 'available' : 'not_working'),
+                    'block_id' => $block?->id,
+                    'reason' => $block?->reason,
                 ];
             })->values();
+
+            return [
+                'day_of_week' => $day,
+                'day_label' => self::DAY_LABELS[$day] ?? (string) $day,
+                'is_working' => $isWorking,
+                'shift_windows' => $dayWindows[$day] ?? [],
+                'slots' => $slots,
+            ];
+        })->values();
 
         return response()->json(['schedule' => $schedule]);
     }
 
-    // Blocking only makes sense on a slot the instructor actually works -
-    // reject anything outside their InstructorAvailability windows for that
-    // day, and reject a second active block on the same (day, time) pair.
     public function store(Request $request): JsonResponse
     {
         $instructorData = $request->user()->instructorData()->first();

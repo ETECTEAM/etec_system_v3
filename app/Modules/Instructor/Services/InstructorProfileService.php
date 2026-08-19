@@ -5,7 +5,7 @@ namespace App\Modules\Instructor\Services;
 use App\Models\InstructorAttachment;
 use App\Models\InstructorAvailability;
 use App\Models\InstructorData;
-use App\Models\ShiftTemplate;
+use App\Models\WorkSchedule;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -23,8 +23,7 @@ class InstructorProfileService
                     'phone' => $data['phone'],
                     'specialization' => $data['specialization'] ?? null,
                     'employment_type' => $data['employment_type'],
-                    'shift_group' => $data['shift_group'] ?? null,
-                    'shift_template_id' => $data['shift_template_id'] ?? null,
+                    'work_schedule_id' => $data['work_schedule_id'] ?? null,
                     'available_for_class' => $data['available_for_class'] ?? true,
                     'status' => $data['status'] ?? true,
                     'headline' => $data['headline'] ?? null,
@@ -45,109 +44,66 @@ class InstructorProfileService
         });
     }
 
+    /**
+     * Regenerate InstructorAvailability rows from the instructor's WorkSchedule.
+     *
+     * WorkSchedule → WorkScheduleTime records define (day_of_week, time_id).
+     * Each WorkScheduleTime links to a Time record whose time_name encodes
+     * the start/end range (e.g. "09:00 am - 10:30 am").
+     */
     public function generateInstructorAvailabilities(InstructorData $instructor): void
     {
         InstructorAvailability::where('instructor_id', $instructor->id)->delete();
 
-        if ($instructor->shift_template_id) {
-            $template = ShiftTemplate::with('blocks')->find($instructor->shift_template_id);
-
-            if ($template && $template->blocks->isNotEmpty()) {
-                $availabilities = [];
-
-                foreach ($template->blocks as $block) {
-                    $availabilities[] = [
-                        'instructor_id' => $instructor->id,
-                        'day_of_week' => $block->day_of_week,
-                        'employment_type' => $template->employment_type ?? $instructor->employment_type,
-                        'shift_group' => $template->code,
-                        'period' => $block->period,
-                        'start_time' => $block->start_time,
-                        'end_time' => $block->end_time,
-                        'is_active' => true,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-
-                InstructorAvailability::insert($availabilities);
-                return;
-            }
-        }
-
-        $shiftGroup = $instructor->shift_group;
-        $employmentType = $instructor->employment_type;
-
-        if ($shiftGroup === 'custom' || $shiftGroup === null) {
+        if (! $instructor->work_schedule_id) {
             return;
         }
 
-        $patterns = [
-            'morning_afternoon' => [
-                'days' => [1, 2, 3, 4, 5],
-                'slots' => [
-                    ['period' => 'daytime', 'start' => '08:00', 'end' => '17:00'],
-                ],
-            ],
-            'morning_evening' => [
-                'days' => [1, 2, 3, 4, 5],
-                'slots' => [
-                    ['period' => 'morning', 'start' => '08:00', 'end' => '12:00'],
-                    ['period' => 'evening', 'start' => '17:00', 'end' => '20:30'],
-                ],
-            ],
-            'afternoon_evening_11' => [
-                'days' => [1, 2, 3, 4, 5],
-                'slots' => [
-                    ['period' => 'afternoon_evening', 'start' => '11:00', 'end' => '20:30'],
-                ],
-            ],
-            'afternoon_evening_1230' => [
-                'days' => [1, 2, 3, 4, 5],
-                'slots' => [
-                    ['period' => 'afternoon_evening', 'start' => '12:30', 'end' => '20:30'],
-                ],
-            ],
-            'weekend_morning' => [
-                'days' => [6, 7],
-                'slots' => [
-                    ['period' => 'morning', 'start' => '08:00', 'end' => '13:30'],
-                ],
-            ],
-            'weekend_afternoon' => [
-                'days' => [6, 7],
-                'slots' => [
-                    ['period' => 'afternoon', 'start' => '11:00', 'end' => '17:00'],
-                ],
-            ],
-        ];
+        $schedule = WorkSchedule::with(['times.time'])->find($instructor->work_schedule_id);
 
-        $pattern = $patterns[$shiftGroup] ?? null;
-
-        if ($pattern === null) {
+        if (! $schedule || $schedule->times->isEmpty()) {
             return;
         }
 
         $availabilities = [];
 
-        foreach ($pattern['days'] as $day) {
-            foreach ($pattern['slots'] as $slot) {
-                $availabilities[] = [
-                    'instructor_id' => $instructor->id,
-                    'day_of_week' => $day,
-                    'employment_type' => $employmentType,
-                    'shift_group' => $shiftGroup,
-                    'period' => $slot['period'],
-                    'start_time' => $slot['start'],
-                    'end_time' => $slot['end'],
-                    'is_active' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+        // Deduplicate by time_name: if the times table has duplicate entries
+        // with the same label but different IDs, collapse them.
+        $seen = [];
+
+        foreach ($schedule->times as $wst) {
+            $timeName = $wst->time?->time_name ?? '';
+            $range = \App\Models\StudyClass::parseTimeRange($timeName);
+            $start = $range['start'] ?? null;
+            $end = $range['end'] ?? null;
+
+            if ($start === null || $end === null) {
+                continue;
             }
+
+            $key = "{$wst->day_of_week}_{$timeName}";
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+
+            $availabilities[] = [
+                'instructor_id' => $instructor->id,
+                'day_of_week' => $wst->day_of_week,
+                'employment_type' => $instructor->employment_type,
+                'shift_group' => $schedule->code,
+                'period' => null,
+                'start_time' => $start,
+                'end_time' => $end,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
         }
 
-        InstructorAvailability::insert($availabilities);
+        if (! empty($availabilities)) {
+            InstructorAvailability::insert($availabilities);
+        }
     }
 
     public function saveAttachment(int $instructorId, UploadedFile $file, string $type, ?string $title = null, bool $isPrimary = false): InstructorAttachment

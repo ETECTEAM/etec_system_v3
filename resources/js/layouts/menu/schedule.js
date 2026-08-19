@@ -5,7 +5,8 @@ export function isRoute(path) {
   return (
     p.startsWith("/dashboard/terms") ||
     p.startsWith("/dashboard/times") ||
-    p.startsWith("/dashboard/schdule")
+    p.startsWith("/dashboard/schdule") ||
+    p.startsWith("/dashboard/work-schedules")
   );
 }
 
@@ -16,7 +17,7 @@ export function build(ctx) {
     label: "Schedule Management",
     labelKey: "navigation.scheduleManagement",
     key,
-    match: ["/dashboard/terms", "/dashboard/times", "/dashboard/schdule"],
+    match: ["/dashboard/terms", "/dashboard/times", "/dashboard/schdule", "/dashboard/work-schedules"],
     icon: "schedule",
     children: [
       {
@@ -52,6 +53,14 @@ export function build(ctx) {
           path === "/dashboard/schdule" ||
           path.startsWith("/dashboard/schdule/create") ||
           path.startsWith("/dashboard/schdule/edit"),
+      },
+      {
+        label: "Work Schedules",
+        labelKey: "navigation.workSchedules",
+        href: "/dashboard/work-schedules",
+        match: ["/dashboard/work-schedules"],
+        exact: false,
+        isActive: (path) => path.startsWith("/dashboard/work-schedules"),
       },
     ],
   };

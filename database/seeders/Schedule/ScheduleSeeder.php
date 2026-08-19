@@ -2,8 +2,10 @@
 
 namespace Database\Seeders\Schedule;
 
+use App\Models\Time;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -59,7 +61,7 @@ class ScheduleSeeder extends Seeder
                     '02:00 pm - 3:15 pm',
                     '03:30 pm - 05:00 pm',
                     '06:00 pm - 07:15 pm',
-                    '07:15 pm - 8:30 pm',
+                    '07:15 pm - 08:30 pm',
                 ],
             ],
             // Physical Class - Sat & Sun
@@ -83,7 +85,7 @@ class ScheduleSeeder extends Seeder
                     '02:00 pm - 3:15 pm',
                     '03:30 pm - 05:00 pm',
                     '06:00 pm - 07:15 pm',
-                    '07:15 pm - 8:30 pm',
+                    '07:15 pm - 08:30 pm',
                 ],
             ],
             // Online Class - Sat & Sun
@@ -107,7 +109,7 @@ class ScheduleSeeder extends Seeder
                     '02:00 pm - 3:15 pm',
                     '03:30 pm - 05:00 pm',
                     '06:00 pm - 07:15 pm',
-                    '07:15 pm - 8:30 pm',
+                    '07:15 pm - 08:30 pm',
                 ],
             ],
             // Basic - Mon & Thu
@@ -121,7 +123,7 @@ class ScheduleSeeder extends Seeder
                     '02:00 pm - 3:15 pm',
                     '03:30 pm - 05:00 pm',
                     '06:00 pm - 07:15 pm',
-                    '07:15 pm - 8:30 pm',
+                    '07:15 pm - 08:30 pm',
                 ],
             ],
             // Basic - Wed & Thu
@@ -135,7 +137,7 @@ class ScheduleSeeder extends Seeder
                     '02:00 pm - 3:15 pm',
                     '03:30 pm - 05:00 pm',
                     '06:00 pm - 07:15 pm',
-                    '07:15 pm - 8:30 pm',
+                    '07:15 pm - 08:30 pm',
                 ],
             ],
             // Basic - Saturday
@@ -236,10 +238,16 @@ class ScheduleSeeder extends Seeder
             return (int) $id;
         }
 
-        return (int) DB::table('times')->insertGetId([
+        $id = (int) DB::table('times')->insertGetId([
             'time_name' => $timeName,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
+
+        // Raw insertGetId() bypasses Eloquent events, so the cached list
+        // used by TimeController::index() won't self-invalidate.
+        Cache::forget(Time::CACHE_KEY);
+
+        return $id;
     }
 }

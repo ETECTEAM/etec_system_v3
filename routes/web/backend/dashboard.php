@@ -15,7 +15,7 @@ Route::middleware(['auth', 'active', 'permission:dashboard.view'])->group(functi
 
         if ($user->hasRole('instructor')) {
             $instructorData = $user->instructorData()
-                ->with(['profilePhoto', 'cvFile', 'attachments', 'shiftTemplate'])
+                ->with(['profilePhoto', 'cvFile', 'attachments'])
                 ->first();
 
             return inertia('backend/InstructorDashboard', [
@@ -27,7 +27,6 @@ Route::middleware(['auth', 'active', 'permission:dashboard.view'])->group(functi
                 'otherAttachments' => $instructorData?->attachments
                     ->whereNotIn('type', ['profile_photo', 'cv'])
                     ->values(),
-                'shiftTemplate' => $instructorData?->shiftTemplate,
             ]);
         }
 

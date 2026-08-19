@@ -5,7 +5,7 @@ namespace App\Modules\Instructor\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Instructor\Requests\InstructorProfileRequest;
 use App\Modules\Instructor\Services\InstructorProfileService;
-use App\Models\ShiftTemplate;
+use App\Models\WorkSchedule;
 use App\Models\SubCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,7 +24,7 @@ class InstructorProfileController extends Controller
         abort_unless($request->user()?->can('instructor_profile.view'), 403);
 
         $instructorData = $request->user()?->instructorData()
-            ->with(['profilePhoto', 'cvFile', 'attachments', 'shiftTemplate'])
+            ->with(['profilePhoto', 'cvFile', 'attachments', 'workSchedule'])
             ->first();
 
         return Inertia::render('backend/instructors/ShowProfile', [
@@ -34,7 +34,7 @@ class InstructorProfileController extends Controller
             'otherAttachments' => $instructorData?->attachments
                 ->whereNotIn('type', ['profile_photo', 'cv'])
                 ->values(),
-            'shiftTemplate' => $instructorData?->shiftTemplate,
+            'workSchedule' => $instructorData?->workSchedule,
         ]);
     }
 
@@ -54,9 +54,9 @@ class InstructorProfileController extends Controller
             'otherAttachments' => $instructorData?->attachments
                 ->whereNotIn('type', ['profile_photo', 'cv'])
                 ->values(),
-            'shiftTemplates' => ShiftTemplate::where('is_active', true)
+            'workSchedules' => WorkSchedule::where('is_active', true)
                 ->orderBy('name')
-                ->get(['id', 'name', 'code', 'employment_type']),
+                ->get(['id', 'name', 'code', 'description']),
             // Specialization options - instructors pick from the same sub-categories
             // courses are tagged with, so RegisterStudentForSchedule's specialization
             // matching (see bestFieldMatch()) has something exact to compare against.
@@ -83,7 +83,7 @@ class InstructorProfileController extends Controller
             || $data['phone'] !== $instructorData->phone
             || ($data['specialization'] ?? []) != ($instructorData->specialization ?? [])
             || $data['employment_type'] !== $instructorData->employment_type
-            || $data['shift_template_id'] != $instructorData->shift_template_id
+            || ($data['work_schedule_id'] ?? null) != $instructorData->work_schedule_id
             || $data['headline'] !== $instructorData->headline
             || $data['bio'] !== $instructorData->bio
             || ($data['date_of_birth'] ?? null) !== ($instructorData->date_of_birth?->format('Y-m-d'))

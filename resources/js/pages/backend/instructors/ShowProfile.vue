@@ -8,7 +8,6 @@ const instructorData = page.props.instructorData ?? null
 const profilePhoto = page.props.profilePhoto ?? null
 const cvFile = page.props.cvFile ?? null
 const otherAttachments = page.props.otherAttachments ?? []
-const shiftTemplate = page.props.shiftTemplate ?? null
 
 const user = computed(() => page.props.auth?.user ?? {})
 const userEmail = computed(() => user.value?.email ?? 'Not provided')
@@ -200,10 +199,6 @@ function formatFileSize(bytes) {
               <div class="flex justify-between border-b border-slate-100 pb-2 text-sm dark:border-gray-800">
                 <span class="text-slate-500 dark:text-gray-400">{{ $t('Employment Type') }}</span>
                 <span class="font-medium capitalize text-slate-900 dark:text-gray-100">{{ instructorData.employment_type?.replace('_', ' ') ?? 'Not provided' }}</span>
-              </div>
-              <div class="flex justify-between border-b border-slate-100 pb-2 text-sm dark:border-gray-800">
-                <span class="text-slate-500 dark:text-gray-400">{{ $t('Shift Template') }}</span>
-                <span class="font-medium text-slate-900 dark:text-gray-100">{{ shiftTemplate?.name ?? 'Not assigned' }}</span>
               </div>
               <div class="flex justify-between border-b border-slate-100 pb-2 text-sm dark:border-gray-800">
                 <span class="text-slate-500 dark:text-gray-400">{{ $t('Available for Class') }}</span>

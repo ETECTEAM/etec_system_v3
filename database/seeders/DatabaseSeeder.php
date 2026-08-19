@@ -32,8 +32,6 @@ use Database\Seeders\Term\TermSeeder;
 use Database\Seeders\Time\TimeSeeder;
 use Database\Seeders\Schedule\ScheduleSeeder;
 
-// Shift template seeders
-use Database\Seeders\Schedule\ShiftTemplateSeeder;
 use Database\Seeders\Website\WebsiteMenuSeeder;
 
 // Login security seeders
@@ -74,10 +72,7 @@ class DatabaseSeeder extends Seeder
             ClassSeeder::class,
             ScheduleSeeder::class,
 
-            // 6. Shift templates
-            ShiftTemplateSeeder::class,
-
-            // 7. Public website defaults
+            // 6. Public website defaults
             WebsiteMenuSeeder::class,
         ]);
     }

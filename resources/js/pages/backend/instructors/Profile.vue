@@ -11,7 +11,7 @@ const toast = useToast()
 const page = usePage()
 const user = page.props.user ?? {}
 const instructorData = page.props.instructorData ?? null
-const shiftTemplates = computed(() => page.props.shiftTemplates ?? [])
+const workSchedules = computed(() => page.props.workSchedules ?? [])
 const subCategories = computed(() => page.props.subCategories ?? [])
 const profilePhotoProp = page.props.profilePhoto ?? null
 const cvFileProp = page.props.cvFile ?? null
@@ -27,10 +27,8 @@ const genderOptions = [
   { label: 'Other', value: 'other' },
 ]
 
-const filteredShiftTemplateOptions = computed(() =>
-  shiftTemplates.value
-    .filter((t) => !form.employment_type || t.employment_type === form.employment_type)
-    .map((t) => ({ label: t.name, value: String(t.id) }))
+const workScheduleOptions = computed(() =>
+  workSchedules.value.map((ws) => ({ label: ws.name, value: String(ws.id) }))
 )
 
 const initialValues = {
@@ -39,7 +37,7 @@ const initialValues = {
   phone: instructorData?.phone ?? '',
   specialization: [...(instructorData?.specialization ?? [])],
   employment_type: instructorData?.employment_type ?? '',
-  shift_template_id: instructorData?.shift_template_id ? String(instructorData.shift_template_id) : '',
+  work_schedule_id: instructorData?.work_schedule_id ? String(instructorData.work_schedule_id) : '',
   headline: instructorData?.headline ?? '',
   bio: instructorData?.bio ?? '',
   date_of_birth: instructorData?.date_of_birth ?? '',
@@ -58,7 +56,7 @@ const form = useForm({
   phone: instructorData?.phone ?? '',
   specialization: [...(instructorData?.specialization ?? [])],
   employment_type: instructorData?.employment_type ?? '',
-  shift_template_id: instructorData?.shift_template_id ? String(instructorData.shift_template_id) : '',
+  work_schedule_id: instructorData?.work_schedule_id ? String(instructorData.work_schedule_id) : '',
   headline: instructorData?.headline ?? '',
   bio: instructorData?.bio ?? '',
   date_of_birth: instructorData?.date_of_birth ?? '',
@@ -85,7 +83,7 @@ const isDirty = computed(() => {
   if (form.phone !== initialValues.phone) return true
   if (JSON.stringify([...form.specialization].sort()) !== JSON.stringify([...initialValues.specialization].sort())) return true
   if (form.employment_type !== initialValues.employment_type) return true
-  if (form.shift_template_id !== initialValues.shift_template_id) return true
+  if (form.work_schedule_id !== initialValues.work_schedule_id) return true
   if (form.headline !== initialValues.headline) return true
   if (form.bio !== initialValues.bio) return true
   if (form.date_of_birth !== initialValues.date_of_birth) return true
@@ -99,10 +97,6 @@ const isDirty = computed(() => {
   if (profilePhotoFile.value !== null) return true
   if (cvFileObj.value !== null) return true
   return false
-})
-
-watch(() => form.employment_type, () => {
-  form.shift_template_id = ''
 })
 
 watch(() => page.props.flash, (flash) => {
@@ -166,7 +160,7 @@ function submit() {
       initialValues.phone = form.phone
       initialValues.specialization = [...form.specialization]
       initialValues.employment_type = form.employment_type
-      initialValues.shift_template_id = form.shift_template_id
+      initialValues.work_schedule_id = form.work_schedule_id
       initialValues.headline = form.headline
       initialValues.bio = form.bio
       initialValues.date_of_birth = form.date_of_birth
@@ -288,16 +282,15 @@ function submit() {
               </div>
 
               <label class="block">
-                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Shift Template') }}</span>
+                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Work Schedule') }}</span>
                 <SelectSearch
-                  v-model="form.shift_template_id"
-                  :options="filteredShiftTemplateOptions"
-                  :disabled="!form.employment_type"
-                  :placeholder="$t('Select a shift template')"
+                  v-model="form.work_schedule_id"
+                  :options="workScheduleOptions"
+                  :placeholder="$t('Select a work schedule')"
                   button-class="flex w-full h-11 items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-900 dark:disabled:text-gray-500"
                 />
-                <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">{{ $t('Availabilities will be auto-generated from the selected template.') }}</p>
-                <span v-if="form.errors.shift_template_id" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.shift_template_id }}</span>
+                <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">{{ $t('Your working availability will be derived from the selected schedule.') }}</p>
+                <span v-if="form.errors.work_schedule_id" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.work_schedule_id }}</span>
               </label>
             </div>
           </div>

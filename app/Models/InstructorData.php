@@ -17,7 +17,7 @@ class InstructorData extends Model
         'specialization',
         'employment_type',
         'shift_group',
-        'shift_template_id',
+        'work_schedule_id',
         'available_for_class',
         'status',
         'headline',
@@ -49,9 +49,9 @@ class InstructorData extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function shiftTemplate(): BelongsTo
+    public function workSchedule(): BelongsTo
     {
-        return $this->belongsTo(ShiftTemplate::class);
+        return $this->belongsTo(WorkSchedule::class);
     }
 
     public function availabilities(): HasMany

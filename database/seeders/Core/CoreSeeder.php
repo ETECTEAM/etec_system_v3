@@ -2,7 +2,6 @@
 
 namespace Database\Seeders\Core;
 
-use Database\Seeders\Schedule\ShiftTemplateSeeder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -20,7 +19,6 @@ class CoreSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             AssignPermissionSeeder::class,
-            ShiftTemplateSeeder::class,
             UserSeeder::class,
         ]);
 

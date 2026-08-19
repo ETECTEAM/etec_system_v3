@@ -5,6 +5,7 @@ namespace Database\Seeders\Time;
 use App\Models\Time;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class TimeSeeder extends Seeder
@@ -32,7 +33,6 @@ class TimeSeeder extends Seeder
             '11:00 am - 01:30 pm',
             '02:00 pm - 05:00 pm',
             '09:00 am - 11:00 am',
-            '11:00 am - 01:30 pm',
             '03:30 pm - 05:30 pm',
             '05:30 pm - 07:30 pm',
         ];
@@ -42,5 +42,9 @@ class TimeSeeder extends Seeder
             'created_at' => now(),
             'updated_at' => now(),
         ], $times));
+
+        // truncate()/insert() bypass Eloquent events, so the cached list
+        // used by TimeController::index() won't self-invalidate.
+        Cache::forget(Time::CACHE_KEY);
     }
 }

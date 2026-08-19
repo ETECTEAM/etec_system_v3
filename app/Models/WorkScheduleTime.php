@@ -5,14 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ShiftTemplateBlock extends Model
+class WorkScheduleTime extends Model
 {
     protected $fillable = [
-        'shift_template_id',
+        'work_schedule_id',
         'day_of_week',
-        'period',
-        'start_time',
-        'end_time',
+        'time_id',
     ];
 
     protected function casts(): array
@@ -22,8 +20,13 @@ class ShiftTemplateBlock extends Model
         ];
     }
 
-    public function shiftTemplate(): BelongsTo
+    public function workSchedule(): BelongsTo
     {
-        return $this->belongsTo(ShiftTemplate::class);
+        return $this->belongsTo(WorkSchedule::class);
+    }
+
+    public function time(): BelongsTo
+    {
+        return $this->belongsTo(Time::class);
     }
 }

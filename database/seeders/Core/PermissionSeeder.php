@@ -146,12 +146,12 @@ class PermissionSeeder extends Seeder
             // Dashboard / access
             'dashboard.view',
 
-            // Shift template management
-            'shift_template.view',
-            'shift_template.create',
-            'shift_template.update',
-            'shift_template.delete',
-            'shift_template.manage',
+            // Work schedule management
+            'work_schedule.view',
+            'work_schedule.create',
+            'work_schedule.update',
+            'work_schedule.delete',
+            'work_schedule.manage',
 
             // Instructor profile
             'instructor_profile.view',

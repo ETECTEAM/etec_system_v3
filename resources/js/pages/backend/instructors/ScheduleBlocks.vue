@@ -1,17 +1,20 @@
 <script setup>
 import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'vue-toastification'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
-import { Ban, X } from '@lucide/vue'
+import { Ban, X, CalendarOff } from '@lucide/vue'
 import { useConfirm } from '../../../composables/useConfirm'
 import { useI18n } from '@/i18n'
 
 const props = defineProps({
   instructorName: { type: String, default: '' },
+  workSchedule: { type: Object, default: null },
+  workingDaysLabel: { type: String, default: '' },
+  workingHours: { type: String, default: '' },
 })
 
 const { t } = useI18n()
@@ -23,15 +26,13 @@ const isLoading = ref(false)
 const hasLoaded = ref(false)
 const savingKey = ref(null)
 
-// The slot currently open in the "Block this slot" modal, or null. Only ever
-// an 'available' slot - blocked/not_working slots use different actions.
 const blockModal = ref(null)
 const blockReason = ref('')
 const isBlocking = ref(false)
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Busy Time', current: true },
+  { label: 'My Availability', current: true },
 ]
 
 onMounted(() => {
@@ -53,20 +54,42 @@ async function fetchSchedule() {
   }
 }
 
-const statusStyles = {
-  available: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400',
-  not_working: 'border-slate-200 bg-slate-50 text-slate-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400',
-  blocked: 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400',
+const maxSlotRows = computed(() => {
+  if (schedule.value.length === 0) return 0
+  return Math.max(...schedule.value.map((d) => d.slots.length), 1)
+})
+
+const statusConfig = {
+  available: {
+    card: 'border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10',
+    badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400',
+    label: 'Available',
+  },
+  not_working: {
+    card: 'border-slate-200 bg-slate-50 dark:border-gray-700 dark:bg-gray-800/50',
+    badge: 'bg-slate-100 text-slate-500 dark:bg-gray-700 dark:text-gray-400',
+    label: 'Outside Shift',
+  },
+  blocked: {
+    card: 'border-red-200 bg-red-50 dark:border-red-500/20 dark:bg-red-500/10',
+    badge: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400',
+    label: 'Unavailable',
+  },
 }
 
-const statusLabels = {
-  available: 'Available',
-  not_working: 'Not Working',
-  blocked: 'Manual Blocked',
+function formatTimeRange(timeName) {
+  const match = timeName?.match(/\(([^)]+)\)/)
+  if (match) return match[1]
+  return timeName ?? ''
 }
 
 function openBlockModal(day, slot) {
-  blockModal.value = { day_of_week: day.day_of_week, day_label: day.day_label, time_id: slot.time_id, time_name: slot.time_name }
+  blockModal.value = {
+    day_of_week: day.day_of_week,
+    day_label: day.day_label,
+    time_id: slot.time_id,
+    time_name: slot.time_name,
+  }
   blockReason.value = ''
 }
 
@@ -106,7 +129,7 @@ async function submitBlock() {
 async function unblockSlot(day, slot) {
   const ok = await confirm({
     title: t('Remove this block?'),
-    message: t('This makes :time on :day available again.', { time: slot.time_name, day: day.day_label }),
+    message: t('This makes :time on :day available again.', { time: formatTimeRange(slot.time_name), day: day.day_label }),
     confirmText: t('Unblock'),
     danger: true,
   })
@@ -145,66 +168,135 @@ function applySlotUpdate(dayOfWeek, timeId, changes) {
 </script>
 
 <template>
-  <Head :title="$t('Busy Time')" />
+  <Head :title="$t('My Availability')" />
 
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="My Schedule" :title="$t('Busy Time')" :description="$t('Block specific time slots when you are not available for class assignment.')" />
+      <PageHero
+        eyebrow="My Availability"
+        :title="$t('My Availability')"
+        :description="$t('View your weekly schedule and block time slots when you are not available for class assignment.')"
+      />
 
+      <!-- Instructor info card -->
       <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div class="mb-4">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">{{ $t('Instructor') }}</h2>
-          <p class="mt-1 text-base font-semibold text-slate-900 dark:text-gray-100">{{ instructorName }}</p>
-        </div>
-
-        <div class="mt-6">
-          <p v-if="hasLoaded && schedule.length === 0" class="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-gray-700 dark:text-gray-400">
-            {{ $t('You have no working schedule yet.') }}
-          </p>
-
-          <div v-for="(day, dayIndex) in schedule" :key="day.day_of_week" :class="dayIndex > 0 ? 'mt-8' : ''">
-            <h3 class="mb-2 text-base font-semibold text-slate-900 dark:text-gray-100">{{ day.day_label }}</h3>
-
-            <div class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 dark:divide-gray-800 dark:border-gray-800">
-              <div v-for="slot in day.slots" :key="slot.time_id" class="flex flex-wrap items-center justify-between gap-3 bg-white px-4 py-3 dark:bg-gray-900">
-                <div>
-                  <p class="text-sm font-medium text-slate-700 dark:text-gray-300">{{ slot.time_name }}</p>
-                  <p v-if="slot.status === 'blocked' && slot.reason" class="mt-0.5 text-xs text-slate-400 dark:text-gray-500">{{ slot.reason }}</p>
-                </div>
-
-                <div class="flex items-center gap-2">
-                  <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold" :class="statusStyles[slot.status]">
-                    {{ $t(statusLabels[slot.status]) }}
-                  </span>
-
-                  <button
-                    v-if="slot.status === 'available'"
-                    type="button"
-                    class="inline-flex items-center gap-1 rounded-lg border border-dashed border-red-300 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-500/40 dark:text-red-400 dark:hover:bg-red-500/10"
-                    @click="openBlockModal(day, slot)"
-                  >
-                    <Ban class="h-3.5 w-3.5" />
-                    {{ $t('Block') }}
-                  </button>
-
-                  <button
-                    v-else-if="slot.status === 'blocked'"
-                    type="button"
-                    :disabled="savingKey === `${day.day_of_week}:${slot.time_id}`"
-                    class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-                    @click="unblockSlot(day, slot)"
-                  >
-                    {{ $t('Unblock') }}
-                  </button>
-                </div>
-              </div>
-            </div>
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div class="space-y-1">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">{{ $t('Instructor') }}</h2>
+            <p class="text-base font-semibold text-slate-900 dark:text-gray-100">{{ instructorName }}</p>
           </div>
+
+          <div v-if="workSchedule" class="space-y-1">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">{{ $t('Work Schedule') }}</h2>
+            <p class="text-base font-semibold text-slate-900 dark:text-gray-100">{{ workSchedule.name }}</p>
+          </div>
+
+          <div v-if="workingDaysLabel" class="space-y-1">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">{{ $t('Working') }}</h2>
+            <p class="text-sm text-slate-700 dark:text-gray-300">
+              <span class="font-semibold">{{ workingDaysLabel }}</span>
+              <span v-if="workingHours" class="ml-2 text-slate-500 dark:text-gray-400">{{ workingHours }}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <p v-if="hasLoaded && schedule.length === 0" class="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-gray-700 dark:text-gray-400">
+        {{ $t('You have no working schedule yet.') }}
+      </p>
+
+      <!-- Weekly calendar -->
+      <div v-else-if="schedule.length > 0" class="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[900px] border-collapse">
+            <thead>
+              <tr>
+                <th
+                  v-for="day in schedule"
+                  :key="day.day_of_week"
+                  class="border-b border-slate-200 px-3 py-3 text-center dark:border-gray-800"
+                >
+                  <span class="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-gray-300">
+                    {{ day.day_label }}
+                  </span>
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-for="rowIndex in maxSlotRows" :key="rowIndex">
+                <td
+                  v-for="day in schedule"
+                  :key="`${day.day_of_week}-${rowIndex}`"
+                  class="border-b border-slate-100 px-2 py-2 align-top last:border-b-0 dark:border-gray-800"
+                >
+                  <!-- Non-working day: show OFF -->
+                  <div v-if="!day.is_working" class="flex flex-col items-center justify-center py-6">
+                    <CalendarOff class="mb-2 h-6 w-6 text-slate-300 dark:text-gray-600" />
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">OFF</span>
+                    <span class="mt-1 text-[11px] text-slate-400 dark:text-gray-600">{{ $t('No working schedule') }}</span>
+                  </div>
+
+                  <!-- Working day: show slot card -->
+                  <div
+                    v-else-if="day.slots[rowIndex - 1]"
+                    class="rounded-lg border p-2.5 transition"
+                    :class="statusConfig[day.slots[rowIndex - 1].status]?.card"
+                  >
+                    <p class="text-xs font-semibold text-slate-700 dark:text-gray-200">
+                      {{ formatTimeRange(day.slots[rowIndex - 1].time_name) }}
+                    </p>
+
+                    <span
+                      class="mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                      :class="statusConfig[day.slots[rowIndex - 1].status]?.badge"
+                    >
+                      {{ $t(statusConfig[day.slots[rowIndex - 1].status]?.label) }}
+                    </span>
+
+                    <p
+                      v-if="day.slots[rowIndex - 1].status === 'blocked' && day.slots[rowIndex - 1].reason"
+                      class="mt-1 text-[11px] text-slate-500 dark:text-gray-400"
+                    >
+                      {{ day.slots[rowIndex - 1].reason }}
+                    </p>
+
+                    <div class="mt-2">
+                      <button
+                        v-if="day.slots[rowIndex - 1].status === 'available'"
+                        type="button"
+                        class="inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-red-300 px-2 py-1 text-[11px] font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-500/40 dark:text-red-400 dark:hover:bg-red-500/10"
+                        @click="openBlockModal(day, day.slots[rowIndex - 1])"
+                      >
+                        <Ban class="h-3 w-3" />
+                        {{ $t('Block') }}
+                      </button>
+
+                      <button
+                        v-else-if="day.slots[rowIndex - 1].status === 'blocked'"
+                        type="button"
+                        :disabled="savingKey === `${day.day_of_week}:${day.slots[rowIndex - 1].time_id}`"
+                        class="inline-flex w-full items-center justify-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                        @click="unblockSlot(day, day.slots[rowIndex - 1])"
+                      >
+                        {{ $t('Unblock') }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Empty cell for non-working days in rows below -->
+                  <div v-else-if="!day.is_working" class="py-6" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
 
+    <!-- Block modal -->
     <div
       v-if="blockModal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4"
@@ -214,7 +306,7 @@ function applySlotUpdate(dayOfWeek, timeId, changes) {
         <div class="flex items-start justify-between gap-3">
           <div>
             <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Block this slot') }}</h3>
-            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ blockModal.day_label }} · {{ blockModal.time_name }}</p>
+            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ blockModal.day_label }} &middot; {{ formatTimeRange(blockModal.time_name) }}</p>
           </div>
           <button
             type="button"

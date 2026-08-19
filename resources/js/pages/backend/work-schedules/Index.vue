@@ -10,54 +10,49 @@ import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from '@
 import { Pagination } from '@/components/ui/pagination'
 
 const props = defineProps({
-  templates: Object,
+  schedules: Object,
   filters: Object,
 })
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Shift Templates', current: true },
+  { label: 'Work Schedules', current: true },
 ]
 
-// Search
 const search = ref(props.filters.search ?? '')
 let timeout = null
 
 watch(search, (value) => {
   clearTimeout(timeout)
   timeout = setTimeout(() => {
-    router.get('/dashboard/shift-templates', { search: value, page: 1 }, { preserveState: true, replace: true })
+    router.get('/dashboard/work-schedules', { search: value, page: 1 }, { preserveState: true, replace: true })
   }, 400)
 })
 
 function goToPage(page) {
-  router.get('/dashboard/shift-templates', { search: search.value, page }, { preserveState: true, preserveScroll: true, replace: true })
+  router.get('/dashboard/work-schedules', { search: search.value, page }, { preserveState: true, preserveScroll: true, replace: true })
 }
 
-function employmentLabel(type) {
-  if (!type) return '—'
-  return type === 'full_time' ? 'Full Time' : 'Part Time'
-}
+const DAY_LABELS = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun' }
 
-// Delete modal
 const showDeleteModal = ref(false)
 const deleteItem = ref(null)
 
-const confirmDelete = (template) => {
-  deleteItem.value = template
+const confirmDelete = (schedule) => {
+  deleteItem.value = schedule
   showDeleteModal.value = true
 }
 
-const deleteTemplate = () => {
+const deleteSchedule = () => {
   if (deleteItem.value) {
-    router.delete(`/dashboard/shift-templates/${deleteItem.value.id}`, {
+    router.delete(`/dashboard/work-schedules/${deleteItem.value.id}`, {
       preserveScroll: true,
       onSuccess: () => {
         showDeleteModal.value = false
         deleteItem.value = null
       },
       onError: (errors) => {
-        alert(errors.message || 'Failed to delete shift template')
+        alert(errors.message || 'Failed to delete work schedule')
       }
     })
   }
@@ -71,8 +66,8 @@ const deleteTemplate = () => {
 
       <PageHero
         eyebrow="Schedule Management"
-        :title="$t('Shift Templates')"
-        :description="$t('Create and manage instructor shift templates.')"
+        :title="$t('Work Schedules')"
+        :description="$t('Define instructor working availability by day and time slot.')"
         class="mb-6"
       />
 
@@ -80,8 +75,8 @@ const deleteTemplate = () => {
         <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div class="min-w-0 shrink-0">
-              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-gray-500">{{ $t('Template Directory') }}</p>
-              <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t('Create and manage instructor shift templates.') }}</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-gray-500">{{ $t('Schedule Directory') }}</p>
+              <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t('Define instructor working availability by day and time slot.') }}</p>
             </div>
 
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
@@ -90,17 +85,17 @@ const deleteTemplate = () => {
                 <input
                     v-model="search"
                     type="text"
-                    :placeholder="$t('Search templates...')"
+                    :placeholder="$t('Search schedules...')"
                     class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:w-56 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                 >
               </div>
 
               <Link
-                  href="/dashboard/shift-templates/create"
+                  href="/dashboard/work-schedules/create"
                   class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
               >
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                {{ $t('Create Template') }}
+                {{ $t('Create Schedule') }}
               </Link>
             </div>
           </div>
@@ -112,38 +107,34 @@ const deleteTemplate = () => {
               <TableRow>
                 <TableHead>{{ $t('Name') }}</TableHead>
                 <TableHead>{{ $t('Code') }}</TableHead>
-                <TableHead>{{ $t('Type') }}</TableHead>
-                <TableHead class="text-center">{{ $t('Blocks') }}</TableHead>
+                <TableHead class="text-center">{{ $t('Slots') }}</TableHead>
                 <TableHead class="text-center">{{ $t('Active') }}</TableHead>
                 <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="template in templates.data" :key="template.id">
+              <TableRow v-for="schedule in schedules.data" :key="schedule.id">
                 <TableCell>
-                  <span class="text-sm font-medium text-slate-900 dark:text-gray-100">{{ template.name }}</span>
+                  <span class="text-sm font-medium text-slate-900 dark:text-gray-100">{{ schedule.name }}</span>
                 </TableCell>
                 <TableCell>
-                  <code class="text-xs bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 px-2 py-1 rounded-md">{{ template.code }}</code>
-                </TableCell>
-                <TableCell>
-                  <span class="text-sm text-slate-600 dark:text-gray-300">{{ $t(employmentLabel(template.employment_type)) }}</span>
+                  <code class="text-xs bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 px-2 py-1 rounded-md">{{ schedule.code }}</code>
                 </TableCell>
                 <TableCell class="text-center">
-                  <span class="text-sm text-slate-600 dark:text-gray-300">{{ template.blocks_count }}</span>
+                  <span class="text-sm text-slate-600 dark:text-gray-300">{{ schedule.times_count }}</span>
                 </TableCell>
                 <TableCell class="text-center">
-                  <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="template.is_active ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-gray-800 dark:text-gray-400'">
-                    {{ template.is_active ? $t('Yes') : $t('No') }}
+                  <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="schedule.is_active ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-gray-800 dark:text-gray-400'">
+                    {{ schedule.is_active ? $t('Yes') : $t('No') }}
                   </span>
                 </TableCell>
                 <TableCell class="text-right">
                   <div class="flex justify-end gap-2">
                     <Link
-                        :href="`/dashboard/shift-templates/${template.id}/edit`"
+                        :href="`/dashboard/work-schedules/${schedule.id}/edit`"
                         class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
                         :title="$t('Edit')"
-                        :aria-label="$t('Edit template')"
+                        :aria-label="$t('Edit schedule')"
                     >
                       <Pencil class="h-4 w-4" />
                     </Link>
@@ -152,8 +143,8 @@ const deleteTemplate = () => {
                         type="button"
                         class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
                         :title="$t('Delete')"
-                        :aria-label="$t('Delete template')"
-                        @click="confirmDelete(template)"
+                        :aria-label="$t('Delete schedule')"
+                        @click="confirmDelete(schedule)"
                     >
                       <Trash2 class="h-4 w-4" />
                     </button>
@@ -161,30 +152,24 @@ const deleteTemplate = () => {
                 </TableCell>
               </TableRow>
 
-              <!-- Empty state: no templates exist at all -->
-              <TableRow v-if="!templates.data.length && !search">
-                <TableCell colspan="6" class="px-4 py-16 text-center">
-                  <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
-                      viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              <TableRow v-if="!schedules.data.length && !search">
+                <TableCell colspan="5" class="px-4 py-16 text-center">
+                  <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
-                  <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No shift templates yet') }}</p>
-                  <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ $t('Create your first shift template to start scheduling') }}</p>
-                  <Link href="/dashboard/shift-templates/create"
+                  <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No work schedules yet') }}</p>
+                  <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ $t('Create your first work schedule to define instructor availability.') }}</p>
+                  <Link href="/dashboard/work-schedules/create"
                       class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                    + {{ $t('Create Template') }}
+                    + {{ $t('Create Schedule') }}
                   </Link>
                 </TableCell>
               </TableRow>
 
-              <!-- Empty state: search found nothing -->
-              <TableRow v-else-if="!templates.data.length">
-                <TableCell colspan="6" class="px-4 py-16 text-center">
-                  <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
-                      viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <TableRow v-else-if="!schedules.data.length">
+                <TableCell colspan="5" class="px-4 py-16 text-center">
+                  <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No results for ":search"', { search }) }}</p>
                   <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ $t('Try a different name or clear the search') }}</p>
@@ -198,16 +183,15 @@ const deleteTemplate = () => {
           </Table>
         </div>
 
-        <!-- Pagination -->
-        <div v-if="templates.total > 0"
+        <div v-if="schedules.total > 0"
             class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
           <p class="text-sm text-slate-500 dark:text-gray-400">
-            {{ $t('Showing :from to :to of :total templates', { from: templates.from ?? 0, to: templates.to ?? 0, total: templates.total }) }}
+            {{ $t('Showing :from to :to of :total schedules', { from: schedules.from ?? 0, to: schedules.to ?? 0, total: schedules.total }) }}
           </p>
 
           <Pagination
-              :current-page="templates.current_page"
-              :last-page="templates.last_page"
+              :current-page="schedules.current_page"
+              :last-page="schedules.last_page"
               @page-change="goToPage"
           />
         </div>
@@ -221,12 +205,11 @@ const deleteTemplate = () => {
         <div class="flex items-start gap-4 mb-4">
           <div class="flex-shrink-0 w-10 h-10 rounded-full bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center">
             <svg class="w-5 h-5 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
           <div>
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Delete shift template') }}</h3>
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Delete work schedule') }}</h3>
             <p class="text-sm text-slate-600 dark:text-gray-400 mt-1">
               {{ $t('Are you sure you want to delete') }} "<span class="font-medium text-slate-900 dark:text-gray-100">{{ deleteItem?.name }}</span>"?
               {{ $t('This action cannot be undone.') }}
@@ -238,9 +221,9 @@ const deleteTemplate = () => {
               class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-800 rounded-xl transition">
             {{ $t('Cancel') }}
           </button>
-          <button @click="deleteTemplate"
+          <button @click="deleteSchedule"
               class="px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-500 rounded-xl transition">
-            {{ $t('Delete shift template') }}
+            {{ $t('Delete schedule') }}
           </button>
         </div>
       </div>

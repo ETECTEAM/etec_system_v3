@@ -36,7 +36,7 @@ class InstructorProfileRequest extends FormRequest
             'specialization' => ['nullable', 'array'],
             'specialization.*' => ['string', Rule::in(SubCategory::where('status', 'active')->pluck('name'))],
             'employment_type' => ['required', Rule::in(['full_time', 'part_time'])],
-            'shift_template_id' => ['nullable', 'integer', 'exists:shift_templates,id'],
+            'work_schedule_id' => ['nullable', 'integer', 'exists:work_schedules,id'],
             'headline' => ['nullable', 'string', 'max:255'],
             'bio' => ['nullable', 'string', 'max:5000'],
             'date_of_birth' => ['nullable', 'date'],

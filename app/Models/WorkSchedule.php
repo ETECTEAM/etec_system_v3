@@ -6,18 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Cache;
 
-class ShiftTemplate extends Model
+class WorkSchedule extends Model
 {
-    // Paginated/filtered, so results are cached per (version, page, search)
-    // combination rather than under one key - see cacheKey() below.
-    public const CACHE_VERSION_KEY = 'shift_templates:list:version';
-
+    public const CACHE_VERSION_KEY = 'work_schedules:list:version';
     public const CACHE_TTL = 300;
 
     protected $fillable = [
         'name',
         'code',
-        'employment_type',
         'description',
         'is_active',
     ];
@@ -45,8 +41,24 @@ class ShiftTemplate extends Model
         return (int) Cache::get(self::CACHE_VERSION_KEY, 1);
     }
 
-    public function blocks(): HasMany
+    public function times(): HasMany
     {
-        return $this->hasMany(ShiftTemplateBlock::class);
+        return $this->hasMany(WorkScheduleTime::class);
+    }
+
+    public function instructors(): HasMany
+    {
+        return $this->hasMany(InstructorData::class, 'work_schedule_id');
+    }
+
+    /**
+     * Check if this work schedule covers a specific day_of_week + time_id.
+     */
+    public function covers(int $dayOfWeek, int $timeId): bool
+    {
+        return $this->times()
+            ->where('day_of_week', $dayOfWeek)
+            ->where('time_id', $timeId)
+            ->exists();
     }
 }

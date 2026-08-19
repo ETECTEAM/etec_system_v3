@@ -3,7 +3,6 @@
 namespace Database\Seeders\Core;
 
 use App\Models\InstructorData;
-use App\Models\ShiftTemplate;
 use App\Models\SubCategory;
 use App\Models\User;
 use App\Modules\Instructor\Services\InstructorService;
@@ -53,7 +52,6 @@ class UserSeeder extends Seeder
 
     private function createInstructors(): void
     {
-        $templates = ShiftTemplate::all();
         $specializations = SubCategory::pluck('id')->toArray();
 
         $instructors = [
@@ -80,16 +78,13 @@ class UserSeeder extends Seeder
 
             $user->syncRoles(['instructor']);
 
-            $template = $templates[$index] ?? null;
-
             InstructorData::create([
                 'user_id'            => $user->id,
                 'full_name'          => $data['name'],
                 'instructor_code'    => InstructorService::generateInstructorCode(),
                 'phone'              => $data['phone'],
                 'specialization'     => [$specializations[$index % count($specializations)]],
-                'employment_type'    => $template?->employment_type ?? 'full_time',
-                'shift_template_id'  => $template?->id,
+                'employment_type'    => 'full_time',
             ]);
         }
     }
