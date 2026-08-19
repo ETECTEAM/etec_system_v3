@@ -96,7 +96,6 @@ const submit = () => {
   const url = `/dashboard/instructor/classes/${props.classData.id}/attendance`;
   const options = {
     preserveScroll: true,
-    onSuccess: () => toast.success(isOverridable.value ? "Correction saved successfully." : "Attendance saved successfully."),
     onError: () => toast.error(isOverridable.value ? "Failed to save correction." : "Failed to save attendance."),
   };
 

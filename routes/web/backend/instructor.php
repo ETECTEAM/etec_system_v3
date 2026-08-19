@@ -15,6 +15,10 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
     Route::get('/classes/{studyClass}/attendance', [InstructorClassController::class, 'attendance'])->name('instructor.classes.attendance');
     Route::get('/classes/{studyClass}/attendance/track', [InstructorClassController::class, 'trackAttendance'])->name('instructor.classes.attendance.track');
     Route::get('/classes/{studyClass}/attendance/students/{student}', [InstructorClassController::class, 'studentAttendance'])->name('instructor.classes.attendance.students.show');
+    // Route to update a student profile from the instructor's class roster.
+    Route::put('/classes/{studyClass}/students/{student}', [InstructorClassController::class, 'updateStudent'])->name('instructor.classes.students.update');
+    // Route to move a student into another class by class ID.
+    Route::put('/classes/{studyClass}/students/{student}/transfer', [InstructorClassController::class, 'transferStudent'])->name('instructor.classes.students.transfer');
     Route::post('/classes/{studyClass}/attendance', [InstructorClassController::class, 'storeAttendance'])->middleware('throttle:20,1')->name('instructor.classes.attendance.store');
     // Route to correct a session the system auto-recorded (see OverrideAttendanceRecord).
     Route::put('/classes/{studyClass}/attendance', [InstructorClassController::class, 'overrideAttendance'])->middleware('throttle:20,1')->name('instructor.classes.attendance.override');

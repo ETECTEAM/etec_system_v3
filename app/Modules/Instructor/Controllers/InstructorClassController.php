@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Modules\Attendance\Actions\OverrideAttendanceRecord;
 use App\Modules\Attendance\Queries\GetSessionBanner;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
+use App\Models\StudyClass;
 use App\Modules\Instructor\Services\InstructorClassService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -83,6 +85,53 @@ class InstructorClassController extends Controller
             'classData' => $this->instructorClasses->presentClass($class),
             'student' => $this->instructorClasses->studentAttendanceDetail($class->id, (int) $student),
         ]);
+    }
+
+    public function updateStudent(Request $request, string $studyClass, string $student): JsonResponse|RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        $validated = $request->validate([
+            'full_name' => ['required', 'string', 'max:255'],
+            'gender' => ['required', 'string', Rule::in(['male', 'female'])],
+            'date_of_birth' => ['nullable', 'date'],
+            'phone' => ['required', 'string', 'max:20'],
+        ]);
+
+        $this->instructorClasses->updateStudentProfile($class->id, (int) $student, $validated);
+
+        $request->session()->forget(['error', 'warning', 'info', 'retryAfter', 'isHardBlock']);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Student information updated successfully.',
+            ]);
+        }
+
+        return back()->with('success', 'Student information updated successfully.');
+    }
+
+    public function transferStudent(Request $request, string $studyClass, string $student): JsonResponse|RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        $validated = $request->validate([
+            'study_class_id' => ['required', 'integer', 'exists:study_classes,id'],
+        ]);
+
+        $targetClass = StudyClass::query()->findOrFail((int) $validated['study_class_id']);
+
+        $this->instructorClasses->transferStudent($class->id, (int) $student, $targetClass);
+
+        $request->session()->forget(['error', 'warning', 'info', 'retryAfter', 'isHardBlock']);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Student transferred successfully.',
+            ]);
+        }
+
+        return back()->with('success', 'Student transferred successfully.');
     }
 
     public function storeAttendance(Request $request, string $studyClass): RedirectResponse

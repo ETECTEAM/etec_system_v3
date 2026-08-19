@@ -3,7 +3,10 @@
 namespace App\Modules\Instructor\Services;
 
 use App\Models\ClassSession;
+use App\Models\Student;
 use App\Models\StudentAttendance;
+use App\Models\StudentEnrollment;
+use App\Models\StudyClass;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -107,6 +110,7 @@ class InstructorClassService
                 'students_user.email',
                 'students.gender',
                 'students.phone',
+                'students.date_of_birth',
             ])
             ->get()
             ->map(fn (stdClass $student, int $index) => $this->presentStudent(
@@ -211,6 +215,7 @@ class InstructorClassService
                 'students_user.email',
                 'students.gender',
                 'students.phone',
+                'students.date_of_birth',
             ])
             ->first();
 
@@ -390,6 +395,7 @@ class InstructorClassService
             'email' => $student->email ?? '-',
             'gender' => $student->gender ?? '-',
             'phone' => $student->phone ?? '-',
+            'date_of_birth' => $student->date_of_birth ? Carbon::parse($student->date_of_birth)->format('Y-m-d') : null,
             'attendance' => [
                 'total' => (int) ($attendanceStats->total ?? 0),
                 'present' => (int) ($attendanceStats->present ?? 0),
@@ -404,6 +410,89 @@ class InstructorClassService
                 'exam' => 0,
             ],
         ];
+    }
+
+    public function updateStudentProfile(int $studyClassId, int $studentId, array $data): void
+    {
+        $enrollment = $this->activeEnrollmentForStudent($studyClassId, $studentId);
+        $student = $enrollment->student;
+
+        abort_unless($student instanceof Student, 404);
+
+        DB::transaction(function () use ($student, $data): void {
+            $student->forceFill([
+                'full_name' => $data['full_name'],
+                'gender' => $data['gender'],
+                'date_of_birth' => $data['date_of_birth'] ?: null,
+                'phone' => $data['phone'],
+            ])->save();
+
+            if ($student->user) {
+                $student->user->forceFill(['name' => $data['full_name']])->save();
+            }
+        });
+    }
+
+    public function transferStudent(int $studyClassId, int $studentId, StudyClass $targetClass): void
+    {
+        $enrollment = $this->activeEnrollmentForStudent($studyClassId, $studentId);
+
+        if ($targetClass->id === $studyClassId) {
+            throw ValidationException::withMessages([
+                'study_class_id' => 'This student is already in that class.',
+            ]);
+        }
+
+        $alreadyEnrolledInTarget = StudentEnrollment::query()
+            ->where('study_class_id', $targetClass->id)
+            ->where('student_id', $studentId)
+            ->exists();
+
+        if ($alreadyEnrolledInTarget) {
+            throw ValidationException::withMessages([
+                'study_class_id' => 'This student is already enrolled in the target class.',
+            ]);
+        }
+
+        $targetHasSeat = StudentEnrollment::query()
+            ->where('study_class_id', $targetClass->id)
+            ->where('enrollment_status', 'active')
+            ->count() < (int) $targetClass->capacity;
+
+        if (! $targetHasSeat) {
+            throw ValidationException::withMessages([
+                'study_class_id' => 'This class is full.',
+            ]);
+        }
+
+        DB::transaction(function () use ($enrollment, $studentId, $targetClass): void {
+            $enrollment->update([
+                'study_class_id' => $targetClass->id,
+                'updated_at' => now(),
+            ]);
+
+            DB::table('student_attendances')
+                ->where('student_enrollment_id', $enrollment->id)
+                ->where('student_id', $studentId)
+                ->update([
+                    'study_class_id' => $targetClass->id,
+                    'updated_at' => now(),
+                ]);
+        });
+    }
+
+    private function activeEnrollmentForStudent(int $studyClassId, int $studentId): StudentEnrollment
+    {
+        $enrollment = StudentEnrollment::query()
+            ->with(['student.user'])
+            ->where('study_class_id', $studyClassId)
+            ->where('student_id', $studentId)
+            ->where('enrollment_status', 'active')
+            ->first();
+
+        abort_unless($enrollment, 404);
+
+        return $enrollment;
     }
 
     private function classTypeValue(?string $classTypeName): string
