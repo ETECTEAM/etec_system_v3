@@ -82,22 +82,24 @@ const { isNavigating } = useRouteLoading()
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50 text-slate-900 dark:bg-gray-950 dark:text-gray-100">
-        <div class="flex">
-            <Sidebar
-                :open="isSidebarOpen"
-                :collapsed="isSidebarCollapsed"
-                @close="closeSidebar"
-            />
-
-            <div class="flex min-w-0 flex-1 flex-col">
+    <div class="h-dvh overflow-hidden bg-slate-50 text-slate-900 dark:bg-gray-950 dark:text-gray-100">
+        <div class="flex h-full flex-col">
+            <div class="shrink-0">
                 <DashboardHeader
                     :sidebar-collapsed="isSidebarCollapsed"
                     @open-sidebar="openSidebar"
                     @toggle-sidebar="toggleSidebarCollapse"
                 />
+            </div>
 
-                <main class="flex-1 px-4 pb-10 pt-6 sm:px-6 lg:px-8">
+            <div class="flex min-h-0 flex-1 overflow-hidden">
+                <Sidebar
+                    :open="isSidebarOpen"
+                    :collapsed="isSidebarCollapsed"
+                    @close="closeSidebar"
+                />
+
+                <main class="min-h-0 flex-1 overflow-y-auto px-4 pb-10 pt-6 sm:px-6 lg:px-8">
                     <div class="w-full">
                         <!-- This is where all page content will appear -->
                         <slot />

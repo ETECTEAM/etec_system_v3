@@ -165,7 +165,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     :class="[
-      'fixed inset-0 z-40 lg:static lg:inset-auto lg:z-auto',
+      'fixed inset-0 z-40 h-full lg:relative lg:inset-auto lg:z-auto',
       props.open ? 'block' : 'hidden lg:block',
     ]"
   >
@@ -176,7 +176,7 @@ onBeforeUnmount(() => {
 
     <aside
       :class="[
-        'relative h-screen border-r border-slate-200 bg-white transition-all duration-200 lg:sticky lg:top-0 dark:border-gray-800 dark:bg-gray-900',
+        'relative flex h-full flex-col border-r border-slate-200 bg-white transition-all duration-200 dark:border-gray-800 dark:bg-gray-900',
         props.collapsed ? 'w-20' : 'w-80',
       ]"
     >
@@ -209,7 +209,7 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <nav class="mt-6 flex-1 overflow-y-auto">
+        <nav class="mt-6 flex-1 overflow-hidden">
           <p v-if="!props.collapsed" class="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-gray-500">
             {{ t("navigation.navigation") }}
           </p>
