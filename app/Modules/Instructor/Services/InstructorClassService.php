@@ -100,6 +100,7 @@ class InstructorClassService
         return DB::table('student_enrollments')
             ->join('students', 'students.id', '=', 'student_enrollments.student_id')
             ->leftJoin('users as students_user', 'students_user.id', '=', 'students.user_id')
+            ->leftJoin('student_scores', 'student_scores.student_enrollment_id', '=', 'student_enrollments.id')
             ->where('student_enrollments.study_class_id', $studyClassId)
             ->where('student_enrollments.enrollment_status', 'active')
             ->orderBy('student_enrollments.id')
@@ -111,6 +112,9 @@ class InstructorClassService
                 'students.gender',
                 'students.phone',
                 'students.date_of_birth',
+                'student_scores.attendance_score',
+                'student_scores.activity_score',
+                'student_scores.exam_score',
             ])
             ->get()
             ->map(fn (stdClass $student, int $index) => $this->presentStudent(
@@ -205,6 +209,7 @@ class InstructorClassService
         $student = DB::table('student_enrollments')
             ->join('students', 'students.id', '=', 'student_enrollments.student_id')
             ->leftJoin('users as students_user', 'students_user.id', '=', 'students.user_id')
+            ->leftJoin('student_scores', 'student_scores.student_enrollment_id', '=', 'student_enrollments.id')
             ->where('student_enrollments.study_class_id', $studyClassId)
             ->where('student_enrollments.student_id', $studentId)
             ->where('student_enrollments.enrollment_status', 'active')
@@ -216,6 +221,9 @@ class InstructorClassService
                 'students.gender',
                 'students.phone',
                 'students.date_of_birth',
+                'student_scores.attendance_score',
+                'student_scores.activity_score',
+                'student_scores.exam_score',
             ])
             ->first();
 
@@ -405,11 +413,67 @@ class InstructorClassService
                 'note' => $todayAttendance->note ?? '',
             ],
             'scores' => [
-                'attendance' => 0,
-                'activity' => 0,
-                'exam' => 0,
+                'attendance' => (float) ($student->attendance_score ?? 0),
+                'activity' => (float) ($student->activity_score ?? 0),
+                'exam' => (float) ($student->exam_score ?? 0),
             ],
         ];
+    }
+
+    public function saveScores(int $studyClassId, array $records): void
+    {
+        $enrollments = DB::table('student_enrollments')
+            ->where('study_class_id', $studyClassId)
+            ->where('enrollment_status', 'active')
+            ->get(['id', 'student_id'])
+            ->keyBy('id');
+
+        DB::transaction(function () use ($records, $enrollments, $studyClassId): void {
+            foreach ($records as $record) {
+                $enrollmentId = (int) $record['enrollment_id'];
+                $studentId = (int) $record['student_id'];
+                $enrollment = $enrollments->get($enrollmentId);
+                $now = now();
+
+                if (! $enrollment || (int) $enrollment->student_id !== $studentId) {
+                    throw ValidationException::withMessages([
+                        'scores' => 'Scores can only be saved for active students in this class.',
+                    ]);
+                }
+
+                $scoreExists = DB::table('student_scores')
+                    ->where('student_enrollment_id', $enrollmentId)
+                    ->exists();
+
+                $payload = [
+                    'study_class_id' => $studyClassId,
+                    'student_id' => $studentId,
+                    'attendance_score' => $record['attendance_score'],
+                    'activity_score' => $record['activity_score'],
+                    'exam_score' => $record['exam_score'],
+                    'updated_at' => $now,
+                ];
+
+                if ($scoreExists) {
+                    DB::table('student_scores')
+                        ->where('student_enrollment_id', $enrollmentId)
+                        ->update($payload);
+
+                    continue;
+                }
+
+                DB::table('student_scores')->insert([
+                    'student_enrollment_id' => $enrollmentId,
+                    'study_class_id' => $studyClassId,
+                    'student_id' => $studentId,
+                    'attendance_score' => $record['attendance_score'],
+                    'activity_score' => $record['activity_score'],
+                    'exam_score' => $record['exam_score'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        });
     }
 
     public function updateStudentProfile(int $studyClassId, int $studentId, array $data): void
@@ -474,6 +538,13 @@ class InstructorClassService
             DB::table('student_attendances')
                 ->where('student_enrollment_id', $enrollment->id)
                 ->where('student_id', $studentId)
+                ->update([
+                    'study_class_id' => $targetClass->id,
+                    'updated_at' => now(),
+                ]);
+
+            DB::table('student_scores')
+                ->where('student_enrollment_id', $enrollment->id)
                 ->update([
                     'study_class_id' => $targetClass->id,
                     'updated_at' => now(),

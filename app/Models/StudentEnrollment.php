@@ -46,4 +46,9 @@ class StudentEnrollment extends Model
     {
         return $this->belongsTo(Student::class, 'student_id');
     }
+
+    public function score()
+    {
+        return $this->hasOne(StudentScore::class, 'student_enrollment_id');
+    }
 }

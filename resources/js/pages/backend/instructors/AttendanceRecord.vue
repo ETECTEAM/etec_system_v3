@@ -50,6 +50,7 @@ const transferModalOpen = ref(false);
 const transferConfirmOpen = ref(false);
 const editSaving = ref(false);
 const transferSaving = ref(false);
+const scoreSaving = ref(false);
 const editErrors = ref({});
 const transferErrors = ref({});
 
@@ -72,7 +73,10 @@ const breadcrumbItems = computed(() => [
 watch(
   () => props.students,
   (students) => {
-    rosterStudents.value = [...students];
+    rosterStudents.value = students.map((student) => ({
+      ...student,
+      scores: { ...(student.scores ?? {}) },
+    }));
   },
   { immediate: true },
 );
@@ -137,6 +141,16 @@ function removeStudentFromRoster(studentId) {
   rosterStudents.value = rosterStudents.value.filter((student) => student.id !== studentId);
 }
 
+function buildScorePayload() {
+  return rosterStudents.value.map((student) => ({
+    enrollment_id: student.enrollment_id,
+    student_id: student.id,
+    attendance_score: Number(student.scores?.attendance ?? 0),
+    activity_score: Number(student.scores?.activity ?? 0),
+    exam_score: Number(student.scores?.exam ?? 0),
+  }));
+}
+
 async function submitEdit() {
   if (!activeStudent.value) {
     return;
@@ -197,6 +211,29 @@ async function confirmTransfer() {
     transferSaving.value = false;
   }
 }
+
+async function submitScores() {
+  if (!rosterStudents.value.length) {
+    return;
+  }
+
+  scoreSaving.value = true;
+
+  try {
+    await axios.put(`/dashboard/instructor/classes/${props.classData.id}/scores`, {
+      scores: buildScorePayload(),
+    });
+    toast.success("Scores saved successfully.");
+  } catch (error) {
+    const firstError = Object.values(error.response?.data?.errors ?? {})
+      .flat()
+      .find(Boolean);
+
+    toast.error(firstError ?? error.response?.data?.message ?? "Failed to save scores.");
+  } finally {
+    scoreSaving.value = false;
+  }
+}
 </script>
 
 <template>
@@ -225,9 +262,9 @@ async function confirmTransfer() {
             <FileText class="h-4 w-4" />
             Request Certificate
           </button>
-          <button class="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md" type="button">
+          <button class="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70" type="button" :disabled="scoreSaving || !rosterStudents.length" @click="submitScores">
             <Save class="h-4 w-4" />
-            Save Score
+            {{ scoreSaving ? "Saving..." : "Save Score" }}
           </button>
           <Link
             :href="`/dashboard/instructor/classes/${classData.id}/attendance/track`"
@@ -341,13 +378,13 @@ async function confirmTransfer() {
                   </span>
                 </td>
                 <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <input :value="student.scores?.attendance ?? 0" class="h-10 w-28 rounded-lg border border-slate-300 bg-slate-100 px-3 text-center font-semibold outline-none dark:border-gray-700 dark:bg-gray-800" />
+                  <input v-model.number="student.scores.attendance" type="number" min="0" max="100" step="0.01" class="h-10 w-28 rounded-lg border border-slate-300 bg-slate-100 px-3 text-center font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:focus:ring-blue-500/10" />
                 </td>
                 <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <input :value="student.scores?.activity ?? 0" class="h-10 w-28 rounded-lg border border-slate-300 bg-white px-3 text-center font-semibold outline-none dark:border-gray-700 dark:bg-gray-950" />
+                  <input v-model.number="student.scores.activity" type="number" min="0" max="100" step="0.01" class="h-10 w-28 rounded-lg border border-slate-300 bg-white px-3 text-center font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-950 dark:focus:ring-blue-500/10" />
                 </td>
                 <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <input :value="student.scores?.exam ?? 0" class="h-10 w-28 rounded-lg border border-slate-300 bg-white px-3 text-center font-semibold outline-none dark:border-gray-700 dark:bg-gray-950" />
+                  <input v-model.number="student.scores.exam" type="number" min="0" max="100" step="0.01" class="h-10 w-28 rounded-lg border border-slate-300 bg-white px-3 text-center font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-950 dark:focus:ring-blue-500/10" />
                 </td>
                 <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
                   <div class="flex justify-center gap-2">

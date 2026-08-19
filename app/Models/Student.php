@@ -33,6 +33,11 @@ class Student extends Model
         return $this->hasMany(StudentEnrollment::class);
     }
 
+    public function scores(): HasMany
+    {
+        return $this->hasMany(StudentScore::class);
+    }
+
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);

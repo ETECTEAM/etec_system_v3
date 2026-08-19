@@ -87,6 +87,42 @@ class InstructorClassController extends Controller
         ]);
     }
 
+    public function saveScores(Request $request, string $studyClass): JsonResponse|RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        $validated = $request->validate([
+            'scores' => ['required', 'array', 'min:1'],
+            'scores.*.enrollment_id' => ['required', 'integer', 'exists:student_enrollments,id'],
+            'scores.*.student_id' => ['required', 'integer', 'exists:students,id'],
+            'scores.*.attendance_score' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'scores.*.activity_score' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'scores.*.exam_score' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        $records = collect($validated['scores'])
+            ->map(function (array $record): array {
+                return [
+                    'enrollment_id' => (int) $record['enrollment_id'],
+                    'student_id' => (int) $record['student_id'],
+                    'attendance_score' => (float) ($record['attendance_score'] ?? 0),
+                    'activity_score' => (float) ($record['activity_score'] ?? 0),
+                    'exam_score' => (float) ($record['exam_score'] ?? 0),
+                ];
+            })
+            ->all();
+
+        $this->instructorClasses->saveScores($class->id, $records);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Scores saved successfully.',
+            ]);
+        }
+
+        return back()->with('success', 'Scores saved successfully.');
+    }
+
     public function updateStudent(Request $request, string $studyClass, string $student): JsonResponse|RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
