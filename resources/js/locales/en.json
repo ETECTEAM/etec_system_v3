@@ -63,7 +63,8 @@
     "userManagement": "User Management",
     "userPermission": "User & Permission",
     "videoManagement": "Video Management",
-    "websiteManagement": "Website Management"
+    "websiteManagement": "Website Management",
+    "workSchedules": "Work Schedules"
   },
   "notifications": {
     "empty": "No notifications yet.",

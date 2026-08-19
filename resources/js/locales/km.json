@@ -63,7 +63,8 @@
     "userManagement": "គ្រប់គ្រងអ្នកប្រើប្រាស់",
     "userPermission": "អ្នកប្រើប្រាស់ និងសិទ្ធិ",
     "videoManagement": "គ្រប់គ្រងវីដេអូ",
-    "websiteManagement": "គ្រប់គ្រងគេហទំព័រ"
+    "websiteManagement": "គ្រប់គ្រងគេហទំព័រ",
+    "workSchedules": "កាលវិភាគការងារ"
   },
   "notifications": {
     "empty": "មិនទាន់មានការជូនដំណឹង។",
