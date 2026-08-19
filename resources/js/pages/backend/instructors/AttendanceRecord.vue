@@ -254,10 +254,13 @@ async function submitScores() {
             <RefreshCw class="h-4 w-4" />
             Refresh Table
           </button>
-          <button class="inline-flex h-10 items-center gap-2 rounded-lg bg-cyan-500 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-cyan-600 hover:shadow-md" type="button">
+          <Link
+            :href="`/dashboard/instructor/classes/${classData.id}/groups`"
+            class="inline-flex h-10 items-center gap-2 rounded-lg bg-cyan-500 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-cyan-600 hover:shadow-md"
+          >
             <Users class="h-4 w-4" />
             Group
-          </button>
+          </Link>
           <button class="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-500 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-amber-600 hover:shadow-md" type="button">
             <FileText class="h-4 w-4" />
             Request Certificate

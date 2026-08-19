@@ -13,6 +13,8 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
     Route::post('/classes', [InstructorClassController::class, 'store'])->name('instructor.classes.store');
     Route::get('/classes/{studyClass}', [InstructorClassController::class, 'show'])->name('instructor.classes.show');
     Route::get('/classes/{studyClass}/attendance', [InstructorClassController::class, 'attendance'])->name('instructor.classes.attendance');
+    Route::get('/classes/{studyClass}/groups', [InstructorClassController::class, 'groups'])->name('instructor.classes.groups');
+    Route::put('/classes/{studyClass}/groups', [InstructorClassController::class, 'saveTeams'])->name('instructor.classes.groups.save');
     Route::get('/classes/{studyClass}/attendance/track', [InstructorClassController::class, 'trackAttendance'])->name('instructor.classes.attendance.track');
     Route::get('/classes/{studyClass}/attendance/students/{student}', [InstructorClassController::class, 'studentAttendance'])->name('instructor.classes.attendance.students.show');
     Route::put('/classes/{studyClass}/scores', [InstructorClassController::class, 'saveScores'])->name('instructor.classes.scores.update');

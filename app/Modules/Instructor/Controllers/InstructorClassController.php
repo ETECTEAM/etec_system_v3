@@ -87,6 +87,17 @@ class InstructorClassController extends Controller
         ]);
     }
 
+    public function groups(Request $request, string $studyClass): Response
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        return Inertia::render('backend/instructors/ClassGroups', [
+            'classData' => $this->instructorClasses->presentClass($class),
+            'students' => $this->instructorClasses->students($class->id),
+            'savedTeams' => $this->instructorClasses->teamsForClass($class->id),
+        ]);
+    }
+
     public function saveScores(Request $request, string $studyClass): JsonResponse|RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
@@ -145,6 +156,39 @@ class InstructorClassController extends Controller
         }
 
         return back()->with('success', 'Student information updated successfully.');
+    }
+
+    public function saveTeams(Request $request, string $studyClass): JsonResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $studentCount = $this->instructorClasses->students($class->id)->count();
+
+        if ($studentCount === 0) {
+            return response()->json([
+                'message' => 'No students are enrolled in this class yet.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'teams_count' => ['required', 'integer', 'min:1', 'max:'.$studentCount],
+            'teams' => ['required', 'array', 'min:1'],
+            'teams.*.team_name' => ['required', 'string', 'max:255'],
+            'teams.*.project_topic' => ['nullable', 'string', 'max:255'],
+            'teams.*.student_ids' => ['required', 'array', 'min:1'],
+            'teams.*.student_ids.*' => ['required', 'integer', 'exists:students,id'],
+        ]);
+
+        $savedTeams = $this->instructorClasses->saveTeams(
+            $class->id,
+            (int) $validated['teams_count'],
+            $validated['teams'],
+            $request->user()?->id,
+        );
+
+        return response()->json([
+            'message' => 'Teams saved successfully.',
+            'teams' => $savedTeams,
+        ]);
     }
 
     public function transferStudent(Request $request, string $studyClass, string $student): JsonResponse|RedirectResponse

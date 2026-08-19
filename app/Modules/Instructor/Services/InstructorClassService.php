@@ -476,6 +476,127 @@ class InstructorClassService
         });
     }
 
+    public function teamsForClass(int $studyClassId): array
+    {
+        $teams = DB::table('teams')
+            ->where('group_id', $studyClassId)
+            ->orderBy('id')
+            ->get();
+
+        if ($teams->isEmpty()) {
+            return [];
+        }
+
+        $members = DB::table('team_members')
+            ->join('students', 'students.id', '=', 'team_members.student_id')
+            ->whereIn('team_members.team_id', $teams->pluck('id'))
+            ->orderBy('team_members.team_id')
+            ->orderBy('students.full_name')
+            ->select([
+                'team_members.team_id',
+                'team_members.student_id',
+                'students.full_name',
+                'students.gender',
+            ])
+            ->get()
+            ->groupBy('team_id');
+
+        return $teams->map(function (stdClass $team) use ($members): array {
+            $teamMembers = $members->get($team->id, collect());
+
+            return [
+                'id' => $team->id,
+                'team_name' => $team->team_name,
+                'project_topic' => $team->project_topic,
+                'members' => $teamMembers->map(fn (stdClass $member): array => [
+                    'id' => (int) $member->student_id,
+                    'name' => $member->full_name,
+                    'gender' => $member->gender,
+                ])->values()->all(),
+                'member_ids' => $teamMembers->pluck('student_id')->map(fn ($id): int => (int) $id)->values()->all(),
+                'member_count' => $teamMembers->count(),
+            ];
+        })->values()->all();
+    }
+
+    public function saveTeams(int $studyClassId, int $teamCount, array $teams, ?int $createdByUserId = null): array
+    {
+        $activeStudents = $this->students($studyClassId)->keyBy('id');
+
+        if ($teamCount !== count($teams)) {
+            throw ValidationException::withMessages([
+                'teams_count' => 'The number of teams must match the generated team count.',
+            ]);
+        }
+
+        $seenStudentIds = [];
+
+        foreach ($teams as $index => $team) {
+            $teamName = trim((string) ($team['team_name'] ?? ''));
+            $projectTopic = trim((string) ($team['project_topic'] ?? ''));
+            $studentIds = array_values(array_unique(array_map('intval', $team['student_ids'] ?? [])));
+
+            if ($teamName === '') {
+                throw ValidationException::withMessages([
+                    "teams.$index.team_name" => 'Team name is required.',
+                ]);
+            }
+
+            if (empty($studentIds)) {
+                throw ValidationException::withMessages([
+                    "teams.$index.student_ids" => 'Each team must have at least one member.',
+                ]);
+            }
+
+            foreach ($studentIds as $studentId) {
+                if (! $activeStudents->has($studentId)) {
+                    throw ValidationException::withMessages([
+                        "teams.$index.student_ids" => 'Only students from this class can be assigned to a team.',
+                    ]);
+                }
+
+                if (isset($seenStudentIds[$studentId])) {
+                    throw ValidationException::withMessages([
+                        'teams' => 'A student can belong to only one team in this group.',
+                    ]);
+                }
+
+                $seenStudentIds[$studentId] = true;
+            }
+        }
+
+        DB::transaction(function () use ($studyClassId, $teams, $createdByUserId): void {
+            DB::table('teams')->where('group_id', $studyClassId)->delete();
+
+            $now = now();
+
+            foreach ($teams as $team) {
+                $projectTopic = trim((string) ($team['project_topic'] ?? ''));
+
+                $teamId = DB::table('teams')->insertGetId([
+                    'group_id' => $studyClassId,
+                    'team_name' => trim((string) $team['team_name']),
+                    'project_topic' => $projectTopic !== '' ? $projectTopic : null,
+                    'created_by' => $createdByUserId,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+
+                foreach (array_values(array_unique(array_map('intval', $team['student_ids'] ?? []))) as $studentId) {
+                    DB::table('team_members')->insert([
+                        'team_id' => $teamId,
+                        'group_id' => $studyClassId,
+                        'student_id' => $studentId,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                }
+            }
+        });
+
+        return $this->teamsForClass($studyClassId);
+    }
+
     public function updateStudentProfile(int $studyClassId, int $studentId, array $data): void
     {
         $enrollment = $this->activeEnrollmentForStudent($studyClassId, $studentId);
