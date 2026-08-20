@@ -8,7 +8,9 @@ use App\Models\CourseLesson;
 use App\Models\Room;
 use App\Models\Schedule;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 use Illuminate\Validation\Rule;
 
 class SaveStudyClassRequest extends FormRequest
@@ -78,6 +80,27 @@ class SaveStudyClassRequest extends FormRequest
             'start_date' => ['nullable', 'date', 'after_or_equal:enrollment_start_date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
         ];
+    }
+
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            if ($validator->errors()->isNotEmpty() || ! $this->filled('teacher_id')) {
+                return;
+            }
+
+            $studyClass = $this->route('studyClass');
+            $reason = app(InstructorAssignmentAvailability::class)->unavailableReason(
+                (int) $this->input('teacher_id'),
+                (int) $this->input('term_id'),
+                (int) $this->input('time_id'),
+                $studyClass?->id,
+            );
+
+            if ($reason !== null) {
+                $validator->errors()->add('teacher_id', $reason);
+            }
+        }];
     }
 
     private function isOnline(): bool

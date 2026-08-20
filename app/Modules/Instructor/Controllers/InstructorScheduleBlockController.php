@@ -8,6 +8,7 @@ use App\Models\StudyClass;
 use App\Models\Time;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,11 +19,6 @@ class InstructorScheduleBlockController extends Controller
         5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday',
     ];
 
-    private const SHORT_DAY_LABELS = [
-        1 => 'Mon', 2 => 'Tue', 3 => 'Wed', 4 => 'Thu',
-        5 => 'Fri', 6 => 'Sat', 7 => 'Sun',
-    ];
-
     public function index(Request $request): Response
     {
         $instructorData = $request->user()->instructorData()
@@ -31,24 +27,11 @@ class InstructorScheduleBlockController extends Controller
 
         abort_unless($instructorData, 404, 'No instructor profile found for this account.');
 
-        $availabilities = $instructorData->availabilities()
-            ->where('is_active', true)
-            ->get(['day_of_week', 'start_time', 'end_time']);
-
-        $workingDays = $availabilities->pluck('day_of_week')->unique()->sort()->values()->all();
-        $workingDayNames = array_map(fn (int $d) => self::SHORT_DAY_LABELS[$d] ?? (string) $d, $workingDays);
-
-        $workingHours = $availabilities->groupBy('day_of_week')->map(function ($daySlots) {
-            return $daySlots->map(fn ($s) => substr($s->start_time, 0, 5) . '–' . substr($s->end_time, 0, 5))->implode(' / ');
-        })->values()->implode(' · ');
-
         return Inertia::render('backend/instructors/ScheduleBlocks', [
             'instructorName' => $instructorData->full_name,
             'workSchedule' => $instructorData->workSchedule
                 ? ['name' => $instructorData->workSchedule->name]
                 : null,
-            'workingDaysLabel' => $workingDayNames ? implode('–', [$workingDayNames[0], end($workingDayNames)]) : 'None',
-            'workingHours' => $workingHours,
         ]);
     }
 
@@ -80,19 +63,13 @@ class InstructorScheduleBlockController extends Controller
             ? $instructorData->workSchedule->times()->with('time:id,time_name')->get()
             : collect();
 
-        // Deduplicate by time_name: if the times table has duplicate entries
-        // with the same label but different IDs, we collapse them into one.
-        $timeNameToId = $workScheduleTimes
+        // The schedule times were loaded with their Time relation above, so
+        // keep that exact ID-to-model mapping. Rebuilding it through a flipped
+        // collection loses IDs and leaves later slots (such as weekend slots)
+        // without their time range.
+        $timeModels = $workScheduleTimes
             ->filter(fn ($wst) => $wst->time)
-            ->mapWithKeys(fn ($wst) => [$wst->time->time_name => $wst->time_id])
-            ->unique()
-            ->values()
-            ->flip(); // time_name => time_id
-
-        // Build a lookup of Time models keyed by ID.
-        $timeModels = $timeNameToId->isNotEmpty()
-            ? Time::query()->whereIn('id', $timeNameToId->values()->toArray())->get(['id', 'time_name'])->keyBy('id')
-            : collect();
+            ->mapWithKeys(fn ($wst) => [$wst->time_id => $wst->time]);
 
         // Group by day_of_week, deduplicate by time_name per day.
         $dayTimeIds = $workScheduleTimes->groupBy('day_of_week')
@@ -195,6 +172,98 @@ class InstructorScheduleBlockController extends Controller
         $block->delete();
 
         return response()->json(['deleted' => true]);
+    }
+
+    /**
+     * Blocks every available slot selected from one visible calendar row in a
+     * single transaction. A row may contain fewer slots on shorter work days.
+     */
+    public function storeRow(Request $request): JsonResponse
+    {
+        $instructorData = $request->user()->instructorData()->first();
+
+        abort_unless($instructorData, 404, 'No instructor profile found for this account.');
+
+        $validated = $request->validate([
+            'slots' => ['required', 'array', 'min:1', 'max:7'],
+            'slots.*.day_of_week' => ['required', 'integer', 'between:1,7'],
+            'slots.*.time_id' => ['required', 'integer', 'exists:times,id'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $slots = collect($validated['slots'])
+            ->unique(fn (array $slot): string => "{$slot['day_of_week']}:{$slot['time_id']}")
+            ->values();
+
+        abort_if($slots->count() !== count($validated['slots']), 422, 'Each slot can only be included once.');
+
+        $timeIds = $slots->pluck('time_id')->all();
+        $times = Time::query()->whereIn('id', $timeIds)->get()->keyBy('id');
+
+        foreach ($slots as $slot) {
+            $time = $times->get($slot['time_id']);
+            $range = StudyClass::parseTimeRange($time->time_name);
+            $start = $range['start'] ?? null;
+            $end = $range['end'] ?? null;
+
+            $isWorkingSlot = $start !== null && $end !== null && $instructorData->availabilities()
+                ->where('is_active', true)
+                ->where('day_of_week', $slot['day_of_week'])
+                ->where('start_time', '<=', $start)
+                ->where('end_time', '>=', $end)
+                ->exists();
+
+            abort_unless($isWorkingSlot, 422, 'One or more selected slots are not within your working schedule.');
+            $this->ensureNoDuplicateBlock($instructorData->id, $slot['day_of_week'], $slot['time_id']);
+        }
+
+        $blocks = DB::transaction(function () use ($instructorData, $slots, $validated): array {
+            return $slots->map(fn (array $slot): InstructorScheduleBlock => $instructorData->scheduleBlocks()->create([
+                'day_of_week' => $slot['day_of_week'],
+                'time_id' => $slot['time_id'],
+                'reason' => $validated['reason'] ?? null,
+                'status' => InstructorScheduleBlock::STATUS_ACTIVE,
+            ]))->all();
+        });
+
+        foreach ($blocks as $block) {
+            $block->load('time:id,time_name');
+        }
+
+        return response()->json([
+            'blocks' => array_map($this->presentBlock(...), $blocks),
+        ], 201);
+    }
+
+    /** Removes all selected manual blocks from one visible calendar row. */
+    public function destroyRow(Request $request): JsonResponse
+    {
+        $instructorData = $request->user()->instructorData()->first();
+
+        abort_unless($instructorData, 404, 'No instructor profile found for this account.');
+
+        $validated = $request->validate([
+            'block_ids' => ['required', 'array', 'min:1', 'max:7'],
+            'block_ids.*' => ['required', 'integer', 'distinct', 'exists:instructor_schedule_blocks,id'],
+        ]);
+
+        $deletedIds = DB::transaction(function () use ($instructorData, $validated): array {
+            $blocks = InstructorScheduleBlock::query()
+                ->where('instructor_id', $instructorData->id)
+                ->where('status', InstructorScheduleBlock::STATUS_ACTIVE)
+                ->whereIn('id', $validated['block_ids'])
+                ->lockForUpdate()
+                ->get();
+
+            abort_if($blocks->count() !== count($validated['block_ids']), 422, 'One or more selected blocks are no longer active.');
+
+            $ids = $blocks->pluck('id')->all();
+            InstructorScheduleBlock::query()->whereIn('id', $ids)->delete();
+
+            return $ids;
+        });
+
+        return response()->json(['deleted_ids' => $deletedIds]);
     }
 
     private function ensureNoDuplicateBlock(int $instructorId, int $dayOfWeek, int $timeId): void

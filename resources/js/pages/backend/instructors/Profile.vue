@@ -1,13 +1,11 @@
 <script setup>
 import { computed, watch, ref } from 'vue'
 import { Head, useForm, usePage } from '@inertiajs/vue3'
-import { useToast } from 'vue-toastification'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { SelectSearch } from '../../../components/ui/select-search'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 
-const toast = useToast()
 const page = usePage()
 const user = page.props.user ?? {}
 const instructorData = page.props.instructorData ?? null
@@ -28,14 +26,38 @@ const genderOptions = [
 ]
 
 const workScheduleOptions = computed(() =>
-  workSchedules.value.map((ws) => ({ label: ws.name, value: String(ws.id) }))
+  workSchedules.value
+    .filter((ws) => ws.code?.startsWith(`${form.employment_type}_`))
+    .map((ws) => ({ label: ws.name, value: String(ws.id) }))
 )
+
+// Older instructor rows may still contain specialization as a scalar string.
+// Always submit an array of currently selectable values; spreading a string
+// would otherwise turn it into invalid one-character entries (e.g. "B").
+function normalizeSpecialization(value) {
+  let values = value
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      values = Array.isArray(parsed) ? parsed : [value]
+    } catch {
+      values = [value]
+    }
+  }
+
+  if (!Array.isArray(values)) return []
+
+  return values.filter((name) =>
+    typeof name === 'string' && subCategories.value.includes(name)
+  )
+}
 
 const initialValues = {
   email: user?.email ?? '',
   full_name: instructorData?.full_name ?? user?.name ?? '',
   phone: instructorData?.phone ?? '',
-  specialization: [...(instructorData?.specialization ?? [])],
+  specialization: normalizeSpecialization(instructorData?.specialization),
   employment_type: instructorData?.employment_type ?? '',
   work_schedule_id: instructorData?.work_schedule_id ? String(instructorData.work_schedule_id) : '',
   headline: instructorData?.headline ?? '',
@@ -50,11 +72,14 @@ const initialValues = {
 }
 
 const form = useForm({
+  // Multipart requests must be sent as POST so PHP parses every FormData field.
+  // Laravel turns this into the existing PUT route before it reaches the controller.
+  _method: 'put',
   email: user?.email ?? '',
   full_name: instructorData?.full_name ?? user?.name ?? '',
   instructor_code: instructorData?.instructor_code ?? '',
   phone: instructorData?.phone ?? '',
-  specialization: [...(instructorData?.specialization ?? [])],
+  specialization: normalizeSpecialization(instructorData?.specialization),
   employment_type: instructorData?.employment_type ?? '',
   work_schedule_id: instructorData?.work_schedule_id ? String(instructorData.work_schedule_id) : '',
   headline: instructorData?.headline ?? '',
@@ -99,17 +124,11 @@ const isDirty = computed(() => {
   return false
 })
 
-watch(() => page.props.flash, (flash) => {
-  if (flash?.success) {
-    toast.success(flash.success)
-  } else if (flash?.error) {
-    toast.error(flash.error)
-  } else if (flash?.warning) {
-    toast.warning(flash.warning)
-  } else if (flash?.info) {
-    toast.info(flash.info)
+watch(() => form.employment_type, () => {
+  if (!workScheduleOptions.value.some((option) => option.value === form.work_schedule_id)) {
+    form.work_schedule_id = ''
   }
-}, { deep: true })
+})
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -152,7 +171,7 @@ function formatFileSize(bytes) {
 function submit() {
   if (!isDirty.value || form.processing) return
 
-  form.put('/dashboard/instructor/profile', {
+  form.post('/dashboard/instructor/profile', {
     forceFormData: true,
     onSuccess: () => {
       initialValues.email = form.email
@@ -176,15 +195,6 @@ function submit() {
       cvFileObj.value = null
       form.profile_photo = null
       form.cv_file = null
-      page.props.flash = {}
-    },
-    onError: (errors) => {
-      const firstError = Object.values(errors)[0]
-      if (firstError) {
-        toast.error(firstError)
-      } else {
-        toast.error('Failed to update profile.')
-      }
     },
   })
 }

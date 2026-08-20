@@ -6,13 +6,19 @@ use App\Models\ClassType;
 use App\Models\Course;
 use App\Models\Room;
 use App\Models\StudyClass;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class UpdateStudyClass
 {
+    public function __construct(private readonly InstructorAssignmentAvailability $instructorAvailability) {}
+
     public function handle(StudyClass $studyClass, array $data): StudyClass
     {
         return DB::transaction(function () use ($studyClass, $data): StudyClass {
+            $this->ensureInstructorIsAvailable($studyClass, $data);
+
             $course = Course::query()->find($data['course_id']);
             $room = isset($data['room_id']) ? Room::query()->find($data['room_id']) : null;
             $online = $this->isOnline($data['class_type_id'] ?? null);
@@ -41,6 +47,24 @@ class UpdateStudyClass
 
             return $studyClass;
         });
+    }
+
+    private function ensureInstructorIsAvailable(StudyClass $studyClass, array $data): void
+    {
+        if (empty($data['teacher_id'])) {
+            return;
+        }
+
+        $reason = $this->instructorAvailability->unavailableReason(
+            (int) $data['teacher_id'],
+            (int) $data['term_id'],
+            (int) $data['time_id'],
+            $studyClass->id,
+        );
+
+        if ($reason !== null) {
+            throw ValidationException::withMessages(['teacher_id' => $reason]);
+        }
     }
 
     private function isOnline(mixed $classTypeId): bool

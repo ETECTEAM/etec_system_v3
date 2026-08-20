@@ -3,6 +3,7 @@
 namespace App\Modules\Instructor\Requests;
 
 use App\Models\SubCategory;
+use App\Models\WorkSchedule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -36,7 +37,18 @@ class InstructorProfileRequest extends FormRequest
             'specialization' => ['nullable', 'array'],
             'specialization.*' => ['string', Rule::in(SubCategory::where('status', 'active')->pluck('name'))],
             'employment_type' => ['required', Rule::in(['full_time', 'part_time'])],
-            'work_schedule_id' => ['nullable', 'integer', 'exists:work_schedules,id'],
+            'work_schedule_id' => [
+                'nullable',
+                'integer',
+                'exists:work_schedules,id',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value && ! WorkSchedule::whereKey($value)
+                        ->where('code', 'like', $this->input('employment_type').'_%')
+                        ->exists()) {
+                        $fail('The selected work schedule is not valid for the employment type.');
+                    }
+                },
+            ],
             'headline' => ['nullable', 'string', 'max:255'],
             'bio' => ['nullable', 'string', 'max:5000'],
             'date_of_birth' => ['nullable', 'date'],

@@ -92,7 +92,7 @@ class InstructorProfileService
                 'day_of_week' => $wst->day_of_week,
                 'employment_type' => $instructor->employment_type,
                 'shift_group' => $schedule->code,
-                'period' => null,
+                'period' => $this->periodForScheduleTime($schedule, $wst->day_of_week, $start),
                 'start_time' => $start,
                 'end_time' => $end,
                 'is_active' => true,
@@ -104,6 +104,28 @@ class InstructorProfileService
         if (! empty($availabilities)) {
             InstructorAvailability::insert($availabilities);
         }
+    }
+
+    /**
+     * InstructorAvailability.period is required. Work schedules model their
+     * availability as individual time records, so retain the period semantics
+     * used by the former shift templates when creating each row.
+     */
+    private function periodForScheduleTime(WorkSchedule $schedule, int $dayOfWeek, string $start): string
+    {
+        if (in_array($dayOfWeek, [6, 7], true)) {
+            return str_contains($schedule->code, 'weekend_afternoon') ? 'afternoon' : 'morning';
+        }
+
+        if (str_contains($schedule->code, 'morning_afternoon')) {
+            return 'daytime';
+        }
+
+        if ($start >= '17:00') {
+            return 'evening';
+        }
+
+        return $start >= '12:00' ? 'afternoon' : 'morning';
     }
 
     public function saveAttachment(int $instructorId, UploadedFile $file, string $type, ?string $title = null, bool $isPrimary = false): InstructorAttachment

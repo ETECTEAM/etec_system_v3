@@ -8,6 +8,7 @@ use App\Models\InstructorScheduleBlock;
 use App\Models\Term;
 use App\Models\Time;
 use App\Models\User;
+use App\Models\WorkSchedule;
 use Database\Seeders\Core\AssignPermissionSeeder;
 use Database\Seeders\Core\PermissionSeeder;
 use Database\Seeders\Core\RoleSeeder;
@@ -141,6 +142,62 @@ class InstructorScheduleBlockControllerTest extends TestCase
         $this->assertDatabaseCount('instructor_schedule_blocks', 1);
     }
 
+    public function test_available_slots_in_a_row_can_be_blocked_in_one_request(): void
+    {
+        $instructor = $this->instructorWithMondayShift();
+        $time = $this->time('09:00 AM - 10:30 AM');
+
+        InstructorAvailability::create([
+            'instructor_id' => $instructor->id,
+            'day_of_week' => 2,
+            'employment_type' => 'full_time',
+            'shift_group' => 'custom',
+            'period' => 'daytime',
+            'start_time' => '08:00',
+            'end_time' => '12:00',
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($instructor->user)
+            ->postJson('/dashboard/instructor-schedule-blocks/row', [
+                'slots' => [
+                    ['day_of_week' => 1, 'time_id' => $time->id],
+                    ['day_of_week' => 2, 'time_id' => $time->id],
+                ],
+            ]);
+
+        $response->assertCreated()->assertJsonCount(2, 'blocks');
+        $this->assertDatabaseCount('instructor_schedule_blocks', 2);
+    }
+
+    public function test_blocked_slots_in_a_row_can_be_unblocked_in_one_request(): void
+    {
+        $instructor = $this->instructorWithMondayShift();
+        $time = $this->time('09:00 AM - 10:30 AM');
+
+        $mondayBlock = InstructorScheduleBlock::create([
+            'instructor_id' => $instructor->id,
+            'day_of_week' => 1,
+            'time_id' => $time->id,
+            'status' => 'active',
+        ]);
+        $tuesdayBlock = InstructorScheduleBlock::create([
+            'instructor_id' => $instructor->id,
+            'day_of_week' => 2,
+            'time_id' => $time->id,
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($instructor->user)
+            ->deleteJson('/dashboard/instructor-schedule-blocks/row', [
+                'block_ids' => [$mondayBlock->id, $tuesdayBlock->id],
+            ]);
+
+        $response->assertOk()->assertJsonCount(2, 'deleted_ids');
+        $this->assertDatabaseMissing('instructor_schedule_blocks', ['id' => $mondayBlock->id]);
+        $this->assertDatabaseMissing('instructor_schedule_blocks', ['id' => $tuesdayBlock->id]);
+    }
+
     // 5. Removing manual block makes the working slot available again.
     public function test_removing_a_block_deletes_it(): void
     {
@@ -211,5 +268,51 @@ class InstructorScheduleBlockControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonStructure(['schedule']);
+    }
+
+    public function test_schedule_data_includes_saturday_and_sunday_slots(): void
+    {
+        $instructor = $this->instructorWithMondayShift();
+        $saturdayTime = $this->time('08:00 AM - 11:00 AM');
+        $sundayTime = $this->time('11:00 AM - 02:00 PM');
+
+        $schedule = WorkSchedule::create([
+            'name' => 'Weekend schedule',
+            'code' => 'weekend_schedule',
+            'is_active' => true,
+        ]);
+        $schedule->times()->createMany([
+            ['day_of_week' => 6, 'time_id' => $saturdayTime->id],
+            ['day_of_week' => 7, 'time_id' => $sundayTime->id],
+        ]);
+        $instructor->update(['work_schedule_id' => $schedule->id]);
+
+        foreach ([[6, '08:00', '11:00'], [7, '11:00', '14:00']] as [$day, $start, $end]) {
+            InstructorAvailability::create([
+                'instructor_id' => $instructor->id,
+                'day_of_week' => $day,
+                'employment_type' => 'full_time',
+                'shift_group' => 'weekend_schedule',
+                'period' => 'morning',
+                'start_time' => $start,
+                'end_time' => $end,
+                'is_active' => true,
+            ]);
+        }
+
+        $days = $this->actingAs($instructor->user)
+            ->getJson('/dashboard/instructor-schedule-blocks/data')
+            ->assertOk()
+            ->json('schedule');
+
+        $saturday = collect($days)->firstWhere('day_of_week', 6);
+        $sunday = collect($days)->firstWhere('day_of_week', 7);
+
+        $this->assertTrue($saturday['is_working']);
+        $this->assertSame('08:00 AM - 11:00 AM', $saturday['slots'][0]['time_name']);
+        $this->assertSame('available', $saturday['slots'][0]['status']);
+        $this->assertTrue($sunday['is_working']);
+        $this->assertSame('11:00 AM - 02:00 PM', $sunday['slots'][0]['time_name']);
+        $this->assertSame('available', $sunday['slots'][0]['status']);
     }
 }

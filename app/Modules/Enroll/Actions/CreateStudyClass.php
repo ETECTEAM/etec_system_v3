@@ -6,15 +6,38 @@ use App\Models\ClassType;
 use App\Models\Course;
 use App\Models\Room;
 use App\Models\StudyClass;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class CreateStudyClass
 {
+    public function __construct(private readonly InstructorAssignmentAvailability $instructorAvailability) {}
+
     public function handle(array $data): StudyClass
     {
         return DB::transaction(function () use ($data): StudyClass {
+            $this->ensureInstructorIsAvailable($data);
+
             return StudyClass::create($this->payload($data));
         });
+    }
+
+    private function ensureInstructorIsAvailable(array $data): void
+    {
+        if (empty($data['teacher_id'])) {
+            return;
+        }
+
+        $reason = $this->instructorAvailability->unavailableReason(
+            (int) $data['teacher_id'],
+            (int) $data['term_id'],
+            (int) $data['time_id'],
+        );
+
+        if ($reason !== null) {
+            throw ValidationException::withMessages(['teacher_id' => $reason]);
+        }
     }
 
     private function payload(array $data): array

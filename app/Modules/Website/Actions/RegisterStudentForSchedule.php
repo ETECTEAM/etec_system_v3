@@ -334,14 +334,7 @@ class RegisterStudentForSchedule
             ->values();
 
         if ($available->isEmpty()) {
-            $available = $candidates
-                ->filter(fn (InstructorData $instructor): bool => ! $this->instructorHasConflict($instructor, $data))
-                ->filter(fn (InstructorData $instructor): bool => ! $this->instructorHasManualBlock($instructor, $data))
-                ->values();
-        }
-
-        if ($available->isEmpty()) {
-            return $this->fallbackInstructor($data);
+            return null;
         }
 
         $selected = $this->bestFieldMatch($available, $course) ?? $available->first();
@@ -352,24 +345,6 @@ class RegisterStudentForSchedule
         }
 
         return $selected;
-    }
-
-    private function fallbackInstructor(array $data): ?InstructorData
-    {
-        $instructors = InstructorData::query()
-            ->whereHas('user', fn ($query) => $query->where('status', 'active')->role('instructor'))
-            ->orderBy('id')
-            ->get();
-
-        foreach ($instructors as $instructor) {
-            $instructor = InstructorData::query()->lockForUpdate()->find($instructor->id);
-
-            if ($instructor !== null && ! $this->instructorHasConflict($instructor, $data) && ! $this->instructorHasManualBlock($instructor, $data)) {
-                return $instructor;
-            }
-        }
-
-        return null;
     }
 
     private function instructorCoversSchedule(InstructorData $instructor, array $days, array $range): bool

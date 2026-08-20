@@ -13,8 +13,6 @@ import { useI18n } from '@/i18n'
 const props = defineProps({
   instructorName: { type: String, default: '' },
   workSchedule: { type: Object, default: null },
-  workingDaysLabel: { type: String, default: '' },
-  workingHours: { type: String, default: '' },
 })
 
 const { t } = useI18n()
@@ -25,6 +23,8 @@ const schedule = ref([])
 const isLoading = ref(false)
 const hasLoaded = ref(false)
 const savingKey = ref(null)
+const blockingRow = ref(null)
+const unblockingRow = ref(null)
 
 const blockModal = ref(null)
 const blockReason = ref('')
@@ -33,6 +33,11 @@ const isBlocking = ref(false)
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'My Availability', current: true },
+]
+
+const rowGroups = [
+  { key: 'weekday', label: 'Mon–Thu', days: [1, 2, 3, 4] },
+  { key: 'weekend', label: 'Sat–Sun', days: [6, 7] },
 ]
 
 onMounted(() => {
@@ -157,6 +162,98 @@ async function unblockSlot(day, slot) {
   }
 }
 
+function availableSlotsInRow(rowIndex, days) {
+  return schedule.value.flatMap((day) => {
+    const slot = day.slots[rowIndex - 1]
+
+    return days.includes(day.day_of_week) && slot?.status === 'available'
+      ? [{ day_of_week: day.day_of_week, time_id: slot.time_id }]
+      : []
+  })
+}
+
+function blockedSlotsInRow(rowIndex, days) {
+  return schedule.value.flatMap((day) => {
+    const slot = day.slots[rowIndex - 1]
+
+    return days.includes(day.day_of_week) && slot?.status === 'blocked'
+      ? [{ day, slot }]
+      : []
+  })
+}
+
+async function blockRow(rowIndex, group) {
+  const slots = availableSlotsInRow(rowIndex, group.days)
+  if (slots.length === 0) return
+
+  const ok = await confirm({
+    title: t('Block :group row?', { group: t(group.label) }),
+    message: t('This will block :count available slot(s) in the :group row.', { count: slots.length, group: t(group.label) }),
+    confirmText: t('Block row'),
+    danger: true,
+  })
+
+  if (!ok) return
+
+  blockingRow.value = `${rowIndex}:${group.key}`
+
+  try {
+    const response = await axios.post('/dashboard/instructor-schedule-blocks/row', { slots })
+
+    response.data.blocks.forEach((block) => {
+      applySlotUpdate(block.day_of_week, block.time_id, {
+        status: 'blocked',
+        block_id: block.id,
+        reason: block.reason,
+      })
+    })
+
+    toast.success(t('Row blocked.'))
+  } catch (error) {
+    console.error('Failed to block row', error)
+    toast.error(t(error.response?.data?.message ?? 'Failed to block this row. Please try again.'))
+  } finally {
+    blockingRow.value = null
+  }
+}
+
+async function unblockRow(rowIndex, group) {
+  const blockedSlots = blockedSlotsInRow(rowIndex, group.days)
+  if (blockedSlots.length === 0) return
+
+  const ok = await confirm({
+    title: t('Unblock :group row?', { group: t(group.label) }),
+    message: t('This will make :count blocked slot(s) in the :group row available again.', { count: blockedSlots.length, group: t(group.label) }),
+    confirmText: t('Unblock row'),
+    danger: true,
+  })
+
+  if (!ok) return
+
+  unblockingRow.value = `${rowIndex}:${group.key}`
+
+  try {
+    await axios.delete('/dashboard/instructor-schedule-blocks/row', {
+      data: { block_ids: blockedSlots.map(({ slot }) => slot.block_id) },
+    })
+
+    blockedSlots.forEach(({ day, slot }) => {
+      applySlotUpdate(day.day_of_week, slot.time_id, {
+        status: 'available',
+        block_id: null,
+        reason: null,
+      })
+    })
+
+    toast.success(t('Row unblocked.'))
+  } catch (error) {
+    console.error('Failed to unblock row', error)
+    toast.error(t(error.response?.data?.message ?? 'Failed to unblock this row. Please try again.'))
+  } finally {
+    unblockingRow.value = null
+  }
+}
+
 function applySlotUpdate(dayOfWeek, timeId, changes) {
   const day = schedule.value.find((d) => d.day_of_week === dayOfWeek)
   const slot = day?.slots.find((s) => s.time_id === timeId)
@@ -191,14 +288,6 @@ function applySlotUpdate(dayOfWeek, timeId, changes) {
             <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">{{ $t('Work Schedule') }}</h2>
             <p class="text-base font-semibold text-slate-900 dark:text-gray-100">{{ workSchedule.name }}</p>
           </div>
-
-          <div v-if="workingDaysLabel" class="space-y-1">
-            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">{{ $t('Working') }}</h2>
-            <p class="text-sm text-slate-700 dark:text-gray-300">
-              <span class="font-semibold">{{ workingDaysLabel }}</span>
-              <span v-if="workingHours" class="ml-2 text-slate-500 dark:text-gray-400">{{ workingHours }}</span>
-            </p>
-          </div>
         </div>
       </div>
 
@@ -213,6 +302,9 @@ function applySlotUpdate(dayOfWeek, timeId, changes) {
           <table class="w-full min-w-[900px] border-collapse">
             <thead>
               <tr>
+                <th class="w-28 border-b border-slate-200 px-2 py-3 text-center dark:border-gray-800">
+                  <span class="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-gray-300">{{ $t('Actions') }}</span>
+                </th>
                 <th
                   v-for="day in schedule"
                   :key="day.day_of_week"
@@ -227,6 +319,32 @@ function applySlotUpdate(dayOfWeek, timeId, changes) {
 
             <tbody>
               <tr v-for="rowIndex in maxSlotRows" :key="rowIndex">
+                <td class="border-b border-slate-100 px-2 py-2 align-middle last:border-b-0 dark:border-gray-800">
+                  <div class="flex flex-col gap-2">
+                    <div v-for="group in rowGroups" :key="group.key" class="space-y-1">
+                      <p class="text-center text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t(group.label) }}</p>
+                      <button
+                        v-if="availableSlotsInRow(rowIndex, group.days).length > 0"
+                        type="button"
+                        :disabled="blockingRow === `${rowIndex}:${group.key}`"
+                        class="inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-red-300 px-2 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-500/40 dark:text-red-400 dark:hover:bg-red-500/10"
+                        @click="blockRow(rowIndex, group)"
+                      >
+                        <Ban class="h-3 w-3" />
+                        {{ blockingRow === `${rowIndex}:${group.key}` ? $t('Blocking...') : $t('Block row') }}
+                      </button>
+                      <button
+                        v-if="blockedSlotsInRow(rowIndex, group.days).length > 0"
+                        type="button"
+                        :disabled="unblockingRow === `${rowIndex}:${group.key}`"
+                        class="inline-flex w-full items-center justify-center gap-1 rounded-md border border-slate-300 px-2 py-1.5 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                        @click="unblockRow(rowIndex, group)"
+                      >
+                        {{ unblockingRow === `${rowIndex}:${group.key}` ? $t('Unblocking...') : $t('Unblock row') }}
+                      </button>
+                    </div>
+                  </div>
+                </td>
                 <td
                   v-for="day in schedule"
                   :key="`${day.day_of_week}-${rowIndex}`"

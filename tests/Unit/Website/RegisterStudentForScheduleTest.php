@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
 use Database\Seeders\Core\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
 class RegisterStudentForScheduleTest extends TestCase
@@ -27,6 +28,7 @@ class RegisterStudentForScheduleTest extends TestCase
         parent::setUp();
 
         $this->seed(RoleSeeder::class);
+        Event::fake();
     }
 
     private function term(string $name = 'Monday'): Term
@@ -131,6 +133,24 @@ class RegisterStudentForScheduleTest extends TestCase
         app(RegisterStudentForSchedule::class)->handle($this->registrationData($course, $term, $time));
 
         $this->assertNull($studyClass->fresh()->teacher_id);
+    }
+
+    public function test_instructor_without_working_availability_is_not_selected(): void
+    {
+        $term = $this->term('Monday');
+        $time = $this->time($term, '09:00 AM - 10:30 AM');
+        $course = $this->course();
+        $instructor = $this->instructor();
+        $studyClass = $this->openClass($course, $term, $time);
+
+        app(RegisterStudentForSchedule::class)->handle($this->registrationData($course, $term, $time));
+
+        $this->assertNull($studyClass->fresh()->teacher_id);
+        $this->assertDatabaseMissing('study_classes', [
+            'teacher_id' => $instructor->user_id,
+            'term_id' => $term->id,
+            'time_id' => $time->id,
+        ]);
     }
 
     // 3. Another working slot (different time_id, same day) remains available
