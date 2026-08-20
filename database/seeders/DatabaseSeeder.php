@@ -30,6 +30,7 @@ use Database\Seeders\Class\ClassSeeder;
 // Other base seeders
 use Database\Seeders\Term\TermSeeder;
 use Database\Seeders\Time\TimeSeeder;
+use Database\Seeders\WorkSchedule\WorkScheduleSeeder;
 use Database\Seeders\Schedule\ScheduleSeeder;
 
 use Database\Seeders\Website\WebsiteMenuSeeder;
@@ -62,6 +63,7 @@ class DatabaseSeeder extends Seeder
             ClassTypeSeeder::class,
             TermSeeder::class,
             TimeSeeder::class,
+            WorkScheduleSeeder::class,
             BuildingSeeder::class,
 
             // 4. Remaining course data

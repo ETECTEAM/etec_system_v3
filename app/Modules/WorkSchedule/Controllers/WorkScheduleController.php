@@ -46,12 +46,8 @@ class WorkScheduleController extends Controller
 
     public function create(): Response
     {
-        $times = Time::orderBy('id')->get(['id', 'time_name'])
-            ->unique('time_name')
-            ->values();
-
         return Inertia::render('backend/work-schedules/Create', [
-            'times' => $times,
+            'times' => Cache::remember(Time::CACHE_KEY, 3600, fn () => Time::orderBy('id', 'asc')->get()),
         ]);
     }
 
@@ -91,14 +87,11 @@ class WorkScheduleController extends Controller
 
     public function edit(WorkSchedule $workSchedule): Response
     {
-        $workSchedule->load('times');
-        $times = Time::orderBy('id')->get(['id', 'time_name'])
-            ->unique('time_name')
-            ->values();
+        $workSchedule->load('times.time');
 
         return Inertia::render('backend/work-schedules/Edit', [
             'schedule' => $workSchedule,
-            'times' => $times,
+            'times' => Cache::remember(Time::CACHE_KEY, 3600, fn () => Time::orderBy('id', 'asc')->get()),
         ]);
     }
 
