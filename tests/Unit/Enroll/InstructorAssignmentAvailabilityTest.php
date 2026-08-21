@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Enroll;
 
+use App\Models\ClassType;
+use App\Models\Course;
 use App\Models\InstructorAvailability;
 use App\Models\InstructorData;
 use App\Models\InstructorScheduleBlock;
-use App\Models\Course;
-use App\Models\ClassType;
 use App\Models\StudyClass;
 use App\Models\Term;
 use App\Models\Time;
