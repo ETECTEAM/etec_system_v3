@@ -19,6 +19,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  attendanceWindow: {
+    type: Object,
+    default: null,
+  },
   // Today's ClassSession row (status/recorded_at/can_override) — null if none was
   // generated for today (e.g. the class doesn't meet today).
   todaySession: {
@@ -33,6 +37,52 @@ const isOverridable = computed(
   () => props.todaySession?.status === "auto_recorded" && props.todaySession?.can_override,
 );
 const locked = computed(() => props.attendanceLocked && !isOverridable.value);
+const windowMessage = computed(() => {
+  if (!props.attendanceWindow) {
+    return null;
+  }
+
+  if (props.attendanceWindow.reason === "no_session") {
+    return "This class does not have a session today.";
+  }
+
+  if (props.attendanceWindow.reason === "before_start") {
+    return `Attendance opens at ${props.attendanceWindow.starts_at} and closes at ${props.attendanceWindow.ends_at}.`;
+  }
+
+  if (props.attendanceWindow.reason === "after_deadline") {
+    return `The attendance window closed at ${props.attendanceWindow.ends_at}.`;
+  }
+
+  return null;
+});
+const submitLabel = computed(() => {
+  if (form.processing) {
+    return "Saving...";
+  }
+
+  if (isOverridable.value) {
+    return "Save Correction";
+  }
+
+  if (!locked.value) {
+    return "Save Attendance";
+  }
+
+  if (props.attendanceWindow?.reason === "before_start") {
+    return "Not Started";
+  }
+
+  if (props.attendanceWindow?.reason === "after_deadline") {
+    return "Window Closed";
+  }
+
+  if (props.attendanceWindow?.reason === "no_session") {
+    return "No Session";
+  }
+
+  return "Submitted Today";
+});
 
 const statuses = [
   {
@@ -138,7 +188,7 @@ const submit = () => {
             @click="submit"
           >
             <Save class="h-4 w-4" />
-            {{ form.processing ? "Saving..." : locked ? "Submitted Today" : isOverridable ? "Save Correction" : "Save Attendance" }}
+            {{ submitLabel }}
           </button>
         </div>
       </div>
@@ -155,6 +205,13 @@ const submit = () => {
         <span v-else>
           The system recorded this class at {{ todaySession.recorded_at }}. The window to correct it has closed.
         </span>
+      </div>
+
+      <div
+        v-else-if="windowMessage"
+        class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300"
+      >
+        {{ windowMessage }}
       </div>
 
       <div v-else-if="locked" class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">

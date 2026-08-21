@@ -130,6 +130,20 @@ const selectedSchedule = computed(() =>
   )
 );
 
+const currentTermOption = computed(() => {
+  const termId = props.mode === "edit" ? props.classData?.term_id : selectedTerm.value;
+  const term = options.value.terms.find((item) => String(item.id) === String(termId));
+
+  return term ? { label: term.term_name, value: String(term.id) } : null;
+});
+
+const currentTimeOption = computed(() => {
+  const timeId = props.mode === "edit" ? props.classData?.time_id : selectedTime.value;
+  const time = options.value.times.find((item) => String(item.id) === String(timeId));
+
+  return time ? { label: time.time_name, value: String(time.id) } : null;
+});
+
 const scheduleTypeOptions = computed(() =>
   options.value.scheduleGroups.map((group) => ({
     label: group.class_type_name,
@@ -151,18 +165,30 @@ const scheduleTermOptions = computed(() => {
     ? schedules.filter((schedule) => RECEIPT_ONLY_TERM_NAMES.includes(schedule.term_name))
     : schedules;
 
-  return visibleSchedules.map((schedule) => ({
+  const optionsList = visibleSchedules.map((schedule) => ({
     label: schedule.term_name,
     value: String(schedule.term_id),
   }));
+
+  if (props.mode === "edit" && currentTermOption.value && !optionsList.some((option) => option.value === currentTermOption.value.value)) {
+    optionsList.unshift(currentTermOption.value);
+  }
+
+  return optionsList;
 });
 
-const scheduleTimeOptions = computed(() =>
-  (selectedSchedule.value?.times ?? []).map((time) => ({
-    label: time.time_name,
-    value: String(time.id),
-  }))
-);
+const scheduleTimeOptions = computed(() => {
+  const visibleTimes = selectedSchedule.value?.times ?? [];
+
+  if (visibleTimes.length > 0) {
+    return visibleTimes.map((time) => ({
+      label: time.time_name,
+      value: String(time.id),
+    }));
+  }
+
+  return props.mode === "edit" && currentTimeOption.value ? [currentTimeOption.value] : [];
+});
 
 const floorPlaceholder = computed(() => "Select Floor");
 const roomPlaceholder = computed(() => "Select Room");

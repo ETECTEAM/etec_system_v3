@@ -17,6 +17,10 @@ use stdClass;
 class InstructorClassService
 {
     public const ATTENDANCE_STATUSES = ['absent', 'present', 'permission'];
+    public const ATTENDANCE_WINDOW_REASON_NO_SESSION = 'no_session';
+    public const ATTENDANCE_WINDOW_REASON_BEFORE_START = 'before_start';
+    public const ATTENDANCE_WINDOW_REASON_AFTER_DEADLINE = 'after_deadline';
+    public const ATTENDANCE_WINDOW_REASON_ALREADY_SUBMITTED = 'already_submitted';
 
     private ?array $termLabels = null;
 
@@ -129,12 +133,6 @@ class InstructorClassService
     {
         $attendanceDate = Carbon::parse($data['attendance_date'] ?? now())->toDateString();
 
-        if ($this->hasAttendanceForDate($studyClassId, $attendanceDate)) {
-            throw ValidationException::withMessages([
-                'records' => 'Attendance has already been submitted for this class today.',
-            ]);
-        }
-
         $enrollments = DB::table('student_enrollments')
             ->where('study_class_id', $studyClassId)
             ->where('enrollment_status', 'active')
@@ -155,11 +153,19 @@ class InstructorClassService
                 ->lockForUpdate()
                 ->first();
 
-            if ($session && $session->status === ClassSession::STATUS_AUTO_RECORDED) {
+            if (! $session || $session->status !== ClassSession::STATUS_PENDING) {
+                if ($session && $session->status === ClassSession::STATUS_AUTO_RECORDED) {
+                    throw ValidationException::withMessages([
+                        'records' => 'The system already auto-recorded this class. Use the override option on the attendance page to correct it.',
+                    ]);
+                }
+
                 throw ValidationException::withMessages([
-                    'records' => 'The system already auto-recorded this class. Use the override option on the attendance page to correct it.',
+                    'records' => 'Attendance can only be tracked during the scheduled class window.',
                 ]);
             }
+
+            $this->assertAttendanceWindowOpen($session);
 
             foreach ($data['records'] as $record) {
                 $enrollmentId = (int) $record['enrollment_id'];
@@ -194,6 +200,71 @@ class InstructorClassService
                 $session->update(['status' => ClassSession::STATUS_RECORDED, 'recorded_at' => now()]);
             }
         });
+    }
+
+    public function attendanceWindow(int $studyClassId, Carbon|string|null $attendanceDate = null): array
+    {
+        $date = Carbon::parse($attendanceDate ?? Carbon::today('Asia/Phnom_Penh'))->toDateString();
+        $session = ClassSession::query()
+            ->where('study_class_id', $studyClassId)
+            ->whereDate('session_date', $date)
+            ->first();
+
+        if (! $session) {
+            return [
+                'session_date' => $date,
+                'status' => null,
+                'can_submit' => false,
+                'reason' => self::ATTENDANCE_WINDOW_REASON_NO_SESSION,
+                'starts_at' => null,
+                'ends_at' => null,
+            ];
+        }
+
+        $window = $this->windowForSession($session);
+
+        $hasAttendance = $this->hasAttendanceForDate($studyClassId, $date);
+
+        return [
+            'session_date' => $session->session_date->toDateString(),
+            'status' => $session->status,
+            'can_submit' => $session->status === ClassSession::STATUS_PENDING
+                && $window['now']->greaterThanOrEqualTo($window['starts_at'])
+                && $window['now']->lessThanOrEqualTo($window['ends_at']),
+            'reason' => $hasAttendance
+                ? self::ATTENDANCE_WINDOW_REASON_ALREADY_SUBMITTED
+                : ($window['now']->lessThan($window['starts_at'])
+                    ? self::ATTENDANCE_WINDOW_REASON_BEFORE_START
+                    : ($window['now']->greaterThan($window['ends_at'])
+                        ? self::ATTENDANCE_WINDOW_REASON_AFTER_DEADLINE
+                        : null)),
+            'starts_at' => $window['starts_at']->format('Y-m-d H:i'),
+            'ends_at' => $window['ends_at']->format('Y-m-d H:i'),
+        ];
+    }
+
+    private function assertAttendanceWindowOpen(ClassSession $session): void
+    {
+        $window = $this->windowForSession($session);
+
+        if ($window['now']->lessThan($window['starts_at']) || $window['now']->greaterThan($window['ends_at'])) {
+            throw ValidationException::withMessages([
+                'records' => 'Attendance can only be tracked from the class start time until the configured grace period ends.',
+            ]);
+        }
+    }
+
+    private function windowForSession(ClassSession $session): array
+    {
+        $graceMinutes = (int) setting('attendance.auto_record_grace_minutes', 15);
+        $startsAt = $session->scheduled_start->copy();
+        $endsAt = $session->scheduled_start->copy()->addMinutes($graceMinutes);
+
+        return [
+            'now' => Carbon::now('Asia/Phnom_Penh'),
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+        ];
     }
 
     public function hasAttendanceForDate(int $studyClassId, Carbon|string $attendanceDate): bool
@@ -388,7 +459,7 @@ class InstructorClassService
     {
         return DB::table('student_attendances')
             ->where('study_class_id', $studyClassId)
-            ->whereDate('attendance_date', today())
+            ->whereDate('attendance_date', Carbon::today('Asia/Phnom_Penh'))
             ->get(['student_id', 'status', 'note'])
             ->keyBy('student_id');
     }

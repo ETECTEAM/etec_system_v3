@@ -55,6 +55,10 @@ class UpdateStudyClass
             return;
         }
 
+        if ((int) $studyClass->teacher_id === (int) $data['teacher_id']) {
+            return;
+        }
+
         $reason = $this->instructorAvailability->unavailableReason(
             (int) $data['teacher_id'],
             (int) $data['term_id'],
