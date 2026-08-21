@@ -7,7 +7,7 @@ use App\Modules\Course\CourseController;
 use App\Modules\Course\CourseLessonController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'active', 'verified'])->prefix('dashboard/course')->name('course.')->group(function () {
+Route::middleware(['auth', 'active', 'verified', 'role:super_admin'])->prefix('dashboard/course')->name('course.')->group(function () {
     
     // Categories
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories');

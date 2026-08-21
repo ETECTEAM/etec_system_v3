@@ -250,7 +250,7 @@ class AuthControllerTest extends TestCase
 
     public function test_pending_user_can_verify_with_the_correct_code(): void
     {
-        $user = User::factory()->create(['status' => UserStatus::Pending, 'is_active' => false]);
+        $user = User::factory()->create(['status' => UserStatus::Pending]);
         $user->assignRole('instructor');
         [, $plainCode] = app(OtpService::class)->createForUser($user);
 
@@ -262,13 +262,12 @@ class AuthControllerTest extends TestCase
 
         $fresh = $user->fresh();
         $this->assertSame(UserStatus::Active, $fresh->status);
-        $this->assertTrue($fresh->is_active);
         $this->assertAuthenticatedAs($user);
     }
 
     public function test_verification_fails_with_a_wrong_code(): void
     {
-        $user = User::factory()->create(['status' => UserStatus::Pending, 'is_active' => false]);
+        $user = User::factory()->create(['status' => UserStatus::Pending]);
         [$otp] = app(OtpService::class)->createForUser($user);
 
         $this->withSession(['pending_verification_user_id' => $user->id])

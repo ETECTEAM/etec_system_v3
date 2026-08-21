@@ -23,8 +23,6 @@ class GradingSetting extends Model
         'min',
         'max',
         'group',
-        'scope_type',
-        'scope_id',
         'updated_by',
     ];
 
@@ -33,7 +31,6 @@ class GradingSetting extends Model
         return [
             'min' => 'decimal:2',
             'max' => 'decimal:2',
-            'scope_id' => 'integer',
             'updated_by' => 'integer',
         ];
     }

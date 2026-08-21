@@ -3,7 +3,7 @@
 use App\Modules\Schedules\Controllers\ScheduleController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'active'])
+Route::middleware(['auth', 'active', 'role:super_admin|admin'])
     ->prefix('/dashboard/schdule')
     ->name('schdule.')
     ->group(function () {

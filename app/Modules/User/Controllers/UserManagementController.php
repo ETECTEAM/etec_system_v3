@@ -74,8 +74,9 @@ class UserManagementController extends Controller
     // Assign permissions to a role so every user with that role inherits them.
     public function assignRolePermissions(Request $request, Role $role): RedirectResponse
     {
-        // Only super admins and admins can change role permission defaults.
-        abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
+        // Super admin only: an admin could otherwise grant their own role every
+        // permission in the system, which is equivalent to self-escalation.
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
 
         $validated = $request->validate([
             'permissions' => ['nullable', 'array'],
@@ -121,8 +122,9 @@ class UserManagementController extends Controller
     // Assign the selected users to a role from the role management page.
     public function assignUsersToRole(Request $request, Role $role): RedirectResponse
     {
-        // Only super admins and admins can move users between roles.
-        abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
+        // Super admin only: an admin could otherwise assign themselves (or anyone
+        // else) to the super_admin role, i.e. self-escalate.
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
 
         $validated = $request->validate([
             'users' => ['nullable', 'array'],

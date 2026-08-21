@@ -45,6 +45,19 @@ class SaveStudyClassRequest extends FormRequest
 
     public function rules(): array
     {
+        $editingStudyClass = $this->route('studyClass');
+        $editingCurrentSchedule = $this->isEditingCurrentSchedule($editingStudyClass);
+
+        $termRules = ['required', 'integer', 'exists:terms,id'];
+        if (! $editingCurrentSchedule) {
+            $termRules[] = Rule::exists('schedules', 'term_id')->where('class_type_id', $this->input('class_type_id'));
+        }
+
+        $timeRules = ['required', 'integer', 'exists:times,id'];
+        if (! $editingCurrentSchedule) {
+            $timeRules[] = Rule::exists('schedule_time', 'time_id')->where('schedule_id', $this->scheduleId());
+        }
+
         return [
             'title' => ['required', 'string', 'max:255'],
             'course_id' => ['required', 'integer', 'exists:courses,id'],
@@ -64,14 +77,8 @@ class SaveStudyClassRequest extends FormRequest
                 'nullable', 'integer', 'exists:rooms,id',
             ],
             'class_type_id' => ['required', 'integer', 'exists:class_type,class_type_id'],
-            'term_id' => [
-                'required', 'integer', 'exists:terms,id',
-                Rule::exists('schedules', 'term_id')->where('class_type_id', $this->input('class_type_id')),
-            ],
-            'time_id' => [
-                'required', 'integer', 'exists:times,id',
-                Rule::exists('schedule_time', 'time_id')->where('schedule_id', $this->scheduleId()),
-            ],
+            'term_id' => $termRules,
+            'time_id' => $timeRules,
             'status' => ['required', 'string', Rule::in(GetClassFormOptions::STATUSES)],
             'capacity' => ['required', 'integer', 'min:1'],
             'price' => ['required', 'numeric', 'min:0'],
@@ -90,6 +97,11 @@ class SaveStudyClassRequest extends FormRequest
             }
 
             $studyClass = $this->route('studyClass');
+
+            if ($studyClass && (int) $studyClass->teacher_id === (int) $this->input('teacher_id')) {
+                return;
+            }
+
             $reason = app(InstructorAssignmentAvailability::class)->unavailableReason(
                 (int) $this->input('teacher_id'),
                 (int) $this->input('term_id'),
@@ -120,6 +132,13 @@ class SaveStudyClassRequest extends FormRequest
             ->where('class_type_id', $this->input('class_type_id'))
             ->where('term_id', $this->input('term_id'))
             ->value('id');
+    }
+
+    private function isEditingCurrentSchedule($studyClass): bool
+    {
+        return $studyClass
+            && (int) $studyClass->term_id === (int) $this->input('term_id')
+            && (int) $studyClass->time_id === (int) $this->input('time_id');
     }
 
     private function validLessonId(): ?int

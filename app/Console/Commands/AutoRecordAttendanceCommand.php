@@ -3,7 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Modules\Attendance\Actions\AutoRecordSession;
+use App\Modules\Attendance\Actions\FinalizeAutoRecordedSession;
 use App\Modules\Attendance\Queries\GetSessionsDueForAutoRecord;
+use App\Modules\Attendance\Queries\GetSessionsDueForAutoFinalize;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
@@ -11,9 +13,14 @@ class AutoRecordAttendanceCommand extends Command
 {
     protected $signature = 'attendance:auto-record';
 
-    protected $description = 'Records attendance for sessions past their grace period with nothing submitted, and marks sessions past end time as missed.';
+    protected $description = 'Records attendance after the grace window, finalizes overdue pre-attendance rows, and marks sessions past end time as missed.';
 
-    public function handle(GetSessionsDueForAutoRecord $dueSessions, AutoRecordSession $autoRecord): int
+    public function handle(
+        GetSessionsDueForAutoRecord $dueSessions,
+        GetSessionsDueForAutoFinalize $dueFinalizations,
+        AutoRecordSession $autoRecord,
+        FinalizeAutoRecordedSession $finalizeAutoRecorded,
+    ): int
     {
         if (! setting('attendance.auto_record_enabled', true)) {
             return self::SUCCESS;
@@ -33,8 +40,16 @@ class AutoRecordAttendanceCommand extends Command
             $autoRecord->handle($sessionId);
         }
 
-        if ($sessionIds->isNotEmpty()) {
-            $this->info("Processed {$sessionIds->count()} session(s).");
+        $finalizationIds = $dueFinalizations->handle($now, (int) setting('attendance.auto_record_override_hours', 24));
+
+        foreach ($finalizationIds as $sessionId) {
+            $finalizeAutoRecorded->handle($sessionId);
+        }
+
+        $processed = $sessionIds->count() + $finalizationIds->count();
+
+        if ($processed > 0) {
+            $this->info("Processed {$processed} session(s).");
         }
 
         return self::SUCCESS;

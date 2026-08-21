@@ -26,12 +26,10 @@ class UserApprovalServiceTest extends TestCase
     {
         $user = User::factory()->unverified()->create([
             'status' => UserStatus::Pending,
-            'is_active' => false,
         ]);
 
         $approved = $this->service->approve($user);
 
-        $this->assertTrue($approved->is_active);
         $this->assertSame(UserStatus::Active, $approved->status);
         $this->assertNotNull($approved->verified_at);
         $this->assertNotNull($approved->email_verified_at);
@@ -95,17 +93,15 @@ class UserApprovalServiceTest extends TestCase
         ]);
     }
 
-    public function test_reject_marks_the_user_inactive_and_rejected(): void
+    public function test_reject_marks_the_user_rejected(): void
     {
         $user = User::factory()->create([
             'status' => UserStatus::Pending,
-            'is_active' => true,
         ]);
 
         $rejected = $this->service->reject($user);
 
         $this->assertSame(UserStatus::Rejected, $rejected->status);
-        $this->assertFalse($rejected->is_active);
     }
 
     public function test_reject_logs_an_audit_action(): void

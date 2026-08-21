@@ -31,6 +31,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  attendanceWindow: {
+    type: Object,
+    default: null,
+  },
   // Today's ClassSession row — null if the class doesn't meet today.
   todaySession: {
     type: Object,
@@ -43,6 +47,26 @@ const rosterStudents = ref([]);
 const totalPresent = computed(() =>
   rosterStudents.value.reduce((total, student) => total + Number(student.attendance?.present ?? 0), 0),
 );
+const canTrackAttendance = computed(() => props.todaySession?.status === "auto_recorded" || props.attendanceWindow?.can_submit);
+const trackAttendanceLabel = computed(() => {
+  if (props.todaySession?.status === "auto_recorded") {
+    return "Track Attendance";
+  }
+
+  if (props.attendanceWindow?.reason === "before_start") {
+    return "Not Started";
+  }
+
+  if (props.attendanceWindow?.reason === "after_deadline") {
+    return "Window Closed";
+  }
+
+  if (props.attendanceWindow?.reason === "no_session") {
+    return "No Session";
+  }
+
+  return "Track Attendance";
+});
 
 const activeStudent = ref(null);
 const editModalOpen = ref(false);
@@ -270,12 +294,22 @@ async function submitScores() {
             {{ scoreSaving ? "Saving..." : "Save Score" }}
           </button>
           <Link
+            v-if="canTrackAttendance"
             :href="`/dashboard/instructor/classes/${classData.id}/attendance/track`"
             class="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md"
           >
             <ClipboardCheck class="h-4 w-4" />
             Track Attendance
           </Link>
+          <button
+            v-else
+            type="button"
+            class="inline-flex h-10 items-center gap-2 rounded-lg bg-slate-300 px-3 text-sm font-semibold text-slate-600 opacity-70"
+            disabled
+          >
+            <ClipboardCheck class="h-4 w-4" />
+            {{ trackAttendanceLabel }}
+          </button>
         </div>
       </div>
 

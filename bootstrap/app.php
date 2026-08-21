@@ -35,8 +35,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // បន្ថែមបន្ទាត់នេះ ដើម្បីឱ្យ Laravel ឈប់ខ្វល់រឿងជម្លោះ HTTPS/SSL ចាស់
-        $middleware->trustProxies(at: '*');
+        // Trust only the private-network reverse proxy (nginx, same Docker
+        // Compose network) so Laravel resolves the real client IP from
+        // X-Forwarded-* instead of blindly trusting any peer - '*' let anyone
+        // spoof X-Forwarded-For and defeat IP-keyed rate limiting.
+        $middleware->trustProxies(at: [
+            '10.0.0.0/8',
+            '172.16.0.0/12',
+            '192.168.0.0/16',
+        ]);
 
         $middleware->web(append: [
             HandleInertiaRequests::class,

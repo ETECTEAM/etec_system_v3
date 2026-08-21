@@ -2,14 +2,17 @@
 
 namespace Tests\Unit\Enroll;
 
+use App\Models\ClassType;
+use App\Models\Course;
 use App\Models\InstructorAvailability;
 use App\Models\InstructorData;
 use App\Models\InstructorScheduleBlock;
-use App\Models\Course;
+use App\Models\StudyClass;
 use App\Models\Term;
 use App\Models\Time;
 use App\Models\User;
 use App\Modules\Enroll\Actions\CreateStudyClass;
+use App\Modules\Enroll\Actions\UpdateStudyClass;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use Database\Seeders\Core\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -113,5 +116,56 @@ class InstructorAssignmentAvailabilityTest extends TestCase
             'capacity' => 12,
             'price' => 0,
         ]);
+    }
+
+    public function test_updating_own_class_skips_the_instructor_availability_recheck(): void
+    {
+        $teacher = User::factory()->create(['status' => 'active']);
+        $teacher->assignRole('instructor');
+
+        $classType = ClassType::create(['type_name' => 'Scholarship Class', 'is_active' => true]);
+        $course = Course::create([
+            'title' => 'Availability Update Course',
+            'slug' => 'availability-update-course',
+            'status' => 'active',
+        ]);
+        $currentTerm = Term::create(['term_name' => 'Friday']);
+        $currentTime = Time::create(['term_id' => $currentTerm->id, 'time_name' => '10:00 AM - 12:30 PM']);
+        $newTerm = Term::create(['term_name' => 'Monday']);
+        $newTime = Time::create(['term_id' => $newTerm->id, 'time_name' => '09:00 AM - 10:30 AM']);
+
+        $class = StudyClass::create([
+            'title' => 'Existing Class',
+            'course_id' => $course->id,
+            'teacher_id' => $teacher->id,
+            'class_type_id' => $classType->class_type_id,
+            'term_id' => $currentTerm->id,
+            'time_id' => $currentTime->id,
+            'status' => 'active',
+            'capacity' => 12,
+            'price' => 0,
+        ]);
+
+        $updated = app(UpdateStudyClass::class)->handle($class, [
+            'title' => 'Existing Class',
+            'course_id' => $course->id,
+            'lesson_id' => null,
+            'teacher_id' => $teacher->id,
+            'room_id' => null,
+            'class_type_id' => $classType->class_type_id,
+            'term_id' => $newTerm->id,
+            'time_id' => $newTime->id,
+            'status' => 'active',
+            'capacity' => 12,
+            'price' => 0,
+            'document_price' => 0,
+            'enrollment_start_date' => null,
+            'start_date' => null,
+            'end_date' => null,
+        ]);
+
+        $this->assertSame($class->id, $updated->id);
+        $this->assertSame($newTerm->id, $updated->fresh()->term_id);
+        $this->assertSame($newTime->id, $updated->fresh()->time_id);
     }
 }

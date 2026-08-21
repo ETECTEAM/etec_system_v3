@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\User;
 
+use App\Enums\UserStatus;
 use App\Models\User;
 use Database\Seeders\Core\AssignPermissionSeeder;
 use Database\Seeders\Core\PermissionSeeder;
@@ -27,9 +28,15 @@ class UserManagementControllerTest extends TestCase
         ]);
     }
 
+    // Explicit status is required here: the users table only defaults
+    // 'status' to 'active' at the DB level, and actingAs() hands the
+    // EnsureAccountIsActive middleware this exact in-memory instance rather
+    // than a fresh read - a factory-created model that never had 'status'
+    // set keeps a null in-memory attribute even though the row itself
+    // defaulted correctly, which the middleware reads as inactive.
     private function superAdmin(): User
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['status' => UserStatus::Active]);
         $user->assignRole('super_admin');
 
         return $user;
@@ -37,7 +44,7 @@ class UserManagementControllerTest extends TestCase
 
     private function admin(): User
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['status' => UserStatus::Active]);
         $user->assignRole('admin');
 
         return $user;
@@ -45,7 +52,7 @@ class UserManagementControllerTest extends TestCase
 
     private function instructor(): User
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['status' => UserStatus::Active]);
         $user->assignRole('instructor');
 
         return $user;
@@ -152,6 +159,19 @@ class UserManagementControllerTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_admin_cannot_assign_permissions_to_role(): void
+    {
+        $role = $this->webRole('instructor');
+
+        $this->actingAs($this->admin())
+            ->put("/dashboard/users/roles/{$role->id}/permissions", [
+                'permissions' => ['course.view'],
+            ])
+            ->assertForbidden();
+
+        $this->assertFalse($role->fresh()->hasPermissionTo('course.view'));
+    }
+
     public function test_assigning_a_nonexistent_permission_fails_validation(): void
     {
         $role = $this->webRole('instructor');
@@ -190,6 +210,34 @@ class UserManagementControllerTest extends TestCase
                 'users' => [$user->id],
             ])
             ->assertForbidden();
+    }
+
+    public function test_admin_cannot_assign_users_to_role(): void
+    {
+        $role = $this->webRole('instructor');
+        $user = User::factory()->create();
+
+        $this->actingAs($this->admin())
+            ->put("/dashboard/users/roles/{$role->id}/users", [
+                'users' => [$user->id],
+            ])
+            ->assertForbidden();
+
+        $this->assertFalse($user->fresh()->hasRole('instructor'));
+    }
+
+    public function test_admin_cannot_self_escalate_to_super_admin(): void
+    {
+        $admin = $this->admin();
+        $superAdminRole = $this->webRole('super_admin');
+
+        $this->actingAs($admin)
+            ->put("/dashboard/users/roles/{$superAdminRole->id}/users", [
+                'users' => [$admin->id],
+            ])
+            ->assertForbidden();
+
+        $this->assertFalse($admin->fresh()->hasRole('super_admin'));
     }
 
     // DELETE /dashboard/users/roles/{role}

@@ -57,16 +57,10 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'is_active' => 'boolean',
             'status' => UserStatus::class,
             'verified_at' => 'datetime',
             'password' => 'hashed',
         ];
-    }
-
-    public function verificationCodes(): HasMany
-    {
-        return $this->hasMany(VerificationCode::class);
     }
 
     public function otpVerifications(): HasMany

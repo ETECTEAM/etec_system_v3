@@ -18,7 +18,6 @@ class AttendanceSettingsController extends Controller
     {
         $rows = GradingSetting::query()
             ->where('group', 'attendance')
-            ->whereNull('scope_type')
             ->get()
             ->keyBy('key');
 

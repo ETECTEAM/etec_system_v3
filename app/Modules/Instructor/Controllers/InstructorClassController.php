@@ -11,6 +11,7 @@ use App\Modules\Instructor\Services\InstructorClassService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -57,10 +58,12 @@ class InstructorClassController extends Controller
     public function attendance(Request $request, string $studyClass): Response
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
 
         return Inertia::render('backend/instructors/AttendanceRecord', [
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
+            'attendanceWindow' => $attendanceWindow,
             'todaySession' => $this->sessionBanner->handle($class->id),
         ]);
     }
@@ -68,12 +71,22 @@ class InstructorClassController extends Controller
     public function trackAttendance(Request $request, string $studyClass): Response
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
+        $todaySession = $this->sessionBanner->handle($class->id);
+
+        if (! $attendanceWindow['can_submit'] && ($todaySession['status'] ?? null) !== 'auto_recorded') {
+            return redirect()
+                ->route('instructor.classes.attendance', $class->id)
+                ->with('warning', 'Attendance can only be tracked during the class start window.');
+        }
 
         return Inertia::render('backend/instructors/TrackAttendance', [
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
-            'attendanceLocked' => $this->instructorClasses->hasAttendanceForDate($class->id, today()),
-            'todaySession' => $this->sessionBanner->handle($class->id),
+            'attendanceLocked' => $this->instructorClasses->hasAttendanceForDate($class->id, Carbon::today('Asia/Phnom_Penh'))
+                || ! $attendanceWindow['can_submit'],
+            'attendanceWindow' => $attendanceWindow,
+            'todaySession' => $todaySession,
         ]);
     }
 

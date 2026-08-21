@@ -20,8 +20,11 @@ class TelegramWebhookController extends Controller
     {
         $secret = config('telegram.webhook_secret');
 
-        // When configured, Telegram must send the shared webhook secret header.
-        if ($secret && $request->header('X-Telegram-Bot-Api-Secret-Token') !== $secret) {
+        // Fail closed: an unconfigured secret must reject every request, not
+        // accept them unauthenticated. Telegram must send the matching
+        // X-Telegram-Bot-Api-Secret-Token header (set via setWebhook's
+        // secret_token param) on every call.
+        if (! $secret || $request->header('X-Telegram-Bot-Api-Secret-Token') !== $secret) {
             return response()->noContent(401);
         }
 

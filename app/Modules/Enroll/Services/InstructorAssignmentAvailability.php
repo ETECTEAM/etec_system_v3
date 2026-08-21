@@ -7,10 +7,17 @@ use App\Models\InstructorScheduleBlock;
 use App\Models\StudyClass;
 use App\Models\Term;
 use App\Models\Time;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class InstructorAssignmentAvailability
 {
     private const OPEN_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
+
+    private const DAY_NUMBERS = [
+        'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4,
+        'Friday' => 5, 'Saturday' => 6, 'Sunday' => 7,
+    ];
 
     /**
      * Returns a validation error when this instructor cannot teach the given
@@ -60,29 +67,91 @@ class InstructorAssignmentAvailability
             return 'The selected instructor has blocked this class schedule.';
         }
 
-        $hasClassConflict = StudyClass::query()
-            ->where('teacher_id', $userId)
-            ->where('term_id', $termId)
+        if ($this->hasConflictingClass($userId, $days, $timeId, $exceptClassId)) {
+            return 'The selected instructor already has a class at this time.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether this instructor already teaches another open class on any of the
+     * given weekdays at the same time slot. The conflict days come from the
+     * class's own term for an unshared class, or from the instructor's
+     * study_class_instructors pivot term for a shared/collapsed class — so
+     * "Mon & Thu" and "Thu & Fri" correctly collide on Thursday even though
+     * their term_ids differ, and shared instructors are counted too.
+     */
+    public function hasConflictingClass(int $userId, array $days, int $timeId, ?int $exceptClassId = null): bool
+    {
+        if ($days === []) {
+            return false;
+        }
+
+        $classes = StudyClass::query()
             ->where('time_id', $timeId)
             ->whereIn('status', self::OPEN_CLASS_STATUSES)
-            ->when($exceptClassId !== null, fn ($query) => $query->where('id', '!=', $exceptClassId))
-            ->exists();
+            ->where(fn (Builder $query) => $query
+                ->where('teacher_id', $userId)
+                ->orWhereHas('instructors', fn ($query) => $query->where('users.id', $userId)))
+            ->when($exceptClassId !== null, fn (Builder $query) => $query->where('id', '!=', $exceptClassId))
+            ->with([
+                'term:id,term_name',
+                'instructors' => fn ($query) => $query->where('users.id', $userId)->select('users.id'),
+            ])
+            ->get();
 
-        return $hasClassConflict
-            ? 'The selected instructor already has a class at this time.'
-            : null;
+        if ($classes->isEmpty()) {
+            return false;
+        }
+
+        $termNames = $this->termNamesFor($classes);
+
+        foreach ($classes as $class) {
+            $classDays = $this->instructorDaysInClass($userId, $class, $termNames);
+
+            if (array_intersect($days, $classDays) !== []) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function instructorDaysInClass(int $userId, StudyClass $class, Collection $termNames): array
+    {
+        foreach ($class->instructors as $instructor) {
+            if ((int) $instructor->id === $userId) {
+                $termName = $instructor->pivot->term_id !== null
+                    ? $termNames->get($instructor->pivot->term_id)
+                    : $class->term?->term_name;
+
+                return $this->dayNumbers($termName);
+            }
+        }
+
+        return $this->dayNumbers($class->term?->term_name);
+    }
+
+    private function termNamesFor(Collection $classes): Collection
+    {
+        $termIds = $classes->flatMap(fn (StudyClass $class): array => array_merge(
+            [$class->term_id],
+            $class->instructors->pluck('pivot.term_id')->filter()->all(),
+        ))->unique()->values()->all();
+
+        return Term::query()->whereIn('id', $termIds)->pluck('term_name', 'id');
     }
 
     private function termDays(int $termId): array
     {
-        $termName = Term::query()->whereKey($termId)->value('term_name');
-        $dayNumbers = [
-            'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4,
-            'Friday' => 5, 'Saturday' => 6, 'Sunday' => 7,
-        ];
+        return $this->dayNumbers(Term::query()->whereKey($termId)->value('term_name'));
+    }
 
+    private function dayNumbers(?string $termName): array
+    {
         return collect(StudyClass::parseTermDays($termName))
-            ->map(fn (string $day): ?int => $dayNumbers[$day] ?? null)
+            ->map(fn (string $day): ?int => self::DAY_NUMBERS[$day] ?? null)
             ->filter()
             ->values()
             ->all();
