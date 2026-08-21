@@ -14,6 +14,7 @@ use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Models\Term;
 use App\Models\Time;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Notification\Events\NotificationsUpdated;
 use Illuminate\Database\Eloquent\Collection;
@@ -27,7 +28,10 @@ class RegisterStudentForSchedule
     private const DEFAULT_CAPACITY = 12;
     private const OPEN_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
 
-    public function __construct(private readonly StudentRegistrationService $registrations) {}
+    public function __construct(
+        private readonly StudentRegistrationService $registrations,
+        private readonly InstructorAssignmentAvailability $instructorAvailability,
+    ) {}
 
     public function handle(array $data): ?StudentEnrollment
     {
@@ -59,7 +63,7 @@ class RegisterStudentForSchedule
                 'enrolled_at' => now(),
             ]);
 
-            DB::table('notifications')->insert([
+            DB::table('dashboard_notifications')->insert([
                 'title' => 'New Student Registration',
                 'message' => "{$data['name']} registered for \"{$studyClass->title}\".",
                 'type' => 'class_registration',
@@ -366,12 +370,14 @@ class RegisterStudentForSchedule
 
     private function instructorHasConflict(InstructorData $instructor, array $data): bool
     {
-        return StudyClass::query()
-            ->where('teacher_id', $instructor->user_id)
-            ->where('term_id', $data['term_id'])
-            ->where('time_id', $data['time_id'])
-            ->whereIn('status', self::OPEN_CLASS_STATUSES)
-            ->exists();
+        // Weekday-aware and includes shared (study_class_instructors) classes, so
+        // an instructor already teaching another class on an overlapping day at the
+        // same time is excluded even when the two terms only partially overlap.
+        return $this->instructorAvailability->hasConflictingClass(
+            $instructor->user_id,
+            $this->termDays((int) $data['term_id']),
+            (int) $data['time_id'],
+        );
     }
 
     // A staff-entered exception (see InstructorScheduleBlockController), separate

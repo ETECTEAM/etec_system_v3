@@ -7,6 +7,7 @@ use App\Modules\User\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -66,5 +67,28 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(function ($user, string $ability): ?bool {
             return $user->hasRole('super_admin') ? true : null;
         });
+
+        $this->assertAttendanceTimezoneConsistency();
+    }
+
+    // AutoRecordAttendanceCommand, GenerateClassSessionsCommand, and
+    // SendAttendanceDigestCommand all hardcode 'Asia/Phnom_Penh' rather than
+    // reading config('app.timezone'), so class_sessions' naive DATETIME
+    // columns are only safe to compare against "now" as long as the two stay
+    // in sync. If APP_TIMEZONE ever drifts from that hardcoded value without
+    // updating the commands too, every class would instantly read as
+    // past-end and get mass-marked missed - this makes the drift loud
+    // instead of silent.
+    private function assertAttendanceTimezoneConsistency(): void
+    {
+        $expected = 'Asia/Phnom_Penh';
+        $configured = config('app.timezone');
+
+        if ($configured !== $expected) {
+            Log::critical(
+                "APP_TIMEZONE is '{$configured}' but the attendance commands hardcode '{$expected}' - ".
+                'class_sessions timestamps and attendance auto-recording will misalign until these match.'
+            );
+        }
     }
 }

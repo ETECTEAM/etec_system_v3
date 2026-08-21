@@ -3,6 +3,7 @@
 namespace App\Modules\Enroll\Actions;
 
 use App\Models\StudyClass;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -13,6 +14,8 @@ use Illuminate\Validation\ValidationException;
  */
 class ShareClassWithInstructor
 {
+    public function __construct(private readonly InstructorAssignmentAvailability $instructorAvailability) {}
+
     public function handle(StudyClass $studyClass, array $data): StudyClass
     {
         $ownerId = (int) $studyClass->teacher_id;
@@ -31,6 +34,9 @@ class ShareClassWithInstructor
         }
 
         return DB::transaction(function () use ($studyClass, $data, $ownerId, $instructorId): StudyClass {
+            $this->ensureInstructorCanTeach($studyClass, $ownerId, (int) ($data['owner_term_id'] ?? $studyClass->term_id));
+            $this->ensureInstructorCanTeach($studyClass, $instructorId, (int) $data['instructor_term_id']);
+
             // Only the days differ between the two halves — both keep the class's time slot.
             $studyClass->instructors()->syncWithoutDetaching([
                 $ownerId => [
@@ -47,6 +53,26 @@ class ShareClassWithInstructor
 
             return $studyClass->load('instructors');
         });
+    }
+
+    // Each half of a collapsed class must be independently teachable: the owner on
+    // their chosen days and the new instructor on theirs, at the class's time slot.
+    // The class itself is excluded from the conflict check so editing an existing
+    // share doesn't collide with the very class being shared.
+    private function ensureInstructorCanTeach(StudyClass $studyClass, int $userId, int $termId): void
+    {
+        $field = $userId === (int) $studyClass->teacher_id ? 'owner_term_id' : 'instructor_id';
+
+        $reason = $this->instructorAvailability->unavailableReason(
+            $userId,
+            $termId,
+            (int) $studyClass->time_id,
+            $studyClass->id,
+        );
+
+        if ($reason !== null) {
+            throw ValidationException::withMessages([$field => $reason]);
+        }
     }
 
     /**

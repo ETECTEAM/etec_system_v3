@@ -3,7 +3,7 @@
 use App\Modules\Auth\Controllers\PermissionController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'active'])->get('/roles', [PermissionController::class, 'roles']);
+Route::middleware(['auth', 'active', 'role:super_admin|admin'])->get('/roles', [PermissionController::class, 'roles']);
 
 Route::prefix('admin')->middleware(['auth', 'active', 'role:super_admin'])->group(function (): void {
     Route::post('/features', [PermissionController::class, 'createFeaturePermissions']);

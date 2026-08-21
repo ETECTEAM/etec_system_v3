@@ -23,7 +23,6 @@ class UserApprovalService
     {
         $user->forceFill([
             'status' => UserStatus::Active,
-            'is_active' => true,
             'verified_at' => $user->verified_at ?? now(),
             'email_verified_at' => $user->email_verified_at ?? now(),
         ])->save();
@@ -42,7 +41,6 @@ class UserApprovalService
     {
         $user->forceFill([
             'status' => UserStatus::Rejected,
-            'is_active' => false,
         ])->save();
 
         $this->syncDashboardNotification($user);

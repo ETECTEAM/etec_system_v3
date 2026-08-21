@@ -45,8 +45,27 @@ class UpdateStudyClass
                 'end_date' => $data['end_date'] ?? null,
             ]);
 
+            $this->syncOwnerPivot($studyClass, $data);
+
             return $studyClass;
         });
+    }
+
+    // A shared/collapsed class records the owner's own days in study_class_instructors;
+    // editing the class's term/time must keep that pivot row in step or attendance and
+    // conflict checks keep reading a stale owner schedule.
+    private function syncOwnerPivot(StudyClass $studyClass, array $data): void
+    {
+        if ($studyClass->teacher_id === null) {
+            return;
+        }
+
+        $studyClass->instructors()
+            ->wherePivot('user_id', $studyClass->teacher_id)
+            ->update([
+                'term_id' => $data['term_id'] ?? $studyClass->term_id,
+                'time_id' => $data['time_id'] ?? $studyClass->time_id,
+            ]);
     }
 
     private function ensureInstructorIsAvailable(StudyClass $studyClass, array $data): void

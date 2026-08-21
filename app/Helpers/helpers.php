@@ -22,7 +22,6 @@ if(!function_exists('setting')) {
             \App\Models\GradingSetting::CACHE_KEY,
             3600,
             fn () => \App\Models\GradingSetting::query()
-                ->whereNull('scope_type')
                 ->get(['key', 'value', 'type'])
                 ->keyBy('key'),
         );
