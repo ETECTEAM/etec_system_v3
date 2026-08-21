@@ -7,7 +7,6 @@ use App\Models\Category;
 use App\Models\Course;
 use App\Models\CourseEnrollConfig;
 use App\Models\Schedule;
-use App\Models\SubCategory;
 use App\Models\Term;
 use App\Models\Time;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
@@ -22,7 +21,6 @@ class StudentRegisterController extends Controller
     {
         return Inertia::render('frontend/student-register/StudentRegister', [
             'categories' => $this->categories(),
-            'subCategories' => $this->subCategories(),
             'courses' => $this->courses(),
             'terms' => $this->terms(),
             'times' => Time::query()->select('id', 'time_name')->orderBy('time_name')->get(),
@@ -88,29 +86,22 @@ class StudentRegisterController extends Controller
             ->all();
     }
 
-    private function subCategories(): array
-    {
-        return SubCategory::query()
-            ->where('status', 'active')
-            ->select('id', 'category_id', 'name')
-            ->orderBy('name')
-            ->get()
-            ->all();
-    }
-
     private function courses(): array
     {
         return Course::query()
             ->with('track.subCategory.category:id,name', 'enrollConfigs.time:id,time_name')
             ->where('status', 'active')
-            ->select('id', 'course_track_id', 'title')
+            ->select('id', 'course_track_id', 'title', 'level')
             ->orderBy('title')
             ->get()
             ->map(fn (Course $course): array => [
                 'id' => $course->id,
                 'title' => $course->title,
+                'level' => $course->level,
                 'category_id' => $course->track?->subCategory?->category?->id,
+                'category_name' => $course->track?->subCategory?->category?->name,
                 'sub_category_id' => $course->track?->subCategory?->id,
+                'sub_category_name' => $course->track?->subCategory?->name,
                 // The enrollment time slots this course offers - one per open
                 // schedule the admin set on the Enroll Config page. Empty when
                 // the course only has its default (no-slot) schedule, in which
