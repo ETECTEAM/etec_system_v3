@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Instructor;
 
+use App\Models\Course;
 use App\Models\InstructorAvailability;
 use App\Models\InstructorData;
 use App\Models\InstructorScheduleBlock;
+use App\Models\StudyClass;
 use App\Models\Term;
 use App\Models\Time;
 use App\Models\User;
@@ -314,5 +316,71 @@ class InstructorScheduleBlockControllerTest extends TestCase
         $this->assertTrue($sunday['is_working']);
         $this->assertSame('11:00 AM - 02:00 PM', $sunday['slots'][0]['time_name']);
         $this->assertSame('available', $sunday['slots'][0]['status']);
+    }
+
+    // A slot the instructor is already teaching an open class in must read as
+    // "occupied", not "available" - otherwise the calendar looks free even
+    // though the instructor has a real class booked there.
+    public function test_slot_with_an_assigned_class_is_marked_occupied(): void
+    {
+        $instructor = $this->instructorWithMondayShift();
+        $time = $this->time('09:00 AM - 10:30 AM');
+
+        $schedule = WorkSchedule::create([
+            'name' => 'Monday and Tuesday schedule',
+            'code' => 'mon_tue_schedule',
+            'is_active' => true,
+        ]);
+        $schedule->times()->createMany([
+            ['day_of_week' => 1, 'time_id' => $time->id],
+            ['day_of_week' => 2, 'time_id' => $time->id],
+        ]);
+        $instructor->update(['work_schedule_id' => $schedule->id]);
+
+        InstructorAvailability::create([
+            'instructor_id' => $instructor->id,
+            'day_of_week' => 2,
+            'employment_type' => 'full_time',
+            'shift_group' => 'custom',
+            'period' => 'daytime',
+            'start_time' => '08:00',
+            'end_time' => '12:00',
+            'is_active' => true,
+        ]);
+
+        $course = Course::create([
+            'title' => 'Basic IT',
+            'slug' => 'basic-it-occupied-test',
+            'status' => 'active',
+        ]);
+
+        // The class's own term is "Mon & Thu" - Tuesday isn't one of its
+        // days, so it should stay "available" there even though Monday
+        // shows "occupied" for the exact same time slot.
+        StudyClass::create([
+            'title' => 'Basic IT',
+            'course_id' => $course->id,
+            'teacher_id' => $instructor->user_id,
+            'term_id' => Term::firstOrCreate(['term_name' => 'Mon & Thu'])->id,
+            'time_id' => $time->id,
+            'status' => 'upcoming',
+            'capacity' => 12,
+            'price' => 0,
+        ]);
+
+        $days = collect(
+            $this->actingAs($instructor->user)
+                ->getJson('/dashboard/instructor-schedule-blocks/data')
+                ->assertOk()
+                ->json('schedule')
+        );
+
+        $mondaySlot = collect($days->firstWhere('day_of_week', 1)['slots'])->firstWhere('time_id', $time->id);
+        $tuesdaySlot = collect($days->firstWhere('day_of_week', 2)['slots'])->firstWhere('time_id', $time->id);
+
+        $this->assertSame('occupied', $mondaySlot['status']);
+        $this->assertSame('Basic IT', $mondaySlot['class_title']);
+        $this->assertSame('available', $tuesdaySlot['status']);
+        $this->assertNull($tuesdaySlot['class_title']);
     }
 }

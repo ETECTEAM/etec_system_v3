@@ -118,6 +118,44 @@ class InstructorAssignmentAvailability
         return false;
     }
 
+    /**
+     * Every (day_of_week, time_id) slot this instructor is already teaching
+     * an open class in, across the whole week - used to mark those slots
+     * "occupied" on the instructor's own availability calendar instead of
+     * showing them as plain "available" just because they fall inside a
+     * configured working window.
+     */
+    public function occupiedSlots(int $userId): Collection
+    {
+        $classes = StudyClass::query()
+            ->whereIn('status', self::OPEN_CLASS_STATUSES)
+            ->where(fn (Builder $query) => $query
+                ->where('teacher_id', $userId)
+                ->orWhereHas('instructors', fn ($query) => $query->where('users.id', $userId)))
+            ->with([
+                'term:id,term_name',
+                'instructors' => fn ($query) => $query->where('users.id', $userId)->select('users.id'),
+            ])
+            ->get(['id', 'title', 'term_id', 'time_id', 'teacher_id', 'status']);
+
+        if ($classes->isEmpty()) {
+            return collect();
+        }
+
+        $termNames = $this->termNamesFor($classes);
+
+        return $classes
+            ->flatMap(fn (StudyClass $class): array => collect($this->instructorDaysInClass($userId, $class, $termNames))
+                ->map(fn (int $day): array => [
+                    'day_of_week' => $day,
+                    'time_id' => $class->time_id,
+                    'class_id' => $class->id,
+                    'title' => $class->title,
+                ])
+                ->all())
+            ->values();
+    }
+
     private function instructorDaysInClass(int $userId, StudyClass $class, Collection $termNames): array
     {
         foreach ($class->instructors as $instructor) {

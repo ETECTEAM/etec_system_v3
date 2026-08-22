@@ -65,6 +65,53 @@ class InstructorAssignmentAvailabilityTest extends TestCase
         $this->assertNull($reason);
     }
 
+    // An instructor already teaching Mon & Thu at 09:00-10:30 must still be
+    // assignable to a second class on a genuinely disjoint day pattern
+    // (Sat & Sun) at that same time - conflicts are day-specific, not a
+    // blanket "this time is taken all week" rule.
+    public function test_it_accepts_an_instructor_already_booked_at_that_time_on_a_disjoint_day_pattern(): void
+    {
+        $instructor = $this->instructor();
+
+        foreach ([1, 4, 6, 7] as $day) {
+            InstructorAvailability::create([
+                'instructor_id' => $instructor->id,
+                'day_of_week' => $day,
+                'employment_type' => 'full_time',
+                'shift_group' => 'custom',
+                'period' => 'daytime',
+                'start_time' => '08:00',
+                'end_time' => '12:00',
+                'is_active' => true,
+            ]);
+        }
+
+        $monThu = Term::create(['term_name' => 'Mon & Thu']);
+        $satSun = Term::create(['term_name' => 'Sat & Sun']);
+        $time = Time::create(['term_id' => $monThu->id, 'time_name' => '09:00 AM - 10:30 AM']);
+
+        $course = Course::create([
+            'title' => 'Existing Weekday Class',
+            'slug' => 'existing-weekday-class',
+            'status' => 'active',
+        ]);
+
+        StudyClass::create([
+            'title' => 'Existing Weekday Class',
+            'course_id' => $course->id,
+            'teacher_id' => $instructor->user_id,
+            'term_id' => $monThu->id,
+            'time_id' => $time->id,
+            'status' => 'upcoming',
+            'capacity' => 12,
+            'price' => 0,
+        ]);
+
+        $reason = app(InstructorAssignmentAvailability::class)->unavailableReason($instructor->user_id, $satSun->id, $time->id);
+
+        $this->assertNull($reason);
+    }
+
     public function test_it_rejects_an_instructor_with_a_manual_block(): void
     {
         $instructor = $this->instructor();

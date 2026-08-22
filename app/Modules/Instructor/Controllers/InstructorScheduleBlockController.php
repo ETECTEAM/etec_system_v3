@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\InstructorScheduleBlock;
 use App\Models\StudyClass;
 use App\Models\Time;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -42,7 +43,7 @@ class InstructorScheduleBlockController extends Controller
      * non-working. For working days, only Time records that are linked to
      * the instructor's WorkSchedule for that day are shown.
      */
-    public function data(Request $request): JsonResponse
+    public function data(Request $request, InstructorAssignmentAvailability $instructorAvailability): JsonResponse
     {
         $instructorData = $request->user()->instructorData()->first();
 
@@ -50,6 +51,8 @@ class InstructorScheduleBlockController extends Controller
 
         $availabilities = $instructorData->availabilities()->where('is_active', true)->get(['day_of_week', 'start_time', 'end_time']);
         $blocks = $instructorData->scheduleBlocks()->where('status', InstructorScheduleBlock::STATUS_ACTIVE)->get(['id', 'day_of_week', 'time_id', 'reason']);
+        $occupied = $instructorAvailability->occupiedSlots($instructorData->user_id)
+            ->keyBy(fn (array $slot): string => "{$slot['day_of_week']}:{$slot['time_id']}");
 
         $workingDays = $availabilities->pluck('day_of_week')->unique()->sort()->values()->all();
         $dayWindows = $availabilities->groupBy('day_of_week')
@@ -83,13 +86,13 @@ class InstructorScheduleBlockController extends Controller
                 ->values()
             );
 
-        $schedule = collect(range(1, 7))->map(function (int $day) use ($dayWindows, $workingDays, $blocks, $dayTimeIds, $timeModels): array {
+        $schedule = collect(range(1, 7))->map(function (int $day) use ($dayWindows, $workingDays, $blocks, $dayTimeIds, $timeModels, $occupied): array {
             $isWorking = in_array($day, $workingDays);
 
             // Only Time records assigned to THIS day via WorkScheduleTime.
             $dayTimeEntries = $dayTimeIds->get($day, collect());
 
-            $slots = $dayTimeEntries->map(function (int $timeId) use ($day, $isWorking, $dayWindows, $blocks, $timeModels): array {
+            $slots = $dayTimeEntries->map(function (int $timeId) use ($day, $isWorking, $dayWindows, $blocks, $timeModels, $occupied): array {
                 $time = $timeModels->get($timeId);
                 $timeName = $time?->time_name ?? '';
 
@@ -105,13 +108,27 @@ class InstructorScheduleBlockController extends Controller
                 }
 
                 $block = $blocks->first(fn (InstructorScheduleBlock $b): bool => $b->day_of_week === $day && $b->time_id === $timeId);
+                $class = $occupied->get("{$day}:{$timeId}");
+
+                // A slot the instructor is already teaching an open class in is
+                // "occupied", not plain "available" - that state wins over a
+                // manual block too, since the block is moot once a class is
+                // actually assigned there.
+                $status = match (true) {
+                    $class !== null => 'occupied',
+                    $block !== null => 'blocked',
+                    $isAvailable => 'available',
+                    default => 'not_working',
+                };
 
                 return [
                     'time_id' => $timeId,
                     'time_name' => $timeName,
-                    'status' => $block !== null ? 'blocked' : ($isAvailable ? 'available' : 'not_working'),
+                    'status' => $status,
                     'block_id' => $block?->id,
                     'reason' => $block?->reason,
+                    'class_id' => $class['class_id'] ?? null,
+                    'class_title' => $class['title'] ?? null,
                 ];
             })->values();
 

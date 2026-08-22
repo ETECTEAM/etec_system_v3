@@ -35,8 +35,11 @@ const breadcrumbItems = [
   { label: 'My Availability', current: true },
 ]
 
+// Bulk block/unblock groupings only - a "weekday" course term like "Mon &
+// Thu" means Monday AND Thursday specifically, so these labels deliberately
+// avoid looking like a term (no "Mon-Thu" range wording) to prevent that mix-up.
 const rowGroups = [
-  { key: 'weekday', label: 'Mon–Thu', days: [1, 2, 3, 4] },
+  { key: 'weekday', label: 'Weekdays', days: [1, 2, 3, 4] },
   { key: 'weekend', label: 'Sat–Sun', days: [6, 7] },
 ]
 
@@ -69,6 +72,11 @@ const statusConfig = {
     card: 'border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10',
     badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400',
     label: 'Available',
+  },
+  occupied: {
+    card: 'border-blue-200 bg-blue-50 dark:border-blue-500/20 dark:bg-blue-500/10',
+    badge: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
+    label: 'Occupied',
   },
   not_working: {
     card: 'border-slate-200 bg-slate-50 dark:border-gray-700 dark:bg-gray-800/50',
@@ -379,6 +387,13 @@ function applySlotUpdate(dayOfWeek, timeId, changes) {
                       class="mt-1 text-[11px] text-slate-500 dark:text-gray-400"
                     >
                       {{ day.slots[rowIndex - 1].reason }}
+                    </p>
+
+                    <p
+                      v-if="day.slots[rowIndex - 1].status === 'occupied' && day.slots[rowIndex - 1].class_title"
+                      class="mt-1 truncate text-[11px] text-slate-500 dark:text-gray-400"
+                    >
+                      {{ day.slots[rowIndex - 1].class_title }}
                     </p>
 
                     <div class="mt-2">
