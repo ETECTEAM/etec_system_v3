@@ -204,15 +204,13 @@ function resetForm() {
 
 // ─── Submit ─────────────────────────────────────────────────────────────
 function submit() {
+    // Success/validation feedback comes from the global FlashToasts handler
+    // (backend flash + shared error bag), so no local toasts here.
     form.post(route("enroll.store"), {
         onSuccess: () => {
             form.reset();
             thumbnailPreview.value = null;
             bannerPreview.value = null;
-            toast.success(t("Class created successfully!"));
-        },
-        onError: () => {
-            toast.error(t("Please fix the validation errors."));
         },
     });
 }

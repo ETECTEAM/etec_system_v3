@@ -1,7 +1,6 @@
 <script setup>
-import { Head, useForm, usePage } from '@inertiajs/vue3'
-import { computed, watch } from 'vue'
-import { useToast } from 'vue-toastification'
+import { Head, useForm } from '@inertiajs/vue3'
+import { computed } from 'vue'
 import { BellRing, Bot, PencilLine, Save, ShieldAlert, Timer, UserCheck, Zap } from '@lucide/vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
@@ -18,15 +17,8 @@ const props = defineProps({
   },
 })
 
-const toast = useToast()
-const page = usePage()
 const { confirm } = useConfirm()
 const { t } = useI18n()
-
-watch(() => page.props.flash, (flash) => {
-  if (flash?.success) toast.success(flash.success)
-  else if (flash?.error) toast.error(flash.error)
-}, { deep: true })
 
 const form = useForm({
   auto_record_enabled: props.settings.enabled,

@@ -1,7 +1,5 @@
 <script setup>
-import { Head, useForm, usePage } from '@inertiajs/vue3'
-import { watch } from 'vue'
-import { useToast } from 'vue-toastification'
+import { Head, useForm } from '@inertiajs/vue3'
 import { CheckCircle2, Mail, RotateCcw, Save, ShieldAlert, ShieldCheck } from '@lucide/vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
@@ -12,17 +10,6 @@ const props = defineProps({
   recoveryEmail: String,
   recoveryVerified: Boolean,
 })
-
-const toast = useToast()
-const page = usePage()
-
-watch(() => page.props.flash, (flash) => {
-  if (flash?.success) {
-    toast.success(flash.success)
-  } else if (flash?.error) {
-    toast.error(flash.error)
-  }
-}, { deep: true })
 
 const form = useForm({
   recovery_email: '',

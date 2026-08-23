@@ -1,14 +1,13 @@
 import { onMounted, ref, watch } from 'vue'
 import axios from 'axios'
 import { router, usePage } from '@inertiajs/vue3'
-import { useToast } from 'vue-toastification'
 import { useConfirm } from '../../../../composables/useConfirm'
 import { useI18n } from '../../../../i18n'
 
-// Owns user-list data fetching (axios, not Inertia props), delete confirmation, and flash-message toasts.
+// Owns user-list data fetching (axios, not Inertia props), delete confirmation.
+// Flash-message toasts are handled globally by FlashToasts.vue.
 // search/selectedRole are UI state owned by the component and passed in by ref, since typing in either refetches page 1.
 export function useUserIndex({ search, selectedRole }) {
-  const toast = useToast()
   const { confirm } = useConfirm()
   const { t } = useI18n()
   const page = usePage()
@@ -116,18 +115,6 @@ export function useUserIndex({ search, selectedRole }) {
   watch(selectedRole, () => {
     fetchUsers(1)
   })
-
-  watch(() => page.props.flash, (flash) => {
-    if (flash?.success) {
-      toast.success(flash.success)
-    } else if (flash?.error) {
-      toast.error(flash.error)
-    } else if (flash?.warning) {
-      toast.warning(flash.warning)
-    } else if (flash?.info) {
-      toast.info(flash.info)
-    }
-  }, { deep: true, immediate: true })
 
   return {
     canCreateUser,

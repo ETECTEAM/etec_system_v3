@@ -1,6 +1,5 @@
 import { computed, ref, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import { useToast } from 'vue-toastification'
 import { formatRole } from '../../../../lib/roleBadge'
 import { useSaveForm } from '../../../../composables/useSaveForm'
 
@@ -23,17 +22,8 @@ function sameItems(a, b) {
 // selectedUserId/userSearchQuery/moduleSearchQuery/matrixPage/showOnlyChecked are UI state owned by the component and passed in by ref.
 export function useUserPermissions({ selectedUserId, userSearchQuery, moduleSearchQuery, matrixPage, showOnlyChecked }) {
   const page = usePage()
-  const toast = useToast()
   const users = computed(() => page.props.users ?? [])
   const permissions = computed(() => page.props.permissions ?? [])
-
-  watch(() => page.props.flash, (flash) => {
-    if (flash?.success) {
-      toast.success(flash.success)
-    } else if (flash?.error) {
-      toast.error(flash.error)
-    }
-  }, { deep: true })
 
   const { form, save } = useSaveForm({ permissions: [] })
 
