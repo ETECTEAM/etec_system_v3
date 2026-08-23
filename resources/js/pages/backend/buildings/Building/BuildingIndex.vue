@@ -171,6 +171,30 @@ function setActiveFloor(buildingId, floorId) {
     activeFloorMap.value = { ...activeFloorMap.value, [buildingId]: floorId };
 }
 
+const showAddBuildingModal = ref(false);
+const buildingForm = useForm({
+    name: "",
+});
+
+function openAddBuildingModal() {
+    buildingForm.reset();
+    buildingForm.clearErrors();
+    showAddBuildingModal.value = true;
+}
+
+function closeAddBuildingModal() {
+    showAddBuildingModal.value = false;
+    buildingForm.reset();
+    buildingForm.clearErrors();
+}
+
+function submitAddBuilding() {
+    buildingForm.post("/dashboard/buildings", {
+        preserveScroll: true,
+        onSuccess: () => closeAddBuildingModal(),
+    });
+}
+
 async function deleteBuilding(building) {
     const ok = await confirm({
         title: t("Delete Building"),
@@ -603,12 +627,13 @@ async function changeRoomStatus(room, status) {
                             {{ $t('Reset') }}
                         </button>
 
-                        <Link
-                            href="/dashboard/buildings/create"
+                        <button
+                            type="button"
                             class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 whitespace-nowrap dark:bg-blue-600 dark:hover:bg-blue-500"
+                            @click="openAddBuildingModal"
                         >
                             {{ $t('Add Building') }}
-                        </Link>
+                        </button>
                     </div>
 
             </div>
@@ -943,9 +968,26 @@ async function changeRoomStatus(room, status) {
 
                         <div
                             v-if="building.floors.length === 0"
-                            class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center text-sm text-slate-500 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-400"
+                            class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center text-sm text-slate-500 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-400"
                         >
-                            {{ $t('No floors in this building yet. Use Add Floor to create the first one.') }}
+                            <p>{{ $t('No floors in this building yet. Use Add Floor to create the first one.') }}</p>
+                            <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+                                    @click="openFloorAuto(building)"
+                                >
+                                    {{ $t('Auto Floor') }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-1 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-blue-400 hover:text-blue-600 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-blue-500 dark:hover:text-blue-400"
+                                    @click="openFloorCreate(building)"
+                                >
+                                    <Plus class="h-3.5 w-3.5" />
+                                    {{ $t('Add Floor') }}
+                                </button>
+                            </div>
                         </div>
 
                         <div v-else class="space-y-4">
@@ -1334,5 +1376,81 @@ async function changeRoomStatus(room, status) {
                 </Card>
             </div>
         </section>
+
+        <Teleport to="body">
+            <Transition name="add-building-fade">
+                <div
+                    v-if="showAddBuildingModal"
+                    class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="add-building-title"
+                    @keydown.esc.prevent="closeAddBuildingModal"
+                >
+                    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="closeAddBuildingModal" />
+
+                    <div class="add-building-panel relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+                        <h2 id="add-building-title" class="text-lg font-bold text-slate-900 dark:text-gray-100">
+                            {{ $t('Add Building') }}
+                        </h2>
+                        <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">
+                            {{ $t('Give the building a name to add it to the list.') }}
+                        </p>
+
+                        <form class="mt-5 space-y-4" @submit.prevent="submitAddBuilding">
+                            <label class="block">
+                                <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Building Name') }}</span>
+                                <input
+                                    v-model="buildingForm.name"
+                                    type="text"
+                                    required
+                                    autofocus
+                                    :placeholder="$t('e.g. Science Block')"
+                                    class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+                                />
+                                <span v-if="buildingForm.errors.name" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ buildingForm.errors.name }}</span>
+                            </label>
+
+                            <div class="flex justify-end gap-3 border-t border-slate-100 pt-4 dark:border-gray-800">
+                                <button
+                                    type="button"
+                                    class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                                    @click="closeAddBuildingModal"
+                                >
+                                    {{ $t('Cancel') }}
+                                </button>
+                                <button
+                                    type="submit"
+                                    :disabled="buildingForm.processing"
+                                    class="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
+                                >
+                                    {{ buildingForm.processing ? $t('Creating...') : $t('Create Building') }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
     </DashboardLayout>
 </template>
+
+<style scoped>
+.add-building-fade-enter-active,
+.add-building-fade-leave-active {
+    transition: opacity 0.18s ease;
+}
+.add-building-fade-enter-from,
+.add-building-fade-leave-to {
+    opacity: 0;
+}
+.add-building-fade-enter-active .add-building-panel,
+.add-building-fade-leave-active .add-building-panel {
+    transition: transform 0.18s ease, opacity 0.18s ease;
+}
+.add-building-fade-enter-from .add-building-panel,
+.add-building-fade-leave-to .add-building-panel {
+    transform: scale(0.96) translateY(-8px);
+    opacity: 0;
+}
+</style>

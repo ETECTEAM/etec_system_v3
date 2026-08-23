@@ -31,7 +31,6 @@ use Database\Seeders\Class\ClassSeeder;
 use Database\Seeders\Term\TermSeeder;
 use Database\Seeders\Time\TimeSeeder;
 use Database\Seeders\WorkSchedule\WorkScheduleSeeder;
-use Database\Seeders\Instructor\InstructorAvailabilitySeeder;
 use Database\Seeders\Schedule\ScheduleSeeder;
 
 use Database\Seeders\Website\WebsiteMenuSeeder;
@@ -59,26 +58,28 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             SubCategorySeeder::class,
 
-            // 3. Core/base data
-            CoreSeeder::class,
+            // 3. Core/base reference data (times + work schedules must exist
+            // before Core\UserSeeder assigns instructor shifts)
             ClassTypeSeeder::class,
             TermSeeder::class,
             TimeSeeder::class,
             WorkScheduleSeeder::class,
-            // Needs InstructorData (from UserSeeder above) and WorkSchedule
-            // (just seeded) to both already exist.
-            InstructorAvailabilitySeeder::class,
             BuildingSeeder::class,
 
-            // 4. Remaining course data
+            // 4. Real users — needs roles/permissions, sub-categories for
+            // instructor specializations, and work schedules for shift
+            // assignment. Core\UserSeeder does all of that in one run.
+            CoreSeeder::class,
+
+            // 5. Remaining course data
             CourseTrackSeeder::class,
             CourseSeeder::class,
 
-            // 5. Class relation data
+            // 6. Class relation data
             ClassSeeder::class,
             ScheduleSeeder::class,
 
-            // 6. Public website defaults
+            // 7. Public website defaults
             WebsiteMenuSeeder::class,
         ]);
     }

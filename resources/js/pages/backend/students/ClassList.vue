@@ -186,12 +186,7 @@ function remainingBalance(row) {
   return Number(row.fee_amount) + Number(row.document_fee_amount) - Number(row.amount_paid);
 }
 
-// "Record Payment" always opens a confirm modal (prefilled with the full
-// remaining balance, editable down to a partial/deposit amount) since it's
-// recording a real payment someone should be able to double-check first.
-// Posts to the same deposit endpoint the class View page's Record Deposit
-// modal uses (EnrollmentClassController::deposit / RecordEnrollmentDeposit),
-// which now also answers with JSON when asked instead of only redirecting.
+
 const confirmPaidModalOpen = ref(false);
 const pendingRow = ref(null);
 const paymentAmountInput = ref("");
@@ -388,7 +383,7 @@ onBeforeUnmount(() => {
       </div>
 
       <div
-        class="flex flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+        class="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <!-- Title -->
         <div>

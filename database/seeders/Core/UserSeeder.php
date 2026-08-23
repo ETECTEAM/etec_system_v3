@@ -5,6 +5,8 @@ namespace Database\Seeders\Core;
 use App\Models\InstructorData;
 use App\Models\SubCategory;
 use App\Models\User;
+use App\Models\WorkSchedule;
+use App\Modules\Instructor\Services\InstructorProfileService;
 use App\Modules\Instructor\Services\InstructorService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +23,7 @@ class UserSeeder extends Seeder
         User::truncate();
         DB::table('model_has_roles')->truncate();
         DB::table('model_has_permissions')->truncate();
+        DB::table('instructor_availabilities')->truncate();
         InstructorData::truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
@@ -54,6 +57,15 @@ class UserSeeder extends Seeder
     {
         $specializations = SubCategory::pluck('id')->toArray();
 
+        // Round-robin across every active work schedule (full-time and
+        // part-time) so each instructor exercises a different shift shape.
+        $schedules = WorkSchedule::query()
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->get(['id', 'code']);
+
+        $availabilityService = app(InstructorProfileService::class);
+
         $instructors = [
             ['name' => 'John Doe',           'email' => 'instructor@etec.com',     'phone' => '012345678'],
             ['name' => 'Jane Smith',         'email' => 'instructor2@etec.com',    'phone' => '012345679'],
@@ -78,14 +90,21 @@ class UserSeeder extends Seeder
 
             $user->syncRoles(['instructor']);
 
-            InstructorData::create([
+            $schedule = $schedules->isEmpty() ? null : $schedules[$index % $schedules->count()];
+
+            $instructorData = InstructorData::create([
                 'user_id'            => $user->id,
                 'full_name'          => $data['name'],
                 'instructor_code'    => InstructorService::generateInstructorCode(),
                 'phone'              => $data['phone'],
                 'specialization'     => [$specializations[$index % count($specializations)]],
-                'employment_type'    => 'full_time',
+                'employment_type'    => $schedule !== null && str_starts_with($schedule->code, 'part_time') ? 'part_time' : 'full_time',
             ]);
+
+            if ($schedule !== null) {
+                $instructorData->update(['work_schedule_id' => $schedule->id]);
+                $availabilityService->generateInstructorAvailabilities($instructorData->fresh());
+            }
         }
     }
 }

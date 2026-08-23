@@ -266,9 +266,10 @@ function goToStep(targetStep) {
         :description="step === 1 ? $t('Configure the basic settings and properties of the building.') : step === 2 ? $t('Manage or auto-generate floors for :name.', { name: props.building?.name }) : $t('Manage or auto-generate rooms for :name.', { name: props.building?.name })" 
       />
 
+      <div class="space-y-8">
       <!-- Stepper Progress Bar -->
       <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div class="flex flex-col md:flex-row items-center justify-between gap-4 max-w-4xl mx-auto">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
 
           <!-- Step 1 Indicator -->
           <button type="button" @click="goToStep(1)" :disabled="!props.building?.id" class="flex items-center gap-3 group text-left outline-none disabled:cursor-default">
@@ -334,15 +335,15 @@ function goToStep(targetStep) {
       </div>
 
       <!-- Step 1: Building Details -->
-      <div v-if="step === 1" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
-        <form class="max-w-xl mx-auto space-y-5" @submit.prevent="submitBuilding">
+      <div v-if="step === 1" class="max-w-3xl mx-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
+        <form class="space-y-5" @submit.prevent="submitBuilding">
           <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 font-sans dark:text-gray-300">{{ $t('Building Name') }}</span>
             <input v-model="form.name" type="text" required :placeholder="$t('e.g. Science Block')" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20">
             <span v-if="form.errors.name" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.name }}</span>
           </label>
 
-          <div class="flex justify-between items-center mt-6">
+          <div class="flex justify-end gap-3 border-t border-slate-100 pt-4 dark:border-gray-800">
             <Link href="/dashboard/buildings" class="rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
               {{ $t('Cancel') }}
             </Link>
@@ -641,6 +642,7 @@ function goToStep(targetStep) {
             </form>
           </div>
         </div>
+      </div>
       </div>
     </section>
   </DashboardLayout>
