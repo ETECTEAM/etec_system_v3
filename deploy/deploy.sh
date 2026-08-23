@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# Pulls the latest production branch, rebuilds images, and rolls the stack
-# forward with a migration + cache-warm step. Run from the deploy directory
-# on the VPS (e.g. /opt/etec-system), not from a dev machine.
+# Pulls the latest branch, refreshes composer/npm dependencies and rebuilds
+# assets through the bind mount, rolls the stack forward with a migration +
+# cache-warm step. Run from the deploy directory on the VPS (e.g.
+# /opt/etec-system), not from a dev machine.
 #
-# Usage: ./deploy/deploy.sh
+# Usage: ./deploy/deploy.sh [branch]
+#   branch defaults to $DEPLOY_BRANCH, then "production". e.g.:
+#     ./deploy/deploy.sh            # -> production
+#     ./deploy/deploy.sh dev        # -> dev
 
 set -euo pipefail
 
 COMPOSE_FILE="docker-compose.prod.yml"
-BRANCH="production"
+BRANCH="${1:-${DEPLOY_BRANCH:-production}}"
 
 # Everything runs inside this function, called only at the very bottom. Bash
 # parses a function body fully into memory the moment it's defined, so the
@@ -33,10 +37,18 @@ main() {
   # see docker-compose.prod.yml), so that built-in-the-image public/build/ is
   # immediately shadowed and never actually reaches anything that serves
   # traffic. Nginx keeps serving whatever public/build/ last existed on the
-  # host, so without rebuilding it here on the host directly, every frontend
-  # change silently never appears no matter how many times this script runs.
-  echo "==> Building frontend assets onto the host (bind-mounted, so this is what nginx actually serves)"
-  docker compose -f "${COMPOSE_FILE}" run --rm app sh -c "npm ci && npm run build"
+  # host, so dependencies + assets must be produced HERE, through the bind
+  # mount, into the host working tree.
+  #
+  # This runs in a throwaway container from the freshly built image (which has
+  # composer + node), writing vendor/, node_modules/ and public/build/ straight
+  # onto the host repo via the mount. Doing it with `docker exec` against the
+  # long-running app container instead is what produces "vite: not found" —
+  # that container only has whatever deps were installed through the mount,
+  # which before this step existed was: nothing.
+  echo "==> Installing composer/npm deps and building assets onto the host (bind-mounted, so this is what nginx actually serves)"
+  docker compose -f "${COMPOSE_FILE}" run --rm app sh -c \
+    "composer install --no-dev --optimize-autoloader --no-interaction && npm ci && npm run build"
 
   echo "==> Starting mysql first so migrations have something to run against"
   docker compose -f "${COMPOSE_FILE}" up -d mysql

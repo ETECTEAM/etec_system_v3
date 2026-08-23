@@ -209,7 +209,7 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <nav class="mt-6 flex-1 overflow-hidden">
+        <nav class="mt-6 min-h-0 flex-1 overflow-y-auto">
           <p v-if="!props.collapsed" class="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-gray-500">
             {{ t("navigation.navigation") }}
           </p>
