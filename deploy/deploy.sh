@@ -34,12 +34,18 @@ main() {
   docker compose -f "${COMPOSE_FILE}" run --rm --no-deps app sh -c \
     "composer install --no-dev --optimize-autoloader --no-interaction && npm ci && npm run build"
 
-  echo "==> Warming config/route/view/event caches from the new code"
-  docker compose -f "${COMPOSE_FILE}" run --rm --no-deps app sh -c \
-    "php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan event:cache"
-
-  echo "==> Recreating app, reverb, queue and scheduler so every long-running process loads the new code and caches"
+  echo "==> Recreating app, reverb, queue and scheduler so every long-running process loads the new code"
   docker compose -f "${COMPOSE_FILE}" up -d --force-recreate app reverb queue scheduler
+
+  # Must run via `exec` against the now-recreated, long-running app container,
+  # not `run --rm` - a `run --rm` container is a throwaway instance with its
+  # own writable layer, so the bootstrap/cache/*.php files it writes vanish
+  # the moment it exits and never reach the container that actually serves
+  # traffic (app has no bind mount for /var/www here, so each container's
+  # writable layer is independent even though they share the same image).
+  echo "==> Warming config/route/view/event caches on the running app container"
+  docker compose -f "${COMPOSE_FILE}" exec -T app sh -c \
+    "php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan event:cache"
 
   echo "==> Reloading Nginx configuration & re-resolving upstream IPs"
   docker compose -f "${COMPOSE_FILE}" up -d nginx
