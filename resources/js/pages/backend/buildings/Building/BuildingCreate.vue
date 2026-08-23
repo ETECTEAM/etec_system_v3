@@ -273,8 +273,8 @@ function goToStep(targetStep) {
           <!-- Step 1 Indicator -->
           <button type="button" @click="goToStep(1)" :disabled="!props.building?.id" class="flex items-center gap-3 group text-left outline-none disabled:cursor-default">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition duration-200" :class="[
-              step === 1 ? 'border-blue-600 bg-blue-600 text-white font-semibold' :
-              props.building?.id ? 'border-blue-600 bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white dark:bg-blue-500/10 dark:text-blue-400' :
+              step === 1 ? 'border-blue-600 bg-blue-900 text-white font-semibold' :
+              props.building?.id ? 'border-blue-600 bg-blue-50 text-blue-600 group-hover:bg-blue-900 group-hover:text-white dark:bg-blue-500/10 dark:text-blue-400' :
               'border-slate-300 text-slate-400 dark:border-gray-700 dark:text-gray-500'
             ]">
               <svg v-if="props.building?.id && step !== 1" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
@@ -290,14 +290,14 @@ function goToStep(targetStep) {
 
           <!-- Line Divider 1 -->
           <div class="hidden md:block h-0.5 flex-1 bg-slate-200 relative dark:bg-gray-800">
-            <div class="absolute inset-0 bg-blue-600 transition-all duration-300" :style="{ width: props.building?.id ? '100%' : '0%' }"></div>
+            <div class="absolute inset-0 bg-blue-900 transition-all duration-300" :style="{ width: props.building?.id ? '100%' : '0%' }"></div>
           </div>
 
           <!-- Step 2 Indicator -->
           <button type="button" @click="goToStep(2)" :disabled="!props.building?.id" class="flex items-center gap-3 group text-left outline-none disabled:cursor-default">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition duration-200" :class="[
-              step === 2 ? 'border-blue-600 bg-blue-600 text-white font-semibold' :
-              props.building?.floors?.length > 0 && props.building?.id ? 'border-blue-600 bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white dark:bg-blue-500/10 dark:text-blue-400' :
+              step === 2 ? 'border-blue-600 bg-blue-900 text-white font-semibold' :
+              props.building?.floors?.length > 0 && props.building?.id ? 'border-blue-600 bg-blue-50 text-blue-600 group-hover:bg-blue-900 group-hover:text-white dark:bg-blue-500/10 dark:text-blue-400' :
               'border-slate-300 text-slate-400 dark:border-gray-700 dark:text-gray-500'
             ]">
               <svg v-if="props.building?.floors?.length > 0 && step !== 2" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
@@ -313,13 +313,13 @@ function goToStep(targetStep) {
 
           <!-- Line Divider 2 -->
           <div class="hidden md:block h-0.5 flex-1 bg-slate-200 relative dark:bg-gray-800">
-            <div class="absolute inset-0 bg-blue-600 transition-all duration-300" :style="{ width: props.building?.floors?.length > 0 ? '100%' : '0%' }"></div>
+            <div class="absolute inset-0 bg-blue-900 transition-all duration-300" :style="{ width: props.building?.floors?.length > 0 ? '100%' : '0%' }"></div>
           </div>
 
           <!-- Step 3 Indicator -->
           <button type="button" @click="goToStep(3)" :disabled="!props.building?.id || !props.building?.floors?.length" class="flex items-center gap-3 group text-left outline-none disabled:cursor-default">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition duration-200" :class="[
-              step === 3 ? 'border-blue-600 bg-blue-600 text-white font-semibold' :
+              step === 3 ? 'border-blue-600 bg-blue-900 text-white font-semibold' :
               'border-slate-300 text-slate-400 dark:border-gray-700 dark:text-gray-500'
             ]">
               <span>3</span>
@@ -346,7 +346,7 @@ function goToStep(targetStep) {
             <Link href="/dashboard/buildings" class="rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
               {{ $t('Cancel') }}
             </Link>
-            <button type="submit" :disabled="form.processing" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500">
+            <button type="submit" :disabled="form.processing" class="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-900 dark:hover:bg-blue-500">
               {{ form.processing ? $t('Processing...') : props.building?.id ? $t('Save & Continue') : $t('Create & Continue') }}
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -403,7 +403,7 @@ function goToStep(targetStep) {
               {{ $t('Back to Building Details') }}
             </button>
 
-            <button type="button" @click="goToStep(3)" :disabled="!props.building?.floors?.length" class="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2 dark:bg-blue-600 dark:hover:bg-blue-500">
+            <button type="button" @click="goToStep(3)" :disabled="!props.building?.floors?.length" class="rounded-xl bg-blue-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2 dark:bg-blue-900 dark:hover:bg-blue-500">
               {{ $t('Continue to Rooms') }}
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -438,7 +438,7 @@ function goToStep(targetStep) {
                 <span v-if="floorForm.errors.level" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ floorForm.errors.level }}</span>
               </label>
 
-              <button type="submit" :disabled="floorForm.processing" class="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-500">
+              <button type="submit" :disabled="floorForm.processing" class="w-full rounded-xl bg-blue-900 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60 dark:bg-blue-900 dark:hover:bg-blue-500">
                 {{ floorForm.processing ? $t('Creating...') : $t('Create Floor') }}
               </button>
             </form>
@@ -467,7 +467,7 @@ function goToStep(targetStep) {
                 </div>
               </div>
 
-              <button type="submit" :disabled="autoFloorForm.processing || !generatedFloors.length" class="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-500">
+              <button type="submit" :disabled="autoFloorForm.processing || !generatedFloors.length" class="w-full rounded-xl bg-blue-900 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60 dark:bg-blue-900 dark:hover:bg-blue-500">
                 {{ autoFloorForm.processing ? $t('Generating...') : $t('Generate Floors') }}
               </button>
             </form>
@@ -541,7 +541,7 @@ function goToStep(targetStep) {
               {{ $t('Back to Floors') }}
             </button>
 
-            <Link href="/dashboard/buildings" class="rounded-xl bg-blue-600 px-8 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center gap-2 shadow-sm shadow-blue-100 dark:bg-blue-600 dark:hover:bg-blue-500 dark:shadow-none">
+            <Link href="/dashboard/buildings" class="rounded-xl bg-blue-900 px-8 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center gap-2 shadow-sm shadow-blue-100 dark:bg-blue-900 dark:hover:bg-blue-500 dark:shadow-none">
               {{ $t('Finish Setup') }}
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -590,7 +590,7 @@ function goToStep(targetStep) {
                 <span v-if="roomForm.errors.status" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ roomForm.errors.status }}</span>
               </label>
 
-              <button type="submit" :disabled="roomForm.processing" class="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-500">
+              <button type="submit" :disabled="roomForm.processing" class="w-full rounded-xl bg-blue-900 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60 dark:bg-blue-900 dark:hover:bg-blue-500">
                 {{ roomForm.processing ? $t('Creating...') : $t('Create Room') }}
               </button>
             </form>
@@ -635,7 +635,7 @@ function goToStep(targetStep) {
                 </div>
               </div>
 
-              <button type="submit" :disabled="autoRoomForm.processing || !generatedRooms.length" class="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-500">
+              <button type="submit" :disabled="autoRoomForm.processing || !generatedRooms.length" class="w-full rounded-xl bg-blue-900 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60 dark:bg-blue-900 dark:hover:bg-blue-500">
                 {{ autoRoomForm.processing ? $t('Generating...') : $t('Generate Rooms') }}
               </button>
             </form>

@@ -6,14 +6,16 @@ import { Breadcrumbs } from '../../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../../components/ui/page-hero'
 import { Pagination } from '../../../../components/ui/pagination'
 import { Card } from '../../../../components/ui/card'
-import { ActionMenu } from '../../../../components/ui/menu'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table'
 import DashboardLayout from '../../../../layouts/DashboardLayout.vue'
 import { useI18n } from '@/i18n'
+import { useToast } from 'vue-toastification'
 
 const { t } = useI18n()
+const toast = useToast()
 
 const floors = ref([])
+const savingId = ref(null)
 const search = ref('')
 const perPage = ref(10)
 const perPageOptions = [10, 25, 50, 100, 'all']
@@ -62,12 +64,28 @@ async function fetchFloors(pageNumber = 1) {
   }
 }
 
-function viewFloor(id) {
-  router.visit(`/dashboard/floors/${id}`)
-}
+async function saveFloorField(floor, field, value) {
+  const normalized = field === 'level' ? (value === '' ? null : Number(value)) : value
 
-function editFloor(id) {
-  router.visit(`/dashboard/floors/edit/${id}`)
+  const previous = floor[field]
+  if (normalized === previous || savingId.value !== null) return
+  savingId.value = floor.id
+
+  try {
+    const response = await axios.put(`/dashboard/floors/${floor.id}`, {
+      name: field === 'name' ? value : floor.name,
+      level: field === 'level' ? normalized : floor.level,
+    })
+
+    Object.assign(floor, response.data.data ?? { [field]: normalized })
+    toast.success(t('Floor updated.'))
+  } catch (error) {
+    floor[field] = previous
+    console.error('Failed to update floor', error)
+    toast.error(t(error.response?.data?.message ?? 'Failed to update floor. Please try again.'))
+  } finally {
+    savingId.value = null
+  }
 }
 
 function deleteFloor(id) {
@@ -92,20 +110,6 @@ function paginationStart() {
 function paginationEnd() {
   if (pagination.value.total === 0 || floors.value.length === 0) return 0
   return ((pagination.value.current_page - 1) * pagination.value.per_page) + floors.value.length
-}
-
-function actionItems() {
-  return [
-    { key: 'view', label: 'View' },
-    { key: 'edit', label: 'Edit' },
-    { key: 'delete', label: 'Delete', danger: true },
-  ]
-}
-
-function handleAction(action, floor) {
-  if (action.key === 'view') viewFloor(floor.id)
-  if (action.key === 'edit') editFloor(floor.id)
-  if (action.key === 'delete') deleteFloor(floor.id)
 }
 
 watch(search, () => fetchFloors(1))
@@ -166,10 +170,20 @@ watch(perPage, () => fetchFloors(1))
             <TableBody>
               <TableRow v-for="(floor, index) in floors" :key="floor.id">
                 <TableCell class="text-slate-500 dark:text-gray-400">{{ rowNumber(index) }}</TableCell>
-                <TableCell class="font-medium text-slate-900 dark:text-gray-100">{{ floor.name }}</TableCell>
-                <TableCell class="text-slate-600 dark:text-gray-300">{{ floor.level ?? '-' }}</TableCell>
+                <TableCell class="font-medium text-slate-900 dark:text-gray-100">
+                  <input type="text" :value="floor.name" :disabled="savingId === floor.id" :class="['w-32 rounded-lg border border-transparent bg-transparent px-2 py-1 font-medium text-slate-900 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20']" @change="saveFloorField(floor, 'name', $event.target.value.trim())">
+                </TableCell>
+                <TableCell class="text-slate-600 dark:text-gray-300">
+                  <input type="number" min="-50" max="300" :value="floor.level" :disabled="savingId === floor.id" placeholder="-" :class="['w-20 rounded-lg border border-transparent bg-transparent px-2 py-1 text-slate-600 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20']" @change="saveFloorField(floor, 'level', $event.target.value)">
+                </TableCell>
                 <TableCell class="text-right">
-                  <ActionMenu :items="actionItems()" @select="handleAction($event, floor)" />
+                  <button
+                    type="button"
+                    class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
+                    @click="deleteFloor(floor.id)"
+                  >
+                    {{ $t('Delete') }}
+                  </button>
                 </TableCell>
               </TableRow>
 

@@ -464,5 +464,9 @@ export const backendFinalTranslations = {
     "Click to change status": "ចុចដើម្បីផ្លាស់ប្តូរស្ថានភាព",
     "Room updated.": "បានធ្វើបច្ចុប្បន្នភាពបន្ទប់។",
     "Failed to update room. Please try again.": "បរាជ័យក្នុងការធ្វើបច្ចុប្បន្នភាពបន្ទប់។ សូមព្យាយាមម្តងទៀត។",
+
+    // Floor inline editing (edit name and level directly in the list)
+    "Floor updated.": "បានធ្វើបច្ចុប្បន្នភាពជាន់។",
+    "Failed to update floor. Please try again.": "បរាជ័យក្នុងការធ្វើបច្ចុប្បន្នភាពជាន់។ សូមព្យាយាមម្តងទៀត។",
   },
 }

@@ -605,7 +605,7 @@ async function changeRoomStatus(room, status) {
 
                         <Link
                             href="/dashboard/buildings/create"
-                            class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 whitespace-nowrap dark:bg-blue-600 dark:hover:bg-blue-500"
+                            class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 whitespace-nowrap dark:bg-blue-600 dark:hover:bg-blue-500"
                         >
                             {{ $t('Add Building') }}
                         </Link>
