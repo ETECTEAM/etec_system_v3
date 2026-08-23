@@ -82,23 +82,63 @@ class RegisterStudentForSchedule
     // No open class had space, and creating a new one wasn't possible (no
     // free room and/or no free instructor for that term/time), so the
     // student/course/term/time is parked here instead of silently creating a
-    // roomless/teacherless class. Staff resolve it manually by force-adding
-    // the student to an existing class (see EnrollStudent).
+    // roomless/teacherless class. Candidate classes an admin may force-assign
+    // the student into (2-week rule, see findEligibleClassesForAdmin) are
+    // snapshotted into meta, and a notification with the pending/student/
+    // candidate class IDs is raised for super_admins/admins, who resolve it
+    // via AssignPendingStudentToClass.
     private function savePendingRegistration(stdClass $student, Course $course, array $data): void
     {
-        PendingRegistration::create([
+        $candidateClassIds = $this->findEligibleClassesForAdmin($course);
+
+        $pending = PendingRegistration::create([
             'student_id' => $student->id,
             'course_id' => $course->id,
             'term_id' => $data['term_id'],
             'time_id' => $data['time_id'],
             'status' => 'pending',
+            'meta' => ['candidate_class_ids' => $candidateClassIds],
         ]);
 
+        // dashboard_notifications has no per-recipient addressing; the bell
+        // and notifications page are already gated to super_admin/admin in
+        // the UI (DashboardHeader.vue), which is the targeting used here.
         Notification::create([
             'title' => 'Registration needs manual scheduling',
-            'message' => "{$data['name']} wants to join \"{$course->title}\" but no room or instructor is available for that term and time. Assign them to a class manually.",
+            'message' => "{$data['name']} wants to join \"{$course->title}\" but no room or instructor is available for that term and time."
+                ." Pending registration #{$pending->id}, student #{$student->id}."
+                .' Classes eligible for assignment (created or starting within 2 weeks): '
+                .($candidateClassIds === [] ? 'none' : implode(', ', $candidateClassIds))
+                .'. Assign them to a class manually.',
             'type' => 'pending_registration',
         ]);
+    }
+
+    // Open classes for this course an admin may force-assign a parked student
+    // into. A class qualifies when it satisfies AT LEAST one of:
+    //   A) created within the last 2 weeks, or
+    //   B) start_date within [now - 2 weeks, now + 2 weeks]
+    // (start_date is often null for freshly created upcoming classes, which is
+    // why condition B only applies when it is set). Newest first so admins see
+    // the most recently created options first.
+    private function findEligibleClassesForAdmin(Course $course): array
+    {
+        return StudyClass::query()
+            ->where('course_id', $course->id)
+            ->whereIn('status', self::OPEN_CLASS_STATUSES)
+            ->where(function ($query): void {
+                $query->where('created_at', '>=', now()->subWeeks(2)->toDateTimeString())
+                    ->orWhere(function ($query): void {
+                        $query->whereNotNull('start_date')
+                            ->whereBetween('start_date', [
+                                now()->subWeeks(2)->toDateString(),
+                                now()->addWeeks(2)->toDateString(),
+                            ]);
+                    });
+            })
+            ->orderByDesc('id')
+            ->pluck('id')
+            ->all();
     }
 
     private function availableClass(Course $course, array $data): ?StudyClass

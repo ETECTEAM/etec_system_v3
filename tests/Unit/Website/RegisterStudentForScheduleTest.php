@@ -8,6 +8,8 @@ use App\Models\CourseTrack;
 use App\Models\InstructorAvailability;
 use App\Models\InstructorData;
 use App\Models\InstructorScheduleBlock;
+use App\Models\Notification;
+use App\Models\PendingRegistration;
 use App\Models\StudyClass;
 use App\Models\SubCategory;
 use App\Models\Term;
@@ -16,6 +18,7 @@ use App\Models\User;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
 use Database\Seeders\Core\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
@@ -224,5 +227,78 @@ class RegisterStudentForScheduleTest extends TestCase
         app(RegisterStudentForSchedule::class)->handle($this->registrationData($course, $term, $time));
 
         $this->assertSame($matchingInstructor->user_id, $studyClass->fresh()->teacher_id);
+    }
+
+    private function parkRegistration(Course $course, Term $term, Time $time): void
+    {
+        // No rooms and no instructors exist in this suite, so once the open
+        // class has no seat left, createClass() cannot build another one and
+        // the registration is parked as pending.
+        app(RegisterStudentForSchedule::class)->handle($this->registrationData($course, $term, $time));
+    }
+
+    public function test_failed_registration_snapshots_candidate_classes_and_notifies_admins(): void
+    {
+        $term = $this->term('Monday');
+        $time = $this->time($term, '09:00 AM - 10:30 AM');
+        $course = $this->course();
+
+        $fullClass = $this->openClass($course, $term, $time);
+        $fullClass->update(['capacity' => 0]);
+
+        $this->parkRegistration($course, $term, $time);
+
+        $pending = PendingRegistration::query()->sole();
+        $this->assertSame('pending', $pending->status);
+        $this->assertSame([$fullClass->id], $pending->meta['candidate_class_ids']);
+
+        $notification = Notification::query()->where('type', 'pending_registration')->sole();
+        $this->assertStringContainsString("Pending registration #{$pending->id}", $notification->message);
+        $this->assertStringContainsString("student #{$pending->student_id}", $notification->message);
+        $this->assertStringContainsString((string) $fullClass->id, $notification->message);
+    }
+
+    public function test_classes_older_than_two_weeks_are_not_candidates(): void
+    {
+        $term = $this->term('Monday');
+        $time = $this->time($term, '09:00 AM - 10:30 AM');
+        $course = $this->course();
+
+        $staleClass = $this->openClass($course, $term, $time);
+        $staleClass->update(['capacity' => 0]);
+        DB::table('study_classes')->where('id', $staleClass->id)->update([
+            'created_at' => now()->subWeeks(3)->toDateTimeString(),
+        ]);
+
+        $this->parkRegistration($course, $term, $time);
+
+        $pending = PendingRegistration::query()->sole();
+        $this->assertSame([], $pending->meta['candidate_class_ids']);
+    }
+
+    public function test_class_with_start_date_within_two_weeks_is_a_candidate_even_if_created_earlier(): void
+    {
+        $term = $this->term('Monday');
+        $time = $this->time($term, '09:00 AM - 10:30 AM');
+        $course = $this->course();
+
+        $startingSoonClass = StudyClass::create([
+            'title' => $course->title,
+            'course_id' => $course->id,
+            'term_id' => $term->id,
+            'time_id' => $time->id,
+            'status' => 'upcoming',
+            'capacity' => 0,
+            'start_date' => now()->addWeeks(1)->toDateString(),
+            'enrollment_start_date' => now()->toDateString(),
+        ]);
+        DB::table('study_classes')->where('id', $startingSoonClass->id)->update([
+            'created_at' => now()->subWeeks(3)->toDateTimeString(),
+        ]);
+
+        $this->parkRegistration($course, $term, $time);
+
+        $pending = PendingRegistration::query()->sole();
+        $this->assertSame([$startingSoonClass->id], $pending->meta['candidate_class_ids']);
     }
 }

@@ -13,7 +13,15 @@ class PendingRegistration extends Model
         'term_id',
         'time_id',
         'status',
+        'meta',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'meta' => 'array',
+        ];
+    }
 
     public function student(): BelongsTo
     {

@@ -1,8 +1,10 @@
 <script setup>
+import { computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { PageHero } from '@/components/ui/page-hero';
+import { SelectSearch } from '@/components/ui/select-search';
 
 const props = defineProps({
   teachers: Array,
@@ -34,8 +36,31 @@ const breadcrumbItems = [
 ];
 
 const optionLabel = (item) => {
-  return item?.name || item?.teacher_name || item?.course_name || item?.lesson_name || item?.term_name || item?.time_name || item?.room_number || item?.type_name || 'Unknown';
+  return item?.name || item?.title || item?.term_name || item?.time_name || item?.room_number || item?.type_name || 'Unknown';
 };
+
+// Values are stringified so SelectSearch's strict === comparison between
+// option.value and the v-model works.
+const toOptions = (items, valueKey = 'id') =>
+  (items || []).map((item) => ({ label: optionLabel(item), value: String(item[valueKey]) }));
+
+const teacherOptions = computed(() => toOptions(props.teachers));
+const courseOptions = computed(() => toOptions(props.courses));
+const lessonOptions = computed(() => toOptions(props.lessons));
+const termOptions = computed(() => toOptions(props.terms));
+const timeOptions = computed(() => toOptions(props.times));
+const roomOptions = computed(() => toOptions(props.rooms));
+const classTypeOptions = computed(() => toOptions(props.classTypes, 'class_type_id'));
+
+const statusOptions = [
+  { label: 'Upcoming', value: 'upcoming' },
+  { label: 'Active', value: 'active' },
+  { label: 'Pre-End', value: 'pre_end' },
+  { label: 'Ended', value: 'ended' },
+  { label: 'Cancelled', value: 'cancelled' },
+];
+
+const selectClass = 'flex w-full h-11 items-center justify-between rounded-xl border border-slate-300 bg-white px-4 text-sm transition focus:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20 dark:disabled:bg-gray-900 dark:disabled:text-gray-500';
 
 const submit = () => {
   form.post('/dashboard/class-list');
@@ -67,85 +92,78 @@ const submit = () => {
 
           <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Teacher') }} <span class="text-xs font-normal text-slate-400">{{ $t('(optional)') }}</span></span>
-            <select
+            <SelectSearch
               v-model="form.teacher_id"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-            >
-              <option value="">{{ $t('Select teacher') }}</option>
-              <option v-for="item in props.teachers || []" :key="item.id" :value="item.id">{{ optionLabel(item) }}</option>
-            </select>
+              :options="teacherOptions"
+              :placeholder="$t('Select teacher')"
+              :button-class="selectClass"
+            />
             <span v-if="form.errors.teacher_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.teacher_id }}</span>
           </label>
 
           <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Course') }}</span>
-            <select
+            <SelectSearch
               v-model="form.course_id"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-            >
-              <option value="">{{ $t('Select course') }}</option>
-              <option v-for="item in props.courses || []" :key="item.id" :value="item.id">{{ optionLabel(item) }}</option>
-            </select>
+              :options="courseOptions"
+              :placeholder="$t('Select course')"
+              :button-class="selectClass"
+            />
             <span v-if="form.errors.course_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.course_id }}</span>
           </label>
 
           <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Lesson') }}</span>
-            <select
+            <SelectSearch
               v-model="form.lesson_id"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-            >
-              <option value="">{{ $t('Select lesson') }}</option>
-              <option v-for="item in props.lessons || []" :key="item.id" :value="item.id">{{ optionLabel(item) }}</option>
-            </select>
+              :options="lessonOptions"
+              :placeholder="$t('Select lesson')"
+              :button-class="selectClass"
+            />
             <span v-if="form.errors.lesson_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.lesson_id }}</span>
           </label>
 
           <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Term') }}</span>
-            <select
+            <SelectSearch
               v-model="form.term_id"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-            >
-              <option value="">{{ $t('Select term') }}</option>
-              <option v-for="item in props.terms || []" :key="item.id" :value="item.id">{{ optionLabel(item) }}</option>
-            </select>
+              :options="termOptions"
+              :placeholder="$t('Select term')"
+              :button-class="selectClass"
+            />
             <span v-if="form.errors.term_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.term_id }}</span>
           </label>
 
           <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Time') }}</span>
-            <select
+            <SelectSearch
               v-model="form.time_id"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-            >
-              <option value="">{{ $t('Select time') }}</option>
-              <option v-for="item in props.times || []" :key="item.id" :value="item.id">{{ optionLabel(item) }}</option>
-            </select>
+              :options="timeOptions"
+              :placeholder="$t('Select time')"
+              :button-class="selectClass"
+            />
             <span v-if="form.errors.time_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.time_id }}</span>
           </label>
 
           <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Room') }}</span>
-            <select
+            <SelectSearch
               v-model="form.room_id"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-            >
-              <option value="">{{ $t('Select room') }}</option>
-              <option v-for="item in props.rooms || []" :key="item.id" :value="item.id">{{ optionLabel(item) }}</option>
-            </select>
+              :options="roomOptions"
+              :placeholder="$t('Select room')"
+              :button-class="selectClass"
+            />
             <span v-if="form.errors.room_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.room_id }}</span>
           </label>
 
           <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Class Type') }}</span>
-            <select
+            <SelectSearch
               v-model="form.class_type_id"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-            >
-              <option value="">{{ $t('Select class type') }}</option>
-              <option v-for="item in props.classTypes || []" :key="item.class_type_id" :value="item.class_type_id">{{ optionLabel(item) }}</option>
-            </select>
+              :options="classTypeOptions"
+              :placeholder="$t('Select class type')"
+              :button-class="selectClass"
+            />
             <span v-if="form.errors.class_type_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.class_type_id }}</span>
           </label>
 
@@ -162,16 +180,12 @@ const submit = () => {
 
           <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Status') }}</span>
-            <select
+            <SelectSearch
               v-model="form.status"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-            >
-              <option value="upcoming">{{ $t('Upcoming') }}</option>
-              <option value="active">{{ $t('Active') }}</option>
-              <option value="pre_end">{{ $t('Pre-End') }}</option>
-              <option value="ended">{{ $t('Ended') }}</option>
-              <option value="cancelled">{{ $t('Cancelled') }}</option>
-            </select>
+              :options="statusOptions"
+              :placeholder="$t('Select status')"
+              :button-class="selectClass"
+            />
             <span v-if="form.errors.status" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.status }}</span>
           </label>
 
