@@ -1,17 +1,22 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { Head, Link, router, useForm, usePage } from "@inertiajs/vue3";
+import axios from "axios";
 import { Card } from "../../../../components/ui/card";
 import { SelectSearch } from "../../../../components/ui/select-search";
 import { PageHero } from "../../../../components/ui/page-hero";
 import DashboardLayout from "../../../../layouts/DashboardLayout.vue";
 import { useI18n } from "@/i18n";
 import { useConfirm } from "@/composables/useConfirm";
+import { useToast } from "vue-toastification";
 import { Pencil, Plus, Trash2 } from "@lucide/vue";
 
 const page = usePage();
 const { t } = useI18n();
 const { confirm } = useConfirm();
+const toast = useToast();
+
+const savingRoomId = ref(null);
 
 const buildings = computed(() => page.props.buildings ?? []);
 const summary = computed(
@@ -502,8 +507,27 @@ function statusClass(status) {
         return "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20";
     if (status === "maintenance")
         return "bg-rose-50 text-rose-700 ring-1 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/20";
+    if (status === "closed")
+        return "bg-slate-100 text-slate-600 ring-1 ring-slate-300 dark:bg-slate-500/10 dark:text-slate-400 dark:ring-slate-500/20";
 
     return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20";
+}
+
+async function changeRoomStatus(room, status) {
+    if (status === room.status || savingRoomId.value !== null) return;
+    const previous = room.status;
+    savingRoomId.value = room.id;
+
+    try {
+        const response = await axios.put(`/dashboard/rooms/${room.id}/status`, { status });
+        room.status = response.data.room?.status ?? status;
+    } catch (error) {
+        room.status = previous;
+        console.error("Failed to update room status", error);
+        toast.error(t(error.response?.data?.message ?? 'Failed to update room. Please try again.'));
+    } finally {
+        savingRoomId.value = null;
+    }
 }
 </script>
 <template>
@@ -1295,9 +1319,12 @@ function statusClass(status) {
                                             <p class="mt-0.5 truncate text-base font-bold text-slate-900 dark:text-gray-100" :title="room.room_number">
                                                 {{ room.room_number }}
                                             </p>
-                                            <span :class="['mt-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold', statusClass(room.status)]">
-                                                {{ $t(room.status) }}
-                                            </span>
+                                            <select :value="room.status" :disabled="savingRoomId === room.id" :title="$t('Click to change status')" :class="['mt-2 inline-flex cursor-pointer appearance-none rounded-full px-2 py-0.5 text-[11px] font-semibold text-center capitalize transition hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:focus:ring-blue-500/20', statusClass(room.status)]" @change="changeRoomStatus(room, $event.target.value)">
+                                                <option value="available">{{ $t('Available') }}</option>
+                                                <option value="occupied">{{ $t('Occupied') }}</option>
+                                                <option value="maintenance">{{ $t('Maintenance') }}</option>
+                                                <option value="closed">{{ $t('Closed') }}</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
