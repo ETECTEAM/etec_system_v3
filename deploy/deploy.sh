@@ -58,8 +58,8 @@ main() {
   echo "==> Running migrations"
   docker compose -f "${COMPOSE_FILE}" run --rm app php artisan migrate --force
 
-  echo "==> Recreating app, reverb with the new images"
-  docker compose -f "${COMPOSE_FILE}" up -d app reverb
+  echo "==> Recreating app, reverb, queue with the new images"
+  docker compose -f "${COMPOSE_FILE}" up -d app reverb queue
 
   # app/reverb bind-mount the repo (.:/var/www — see docker-compose.prod.yml),
   # so the git reset above already updated the code those containers see; no
@@ -69,8 +69,11 @@ main() {
   # Compose thinks its image/config changed, which most deploys don't touch, so
   # without an explicit restart here PHP-FPM's opcache never learns the code
   # under it moved and the site keeps serving the previous deploy indefinitely.
-  echo "==> Restarting app, reverb to clear opcache and pick up the new code"
-  docker compose -f "${COMPOSE_FILE}" restart app reverb
+  # queue:work is a long-running CLI process that loads app code once at boot
+  # and keeps running it from memory - same as app/reverb, it needs a restart
+  # to ever see new code, opcache setting aside.
+  echo "==> Restarting app, reverb, queue to clear opcache and pick up the new code"
+  docker compose -f "${COMPOSE_FILE}" restart app reverb queue
 
   # `up -d` only recreates nginx when nginx's own image/config changed - but app
   # and reverb just got new container IPs above, and nginx caches their resolved
