@@ -13,5 +13,7 @@ Route::middleware(['auth', 'active', 'role:super_admin|admin'])->prefix('/dashbo
     Route::post('/', [RoomController::class, 'store']);
     Route::post('/auto-generate', [RoomController::class, 'bulkStore']);
     Route::put('/{room}', [RoomController::class, 'update']);
+    // Route to change a room's availability straight from the room list.
+    Route::put('/{room}/status', [RoomController::class, 'updateStatus']);
     Route::delete('/{room}', [RoomController::class, 'destroy']);
 });

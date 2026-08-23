@@ -459,5 +459,10 @@ export const backendFinalTranslations = {
     "Failed to block this row. Please try again.": "បរាជ័យក្នុងការទប់ស្កាត់ជួរនេះ។ សូមព្យាយាមម្តងទៀត។",
     "Failed to unblock this row. Please try again.": "បរាជ័យក្នុងការលុបការទប់ស្កាត់ជួរនេះ។ សូមព្យាយាមម្តងទៀត។",
     "Failed to unblock this slot. Please try again.": "បរាជ័យក្នុងការលុបការទប់ស្កាត់ម៉ោងនេះ។ សូមព្យាយាមម្តងទៀត។",
+
+    // Room inline editing (edit room number, capacity, and status directly in the list)
+    "Click to change status": "ចុចដើម្បីផ្លាស់ប្តូរស្ថានភាព",
+    "Room updated.": "បានធ្វើបច្ចុប្បន្នភាពបន្ទប់។",
+    "Failed to update room. Please try again.": "បរាជ័យក្នុងការធ្វើបច្ចុប្បន្នភាពបន្ទប់។ សូមព្យាយាមម្តងទៀត។",
   },
 }

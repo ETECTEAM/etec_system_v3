@@ -7,6 +7,7 @@ use App\Models\Room;
 use App\Modules\Room\Requests\BulkStoreRoomRequest;
 use App\Modules\Room\Requests\StoreRoomRequest;
 use App\Modules\Room\Requests\UpdateRoomRequest;
+use App\Modules\Room\Requests\UpdateRoomStatusRequest;
 use App\Modules\Room\Services\RoomService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -80,11 +81,28 @@ class RoomController extends Controller
     }
 
 
-    public function update(UpdateRoomRequest $request, Room $room): RedirectResponse
+    public function update(UpdateRoomRequest $request, Room $room): RedirectResponse|JsonResponse
     {
-        $this->roomService->update($room, $request->toData());
+        $room = $this->roomService->update($room, $request->toData());
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Room updated successfully.',
+                'room' => $this->roomService->presentRoom($room),
+            ]);
+        }
 
         return redirect('/dashboard/rooms')->with('success', 'Room updated successfully.');
+    }
+
+    public function updateStatus(UpdateRoomStatusRequest $request, Room $room): JsonResponse
+    {
+        $room = $this->roomService->updateStatus($room, $request->validated('status'));
+
+        return response()->json([
+            'message' => 'Room status updated successfully.',
+            'room' => $this->roomService->presentRoom($room),
+        ]);
     }
 
     public function destroy(Room $room): RedirectResponse

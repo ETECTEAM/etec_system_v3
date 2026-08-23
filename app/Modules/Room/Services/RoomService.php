@@ -96,6 +96,13 @@ class RoomService
         return $room;
     }
 
+    public function updateStatus(Room $room, string $status): Room
+    {
+        $room->update(['status' => $status]);
+
+        return $room;
+    }
+
     public function delete(Room $room): void
     {
         $room->delete();

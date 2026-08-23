@@ -7,10 +7,14 @@ import { Pagination } from '../../../../components/ui/pagination'
 import { PageHero } from '../../../../components/ui/page-hero'
 import DashboardLayout from '../../../../layouts/DashboardLayout.vue'
 import { useI18n } from '@/i18n'
+import { useToast } from 'vue-toastification'
 
 const { t } = useI18n()
+const toast = useToast()
 
 const rooms = ref([])
+const floors = ref([])
+const savingId = ref(null)
 const search = ref('')
 const perPage = ref(10)
 const perPageOptions = [10, 25, 50, 100, 'all']
@@ -30,7 +34,17 @@ const breadcrumbItems = [
 
 onMounted(() => {
   fetchRooms()
+  fetchFloors()
 })
+
+async function fetchFloors() {
+  try {
+    const response = await axios.get('/dashboard/floors/data', { params: { per_page: 'all' } })
+    floors.value = (response.data.data ?? []).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+  } catch (error) {
+    console.error('Failed to fetch floors', error)
+  }
+}
 
 async function fetchRooms(pageNumber = 1) {
   isLoading.value = true
@@ -59,8 +73,50 @@ async function fetchRooms(pageNumber = 1) {
   }
 }
 
-function editRoom(room) {
-  router.visit(`/dashboard/rooms/edit/${room.id}`)
+async function saveRoomField(room, field, value) {
+  let normalized = value
+  if (field === 'capacity') normalized = value === '' ? null : Number(value)
+  if (field === 'floor_id') normalized = value === '' ? null : Number(value)
+
+  const previous = room[field]
+  if (normalized === previous || savingId.value !== null) return
+  savingId.value = room.id
+
+  try {
+    const response = await axios.put(`/dashboard/rooms/${room.id}`, {
+      floor_id: field === 'floor_id' ? normalized : room.floor_id,
+      room_number: field === 'room_number' ? value : room.room_number,
+      capacity: field === 'capacity' ? normalized : room.capacity,
+      status: room.status,
+    })
+
+    Object.assign(room, response.data.room ?? { [field]: normalized })
+    toast.success(t('Room updated.'))
+  } catch (error) {
+    room[field] = previous
+    console.error('Failed to update room', error)
+    toast.error(t(error.response?.data?.message ?? 'Failed to update room. Please try again.'))
+  } finally {
+    savingId.value = null
+  }
+}
+
+async function changeStatus(room, status) {
+  if (status === room.status || savingId.value !== null) return
+  const previous = room.status
+  savingId.value = room.id
+
+  try {
+    const response = await axios.put(`/dashboard/rooms/${room.id}/status`, { status })
+
+    room.status = response.data.room?.status ?? status
+  } catch (error) {
+    room.status = previous
+    console.error('Failed to update room', error)
+    toast.error(t('Failed to update room. Please try again.'))
+  } finally {
+    savingId.value = null
+  }
 }
 
 function deleteRoom(room) {
@@ -133,7 +189,7 @@ function statusClass(status) {
 
           <Link
             href="/dashboard/rooms/create"
-            class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 whitespace-nowrap dark:bg-blue-600 dark:hover:bg-blue-500"
+            class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 whitespace-nowrap dark:bg-blue-900 dark:hover:bg-blue-800"
           >
             {{ $t('Create Room') }}
           </Link>
@@ -158,23 +214,28 @@ function statusClass(status) {
 
               <tr v-for="room in rooms" v-else :key="room.id" class="transition hover:bg-slate-50 dark:hover:bg-gray-800">
                 <td class="px-4 py-3 font-medium text-slate-700 dark:text-gray-300">{{ room.id }}</td>
-                <td class="px-4 py-3 text-slate-600 dark:text-gray-300">{{ room.floor?.name ?? '-' }}</td>
-                <td class="px-4 py-3 font-semibold text-slate-900 dark:text-gray-100">{{ room.room_number }}</td>
-                <td class="px-4 py-3 text-slate-600 dark:text-gray-300">{{ room.capacity ?? '-' }}</td>
+                <td class="px-4 py-3 text-slate-600 dark:text-gray-300">
+                  <select :value="room.floor_id ?? ''" :disabled="savingId === room.id" :class="['cursor-pointer rounded-lg border border-transparent bg-transparent px-2 py-1 text-slate-600 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20']" @change="saveRoomField(room, 'floor_id', $event.target.value)">
+                    <option value="" disabled>{{ $t('No floor') }}</option>
+                    <option v-for="floor in floors" :key="floor.id" :value="floor.id">{{ floor.name }}</option>
+                  </select>
+                </td>
+                <td class="px-4 py-3 font-semibold text-slate-900 dark:text-gray-100">
+                  <input type="text" :value="room.room_number" :disabled="savingId === room.id" :class="['w-28 rounded-lg border border-transparent bg-transparent px-2 py-1 font-semibold text-slate-900 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20']" @change="saveRoomField(room, 'room_number', $event.target.value.trim())">
+                </td>
+                <td class="px-4 py-3 text-slate-600 dark:text-gray-300">
+                  <input type="number" min="1" :value="room.capacity" :disabled="savingId === room.id" :placeholder="$t('N/A')" :class="['w-20 rounded-lg border border-transparent bg-transparent px-2 py-1 text-slate-600 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20']" @change="saveRoomField(room, 'capacity', $event.target.value)">
+                </td>
                 <td class="px-4 py-3">
-                  <span :class="['rounded-full px-3 py-1 text-xs font-semibold capitalize', statusClass(room.status)]">
-                    {{ $t(room.status) }}
-                  </span>
+                  <select :value="room.status" :disabled="savingId === room.id" :title="$t('Click to change status')" :class="['cursor-pointer appearance-none rounded-full px-3 py-1 text-xs font-semibold text-center capitalize transition hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:focus:ring-blue-500/20', statusClass(room.status)]" @change="changeStatus(room, $event.target.value)">
+                    <option value="available">{{ $t('Available') }}</option>
+                    <option value="occupied">{{ $t('Occupied') }}</option>
+                    <option value="maintenance">{{ $t('Maintenance') }}</option>
+                    <option value="closed">{{ $t('Closed') }}</option>
+                  </select>
                 </td>
                 <td class="px-4 py-3">
                   <div class="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                      @click="editRoom(room)"
-                    >
-                      {{ $t('Update') }}
-                    </button>
                     <button
                       type="button"
                       class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
