@@ -48,12 +48,16 @@ function toggleSidebarCollapse() {
 
 <!-- {{-- resources/js/layouts/DashboardLayout.vue --}} -->
 <script setup>
-import { ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import axios from 'axios'
+import { usePage } from '@inertiajs/vue3'
+import { useToast } from 'vue-toastification'
 import Sidebar from './Sidebar.vue'
 import DashboardHeader from './DashboardHeader.vue'
 import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { PageLoading } from '../components/ui/page-loading'
 import { useRouteLoading } from '../composables/useRouteLoading'
+import { getEcho } from '../echo'
 
 const isSidebarOpen = ref(false)
 const isSidebarCollapsed = ref(false)
@@ -79,6 +83,59 @@ function toggleSidebarCollapse() {
 // <main>) so its blur covers the sidebar and header too, not just the
 // content area.
 const { isNavigating } = useRouteLoading()
+
+// ─── Realtime registration alerts: chime + toast ────────────────────────────
+// The backend's NotificationsUpdated event carries no payload by design (the
+// REST endpoint stays the source of truth), so on each ping we fetch the feed
+// and toast the newest unread item while the chime plays.
+const page = usePage()
+const toast = useToast()
+
+const isAdmin = computed(() => {
+    const roles = page.props.auth?.roles ?? []
+
+    return roles.includes('super_admin') || roles.includes('admin')
+})
+
+let notificationChannel = null
+
+function playChime() {
+    // Browsers reject autoplay until the user has interacted with the tab at
+    // least once - swallow that rejection instead of surfacing it as an error.
+    new Audio('/sounds/notification.mp3').play().catch(() => {})
+}
+
+async function announceLatestNotification() {
+    try {
+        const response = await axios.get('/notifications/data')
+        const items = Array.isArray(response.data) ? response.data : []
+        const latest = items.find((item) => !item.is_read)
+
+        if (latest) {
+            toast.info(latest.message ?? latest.title, {
+                timeout: 8000,
+            })
+        }
+    } catch (error) {
+        console.error('Failed to fetch notifications', error)
+    }
+}
+
+function handleNotificationsUpdated() {
+    playChime()
+    announceLatestNotification()
+}
+
+onMounted(() => {
+    if (!isAdmin.value) return
+
+    notificationChannel = getEcho()?.private('admin-notifications')
+        .listen('.notifications.updated', handleNotificationsUpdated)
+})
+
+onBeforeUnmount(() => {
+    notificationChannel?.stopListening('.notifications.updated', handleNotificationsUpdated)
+})
 </script>
 
 <template>

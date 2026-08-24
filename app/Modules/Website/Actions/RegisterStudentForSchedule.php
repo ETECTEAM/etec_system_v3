@@ -17,6 +17,7 @@ use App\Models\Time;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Notification\Events\NotificationsUpdated;
+use App\Services\TelegramNotificationService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -31,6 +32,7 @@ class RegisterStudentForSchedule
     public function __construct(
         private readonly StudentRegistrationService $registrations,
         private readonly InstructorAssignmentAvailability $instructorAvailability,
+        private readonly TelegramNotificationService $telegram,
     ) {}
 
     public function handle(array $data): ?StudentEnrollment
@@ -74,9 +76,36 @@ class RegisterStudentForSchedule
             return $enrollment;
         });
 
+        // Sent only once the transaction has committed (and outside it), so a
+        // Telegram hiccup can neither roll back the registration nor run
+        // inside a DB transaction that might retry. The service itself swallows
+        // failures - see TelegramNotificationService.
+        $this->telegram->send($this->registrationAlertMessage($data, $enrollment));
+
         NotificationsUpdated::dispatch();
 
         return $enrollment;
+    }
+
+    private function registrationAlertMessage(array $data, ?StudentEnrollment $enrollment): string
+    {
+        $course = Course::query()->find($data['course_id']);
+
+        if ($enrollment === null) {
+            return "🚨 <b>New Registration Needs Manual Scheduling</b>\n"
+                ."\n👤 Student: {$data['name']}"
+                ."\n📞 Phone: {$data['phone']}"
+                ."\n📚 Course: {$course?->title}"
+                ."\n⏳ Status: Pending - no room or instructor available; an admin must assign a class manually.";
+        }
+
+        $studyClass = StudyClass::query()->find($enrollment->study_class_id);
+
+        return "🚨 <b>New Online Registration</b>\n"
+            ."\n👤 Student: {$data['name']}"
+            ."\n📞 Phone: {$data['phone']}"
+            ."\n📚 Course: {$course?->title}"
+            ."\n🎓 Class: {$studyClass?->title}";
     }
 
     // No open class had space, and creating a new one wasn't possible (no
