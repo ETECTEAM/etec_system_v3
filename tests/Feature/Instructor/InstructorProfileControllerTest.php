@@ -3,6 +3,7 @@
 namespace Tests\Feature\Instructor;
 
 use App\Models\InstructorData;
+use App\Models\InstructorAttachment;
 use App\Models\Term;
 use App\Models\Time;
 use App\Models\User;
@@ -112,6 +113,43 @@ class InstructorProfileControllerTest extends TestCase
         $this->assertSame('https://github.com/bopha', $instructor->github);
         $this->assertSame('https://bopha.example.com', $instructor->portfolio_url);
         $this->assertNotNull($instructor->profilePhoto()->first());
+    }
+
+    public function test_instructor_attachment_urls_are_public_storage_paths(): void
+    {
+        $instructor = InstructorData::create([
+            'user_id' => User::factory()->create(['status' => 'active'])->id,
+            'full_name' => 'Bopha Kem',
+            'instructor_code' => 'ETEC-012',
+            'employment_type' => 'part_time',
+            'available_for_class' => true,
+            'status' => true,
+        ]);
+
+        $photo = InstructorAttachment::create([
+            'instructor_id' => $instructor->id,
+            'type' => 'profile_photo',
+            'title' => 'Profile Photo',
+            'file_name' => 'profile.jpg',
+            'file_path' => 'instructors/1/profile.jpg',
+            'file_mime' => 'image/jpeg',
+            'file_size' => 12345,
+            'is_primary' => true,
+        ]);
+
+        $cv = InstructorAttachment::create([
+            'instructor_id' => $instructor->id,
+            'type' => 'cv',
+            'title' => 'CV',
+            'file_name' => 'cv.pdf',
+            'file_path' => 'instructors/1/cv.pdf',
+            'file_mime' => 'application/pdf',
+            'file_size' => 67890,
+            'is_primary' => true,
+        ]);
+
+        $this->assertSame('/storage/instructors/1/profile.jpg', $photo->url);
+        $this->assertSame('/storage/instructors/1/cv.pdf', $cv->url);
     }
 
     public function test_part_time_instructor_cannot_save_a_full_time_work_schedule(): void
