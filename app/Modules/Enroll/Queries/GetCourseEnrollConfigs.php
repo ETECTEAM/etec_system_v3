@@ -25,7 +25,7 @@ class GetCourseEnrollConfigs
         $search = trim($request->string('search')->toString());
 
         $courses = Course::query()
-            ->select(['id', 'title', 'course_track_id'])
+            ->select(['id', 'title', 'course_track_id', 'enroll_order'])
             ->with([
                 'enrollConfigs:id,course_id,time_id,status,start_date,unit_price,course_price,selected_price_type,document_price',
                 'enrollConfigs.time:id,time_name',
@@ -80,7 +80,11 @@ class GetCourseEnrollConfigs
                     'tracks' => [[
                         'id' => null,
                         'name' => 'Uncategorized',
-                        'courses' => $uncategorized->sortBy('title')->values()->map(fn (Course $course) => $this->present($course))->all(),
+                        'courses' => $uncategorized
+                            ->sortBy(fn (Course $course) => [$course->enroll_order ?? PHP_INT_MAX, $course->title])
+                            ->values()
+                            ->map(fn (Course $course) => $this->present($course))
+                            ->all(),
                     ]],
                 ]],
             ]);
@@ -139,7 +143,13 @@ class GetCourseEnrollConfigs
         return [
             'id' => $track->id,
             'name' => $track->name,
-            'courses' => $trackCourses->sortBy('title')->values()->map(fn (Course $course) => $this->present($course))->all(),
+            // Admin-set enroll order first (nulls last), then title - mirrors
+            // the ordering the public student-register list uses.
+            'courses' => $trackCourses
+                ->sortBy(fn (Course $course) => [$course->enroll_order ?? PHP_INT_MAX, $course->title])
+                ->values()
+                ->map(fn (Course $course) => $this->present($course))
+                ->all(),
         ];
     }
 
@@ -160,6 +170,7 @@ class GetCourseEnrollConfigs
         return [
             'id' => $course->id,
             'title' => $course->title,
+            'enroll_order' => $course->enroll_order,
             'configs' => $configs,
         ];
     }

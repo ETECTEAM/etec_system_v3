@@ -15,7 +15,7 @@ class GetPublicRegistrations
     {
         return StudentEnrollment::query()
             ->whereIn('source', ['public_website', 'qr_code'])
-            ->whereIn('enrollment_status', ['active', 'pending'])
+            ->whereIn('enrollment_status', ['active', 'pending', 'unassigned'])
             ->with([
                 'student:id,full_name,gender,phone',
                 'studyClass:id,title,course_id,term_id,time_id,teacher_id,room_id',
@@ -27,6 +27,11 @@ class GetPublicRegistrations
                 'studyClass.room:id,floor_id,room_number',
                 'studyClass.room.floor:id,building_id,name,level',
                 'studyClass.room.floor.building:id,name',
+                // For a classless (unassigned) row - the course/term/time the
+                // student actually asked for, snapshotted at registration time.
+                'course:id,title',
+                'term:id,term_name',
+                'time:id,time_name',
             ])
             ->latest('id')
             ->limit($limit)
@@ -45,7 +50,13 @@ class GetPublicRegistrations
             'phone' => $enrollment->student?->phone ?? '-',
             'class_id' => $enrollment->study_class_id,
             'class_title' => $enrollment->studyClass?->title ?? '-',
-            'course_title' => $enrollment->studyClass?->course?->title,
+            'course_title' => $enrollment->studyClass?->course?->title ?? $enrollment->course?->title,
+            // Only meaningful while there's no class yet - what the student
+            // asked for at registration time (see the course_title fallback
+            // above). A class's real schedule is shown via study_days/
+            // start_time/end_time below once one exists.
+            'requested_term' => $enrollment->study_class_id === null ? $enrollment->term?->term_name : null,
+            'requested_time' => $enrollment->study_class_id === null ? $enrollment->time?->time_name : null,
             // The class start date staff set per course on the Enroll Config
             // page (course_enroll_configs.start_date) - this is what the
             // receipt's "កាលបរិច្ឆេទចូលរៀន" field prints, not the payment date.
@@ -67,6 +78,11 @@ class GetPublicRegistrations
             'enrollment_status' => ucfirst($enrollment->enrollment_status),
             'source' => $enrollment->source,
             'enrolled_at' => $enrollment->enrolled_at?->format('Y-m-d h:i A'),
+            // RegisterStudentForSchedule couldn't slot this into a class (no
+            // room/instructor free at the time) - the Registrations tab shows
+            // an "Assign to Class" action instead of the usual class/payment
+            // columns whenever any of these is true.
+            'needs_manual_scheduling' => $enrollment->no_room_and_instructor || $enrollment->no_instructor || $enrollment->no_room,
         ];
     }
 

@@ -5,8 +5,8 @@ use App\Modules\Enroll\Controllers\EnrollmentClassController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('/dashboard/enroll')->group(function (): void {
-    // Enrollment Management: browsing, creating, and administering classes — super_admin only.
-    Route::middleware(['auth', 'role:super_admin'])->group(function (): void {
+    // Enrollment Management: browsing, creating, and administering classes — super_admin and admin.
+    Route::middleware(['auth', 'role:super_admin|admin'])->group(function (): void {
         Route::get('/', [EnrollmentClassController::class, 'index'])->name('enroll.index');
 
         // Route to list every course with its enrollment open/closed status and start date.
@@ -15,6 +15,8 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         Route::get('/config/data', [CourseEnrollConfigController::class, 'data'])->name('enroll.config.data');
         // Route to set the same enrollment start date on every course at once.
         Route::post('/config/bulk-start-date', [CourseEnrollConfigController::class, 'bulkUpdateStartDate'])->name('enroll.config.bulk-start-date');
+        // Route to set a course's display order (1 shows first) on the public student-register list.
+        Route::put('/config/course/{course}/order', [CourseEnrollConfigController::class, 'updateCourseOrder'])->name('enroll.config.course-order');
         // Route to add a new enrollment schedule (time slot) for a course.
         Route::post('/config/{course}/schedules', [CourseEnrollConfigController::class, 'store'])->name('enroll.config.store');
         // Route to update an existing schedule's status/start date/prices.
@@ -24,9 +26,11 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         Route::get('/registrations/data', [EnrollmentClassController::class, 'publicRegistrations'])->name('enroll.registrations.data');
         // Route to edit a public registration's name/gender/phone from the Registrations tab.
         Route::put('/registrations/{enrollment}', [EnrollmentClassController::class, 'updateRegistration'])->name('enroll.registrations.update');
-        // Route to list every open class for the "move to another class" picker.
+        // Route to list every open class for the "move to another class" / "assign to class" pickers.
         Route::get('/classes/select', [EnrollmentClassController::class, 'classesForSelect'])->name('enroll.classes.select');
-        // Route to move a registered student into a different existing class, e.g. joining a friend's class.
+        // Route to move a registered student into a different existing class, e.g. joining a friend's class -
+        // also used to make the first class assignment for a registration RegisterStudentForSchedule parked
+        // with no class at all (enrollment.study_class_id null - see no_room_and_instructor/no_instructor/no_room).
         Route::put('/registrations/{enrollment}/move', [EnrollmentClassController::class, 'moveRegistration'])->name('enroll.registrations.move');
         Route::get('/create', [EnrollmentClassController::class, 'create'])->name('enroll.create');
         Route::get('/view/{studyClass}', [EnrollmentClassController::class, 'show'])->name('enroll.show');

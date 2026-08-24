@@ -1,5 +1,4 @@
 import * as building from "./building";
-import * as notifications from "./notifications";
 import * as classes from "./classes";
 import * as enroll from "./enroll";
 import * as enrollConfig from "./enrollConfig";
@@ -15,7 +14,6 @@ import * as website from "./website";
 
 export const menuDomains = [
   building,
-  notifications,
   classes,
   enroll,
   enrollConfig,

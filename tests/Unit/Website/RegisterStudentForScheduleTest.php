@@ -9,7 +9,7 @@ use App\Models\InstructorAvailability;
 use App\Models\InstructorData;
 use App\Models\InstructorScheduleBlock;
 use App\Models\Notification;
-use App\Models\PendingRegistration;
+use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Models\SubCategory;
 use App\Models\Term;
@@ -18,7 +18,6 @@ use App\Models\User;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
 use Database\Seeders\Core\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
@@ -233,11 +232,13 @@ class RegisterStudentForScheduleTest extends TestCase
     {
         // No rooms and no instructors exist in this suite, so once the open
         // class has no seat left, createClass() cannot build another one and
-        // the registration is parked as pending.
+        // the registration is parked as a classless (unassigned) enrollment.
         app(RegisterStudentForSchedule::class)->handle($this->registrationData($course, $term, $time));
     }
 
-    public function test_failed_registration_snapshots_candidate_classes_and_notifies_admins(): void
+    // Neither a room nor an instructor exists in this suite, so a parked
+    // registration is flagged with both resources missing.
+    public function test_failed_registration_creates_an_unassigned_enrollment_and_notifies_admins(): void
     {
         $term = $this->term('Monday');
         $time = $this->time($term, '09:00 AM - 10:30 AM');
@@ -248,57 +249,35 @@ class RegisterStudentForScheduleTest extends TestCase
 
         $this->parkRegistration($course, $term, $time);
 
-        $pending = PendingRegistration::query()->sole();
-        $this->assertSame('pending', $pending->status);
-        $this->assertSame([$fullClass->id], $pending->meta['candidate_class_ids']);
+        $enrollment = StudentEnrollment::query()->where('enrollment_status', 'unassigned')->sole();
+        $this->assertNull($enrollment->study_class_id);
+        $this->assertTrue($enrollment->no_room_and_instructor);
+        $this->assertFalse($enrollment->no_room);
+        $this->assertFalse($enrollment->no_instructor);
 
-        $notification = Notification::query()->where('type', 'pending_registration')->sole();
-        $this->assertStringContainsString("Pending registration #{$pending->id}", $notification->message);
-        $this->assertStringContainsString("student #{$pending->student_id}", $notification->message);
-        $this->assertStringContainsString((string) $fullClass->id, $notification->message);
+        $notification = Notification::query()->where('type', 'unassigned_registration')->sole();
+        $this->assertStringContainsString('Test Student', $notification->message);
+        $this->assertStringContainsString($course->title, $notification->message);
     }
 
-    public function test_classes_older_than_two_weeks_are_not_candidates(): void
+    // A free instructor exists but no room does, for a physical class type -
+    // the parked enrollment should report only the room as missing.
+    public function test_parked_registration_reports_no_room_only_when_an_instructor_is_free(): void
     {
         $term = $this->term('Monday');
         $time = $this->time($term, '09:00 AM - 10:30 AM');
         $course = $this->course();
+        $instructor = $this->instructor();
+        $this->availability($instructor, 1, '08:00', '12:00');
 
-        $staleClass = $this->openClass($course, $term, $time);
-        $staleClass->update(['capacity' => 0]);
-        DB::table('study_classes')->where('id', $staleClass->id)->update([
-            'created_at' => now()->subWeeks(3)->toDateTimeString(),
-        ]);
-
-        $this->parkRegistration($course, $term, $time);
-
-        $pending = PendingRegistration::query()->sole();
-        $this->assertSame([], $pending->meta['candidate_class_ids']);
-    }
-
-    public function test_class_with_start_date_within_two_weeks_is_a_candidate_even_if_created_earlier(): void
-    {
-        $term = $this->term('Monday');
-        $time = $this->time($term, '09:00 AM - 10:30 AM');
-        $course = $this->course();
-
-        $startingSoonClass = StudyClass::create([
-            'title' => $course->title,
-            'course_id' => $course->id,
-            'term_id' => $term->id,
-            'time_id' => $time->id,
-            'status' => 'upcoming',
-            'capacity' => 0,
-            'start_date' => now()->addWeeks(1)->toDateString(),
-            'enrollment_start_date' => now()->toDateString(),
-        ]);
-        DB::table('study_classes')->where('id', $startingSoonClass->id)->update([
-            'created_at' => now()->subWeeks(3)->toDateTimeString(),
-        ]);
+        $fullClass = $this->openClass($course, $term, $time);
+        $fullClass->update(['capacity' => 0]);
 
         $this->parkRegistration($course, $term, $time);
 
-        $pending = PendingRegistration::query()->sole();
-        $this->assertSame([$startingSoonClass->id], $pending->meta['candidate_class_ids']);
+        $enrollment = StudentEnrollment::query()->where('enrollment_status', 'unassigned')->sole();
+        $this->assertTrue($enrollment->no_room);
+        $this->assertFalse($enrollment->no_instructor);
+        $this->assertFalse($enrollment->no_room_and_instructor);
     }
 }
