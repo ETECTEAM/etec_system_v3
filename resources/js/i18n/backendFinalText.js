@@ -391,6 +391,8 @@ export const backendFinalTranslations = {
     "Schedule added.": "បានបន្ថែមកាលវិភាគ។",
     "Schedule removed.": "បានលុបកាលវិភាគ។",
     "Failed to remove schedule. Please try again.": "បានបរាជ័យក្នុងការលុបកាលវិភាគ។ សូមព្យាយាមម្តងទៀត។",
+    "Course order saved.": "បានរក្សាទុកលំដាប់វគ្គសិក្សា។",
+    "Lower numbers show first on the registration page.": "លេខតូចនឹងបង្ហាញជាដើមនៅលើទំព័រចុះឈ្មោះ។",
 
     "Attendance Settings": "ការកំណត់វត្តមាន",
     "Auto-Record Attendance": "កំណត់វត្តមានស្វ័យប្រវត្តិ",

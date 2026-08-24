@@ -29,6 +29,7 @@ const isLoading = ref(false)
 const hasLoaded = ref(false)
 const savingId = ref(null)
 const deletingId = ref(null)
+const savingOrderId = ref(null)
 const bulkStartDate = ref('')
 const isBulkSaving = ref(false)
 const selectedCategory = ref('')
@@ -272,6 +273,34 @@ function priceTypeOptions(config) {
 
 function updateDocumentPrice(course, config, value) {
   saveConfig(course, config, { document_price: value === '' ? 0 : Number(value) })
+}
+
+// Course-level display order for the public student-register list - 1 shows
+// first (Basic IT = 1, Office Word Excel = 2, ...). Clearing the input drops
+// the course back to its old alphabetical position.
+async function updateCourseOrder(course, value) {
+  const enrollOrder = value === '' ? null : Number(value)
+
+  if ((course.enroll_order ?? null) === enrollOrder) {
+    return
+  }
+
+  const previous = course.enroll_order ?? null
+  course.enroll_order = enrollOrder
+  savingOrderId.value = course.id
+
+  try {
+    await axios.put(`/dashboard/enroll/config/course/${course.id}/order`, {
+      enroll_order: enrollOrder,
+    })
+    toast.success(t('Course order saved.'))
+  } catch (error) {
+    console.error('Failed to save course order', error)
+    course.enroll_order = previous
+    toast.error(t(error.response?.data?.message ?? 'Failed to save. Please try again.'))
+  } finally {
+    savingOrderId.value = null
+  }
 }
 
 // Trash icon in the table - same delete as the modal's toggle-off, but with
@@ -521,7 +550,21 @@ async function applyStartDateToAll() {
 
                 <div v-for="(course, courseIndex) in track.courses" :key="course.id ?? 'uncategorized'" :class="courseIndex > 0 ? 'mt-6' : 'mt-4'">
                   <div class="mb-2 flex items-center justify-between gap-3 pl-3">
-                    <h5 class="text-sm font-semibold text-slate-900 dark:text-gray-100">{{ course.title }}</h5>
+                    <div class="flex items-center gap-3">
+                      <h5 class="text-sm font-semibold text-slate-900 dark:text-gray-100">{{ course.title }}</h5>
+                      <div class="flex items-center gap-1.5" :title="$t('Lower numbers show first on the registration page.')">
+                        <label class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Order') }}</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="9999"
+                          :value="course.enroll_order ?? ''"
+                          :disabled="savingOrderId === course.id"
+                          class="w-16 rounded-lg border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                          @change="updateCourseOrder(course, $event.target.value)"
+                        >
+                      </div>
+                    </div>
                     <button
                       type="button"
                       class="inline-flex items-center gap-1 rounded-lg border border-dashed border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 dark:border-blue-500/40 dark:text-blue-400 dark:hover:bg-blue-500/10"

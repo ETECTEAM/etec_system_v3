@@ -16,7 +16,8 @@ class Course extends Model
         'slug',
         'level',
         'thumbnail',
-        'status'
+        'status',
+        'enroll_order',
     ];
 
     public function track()

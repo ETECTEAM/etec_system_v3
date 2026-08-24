@@ -91,7 +91,10 @@ class StudentRegisterController extends Controller
         return Course::query()
             ->with('track.subCategory.category:id,name', 'enrollConfigs.time:id,time_name')
             ->where('status', 'active')
-            ->select('id', 'course_track_id', 'title', 'level')
+            ->select('id', 'course_track_id', 'title', 'level', 'enroll_order')
+            // Admin-set display order (Enroll Config page) - 1 shows first;
+            // unordered courses fall back below the ordered ones, by title.
+            ->orderByRaw('enroll_order IS NULL, enroll_order asc')
             ->orderBy('title')
             ->get()
             ->map(fn (Course $course): array => [

@@ -83,6 +83,24 @@ class CourseEnrollConfigController extends Controller
         return response()->json(['updated' => $updated]);
     }
 
+    // The course's display position on the public student-register list -
+    // lower numbers show first (Basic IT = 1, Office Word Excel = 2, ...).
+    // Lives on the course (not on each schedule row) because ordering is a
+    // per-course concern; clearing the value drops it back to title sort.
+    public function updateCourseOrder(Request $request, Course $course): JsonResponse
+    {
+        $validated = $request->validate([
+            'enroll_order' => ['nullable', 'integer', 'min:1', 'max:9999'],
+        ]);
+
+        $course->update(['enroll_order' => $validated['enroll_order'] ?? null]);
+
+        return response()->json([
+            'id' => $course->id,
+            'enroll_order' => $course->enroll_order,
+        ]);
+    }
+
     private function ensureNoDuplicateSchedule(int $courseId, ?int $timeId, ?int $exceptId = null): void
     {
         $query = CourseEnrollConfig::query()
