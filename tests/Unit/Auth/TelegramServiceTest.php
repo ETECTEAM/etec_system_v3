@@ -64,12 +64,14 @@ class TelegramServiceTest extends TestCase
                 $markup = json_decode($args['reply_markup'] ?? '{}', true);
 
                 return $args['chat_id'] === '12345'
+                    && str_contains($args['text'], 'Email: sri***@etec.com')
                     && str_contains($args['text'], 'OTP: 123456')
                     && ($markup['inline_keyboard'][0][0]['text'] ?? null) === 'Copy code'
                     && ($markup['inline_keyboard'][0][0]['copy_text']['text'] ?? null) === '123456';
             });
 
         $user = User::factory()->create();
+        $user->forceFill(['email' => 'srinnalen@etec.com'])->save();
 
         app(TelegramService::class)->sendAdminApprovalRequest($user, $this->pendingOtp($user), '123456');
     }

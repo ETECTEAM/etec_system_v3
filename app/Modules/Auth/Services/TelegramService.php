@@ -82,13 +82,25 @@ class TelegramService
             'New Instructor Registration',
             '',
             'Name: '.$this->escapeHtml($user->name),
-            'Email: '.$this->escapeHtml($email),
-            'Phone: not provided',
+            'Email: '.$this->escapeHtml($this->maskEmail($email)),
             '',
             'OTP: '.$plainCode,
             '',
             'Please verify this instructor.',
         ]);
+    }
+
+    private function maskEmail(string $email): string
+    {
+        [$localPart, $domain] = array_pad(explode('@', $email, 2), 2, '');
+
+        if ($domain === '') {
+            return $email;
+        }
+
+        $visible = mb_substr($localPart, 0, 3);
+
+        return "{$visible}***@{$domain}";
     }
 
     private function escapeHtml(string $value): string
