@@ -16,48 +16,34 @@ const subtitleLabel = computed(() => tf('loading.subtitle', 'Just a moment while
 </script>
 
 <template>
-  <Transition
-    enter-active-class="transition duration-200 ease-out"
-    enter-from-class="opacity-0"
-    enter-to-class="opacity-100"
-    leave-active-class="transition duration-150 ease-in"
-    leave-from-class="opacity-100"
-    leave-to-class="opacity-0"
-  >
-    <!-- <div
-      class="page-loading-shell fixed inset-0 z-[60] flex items-center justify-center overflow-hidden"
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-    >
-      <div class="page-loading-backdrop" aria-hidden="true"></div>
-      <div class="page-loading-glow page-loading-glow--left" aria-hidden="true"></div>
-      <div class="page-loading-glow page-loading-glow--right" aria-hidden="true"></div>
+  <!-- <div class="page-loading-shell fixed inset-0 z-[60] flex items-center justify-center overflow-hidden" role="status" aria-live="polite" aria-busy="true">
+    <div class="page-loading-backdrop" aria-hidden="true"></div>
+    <div class="page-loading-glow page-loading-glow--left" aria-hidden="true"></div>
+    <div class="page-loading-glow page-loading-glow--right" aria-hidden="true"></div>
 
-      <div class="page-loading-card relative z-10 flex flex-col items-center gap-5 px-9 py-8 text-center">
-        <div class="page-loading-spinner" aria-hidden="true">
-          <svg class="page-loading-ring" viewBox="0 0 100 100" focusable="false" aria-hidden="true">
-            <circle class="page-loading-ring-track" cx="50" cy="50" r="42" />
-            <circle class="page-loading-ring-arc" cx="50" cy="50" r="42" />
-          </svg>
-          <span class="page-loading-core" aria-hidden="true"></span>
-        </div>
-
-        <div class="max-w-sm space-y-1.5">
-          <p class="page-loading-title text-sm font-semibold tracking-[0.22em] uppercase">
-            {{ loadingLabel }}
-          </p>
-          <p class="page-loading-subtitle text-sm leading-6">
-            {{ subtitleLabel }}
-          </p>
-        </div>
+    <div class="page-loading-card relative z-10 flex flex-col items-center gap-5 px-9 py-8 text-center">
+      <div class="page-loading-spinner" aria-hidden="true">
+        <svg class="page-loading-ring" viewBox="0 0 100 100" focusable="false" aria-hidden="true">
+          <circle class="page-loading-ring-track" cx="50" cy="50" r="42" />
+          <circle class="page-loading-ring-arc" cx="50" cy="50" r="42" />
+        </svg>
+        <span class="page-loading-core" aria-hidden="true"></span>
       </div>
-    </div> -->
-  </Transition>
+
+      <div class="max-w-sm space-y-1.5">
+        <p class="page-loading-title text-sm font-semibold tracking-[0.22em] uppercase">
+          {{ loadingLabel }}
+        </p>
+        <p class="page-loading-subtitle text-sm leading-6">
+          {{ subtitleLabel }}
+        </p>
+      </div>
+    </div>
+  </div> -->
 </template>
 
-<!-- <style scoped>
-.page-loading-shell {
+<style scoped>
+/* .page-loading-shell {
   --pl-bg-1: #f4f6f8;
   --pl-bg-2: #e9edf2;
   --pl-sheen: rgba(255, 255, 255, 0.18);
@@ -231,5 +217,5 @@ const subtitleLabel = computed(() => tf('loading.subtitle', 'Just a moment while
   .page-loading-ring {
     animation-duration: 2.6s;
   }
-}
-</style> -->
+} */
+</style>
