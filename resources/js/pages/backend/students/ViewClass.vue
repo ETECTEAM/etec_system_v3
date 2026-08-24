@@ -1,7 +1,7 @@
 <script setup>
-import { router } from "@inertiajs/vue3";
+import { computed, ref } from "vue";
+import { router, usePage } from "@inertiajs/vue3";
 import { ArrowLeft } from "@lucide/vue";
-import { ref } from "vue";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
@@ -33,6 +33,23 @@ const props = defineProps({
   },
 });
 
+const page = usePage();
+const isInstructor = computed(() => (page.props.auth?.roles ?? []).includes("instructor"));
+const classListUrl = computed(() => "/dashboard");
+const normalizedClassStatus = computed(() => {
+  const status = String(props.classData?.class_status ?? "").toLowerCase();
+
+  switch (status) {
+    case "inactive":
+      return "pre_end";
+    case "completed":
+      return "ended";
+    default:
+      return status;
+  }
+});
+const lockedStudentActions = computed(() => ['pre_end', 'ended', 'cancelled'].includes(normalizedClassStatus.value));
+
 const depositEnrollment = ref(null);
 const showEnrollExistingStudent = ref(false);
 
@@ -41,6 +58,10 @@ function openDeposit(enrollment) {
 }
 
 function addStudent() {
+  if (lockedStudentActions.value) {
+    return;
+  }
+
   router.get(`/dashboard/enroll/${props.classData.id}/students/create`);
 }
 
@@ -50,12 +71,12 @@ function enrollExistingStudent() {
 
 const breadcrumbItems = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Class List", href: "/dashboard/enroll" },
+  { label: "Class List", href: classListUrl.value },
   { label: "View Class", current: true },
 ];
 
 function goBack() {
-  router.get("/dashboard/enroll");
+  router.get(classListUrl.value);
 }
 </script>
 
@@ -75,7 +96,11 @@ function goBack() {
           <button @click="goBack" class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500">
             <ArrowLeft class="h-4 w-4" /> Back to Class List
           </button>
-          <QuickActions @add-student="addStudent" @enroll-existing-student="enrollExistingStudent" />
+          <QuickActions
+            :disabled="lockedStudentActions"
+            @add-student="addStudent"
+            @enroll-existing-student="enrollExistingStudent"
+          />
         </div>
 
         <!-- Class Information Card -->

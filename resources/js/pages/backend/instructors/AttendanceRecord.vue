@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Head, Link, router } from "@inertiajs/vue3";
 import axios from "axios";
 import { useToast } from "vue-toastification";
@@ -7,6 +7,7 @@ import {
   ArrowRightLeft,
   Bot,
   ClipboardCheck,
+  Bell,
   Eye,
   FileText,
   Mars,
@@ -31,6 +32,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  pendingRegistrations: {
+    type: Array,
+    default: () => [],
+  },
   attendanceWindow: {
     type: Object,
     default: null,
@@ -43,12 +48,25 @@ const props = defineProps({
 });
 
 const rosterStudents = ref([]);
+const pendingRequests = ref([]);
+const classLifecycleStatus = computed(() => String(props.classData?.class_status ?? "").toLowerCase());
 
 const totalPresent = computed(() =>
   rosterStudents.value.reduce((total, student) => total + Number(student.attendance?.present ?? 0), 0),
 );
-const canTrackAttendance = computed(() => props.todaySession?.status === "auto_recorded" || props.attendanceWindow?.can_submit);
+const canTrackAttendance = computed(() =>
+  classLifecycleStatus.value === "active"
+  && (props.todaySession?.status === "auto_recorded" || props.attendanceWindow?.can_submit),
+);
 const trackAttendanceLabel = computed(() => {
+  if (classLifecycleStatus.value === "pre_end") {
+    return "Pre-End";
+  }
+
+  if (classLifecycleStatus.value === "ended") {
+    return "Ended";
+  }
+
   if (props.todaySession?.status === "auto_recorded") {
     return "Track Attendance";
   }
@@ -67,6 +85,27 @@ const trackAttendanceLabel = computed(() => {
 
   return "Track Attendance";
 });
+const lifecycleNotice = computed(() => {
+  if (classLifecycleStatus.value === "pre_end") {
+    return "This class has been pre-ended. Attendance tracking is closed.";
+  }
+
+  if (classLifecycleStatus.value === "ended") {
+    return "This class has ended. Attendance tracking is no longer available.";
+  }
+
+  return null;
+});
+const pendingModalOpen = ref(false);
+const selectedPendingIds = ref([]);
+
+const pendingRequestCount = computed(() => pendingRequests.value.length);
+const selectedPendingCount = computed(() => selectedPendingIds.value.length);
+const allPendingSelected = computed(() =>
+  pendingRequestCount.value > 0 && selectedPendingCount.value === pendingRequestCount.value,
+);
+const hasSelectedPending = computed(() => selectedPendingCount.value > 0);
+const pendingRequestsListener = () => openPendingModal();
 
 const activeStudent = ref(null);
 const editModalOpen = ref(false);
@@ -104,6 +143,25 @@ watch(
   },
   { immediate: true },
 );
+
+watch(
+  () => props.pendingRegistrations,
+  (registrations) => {
+    pendingRequests.value = registrations.map((request) => ({ ...request }));
+
+    const validIds = new Set(registrations.map((request) => request.enrollment_id));
+    selectedPendingIds.value = selectedPendingIds.value.filter((id) => validIds.has(id));
+  },
+  { immediate: true },
+);
+
+onMounted(() => {
+  window.addEventListener("open-pending-requests", pendingRequestsListener);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("open-pending-requests", pendingRequestsListener);
+});
 
 function resetEditForm() {
   editForm.value = {
@@ -258,6 +316,86 @@ async function submitScores() {
     scoreSaving.value = false;
   }
 }
+
+function openPendingModal() {
+  pendingModalOpen.value = true;
+}
+
+function closePendingModal() {
+  pendingModalOpen.value = false;
+  selectedPendingIds.value = [];
+}
+
+function togglePendingSelection(enrollmentId) {
+  if (selectedPendingIds.value.includes(enrollmentId)) {
+    selectedPendingIds.value = selectedPendingIds.value.filter((id) => id !== enrollmentId);
+    return;
+  }
+
+  selectedPendingIds.value = [...selectedPendingIds.value, enrollmentId];
+}
+
+function toggleSelectAllPending() {
+  if (allPendingSelected.value) {
+    selectedPendingIds.value = [];
+    return;
+  }
+
+  selectedPendingIds.value = pendingRequests.value.map((request) => request.enrollment_id);
+}
+
+async function reloadPendingState(message) {
+  if (message) {
+    toast.success(message);
+  }
+
+  router.reload({ preserveScroll: true });
+}
+
+async function approvePendingRegistration(enrollmentId) {
+  try {
+    await axios.post(`/dashboard/enroll/enrollments/${enrollmentId}/approve`);
+    await reloadPendingState("Student request approved successfully.");
+  } catch (error) {
+    toast.error(error.response?.data?.message ?? "Failed to approve the request.");
+  }
+}
+
+async function approveSelectedPendingRegistrations() {
+  if (!selectedPendingIds.value.length) {
+    return;
+  }
+
+  try {
+    const response = await axios.post("/dashboard/enroll/enrollments/approve", {
+      enrollment_ids: selectedPendingIds.value,
+    });
+
+    await reloadPendingState(
+      `${response.data?.approved_count ?? selectedPendingIds.value.length} student request${(response.data?.approved_count ?? selectedPendingIds.value.length) === 1 ? "" : "s"} approved successfully.`,
+    );
+  } catch (error) {
+    toast.error(error.response?.data?.message ?? "Failed to approve the selected requests.");
+  }
+}
+
+async function approveAllPendingRegistrations() {
+  if (!pendingRequests.value.length) {
+    return;
+  }
+
+  try {
+    const response = await axios.post("/dashboard/enroll/enrollments/approve", {
+      enrollment_ids: pendingRequests.value.map((request) => request.enrollment_id),
+    });
+
+    await reloadPendingState(
+      `${response.data?.approved_count ?? pendingRequests.value.length} student request${(response.data?.approved_count ?? pendingRequests.value.length) === 1 ? "" : "s"} approved successfully.`,
+    );
+  } catch (error) {
+    toast.error(error.response?.data?.message ?? "Failed to approve all requests.");
+  }
+}
 </script>
 
 <template>
@@ -314,7 +452,7 @@ async function submitScores() {
       </div>
 
       <div
-        v-if="todaySession?.status === 'auto_recorded'"
+        v-if="todaySession?.status === 'auto_recorded' && classLifecycleStatus === 'active'"
         class="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
       >
         <Bot class="h-4 w-4 shrink-0" />
@@ -324,6 +462,13 @@ async function submitScores() {
         <span v-else>
           The system recorded today's class at {{ todaySession.recorded_at }}. The window to correct it has closed.
         </span>
+      </div>
+
+      <div
+        v-else-if="lifecycleNotice"
+        class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+      >
+        {{ lifecycleNotice }}
       </div>
 
       <div class="grid gap-3 lg:grid-cols-3">
@@ -345,6 +490,137 @@ async function submitScores() {
         <h2 class="text-xl font-black text-blue-950 dark:text-gray-100">Track Attendance</h2>
         <p class="text-sm font-semibold text-slate-500 dark:text-gray-400">Track your student attendance</p>
       </div>
+
+      <Teleport to="body">
+        <div v-if="pendingModalOpen" class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/60 px-4" @click.self="closePendingModal">
+          <div class="w-full max-w-5xl rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+            <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-gray-800">
+              <div>
+                <p class="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-amber-500">
+                  <Bell class="h-4 w-4" />
+                  Notification
+                </p>
+                <h3 class="mt-1 text-xl font-black text-slate-950 dark:text-gray-100">Pending Students</h3>
+                <p class="mt-1 text-sm font-semibold text-slate-500 dark:text-gray-400">
+                  {{ pendingRequestCount }} request{{ pendingRequestCount === 1 ? "" : "s" }} waiting for approval.
+                </p>
+              </div>
+              <button
+                type="button"
+                class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                @click="closePendingModal"
+              >
+                ×
+              </button>
+            </div>
+
+            <div class="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">
+              <label class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-gray-200">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                  :checked="allPendingSelected"
+                  :disabled="!pendingRequestCount"
+                  @change="toggleSelectAllPending"
+                />
+                Select all
+              </label>
+
+              <div class="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="inline-flex h-10 items-center gap-2 rounded-lg bg-slate-100 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                  :disabled="!pendingRequestCount"
+                  @click="approveAllPendingRegistrations"
+                >
+                  Approve All
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-70"
+                  :disabled="!hasSelectedPending"
+                  @click="approveSelectedPendingRegistrations"
+                >
+                  Approve Selected
+                  <span
+                    v-if="selectedPendingCount"
+                    class="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-black"
+                  >
+                    {{ selectedPendingCount }}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <div class="max-h-[65vh] overflow-auto">
+              <table class="min-w-[920px] w-full border-collapse text-sm">
+                <thead class="sticky top-0 z-10">
+                  <tr class="bg-amber-50 text-left text-xs font-black uppercase tracking-[0.08em] text-amber-700 dark:bg-amber-500/10 dark:text-amber-200">
+                    <th class="border-b border-amber-100 px-4 py-3 dark:border-amber-500/20">Select</th>
+                    <th class="border-b border-amber-100 px-4 py-3 dark:border-amber-500/20">#</th>
+                    <th class="border-b border-amber-100 px-4 py-3 dark:border-amber-500/20">Name</th>
+                    <th class="border-b border-amber-100 px-4 py-3 dark:border-amber-500/20">Gender</th>
+                    <th class="border-b border-amber-100 px-4 py-3 dark:border-amber-500/20">Phone</th>
+                    <th class="border-b border-amber-100 px-4 py-3 dark:border-amber-500/20">Requested At</th>
+                    <th class="border-b border-amber-100 px-4 py-3 dark:border-amber-500/20">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="!pendingRequestCount">
+                    <td colspan="7" class="px-4 py-10 text-center text-sm font-semibold text-slate-500 dark:text-gray-400">
+                      No pending students.
+                    </td>
+                  </tr>
+                  <tr v-for="request in pendingRequests" :key="request.enrollment_id" class="align-middle">
+                    <td class="border-b border-amber-100 px-4 py-3 dark:border-amber-500/10">
+                      <input
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                        :checked="selectedPendingIds.includes(request.enrollment_id)"
+                        @change="togglePendingSelection(request.enrollment_id)"
+                      />
+                    </td>
+                    <td class="border-b border-amber-100 px-4 py-3 font-semibold text-slate-700 dark:border-amber-500/10 dark:text-gray-300">
+                      {{ request.roster_no }}
+                    </td>
+                    <td class="border-b border-amber-100 px-4 py-3 font-bold text-slate-900 dark:border-amber-500/10 dark:text-gray-100">
+                      {{ request.name }}
+                    </td>
+                    <td class="border-b border-amber-100 px-4 py-3 capitalize text-slate-600 dark:border-amber-500/10 dark:text-gray-400">
+                      {{ request.gender }}
+                    </td>
+                    <td class="border-b border-amber-100 px-4 py-3 text-slate-600 dark:border-amber-500/10 dark:text-gray-400">
+                      {{ request.phone }}
+                    </td>
+                    <td class="border-b border-amber-100 px-4 py-3 text-slate-600 dark:border-amber-500/10 dark:text-gray-400">
+                      {{ request.requested_at }}
+                    </td>
+                    <td class="border-b border-amber-100 px-4 py-3 dark:border-amber-500/10">
+                      <button
+                        type="button"
+                        class="inline-flex h-9 items-center justify-center rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white transition hover:bg-emerald-500"
+                        @click="approvePendingRegistration(request.enrollment_id)"
+                      >
+                        Approve
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 border-t border-slate-200 px-5 py-4 dark:border-gray-800">
+              <button
+                type="button"
+                class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                @click="closePendingModal"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
 
       <div class="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="bg-blue-950 px-4 py-3 text-center text-base font-black text-white">

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, nextTick, onMounted, onUnmounted } from "vue";
+import { computed, ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import {
     GraduationCap,
     Pencil,
@@ -18,6 +18,10 @@ import {
 const props = defineProps({
     show: Boolean,
     classData: Object,
+    hiddenItems: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const emit = defineEmits([
@@ -35,22 +39,46 @@ const emit = defineEmits([
 ]);
 
 const dialogRef = ref(null);
+const lifecycleStatus = computed(() => String(props.classData?.class_status ?? "").toLowerCase());
+const normalizedLifecycleStatus = computed(() => {
+    switch (lifecycleStatus.value) {
+        case "inactive":
+            return "pre_end";
+        case "completed":
+            return "ended";
+        default:
+            return lifecycleStatus.value;
+    }
+});
+const lockedStudentActions = computed(() => ['pre_end', 'ended', 'cancelled'].includes(normalizedLifecycleStatus.value));
 
-const items = [
+const isHidden = (label) => props.hiddenItems.includes(label) || props.hiddenItems.includes(label.replace(/ Class$/, ""));
+
+const items = computed(() => [
     { icon: Pencil, label: "Edit Class", event: "edit" },
     { icon: Copy, label: "Copy Class", event: "copy" },
-    { icon: UserPlus, label: "Add Student", event: "add-student" },
-    { icon: QrCode, label: "QR Add", event: "qr" },
+    { icon: UserPlus, label: "Add Student", event: "add-student", disabled: lockedStudentActions.value },
+    { icon: QrCode, label: "QR Add", event: "qr", disabled: lockedStudentActions.value },
     { icon: RefreshCcw, label: "Switch Teacher", event: "switch-teacher" },
     { icon: Eye, label: "View Details", event: "view" },
     { icon: ClipboardCheck, label: "Attendance", event: "attendance" },
     { icon: Download, label: "Export Student List", event: "export" },
-];
+].filter((item) => !isHidden(item.label)));
 
-const dangerItems = [
+const dangerItems = computed(() => [
     { icon: AlertTriangle, label: "Pre-End Class", event: "pre-end", danger: "warning" },
     { icon: CircleStop, label: "End Class", event: "end", danger: "critical" },
-];
+].filter((item) => !isHidden(item.label)).filter((item) => {
+    if (item.event === "pre-end") {
+        return normalizedLifecycleStatus.value !== "pre_end" && normalizedLifecycleStatus.value !== "ended";
+    }
+
+    if (item.event === "end") {
+        return normalizedLifecycleStatus.value !== "ended";
+    }
+
+    return true;
+}));
 
 watch(() => props.show, (val) => {
     if (val) {
@@ -76,10 +104,18 @@ function onDocumentKeydown(e) {
 }
 
 function onItemClick(event) {
-    emit(event);
-    if (event !== "end" && event !== "pre-end") {
-        emit("close");
+  emit(event);
+  if (event !== "end" && event !== "pre-end") {
+    emit("close");
+  }
+}
+
+function onActionClick(item) {
+    if (item.disabled) {
+        return;
     }
+
+    onItemClick(item.event);
 }
 
 onMounted(() => {
@@ -155,10 +191,19 @@ onUnmounted(() => {
                             v-for="item in items"
                             :key="item.event"
                             type="button"
-                            @click="onItemClick(item.event)"
-                            class="flex items-center gap-3 w-full px-3 py-2.5 sm:py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 active:bg-indigo-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-300 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400 dark:active:bg-indigo-500/20"
+                            @click="onActionClick(item)"
+                            :disabled="item.disabled"
+                            :class="[
+                                'flex items-center gap-3 w-full px-3 py-2.5 sm:py-3 rounded-xl text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500',
+                                item.disabled
+                                    ? 'cursor-not-allowed text-slate-400 dark:text-gray-600'
+                                    : 'text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 active:bg-indigo-100 dark:text-gray-300 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400 dark:active:bg-indigo-500/20',
+                            ]"
                         >
-                            <component :is="item.icon" class="w-4 h-4 shrink-0 text-slate-400 group-hover:text-indigo-500 dark:text-gray-500" />
+                            <component :is="item.icon" :class="[
+                                'w-4 h-4 shrink-0',
+                                item.disabled ? 'text-slate-300 dark:text-gray-700' : 'text-slate-400 group-hover:text-indigo-500 dark:text-gray-500',
+                            ]" />
                             <span>{{ item.label }}</span>
                         </button>
                     </div>

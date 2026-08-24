@@ -31,13 +31,22 @@ const props = defineProps({
   },
 });
 
+const classLifecycleStatus = computed(() => String(props.classData?.class_status ?? "").toLowerCase());
 // The system recorded today's class and the instructor still has time to correct it -
 // the one case attendanceLocked stays true but the table must remain editable.
 const isOverridable = computed(
   () => props.todaySession?.status === "auto_recorded" && props.todaySession?.can_override,
 );
-const locked = computed(() => props.attendanceLocked && !isOverridable.value);
+const locked = computed(() => classLifecycleStatus.value !== "active" || (props.attendanceLocked && !isOverridable.value));
 const windowMessage = computed(() => {
+  if (classLifecycleStatus.value === "pre_end") {
+    return "This class has been pre-ended. Attendance tracking is closed.";
+  }
+
+  if (classLifecycleStatus.value === "ended") {
+    return "This class has ended. Attendance tracking is no longer available.";
+  }
+
   if (!props.attendanceWindow) {
     return null;
   }
@@ -59,6 +68,14 @@ const windowMessage = computed(() => {
 const submitLabel = computed(() => {
   if (form.processing) {
     return "Saving...";
+  }
+
+  if (classLifecycleStatus.value === "pre_end") {
+    return "Pre-End";
+  }
+
+  if (classLifecycleStatus.value === "ended") {
+    return "Ended";
   }
 
   if (isOverridable.value) {
@@ -132,7 +149,7 @@ const totals = computed(() => {
 
 const submit = () => {
   if (locked.value) {
-    toast.warning("Attendance has already been submitted for this class today.");
+    toast.warning(windowMessage.value ?? "Attendance has already been submitted for this class today.");
     return;
   }
 

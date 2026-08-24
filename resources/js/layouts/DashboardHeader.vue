@@ -2,7 +2,7 @@
 import axios from 'axios'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
-import { Languages, Moon, Sun, SunMoon } from '@lucide/vue'
+import { Bell, Languages, Moon, Sun, SunMoon } from '@lucide/vue'
 import { useTheme } from '@/composables/useTheme'
 import { getEcho } from '@/echo'
 import { useI18n } from '@/i18n'
@@ -34,6 +34,10 @@ const roles = computed(() => page.props.auth?.roles ?? [])
 const schoolSettings = computed(() => page.props.website?.settings ?? {})
 const sharedLocale = computed(() => page.props.locale?.current ?? 'en')
 const canAccessNotifications = computed(() => roles.value.includes('super_admin') || roles.value.includes('admin'))
+const pendingQrRequestsCount = computed(() => {
+  const pendingRegistrations = page.props.pendingRegistrations
+  return Array.isArray(pendingRegistrations) ? pendingRegistrations.length : 0
+})
 const notifications = ref([])
 const unreadCount = ref(0)
 const isLoading = ref(false)
@@ -150,6 +154,10 @@ function selectLocale(value) {
 function goToNotifications() {
   notificationsOpen.value = false
   router.visit('/dashboard/notifications')
+}
+
+function openPendingRequestsPanel() {
+  window.dispatchEvent(new CustomEvent('open-pending-requests'))
 }
 
 async function actOnNotification(notification, action) {
@@ -274,6 +282,27 @@ function handleEscape(event) {
               <span v-if="item.code === locale" class="text-xs uppercase">{{ item.code }}</span>
             </button>
           </div>
+        </div>
+
+        <div
+          v-if="pendingQrRequestsCount"
+          class="relative"
+        >
+          <button
+            type="button"
+            class="relative rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            :aria-label="`Pending student requests: ${pendingQrRequestsCount}`"
+            :title="`Pending student requests: ${pendingQrRequestsCount}`"
+            @click="openPendingRequestsPanel"
+          >
+            <Bell class="h-5 w-5" />
+
+            <span
+              class="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-500 px-1 text-center text-xs font-semibold text-white"
+            >
+              {{ pendingQrRequestsCount > 99 ? '99+' : pendingQrRequestsCount }}
+            </span>
+          </button>
         </div>
 
         <div v-if="canAccessNotifications" ref="notificationsRef" class="relative">

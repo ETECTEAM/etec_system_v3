@@ -232,6 +232,11 @@ function registerAnother() {
   form.reset();
   form.clearErrors();
 }
+
+function normalizePhoneInput(event) {
+  const value = event.target.value ?? "";
+  form.phone = String(value).replace(/\D+/g, "").slice(0, 12);
+}
 </script>
 
 <template>
@@ -427,6 +432,11 @@ function registerAnother() {
                     <input
                       v-model="form.phone"
                       type="text"
+                      inputmode="numeric"
+                      autocomplete="tel"
+                      pattern="[0-9]*"
+                      maxlength="12"
+                      @input="normalizePhoneInput"
                       class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:rounded-xl sm:py-3 sm:pl-12 sm:pr-4 sm:text-base"
                       placeholder="012 345 678"
                     />

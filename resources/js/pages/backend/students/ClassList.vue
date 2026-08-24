@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { router } from "@inertiajs/vue3";
 import axios from "axios";
 import { Search, RotateCcw, Plus, LayoutGrid, Table2, UserPlus, UserCheck, Printer, Pencil, ArrowRightLeft } from "@lucide/vue";
+import { useToast } from "vue-toastification";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
 import ClassTable from "./components/ClassTable.vue";
@@ -55,6 +56,7 @@ const props = defineProps({
   },
 });
 
+const toast = useToast();
 const filteredClasses = computed(() => props.classes?.data ?? []);
 let searchTimer = null;
 
@@ -105,7 +107,7 @@ const registrationsLoading = ref(false);
 const registrationsLoaded = ref(false);
 
 const pendingRegistrationsCount = computed(
-  () => registrations.value.filter((row) => row.payment_status !== "Paid").length
+  () => registrations.value.filter((row) => row.enrollment_status === "Pending").length
 );
 
 async function fetchRegistrations() {
@@ -148,6 +150,10 @@ function scheduleLabel(row) {
   const days = studyDaysLabel(row);
   const time = row.start_time && row.end_time ? `${row.start_time} - ${row.end_time}` : "";
   return [days === "-" ? "" : days, time].filter(Boolean).join(", ") || "-";
+}
+
+function isPendingRegistration(row) {
+  return row.enrollment_status === "Pending";
 }
 
 // Feeds the same ReceiptPrint.vue component RegisterStudent.vue/ViewClass.vue use.
@@ -225,6 +231,16 @@ async function recordPayment(row, amount) {
   }
 
   printingId.value = null;
+}
+
+async function approveRegistration(row) {
+  try {
+    await axios.post(`/dashboard/enroll/enrollments/${row.enrollment_id}/approve`);
+    toast.success("Student request approved successfully.");
+    await fetchRegistrations();
+  } catch (error) {
+    toast.error(error.response?.data?.message ?? "Failed to approve the request.");
+  }
 }
 
 function openPartialPaymentModal(row) {
@@ -534,12 +550,13 @@ onBeforeUnmount(() => {
                   <span
                     class="inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs"
                     :class="{
+                      'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400': isPendingRegistration(row),
                       'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400': row.payment_status === 'Paid',
                       'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400': row.payment_status === 'Partial',
                       'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400': row.payment_status === 'Unpaid',
                     }"
                   >
-                    {{ row.payment_status }}
+                    {{ isPendingRegistration(row) ? $t('Pending Approval') : row.payment_status }}
                   </span>
                 </TableCell>
 
@@ -550,6 +567,18 @@ onBeforeUnmount(() => {
                 <TableCell>
                   <div class="flex justify-end items-center gap-1.5">
                     <button
+                      v-if="isPendingRegistration(row)"
+                      type="button"
+                      class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-100 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+                      :title="$t('Approve request')"
+                      @click="approveRegistration(row)"
+                    >
+                      <UserCheck class="h-4 w-4 shrink-0" />
+                      <span class="truncate">{{ $t('Approve') }}</span>
+                    </button>
+
+                    <button
+                      v-else
                       type="button"
                       class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                       :title="$t('Edit')"
@@ -559,6 +588,7 @@ onBeforeUnmount(() => {
                     </button>
 
                     <button
+                      v-if="!isPendingRegistration(row)"
                       type="button"
                       class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                       :title="$t('Move to Another Class')"
@@ -568,6 +598,7 @@ onBeforeUnmount(() => {
                     </button>
 
                     <button
+                      v-if="!isPendingRegistration(row)"
                       type="button"
                       class="inline-flex w-[150px] items-center justify-center gap-1.5 rounded-lg bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
                       :disabled="printingId === row.enrollment_id"

@@ -20,7 +20,7 @@ class StudentRegisterRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255', new LatinName],
             'gender' => ['required', 'string', Rule::in(['male', 'female'])],
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => ['required', 'string', 'regex:/^[0-9]{9,12}$/'],
             'category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('status', 'active')],
             'course_id' => [
                 'required', 'integer', Rule::exists('courses', 'id')->where('status', 'active'),

@@ -52,10 +52,38 @@ const emit = defineEmits([
 ]);
 
 const capacity = computed(() => props.classData.capacity);
-const online = computed(() =>
-    props.classData.class_type === "online" ||
-    String(props.classData.status ?? "").toLowerCase().includes("online")
-);
+const lifecycleStatus = computed(() => String(props.classData.class_status ?? "").toLowerCase());
+const normalizedLifecycleStatus = computed(() => {
+    switch (lifecycleStatus.value) {
+        case 'inactive':
+            return 'pre_end';
+        case 'completed':
+            return 'ended';
+        default:
+            return lifecycleStatus.value;
+    }
+});
+const lockedStudentActions = computed(() => ['pre_end', 'ended', 'cancelled'].includes(normalizedLifecycleStatus.value));
+const lifecycleLabel = computed(() => {
+    switch (lifecycleStatus.value) {
+        case 'upcoming':
+            return 'Upcoming';
+        case 'active':
+            return 'Active';
+        case 'pre_end':
+            return 'Pre-End';
+        case 'ended':
+            return 'Ended';
+        case 'cancelled':
+            return 'Cancelled';
+        case 'inactive':
+            return 'Pre-End';
+        case 'completed':
+            return 'Ended';
+        default:
+            return props.classData.class_status_label ?? props.classData.class_status ?? "—";
+    }
+});
 
 const fill = computed(() => {
     if (!capacity.value) return 0;
@@ -63,11 +91,30 @@ const fill = computed(() => {
 });
 
 const statusStyle = computed(() => {
-    switch (props.classData.status) {
-        case 'active':    return 'bg-emerald-50 text-emerald-700 ring-emerald-600/20';
-        case 'inactive':  return 'bg-slate-100 text-slate-600 ring-slate-400/20';
-        case 'completed': return 'bg-blue-50 text-blue-700 ring-blue-600/20';
-        default:          return 'bg-blue-50 text-blue-700 ring-blue-600/20';
+    switch (normalizedLifecycleStatus.value) {
+        case 'active':
+            return 'bg-emerald-50 text-emerald-700 ring-emerald-600/20';
+        case 'pre_end':
+            return 'bg-amber-50 text-amber-700 ring-amber-600/20';
+        case 'ended':
+            return 'bg-slate-100 text-slate-600 ring-slate-400/20';
+        case 'cancelled':
+            return 'bg-rose-50 text-rose-700 ring-rose-600/20';
+        default:
+            return 'bg-blue-50 text-blue-700 ring-blue-600/20';
+    }
+});
+
+const cardToneClasses = computed(() => {
+    switch (normalizedLifecycleStatus.value) {
+        case 'pre_end':
+            return 'border-amber-200 bg-amber-50/70 hover:border-amber-300 dark:border-amber-500/20 dark:bg-amber-500/10 dark:hover:border-amber-400/30';
+        case 'ended':
+            return 'border-slate-200 bg-slate-100/70 hover:border-slate-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700';
+        case 'active':
+            return 'border-emerald-200 bg-white hover:border-emerald-200 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-emerald-500/30';
+        default:
+            return 'border-slate-200 bg-white hover:border-indigo-200 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40';
     }
 });
 
@@ -85,9 +132,10 @@ const menuItems = computed(() => [
         action: () => {
             showCollapseDialog.value = true;
         },
+        disabled: lockedStudentActions.value,
     },
 ]);
-const qrUrl = computed(() => `${window.location.origin}/dashboard/enroll/${props.classData.id}/students/create`);
+const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.id}`);
 
 function showViewClass () {
    router.get(props.viewUrl ?? `/dashboard/enroll/view/${props.classData.id}`);
@@ -134,7 +182,10 @@ function updateStatus(status) {
 
 <template>
 <div
-    class="group relative flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-0.5 hover:border-indigo-200 transition-all duration-300 dark:bg-gray-900 dark:border-gray-800 dark:hover:border-indigo-500/40"
+    :class="[
+        'group relative flex flex-col rounded-2xl border shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl',
+        cardToneClasses,
+    ]"
 >
     <NotificationBadge :count="props.count" />
     <div class="p-5 sm:p-6 flex flex-col flex-1">
@@ -239,18 +290,23 @@ function updateStatus(status) {
                 <span
                     :class="[
                         'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0',
-                        online
-                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
-                            : 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+                        statusStyle,
+                        'ring-1 ring-inset',
                     ]"
                 >
                     <span
                         :class="[
-                            'w-1.5 h-1.5 rounded-full',
-                            classData.status === 'active' ? 'bg-emerald-500' : classData.status === 'inactive' ? 'bg-slate-400' : 'bg-blue-500',
+                        'w-1.5 h-1.5 rounded-full',
+                            normalizedLifecycleStatus === 'active'
+                                ? 'bg-emerald-500'
+                                : normalizedLifecycleStatus === 'pre_end'
+                                    ? 'bg-amber-500'
+                                    : normalizedLifecycleStatus === 'ended'
+                                        ? 'bg-slate-400'
+                                        : 'bg-blue-500',
                         ]"
                     ></span>
-                    {{ classData.status }}
+                    {{ lifecycleLabel }}
                 </span>
             </div>
 
@@ -328,6 +384,7 @@ function updateStatus(status) {
 <BarClass
     :show="showBarDialog"
     :classData="classData"
+    :hiddenItems="hiddenItems"
     @close="showBarDialog = false"
     @view="showViewClass"
     @edit="showEditClass"

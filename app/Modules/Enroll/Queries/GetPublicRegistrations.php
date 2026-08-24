@@ -14,8 +14,8 @@ class GetPublicRegistrations
     public function handle(int $limit = 50): array
     {
         return StudentEnrollment::query()
-            ->where('source', 'public_website')
-            ->where('enrollment_status', 'active')
+            ->whereIn('source', ['public_website', 'qr_code'])
+            ->whereIn('enrollment_status', ['active', 'pending'])
             ->with([
                 'student:id,full_name,gender,phone',
                 'studyClass:id,title,course_id,term_id,time_id,teacher_id,room_id',
@@ -64,6 +64,8 @@ class GetPublicRegistrations
             'document_fee_amount' => (float) $enrollment->document_fee_amount,
             'amount_paid' => (float) $enrollment->amount_paid,
             'payment_status' => ucfirst($enrollment->payment_status),
+            'enrollment_status' => ucfirst($enrollment->enrollment_status),
+            'source' => $enrollment->source,
             'enrolled_at' => $enrollment->enrolled_at?->format('Y-m-d h:i A'),
         ];
     }
