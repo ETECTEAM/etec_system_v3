@@ -123,17 +123,28 @@ const showQrDialog = ref(false);
 const showCollapseDialog = ref(false);
 
 // "Collapse Class" splits the class between two instructors, each teaching their own
-// days. The card owns the dialog, so it hands the menu the entry that opens it.
+// days — offered for Basic IT classes only. The card owns the dialog, so it hands
+// the menu the entry that opens it.
+const canCollapse = computed(() =>
+    ["course", "title"].some((field) =>
+        String(props.classData?.[field] ?? "").trim().toLowerCase() === "basic it"
+    )
+);
+
 const menuItems = computed(() => [
     ...props.extraItems,
-    {
-        label: "Collapse Class",
-        icon: Users,
-        action: () => {
-            showCollapseDialog.value = true;
-        },
-        disabled: lockedStudentActions.value,
-    },
+    ...(canCollapse.value
+        ? [
+            {
+                label: "Collapse Class",
+                icon: Users,
+                action: () => {
+                    showCollapseDialog.value = true;
+                },
+                disabled: lockedStudentActions.value,
+            },
+        ]
+        : []),
 ]);
 const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.id}`);
 

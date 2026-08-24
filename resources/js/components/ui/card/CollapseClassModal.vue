@@ -157,7 +157,6 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
         </div>
 
         <div class="space-y-5 px-5 py-5">
-          <template>
             <p v-if="error" class="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:bg-red-500/10 dark:text-red-400">
               {{ error }}
             </p>
@@ -251,7 +250,6 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
                 </div>
               </div>
             </div>
-          </template>
         </div>
 
         <div class="flex justify-end gap-2 border-t border-slate-200 px-5 py-4 dark:border-gray-800">
