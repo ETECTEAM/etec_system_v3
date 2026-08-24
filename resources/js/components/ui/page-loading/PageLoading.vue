@@ -24,7 +24,7 @@ const subtitleLabel = computed(() => tf('loading.subtitle', 'Just a moment while
     leave-from-class="opacity-100"
     leave-to-class="opacity-0"
   >
-    <div
+    <!-- <div
       class="page-loading-shell fixed inset-0 z-[60] flex items-center justify-center overflow-hidden"
       role="status"
       aria-live="polite"
@@ -52,11 +52,11 @@ const subtitleLabel = computed(() => tf('loading.subtitle', 'Just a moment while
           </p>
         </div>
       </div>
-    </div>
+    </div> -->
   </Transition>
 </template>
 
-<style scoped>
+<!-- <style scoped>
 .page-loading-shell {
   --pl-bg-1: #f4f6f8;
   --pl-bg-2: #e9edf2;
@@ -232,4 +232,4 @@ const subtitleLabel = computed(() => tf('loading.subtitle', 'Just a moment while
     animation-duration: 2.6s;
   }
 }
-</style>
+</style> -->
