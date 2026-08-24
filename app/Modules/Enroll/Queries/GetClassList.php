@@ -65,12 +65,19 @@ class GetClassList
     }
 
     // Full (unpaginated) class list for the "move student to another class"
-    // picker — needs every open class, not just the current page.
+    // picker — needs every open class, not just the current page. Returns the
+    // individual fields (course/term/time/teacher/capacity) so the client can
+    // render a pickable table and live-filter across all of them.
     public function forSelect(): array
     {
         return StudyClass::query()
-            ->select(['id', 'title', 'term_id', 'time_id', 'capacity'])
-            ->with(['term:id,term_name', 'time:id,time_name'])
+            ->select(['id', 'title', 'course_id', 'teacher_id', 'term_id', 'time_id', 'capacity'])
+            ->with([
+                'course:id,title',
+                'teacher:id,name',
+                'term:id,term_name',
+                'time:id,time_name',
+            ])
             ->withCount([
                 'enrollments as current_students' => fn (Builder $query) => $query->where('enrollment_status', 'active'),
             ])
@@ -83,14 +90,13 @@ class GetClassList
 
                 return [
                     'id' => $studyClass->id,
-                    'label' => sprintf(
-                        '%s — %s, %s (%d/%d)',
-                        $studyClass->title,
-                        $studyClass->term?->term_name ?? '-',
-                        $studyClass->time?->time_name ?? '-',
-                        $currentStudents,
-                        $capacity,
-                    ),
+                    'title' => $studyClass->title,
+                    'course' => $studyClass->course?->title ?? '-',
+                    'term' => $studyClass->term?->term_name ?? '-',
+                    'time' => $studyClass->time?->time_name ?? '-',
+                    'teacher' => $studyClass->teacher?->name ?? '-',
+                    'current_students' => $currentStudents,
+                    'capacity' => $capacity,
                     'is_full' => $currentStudents >= $capacity,
                 ];
             })
