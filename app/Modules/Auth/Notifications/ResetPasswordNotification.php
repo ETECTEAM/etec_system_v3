@@ -8,11 +8,11 @@ use Illuminate\Notifications\Notification;
 
 /**
  * Delivers the password-reset link to the account's verified recovery email
- * instead of the login email. Built instead of reusing Laravel's default
- * Illuminate\Auth\Notifications\ResetPassword because that class resolves
- * its own recipient via $notifiable->getEmailForPasswordReset(), which
- * doesn't exist on the AnonymousNotifiable used to route this to the
- * recovery address (see User::sendPasswordResetNotification()).
+ * when one exists, otherwise to the login email. Built instead of reusing
+ * Laravel's default Illuminate\Auth\Notifications\ResetPassword because that
+ * class resolves its own recipient via $notifiable->getEmailForPasswordReset(),
+ * which doesn't exist on the AnonymousNotifiable used to route this mail
+ * (see User::sendPasswordResetNotification()).
  */
 class ResetPasswordNotification extends Notification
 {

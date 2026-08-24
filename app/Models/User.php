@@ -93,18 +93,25 @@ class User extends Authenticatable
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    // Overrides the default Illuminate\Auth\Passwords\CanResetPassword
-    // behavior (delivering to $this->email) so the reset link goes to the
-    // verified recovery email instead. Silently no-ops when there isn't one,
-    // which keeps sendResetLink()'s response identical either way - see
-    // LoginLockoutService-adjacent AuthController::sendResetLink().
+    public function passwordResetRecipient(): ?string
+    {
+        if ($this->recovery_verified && $this->recovery_email) {
+            return $this->recovery_email;
+        }
+
+        return null;
+    }
+
+    // Only send the reset link to a verified recovery email.
     public function sendPasswordResetNotification($token): void
     {
-        if (! $this->recovery_verified || ! $this->recovery_email) {
+        $recipient = $this->passwordResetRecipient();
+
+        if (! $recipient) {
             return;
         }
 
-        Notification::route('mail', $this->recovery_email)
+        Notification::route('mail', $recipient)
             ->notify(new ResetPasswordNotification($token, $this->email));
     }
 }

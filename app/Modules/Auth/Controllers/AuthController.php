@@ -284,6 +284,13 @@ class AuthController extends Controller
     public function sendResetLink(ForgotPasswordRequest $request): RedirectResponse
     {
         $data = $request->toData();
+        $user = User::query()->where('email', $data->email)->first();
+
+        if ($user && ! $user->passwordResetRecipient()) {
+            throw ValidationException::withMessages([
+                'email' => ['This account does not have a verified recovery email yet.'],
+            ]);
+        }
 
         $status = Password::sendResetLink(['email' => $data->email]);
 
@@ -335,8 +342,8 @@ class AuthController extends Controller
         $this->lockoutService->clear(Str::lower($data->email));
         DB::table('sessions')->where('user_id', $resetUser->id)->delete();
 
-        if ($resetUser->recovery_email) {
-            Notification::route('mail', $resetUser->recovery_email)
+        if ($recipient = $resetUser->passwordResetRecipient()) {
+            Notification::route('mail', $recipient)
                 ->notify(new PasswordChangedNotification($resetUser->email));
         }
 
