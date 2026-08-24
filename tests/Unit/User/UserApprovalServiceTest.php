@@ -93,15 +93,21 @@ class UserApprovalServiceTest extends TestCase
         ]);
     }
 
-    public function test_reject_marks_the_user_rejected(): void
+    public function test_reject_deletes_the_user_and_the_instructor_profile(): void
     {
         $user = User::factory()->create([
             'status' => UserStatus::Pending,
         ]);
+        $user->instructorData()->create([
+            'full_name' => 'Pending Instructor',
+            'instructor_code' => 'ETEC-9999',
+        ]);
 
         $rejected = $this->service->reject($user);
 
-        $this->assertSame(UserStatus::Rejected, $rejected->status);
+        $this->assertSame($user->id, $rejected->id);
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+        $this->assertDatabaseMissing('instructor_data', ['user_id' => $user->id]);
     }
 
     public function test_reject_logs_an_audit_action(): void

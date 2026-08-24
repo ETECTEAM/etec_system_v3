@@ -95,12 +95,10 @@ class AuthController extends Controller
 
         $this->auditService->log($user, 'user.registered', $request->ip());
 
-        // Status gates access until verified.
-        Auth::login($user);
-        $request->session()->regenerate();
-
         if (! $otpVerificationEnabled) {
             $this->approvalService->approve($user, null, 'otp_disabled');
+            Auth::login($user);
+            $request->session()->regenerate();
 
             return redirect($this->redirectPathFor($user))->with('success', 'Registration completed. OTP verification is disabled.');
         }
@@ -163,15 +161,11 @@ class AuthController extends Controller
         }
 
         if (! $user) {
-            throw ValidationException::withMessages([
-                'code' => ['Verification session has expired. Please register again.'],
-            ]);
+            return VerificationResponse::rejected('/instructor-register');
         }
 
         if ($user->status === UserStatus::Rejected) {
-            throw ValidationException::withMessages([
-                'code' => ['Your registration was rejected. Please contact support.'],
-            ]);
+            return VerificationResponse::rejected('/instructor-register');
         }
 
         if ($user->status === UserStatus::Active) {

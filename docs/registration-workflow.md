@@ -8,7 +8,6 @@ This document explains how instructor self-registration works end to end — fro
 POST /instructor-register
   -> RegisterWebRequest validates input
   -> User + InstructorData + OtpVerification created (one DB transaction)
-  -> Auth::login($user)  (logged in immediately, status still "pending")
   -> PendingUserRegistered dispatched -> Telegram + dashboard notifications sent
   -> Registrant redirected to /code-verify
 
@@ -41,8 +40,6 @@ Note: this is the **instructor** signup form. The student-facing registration at
 After the transaction commits:
 
 - Logs a `user.registered` audit event.
-- `Auth::login($user)` — the user is logged in immediately even though `status` is still `pending`. Access is gated later by status checks, not by withholding login.
-- Session is regenerated.
 
 ## Step 3 — Branch on whether OTP is enabled
 

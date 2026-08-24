@@ -18,13 +18,14 @@ class TelegramWebhookController extends Controller
 {
     public function __invoke(Request $request, UserApprovalService $approvalService, AuthAuditService $auditService): Response
     {
-        $secret = config('telegram.webhook_secret');
+        $secret = (string) config('telegram.webhook_secret');
+        $routeSecret = (string) $request->route('secret', '');
+        $headerSecret = (string) $request->header('X-Telegram-Bot-Api-Secret-Token', '');
 
-        // Fail closed: an unconfigured secret must reject every request, not
-        // accept them unauthenticated. Telegram must send the matching
-        // X-Telegram-Bot-Api-Secret-Token header (set via setWebhook's
-        // secret_token param) on every call.
-        if (! $secret || $request->header('X-Telegram-Bot-Api-Secret-Token') !== $secret) {
+        // Fail closed: Telegram must prove the request came from the webhook
+        // we configured, either with the setWebhook secret_token header or by
+        // calling the secret-path URL recommended by Telegram's webhook docs.
+        if ($secret === '' || (! hash_equals($secret, $headerSecret) && ! hash_equals($secret, $routeSecret))) {
             return response()->noContent(401);
         }
 

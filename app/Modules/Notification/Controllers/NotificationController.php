@@ -169,7 +169,13 @@ class NotificationController extends Controller
             return null;
         }
 
-        $status = $notification->otpVerification?->user?->status;
+        $otp = $notification->otpVerification;
+
+        if (! $otp || ! $otp->user) {
+            return 'rejected';
+        }
+
+        $status = $otp->user->status;
 
         return match ($status) {
             UserStatus::Rejected => 'rejected',

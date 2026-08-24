@@ -131,7 +131,7 @@ class NotificationControllerTest extends TestCase
             ->assertOk()
             ->assertJsonPath('approval_status', 'rejected');
 
-        $this->assertSame(UserStatus::Rejected, $applicant->fresh()->status);
+        $this->assertDatabaseMissing('users', ['id' => $applicant->id]);
     }
 
     public function test_approve_fails_for_a_notification_without_a_linkable_user(): void

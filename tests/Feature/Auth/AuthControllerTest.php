@@ -168,6 +168,7 @@ class AuthControllerTest extends TestCase
         $this->assertStringStartsWith('ETEC-', $user->instructorData->instructor_code);
         $this->assertDatabaseHas('otp_verifications', ['user_id' => $user->id, 'verified_at' => null]);
         $this->assertDatabaseHas('auth_audit_logs', ['user_id' => $user->id, 'action' => 'user.registered']);
+        $this->assertGuest();
 
         Event::assertDispatched(PendingUserRegistered::class);
     }
@@ -282,8 +283,9 @@ class AuthControllerTest extends TestCase
     public function test_verification_fails_without_a_pending_session(): void
     {
         $this->postJson('/api/code-verify', ['code' => '123456'])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['code']);
+            ->assertOk()
+            ->assertJsonPath('message', 'Your registration was rejected. Please register again.')
+            ->assertJsonPath('redirect', '/instructor-register');
     }
 
     public function test_verification_reports_already_active_accounts(): void
@@ -295,5 +297,18 @@ class AuthControllerTest extends TestCase
             ->postJson('/api/code-verify', ['code' => '123456'])
             ->assertOk()
             ->assertJsonPath('message', 'Account is already active.');
+    }
+
+    public function test_verification_redirects_rejected_users_back_to_registration(): void
+    {
+        $user = User::factory()->create(['status' => UserStatus::Rejected]);
+        $user->assignRole('instructor');
+        OtpVerification::create(['user_id' => $user->id, 'otp_code' => bcrypt('123456')]);
+
+        $this->withSession(['pending_verification_user_id' => $user->id])
+            ->postJson('/api/code-verify', ['code' => '123456'])
+            ->assertOk()
+            ->assertJsonPath('message', 'Your registration was rejected. Please register again.')
+            ->assertJsonPath('redirect', '/instructor-register');
     }
 }

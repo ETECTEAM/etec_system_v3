@@ -17,11 +17,24 @@ class CreateAdminApprovalNotification implements ShouldQueue
     {
         Notification::create([
             'title' => 'New Instructor Registration',
-            'message' => "{$event->user->name} ({$event->user->email}) — verification code: {$event->plainCode}",
+            'message' => "{$event->user->name} ({$this->maskEmail($event->user->email)}) — verification code: {$event->plainCode}",
             'type' => 'instructor_approval',
             'otp_verification_id' => $event->otp->id,
         ]);
 
         NotificationsUpdated::dispatch();
+    }
+
+    private function maskEmail(string $email): string
+    {
+        [$localPart, $domain] = array_pad(explode('@', $email, 2), 2, '');
+
+        if ($domain === '') {
+            return $email;
+        }
+
+        $visible = mb_substr($localPart, 0, 4);
+
+        return "{$visible}****@{$domain}";
     }
 }
