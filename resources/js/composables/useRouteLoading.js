@@ -5,9 +5,20 @@ import { router } from '@inertiajs/vue3'
 // shares the same refs, so DashboardLayout can react to navigations kicked off
 // from anywhere (sidebar links, redirects, etc.), not just from itself.
 const isNavigating = ref(false)
+const isNavigationPending = ref(false)
 const targetUrl = ref('')
 
 let listenersBound = false
+let showTimer = null
+
+const SHOW_DELAY_MS = 180
+
+function clearShowTimer() {
+  if (showTimer !== null) {
+    clearTimeout(showTimer)
+    showTimer = null
+  }
+}
 
 function bindListenersOnce() {
   if (listenersBound) {
@@ -17,12 +28,22 @@ function bindListenersOnce() {
   listenersBound = true
 
   router.on('start', (event) => {
-    isNavigating.value = true
+    isNavigationPending.value = true
+    isNavigating.value = false
     targetUrl.value = event.detail.visit.url.pathname
+
+    clearShowTimer()
+    showTimer = setTimeout(() => {
+      if (isNavigationPending.value) {
+        isNavigating.value = true
+      }
+    }, SHOW_DELAY_MS)
   })
 
   router.on('finish', () => {
+    isNavigationPending.value = false
     isNavigating.value = false
+    clearShowTimer()
   })
 }
 
