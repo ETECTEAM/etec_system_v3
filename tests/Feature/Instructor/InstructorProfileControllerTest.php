@@ -14,6 +14,7 @@ use Database\Seeders\Core\RoleSeeder;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class InstructorProfileControllerTest extends TestCase
@@ -150,6 +151,68 @@ class InstructorProfileControllerTest extends TestCase
 
         $this->assertSame('/storage/instructors/1/profile.jpg', $photo->url);
         $this->assertSame('/storage/instructors/1/cv.pdf', $cv->url);
+    }
+
+    public function test_instructor_can_delete_profile_photo_and_cv_attachment(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create(['status' => 'active']);
+        $user->assignRole('instructor');
+
+        $instructor = InstructorData::create([
+            'user_id' => $user->id,
+            'full_name' => 'Bopha Kem',
+            'instructor_code' => 'ETEC-013',
+            'employment_type' => 'part_time',
+            'available_for_class' => true,
+            'status' => true,
+        ]);
+
+        Storage::disk('public')->put('instructors/'.$instructor->id.'/profile.jpg', 'photo');
+        Storage::disk('public')->put('instructors/'.$instructor->id.'/cv.pdf', 'cv');
+
+        InstructorAttachment::create([
+            'instructor_id' => $instructor->id,
+            'type' => 'profile_photo',
+            'title' => 'Profile Photo',
+            'file_name' => 'profile.jpg',
+            'file_path' => 'instructors/'.$instructor->id.'/profile.jpg',
+            'file_mime' => 'image/jpeg',
+            'file_size' => 12345,
+            'is_primary' => true,
+        ]);
+
+        InstructorAttachment::create([
+            'instructor_id' => $instructor->id,
+            'type' => 'cv',
+            'title' => 'CV',
+            'file_name' => 'cv.pdf',
+            'file_path' => 'instructors/'.$instructor->id.'/cv.pdf',
+            'file_mime' => 'application/pdf',
+            'file_size' => 67890,
+            'is_primary' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->delete('/dashboard/instructor/profile/attachments/profile-photo')
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('instructor_attachments', [
+            'instructor_id' => $instructor->id,
+            'type' => 'profile_photo',
+        ]);
+        Storage::disk('public')->assertMissing('instructors/'.$instructor->id.'/profile.jpg');
+
+        $this->actingAs($user)
+            ->delete('/dashboard/instructor/profile/attachments/cv')
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('instructor_attachments', [
+            'instructor_id' => $instructor->id,
+            'type' => 'cv',
+        ]);
+        Storage::disk('public')->assertMissing('instructors/'.$instructor->id.'/cv.pdf');
     }
 
     public function test_part_time_instructor_cannot_save_a_full_time_work_schedule(): void

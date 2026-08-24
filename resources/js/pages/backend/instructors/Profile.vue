@@ -1,18 +1,20 @@
 <script setup>
 import { computed, watch, ref } from 'vue'
-import { Head, useForm, usePage } from '@inertiajs/vue3'
+import { Head, router, useForm, usePage } from '@inertiajs/vue3'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { SelectSearch } from '../../../components/ui/select-search'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import { useConfirm } from '../../../composables/useConfirm'
 
 const page = usePage()
 const user = page.props.user ?? {}
 const instructorData = page.props.instructorData ?? null
 const workSchedules = computed(() => page.props.workSchedules ?? [])
 const subCategories = computed(() => page.props.subCategories ?? [])
-const profilePhotoProp = page.props.profilePhoto ?? null
-const cvFileProp = page.props.cvFile ?? null
+const profilePhotoProp = computed(() => page.props.profilePhoto ?? null)
+const cvFileProp = computed(() => page.props.cvFile ?? null)
+const { confirm } = useConfirm()
 
 const employmentTypeOptions = [
   { label: 'Full Time', value: 'full_time' },
@@ -97,9 +99,9 @@ const form = useForm({
   cv_file: null,
 })
 
-const profilePhotoPreview = ref(profilePhotoProp?.url ?? null)
+const profilePhotoPreview = ref(profilePhotoProp.value?.url ?? null)
 const profilePhotoFile = ref(null)
-const cvFileName = ref(cvFileProp?.file_name ?? null)
+const cvFileName = ref(cvFileProp.value?.file_name ?? null)
 const cvFileObj = ref(null)
 
 const isDirty = computed(() => {
@@ -159,6 +161,35 @@ function onCvFileChange(e) {
   cvFileObj.value = file
   form.cv_file = file
   cvFileName.value = file.name
+}
+
+async function deleteStoredAttachment(type, label) {
+  const ok = await confirm({
+    title: `Delete ${label}?`,
+    message: `This will permanently remove the current ${label.toLowerCase()} from your profile.`,
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+    danger: true,
+  })
+
+  if (!ok) return
+
+  router.delete(`/dashboard/instructor/profile/attachments/${type}`, {
+    preserveScroll: true,
+    onSuccess: () => {
+      if (type === 'profile-photo') {
+        profilePhotoPreview.value = null
+        profilePhotoFile.value = null
+        form.profile_photo = null
+      }
+
+      if (type === 'cv') {
+        cvFileName.value = null
+        cvFileObj.value = null
+        form.cv_file = null
+      }
+    },
+  })
 }
 
 function formatFileSize(bytes) {
@@ -459,6 +490,14 @@ function submit() {
                     >
                     <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">{{ $t('JPEG, PNG, GIF, WebP. Max 2MB.') }}</p>
                     <span v-if="form.errors.profile_photo" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.profile_photo }}</span>
+                    <button
+                      v-if="profilePhotoProp?.url"
+                      type="button"
+                      class="mt-2 inline-flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
+                      @click="deleteStoredAttachment('profile-photo', 'profile photo')"
+                    >
+                      Delete profile photo
+                    </button>
                   </div>
                 </div>
               </label>
@@ -485,6 +524,14 @@ function submit() {
                   >
                   <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">{{ $t('PDF, DOC, DOCX. Max 5MB.') }}</p>
                   <span v-if="form.errors.cv_file" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.cv_file }}</span>
+                  <button
+                    v-if="cvFileProp?.url"
+                    type="button"
+                    class="mt-1 inline-flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
+                    @click="deleteStoredAttachment('cv', 'CV')"
+                  >
+                    Delete CV
+                  </button>
                 </div>
               </label>
 

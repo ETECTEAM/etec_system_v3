@@ -138,4 +138,36 @@ class InstructorProfileController extends Controller
 
         return redirect()->back()->with('success', 'Profile updated successfully.');
     }
+
+    public function destroyAttachment(Request $request, string $type): RedirectResponse
+    {
+        abort_unless($request->user()?->can('instructor_profile.update'), 403);
+
+        $attachmentType = match ($type) {
+            'profile-photo' => 'profile_photo',
+            'cv' => 'cv',
+            default => null,
+        };
+
+        if (! $attachmentType) {
+            abort(404);
+        }
+
+        $instructorData = $request->user()->instructorData;
+
+        if (! $instructorData) {
+            abort(404);
+        }
+
+        $deleted = $this->profileService->deleteAttachment(
+            $instructorData->id,
+            $attachmentType,
+        );
+
+        if (! $deleted) {
+            return redirect()->back()->with('info', 'No file found to delete.');
+        }
+
+        return redirect()->back()->with('success', 'File deleted successfully.');
+    }
 }

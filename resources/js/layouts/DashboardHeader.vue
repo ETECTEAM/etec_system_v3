@@ -65,6 +65,8 @@ const initials = computed(() => {
     .toUpperCase()
 })
 
+const avatarUrl = computed(() => user.value?.avatar_url ?? null)
+
 // Reverb pushes updates instantly; this is just a safety net in case the
 // websocket connection drops without reconnecting.
 const NOTIFICATIONS_POLL_MS = 60000
@@ -356,8 +358,9 @@ function handleEscape(event) {
             class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-left transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
             @click="toggleProfile"
           >
-            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
-              {{ initials }}
+            <span class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-xs font-semibold text-white">
+              <img v-if="avatarUrl" :src="avatarUrl" :alt="user?.name ?? t('common.guest')" class="h-full w-full object-cover" />
+              <span v-else>{{ initials }}</span>
             </span>
             <span class="hidden max-w-52 sm:block" :title="user?.name ?? t('common.guest')">
               <span class="block truncate text-sm font-semibold text-slate-800 dark:text-gray-100">{{ user?.name ?? t("common.guest") }}</span>

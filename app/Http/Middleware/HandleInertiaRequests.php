@@ -35,6 +35,9 @@ class HandleInertiaRequests extends Middleware
 
         app()->setLocale($locale);
 
+        $user = Auth::user();
+        $user?->loadMissing(['instructorData.profilePhoto', 'photo']);
+
         return [
             ...parent::share($request),
             'locale' => [
@@ -45,7 +48,11 @@ class HandleInertiaRequests extends Middleware
                 ],
             ],
             'auth' => [
-                'user' => fn () => Auth::user()?->only('id', 'name', 'email', 'role'),
+                'user' => fn () => [
+                    ...($user?->only('id', 'name', 'email', 'role') ?? []),
+                    'avatar_url' => $user?->instructorData?->profilePhoto?->url
+                        ?? $user?->photo?->url,
+                ],
                 'roles' => fn () => Auth::check() ? Auth::user()->getRoleNames()->values()->all() : [],
                 'permissions' => fn () => Auth::check() ? Auth::user()->getAllPermissions()->pluck('name')->values()->all() : [],
             ],

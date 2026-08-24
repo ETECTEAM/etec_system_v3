@@ -158,4 +158,22 @@ class InstructorProfileService
 
         return $this->saveAttachment($instructorId, $file, $type, $title, true);
     }
+
+    public function deleteAttachment(int $instructorId, string $type): bool
+    {
+        $attachments = InstructorAttachment::where('instructor_id', $instructorId)
+            ->where('type', $type)
+            ->get();
+
+        if ($attachments->isEmpty()) {
+            return false;
+        }
+
+        foreach ($attachments as $attachment) {
+            Storage::disk('public')->delete($attachment->file_path);
+            $attachment->delete();
+        }
+
+        return true;
+    }
 }
