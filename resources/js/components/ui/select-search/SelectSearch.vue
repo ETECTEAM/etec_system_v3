@@ -198,7 +198,7 @@ onBeforeUnmount(() => {
         v-if="open"
         ref="panel"
         :style="panelStyle"
-        class="z-50 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+        class="z-[130] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
       >
         <div v-if="searchable" class="border-b border-slate-200 p-2 dark:border-gray-700">
           <input
