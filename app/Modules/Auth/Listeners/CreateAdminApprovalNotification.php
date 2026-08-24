@@ -33,8 +33,8 @@ class CreateAdminApprovalNotification implements ShouldQueue
             return $email;
         }
 
-        $visible = mb_substr($localPart, 0, 4);
+        $visible = mb_substr($localPart, 0, 3);
 
-        return "{$visible}****@{$domain}";
+        return "{$visible}***@{$domain}";
     }
 }
