@@ -35,11 +35,4 @@ return [
         ],
     ],
 
-    // Admin Telegram group alerts (see App\Services\TelegramNotificationService).
-    // Both keys empty = alerts silently disabled; the service never throws.
-    'telegram' => [
-        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
-        'chat_id' => env('TELEGRAM_ADMIN_CHAT_ID'),
-    ],
-
 ];

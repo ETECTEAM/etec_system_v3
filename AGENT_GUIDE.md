@@ -4,9 +4,10 @@ Guidance for AI coding agents working in this repository. **Read this before mak
 changes.** It documents the real, sometimes inconsistent, patterns in this codebase and the
 traps that will break things if you "fix" them.
 
-> A smaller, older version of this guide exists as `agent_guide.md` (repo root). This file is
-> the authoritative, up-to-date version. `prompt.md` contains the project owner's reusable
-> style prompts and is the authoritative style reference for frontend refactors.
+> This file is the authoritative, up-to-date guide (an older, smaller `agent_guide.md` that
+> used to sit alongside it has since been deleted — don't recreate it). `prompt.md` contains
+> the project owner's reusable style prompts and is the authoritative style reference for
+> frontend refactors.
 
 ---
 
@@ -83,11 +84,17 @@ nearly empty (only `Controller.php` base + `LocaleController.php`) and is not th
 | `Registration` | live | standard |
 | `Room` | live | standard (`Controllers/`, `Data/`, `Requests/`, `Services/`) |
 | `Schedules` | live | plural name; route file is the misspelled `schdule.php` |
-| `ShiftTemplate` | live | standard |
 | `Terms` / `Times` | live | plural module names, singular route files `term.php`/`time.php` |
 | `User` | live | richest module: `Controllers/`, `Data/`, `Policies/`, `Requests/`, `Services/` |
-| `Website` | live | `Actions/` + `Services/` |
+| `Website` | live | `Actions/` + `Services/`; also owns the public `/join-class/{studyClass}` flow (`ClassJoinController`) alongside `/student-register` |
 | `building` | live | **lowercase directory name** |
+| `Attendance` | live | `Actions/`, `Queries/`, `Requests/`, `Controllers/` (settings only) — **no `Services/`**. Its `Actions/` (`GenerateClassSessions`, `AutoRecordSession`, `FinalizeAutoRecordedSession`, `OverrideAttendanceRecord`) are driven by scheduled console commands (see §5) and consumed from `Instructor` — the actual attendance-recording UI/routes live under `Instructor`, not here. |
+| `WorkSchedule` | live | **only `Controllers/WorkScheduleController.php`** — no `Requests/`/`Data/`/`Services/`; validation is inline `$request->validate()` in the controller. **Replaced the old `ShiftTemplate` module** (deleted outright — see traps below). |
+
+> **`ShiftTemplate` no longer exists.** It was fully removed (module dir, controller, route
+> file, frontend `shift-templates/` pages, DB table) and replaced by `WorkSchedule`
+> (`work-schedule.php` route, `work_schedule.*` permissions, `resources/js/pages/backend/work-schedules/`).
+> If you see `ShiftTemplate` referenced anywhere, it's stale — don't resurrect it.
 
 ### Module traps
 
@@ -101,6 +108,9 @@ nearly empty (only `Controller.php` base + `LocaleController.php`) and is not th
   expecting auto-discovery; follow the existing root-level pattern instead.
 - **`app/Models/` is flat** — all Eloquent models (40+) live directly in `app/Models/`, not
   per-module. Models are named after tables (`StudyClass`, `StudentEnrollment`, `ScheduleClass`).
+- **`teams` / `team_members` (instructor "class groups" feature) have no Eloquent model at
+  all** — `InstructorClassService` reads/writes them purely via `DB::table('teams')` /
+  `DB::table('team_members')`. Don't assume a `Team` model exists; don't add one speculatively.
 - Shared code: `app/Enums/` (e.g. `UserStatus`), `app/Helpers/helpers.php` (composer
   autoloads it), `app/Console/Commands/` (e.g. `SyncEnvExample` for `composer run sync-env`).
 - **Do not trust `modules_statuses.json`** — it only lists `User`. Source of truth is
@@ -154,6 +164,20 @@ public routes (e.g. QR self-registration, `frontend.classes.*`).
   module controller — read them before assuming a module exists.
 - `class.php` uses `prefix('dashboard')` **without a leading slash** — a pre-existing
   inconsistency; don't "fix" it unless you verify all route names still resolve.
+- `work-schedule.php` → `App\Modules\WorkSchedule\Controllers\WorkScheduleController`, prefix
+  `/dashboard/work-schedules`, name `work-schedules.`, gated by `work_schedule.*` permissions.
+  This is the replacement for the deleted `shift-template.php` / `ShiftTemplate` module.
+- `instructor.php` has **no route-name prefix on the group** (unlike other files) — most of
+  its routes are named explicitly per-route (`instructor.classes.*`); the bare `/`,
+  `/profile` (GET+PUT), and the attachment-delete route are **unnamed**. `POST` and `PUT` to
+  the same `/classes/{studyClass}/attendance` URI are two different actions
+  (`storeAttendance` vs. `overrideAttendance`, the latter for correcting an auto-recorded
+  session) — not a duplicate, just verb-disambiguated.
+- `routes/web/frontend/class_data.php` (snake_case filename, unlike its sibling frontend
+  files) holds **both** the `/student-register` flow (`StudentRegisterController`) and the
+  newer `/join-class/{studyClass}` flow (`ClassJoinController`) — two related but distinct
+  public registration entry points. `docs/public-class-registration-workflow.md` predates
+  `ClassJoinController` and does not describe it — read the controller directly.
 
 ---
 
@@ -193,6 +217,14 @@ resources/js/
   `components/` subfolder, feature-local composables in a `composables/` subfolder.
 - Some feature folders are **empty placeholders** (`attendances/`, `categories/`,
   `contacts/`, `docs/`, `permissions/`, `qr/`, `results/`) — don't treat emptiness as a bug.
+  The real attendance UI is **not** in `attendances/` — it lives under `instructors/`
+  (`AttendanceRecord.vue`, `TrackAttendance.vue`, `ClassGroups.vue`), rendered by
+  `InstructorClassController`; `attendance-settings/Edit.vue` is the separate superadmin
+  auto-record config page.
+- `work-schedules/` (`Index.vue`/`Create.vue`/`Edit.vue`) replaced the deleted
+  `shift-templates/` folder — same CRUD shape, new module/route/permission names (see §2, §3).
+- `frontend/class-join/JoinClass.vue` is the newer public "join an existing class" page
+  (`/join-class/{studyClass}`), a sibling flow to `frontend/student-register/StudentRegister.vue`.
 - **Dead code** (don't resurrect): `resources/js/App.vue` (unused legacy), 
   `resources/js/router/index.js` (empty vue-router stub). The app uses Inertia `router`,
   not vue-router.
@@ -306,6 +338,14 @@ Composer seed shortcuts (`composer run …`):
 | `seed-report` / `seed-landrent` / `seed-invoice-test` | `Feature\Report\…`, `Feature\Invoice\…` stubs |
 | `sync-env` | `php artisan app:sync-env-example` |
 
+### Scheduled commands (`bootstrap/app.php` → `withSchedule()`, not `routes/console.php`)
+
+`routes/console.php` only has the stock `inspire` command — the real schedule lives in
+`bootstrap/app.php`. Three attendance-automation commands run there, backed by
+`app/Modules/Attendance/Actions/`: `AutoRecordAttendanceCommand` (→ `AutoRecordSession`),
+`GenerateClassSessionsCommand` (→ `GenerateClassSessions`), `SendAttendanceDigestCommand`.
+Run them manually with `php artisan <command>` to test without waiting on the scheduler.
+
 ### Tests (pure PHPUnit — no Pest)
 
 ```bash
@@ -353,7 +393,6 @@ Read this list before touching anything that looks wrong — most of it is inten
 | `app/Http/Controllers/Test.txt` | stray scratch file, **not a controller** |
 | `app/Http/Controllers/chii.txt` | stray scratch file, **not a controller** |
 | `code-audit-report.md` | generated audit artifact |
-| `agent_guide.md` | older, smaller version of this guide |
 | `.phpunit.result.cache` | PHPUnit cache (untracked) |
 | `.claude/settings.local.json` | local tool config (untracked) |
 
@@ -377,7 +416,32 @@ Don't delete the scratch files without asking. `database/seeders/Feature/Report/
 - `bootstrap/app.php` aliases `active` → `EnsureAccountIsActive` and registers spatie
   `role`/`permission`/`role_or_permission` aliases. Throttle responses stay on the form
   (inline errors + `retryAfter` countdown) rather than redirecting.
-- Migrations are **flat** in `database/migrations/` (74 files, no feature folders) and mix two
+- **The `notifications` table is named `dashboard_notifications`.** `User` uses Laravel's
+  `Notifiable` trait, which claims the conventional `notifications` table
+  (`notifiable_type`/`notifiable_id` columns); the hand-rolled `Notification` model's table
+  was renamed to `dashboard_notifications` to stop colliding with it
+  (`$table = 'dashboard_notifications'` in `app/Models/Notification.php`). Don't rename it
+  back, and don't assume `$user->notifications` and the dashboard notification bell are the
+  same data.
+- **`users.is_active` no longer exists** — it duplicated `status` as a second, unread source
+  of account state (`EnsureAccountIsActive` has always gated on `status` only). If you see
+  code or docs referencing `is_active` on `User`, it's stale.
+- **OTP replaced `verification_codes`.** The `verification_codes` table is dropped;
+  `OtpVerification` (`app/Models/OtpVerification.php`) is the live model for account
+  verification. `docs/login-workflow.md` may still describe the old code-based flow — verify
+  against `TelegramService`/`Auth` module before trusting it.
+- **Active-only uniqueness on `student_enrollments`**: the unique `(study_class_id,
+  student_id)` constraint now only applies to `active` enrollments (via a generated
+  `active_enrollment_key` column that's `NULL`, and thus unconstrained, for non-active rows).
+  This lets a student be re-enrolled into a class they were previously moved/cancelled out of.
+  Don't "simplify" this back to a plain composite unique index — it will reintroduce the bug
+  `MoveStudentEnrollment` was fixed for.
+- Instructor-facing "class groups" (teams) and student scoring are newer features:
+  `InstructorClassController::groups/saveTeams` and `::saveScores` (routes
+  `instructor.classes.groups*` / `instructor.classes.scores.update`), backed by the `teams`/
+  `team_members` tables (see Module traps above) and the `student_scores` table
+  (`app/Models/StudentScore.php`, one row per `student_enrollment_id`).
+- Migrations are **flat** in `database/migrations/` (111 files, no feature folders) and mix two
   timestamp styles (`YYYY_MM_DD_HHMMSS` and `YYYY_MM_DD_00000N`). One non-standard name:
   `2026_07_05_000001_enrich_classes_table.php`.
 - `DashboardLayout.vue` renders route-specific skeletons during navigation (`/dashboard/users*`)
@@ -398,10 +462,14 @@ Read the relevant doc before touching a workflow:
 | Doc | Covers |
 |---|---|
 | `docs/auth-controller-workflow.md` | Auth module: routes, login/logout/reset, OTP, Telegram, redirects |
-| `docs/login-workflow.md` | Login deep-dive: timing-safe hash check, two-layer lockout |
-| `docs/notification-workflow.md` | `PendingUserRegistered` → Telegram + dashboard notifications |
+| `docs/login-workflow.md` | Login deep-dive: timing-safe hash check, two-layer lockout — **predates the code→OTP switch and the `verification_codes` drop**; verify against `Auth`/`OtpVerification` before trusting the code-based details |
+| `docs/notification-workflow.md` | `PendingUserRegistered` → Telegram + dashboard notifications (table is now `dashboard_notifications`, see §6) |
 | `docs/registration-workflow.md` | Instructor self-registration end-to-end |
-| `docs/public-class-registration-workflow.md` | Public `/classes` QR self-registration (separate flow) |
+| `docs/public-class-registration-workflow.md` | Public `/classes` QR self-registration — **predates `ClassJoinController`**; doesn't cover the newer `/join-class/{studyClass}` flow (§3, §4) |
+| `docs/auto-record-attendance-workflow.md` | Auto-record attendance end-to-end: `Attendance` module Actions + the three scheduled commands (§5) |
+| `docs/architecture.md` | Snapshot of prod Docker/deploy architecture (`docker-compose.prod.yml`, `Dockerfile`, `deploy/`, `bootstrap/app.php`) |
+| `docs/production-deployment.md` | Fresh-VPS-to-running-prod-stack runbook; companion to `vps-deployment-specs.md` |
+| `docs/senior-architecture-review.md` | Point-in-time backend/DB architecture review (dated — a snapshot, not living docs) |
 | `docs/vps-deployment-specs.md` | VPS sizing + prod Docker notes |
 | `app/Modules/Auth/LOGIN_SECURITY.md` | Login security deep-dive |
 | `prompt.md` | Owner's authoritative style prompts (frontend) |
