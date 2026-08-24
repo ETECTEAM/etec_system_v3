@@ -38,6 +38,15 @@ async function submit() {
     localStorage.removeItem('verify_user_id')
     router.visit(response.data.redirect ?? '/login')
   } catch (error) {
+    const redirect = error.response?.data?.redirect
+
+    if (redirect) {
+      localStorage.removeItem('verify_user_id')
+      router.visit(redirect)
+
+      return
+    }
+
     errorMessage.value = error.response?.data?.errors?.code?.[0] ?? 'Unable to verify the code right now.'
   } finally {
     isSubmitting.value = false

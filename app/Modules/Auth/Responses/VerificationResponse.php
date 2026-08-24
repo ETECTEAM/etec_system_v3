@@ -15,6 +15,14 @@ class VerificationResponse
         ]);
     }
 
+    public static function rejected(string $redirectPath)
+    {
+        return response()->json([
+            'message' => 'Your registration was rejected. Please register again.',
+            'redirect' => $redirectPath,
+        ]);
+    }
+
     public static function verified(string $redirectPath)
     {
         return response()->json([

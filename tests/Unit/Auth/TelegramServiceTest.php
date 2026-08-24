@@ -60,8 +60,14 @@ class TelegramServiceTest extends TestCase
 
         $this->swapTelegramFacade()->shouldReceive('sendMessage')
             ->once()
-            ->withArgs(fn (array $args): bool => $args['chat_id'] === '12345'
-                && str_contains($args['text'], 'OTP: 123456'));
+            ->withArgs(function (array $args): bool {
+                $markup = json_decode($args['reply_markup'] ?? '{}', true);
+
+                return $args['chat_id'] === '12345'
+                    && str_contains($args['text'], 'OTP: 123456')
+                    && ($markup['inline_keyboard'][0][0]['text'] ?? null) === 'Copy code'
+                    && ($markup['inline_keyboard'][0][0]['copy_text']['text'] ?? null) === '123456';
+            });
 
         $user = User::factory()->create();
 

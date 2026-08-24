@@ -85,9 +85,9 @@ Full walkthrough: `docs/registration-workflow.md`. Summary:
 1. `RegisterWebRequest` validates `name`, `email` (unique, must match `@etec.com`), and `password` (min 8, confirmed).
 2. Inside one DB transaction: creates the `User` (`role: instructor`, `status: pending`), syncs the Spatie `instructor` role, and creates an `InstructorData` row with a generated instructor code.
 3. If OTP verification is enabled, creates an OTP via `OtpService::createForUser($user)`; otherwise auto-approves immediately (`source: otp_disabled`).
-4. Logs the `user.registered` audit event, logs the user in immediately (status still `pending` - access is gated by status checks, not by withholding login), and regenerates the session.
-5. Stores `pending_verification_user_id` in session and dispatches `PendingUserRegistered($user, $otp, $plainCode)`.
-6. Redirects to `/code-verify`.
+4. Logs the `user.registered` audit event.
+5. If OTP is disabled, approves the user immediately, logs them in, regenerates the session, and redirects to `/dashboard`.
+6. If OTP is enabled, stores `pending_verification_user_id` in the session, dispatches `PendingUserRegistered($user, $otp, $plainCode)`, and redirects to `/code-verify`.
 
 ### OTP Created During Registration
 
@@ -119,7 +119,7 @@ Endpoint: `AuthController::showVerifyCode(Request)`
 2. If that session value is missing, it falls back to the authenticated user when the account is not active yet.
 3. If a fallback user is used, the session key is restored.
 4. If no pending user is found, redirects to `/instructor-register` with `Please register first to request a verification code.`
-5. If the user status is `rejected`, redirects to `/instructor-register` with `Your registration was rejected. Please contact support.`
+5. If the pending user has been rejected or deleted, redirects to `/instructor-register` with `Your registration was rejected. Please contact support.`
 6. If the user status is `active`, redirects to `/login` with `Your account is already active.`
 7. Otherwise renders `auth/VerifyCode` with:
    - `pendingEmail`
@@ -139,8 +139,7 @@ Endpoint: `AuthController::verifyCodeApi(VerifyCodeRequest)`
    - `userId` from the DTO
 4. If no user is found, throws:
    - `Verification session has expired. Please register again.`
-5. If the user is rejected, throws:
-   - `Your registration was rejected. Please contact support.`
+5. If the pending user is rejected or has already been deleted, redirects to `/instructor-register` with `Your registration was rejected. Please register again.`
 6. If the user is already active, returns JSON through `VerificationResponse::alreadyActive()`:
    - `message = Account is already active.`
    - `redirect = permission-based path`
@@ -170,6 +169,7 @@ Endpoint: `POST /api/telegram/webhook`
 This flow is separate from `AuthController`, but it belongs to the same activation process.
 
 1. If `telegram.webhook_secret` is configured, the request must include the matching `X-Telegram-Bot-Api-Secret-Token` header.
+   - The route also accepts the same secret in the webhook URL path, which matches Telegram's recommended "secret path" setup.
 2. Reads the Telegram callback query data.
 3. Accepts callback formats:
    - `approve:{otp_id}`

@@ -52,6 +52,9 @@ class TelegramService
                 'reply_markup' => json_encode([
                     'inline_keyboard' => [
                         [
+                            ['text' => 'Copy code', 'copy_text' => ['text' => $plainCode]],
+                        ],
+                        [
                             ['text' => 'Approve', 'callback_data' => "approve:{$otp->id}"],
                             ['text' => 'Reject', 'callback_data' => "reject:{$otp->id}"],
                         ],

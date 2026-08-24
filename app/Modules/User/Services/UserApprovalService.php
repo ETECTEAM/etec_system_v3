@@ -8,10 +8,11 @@ use App\Models\OtpVerification;
 use App\Models\User;
 use App\Modules\Auth\Services\AuthAuditService;
 use App\Modules\Notification\Events\NotificationsUpdated;
+use Illuminate\Support\Facades\DB;
 
 /**
- * Activates or rejects users from OTP verification, Telegram approval, or
- * the dashboard - the one place all three paths converge, so the dashboard's
+ * Activates or deletes pending users from OTP verification, Telegram approval,
+ * or the dashboard - the one place all three paths converge, so the dashboard's
  * copy of the request (and any admin watching it live) is kept in sync
  * regardless of which path resolved it.
  */
@@ -39,15 +40,19 @@ class UserApprovalService
 
     public function reject(User $user, ?int $actorId = null, string $source = 'manual'): User
     {
-        $user->forceFill([
-            'status' => UserStatus::Rejected,
-        ])->save();
+        DB::transaction(function () use ($user, $actorId, $source): void {
+            $this->auditService->log($user, 'user.rejected', request()->ip(), [
+                'source' => $source,
+            ], $actorId);
 
-        $this->syncDashboardNotification($user);
+            // Reject means the pending instructor is removed entirely, so the
+            // account cannot be used later and the related instructor record
+            // can clean up its dependent rows.
+            $user->instructorData()->delete();
+            $user->delete();
 
-        $this->auditService->log($user, 'user.rejected', request()->ip(), [
-            'source' => $source,
-        ], $actorId);
+            $this->syncDashboardNotification($user);
+        });
 
         return $user;
     }

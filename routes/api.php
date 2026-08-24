@@ -4,7 +4,8 @@ use App\Modules\Auth\Controllers\Telegram\TelegramWebhookController;
 use App\Modules\Website\Controllers\PublicApiController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('throttle:telegram-webhook')->post('/telegram/webhook', TelegramWebhookController::class);
+Route::middleware('throttle:telegram-webhook')->post('/telegram/webhook/{secret?}', TelegramWebhookController::class)
+    ->where('secret', '[A-Za-z0-9_-]{1,256}');
 
 Route::prefix('public')->name('api.public.')->group(function (): void {
     Route::get('/school-settings', [PublicApiController::class, 'schoolSettings'])->name('school-settings');
