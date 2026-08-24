@@ -7,7 +7,6 @@ use App\Models\Course;
 use App\Models\InstructorData;
 use App\Models\InstructorScheduleBlock;
 use App\Models\Notification;
-use App\Models\PendingRegistration;
 use App\Models\Room;
 use App\Models\Schedule;
 use App\Models\StudentEnrollment;
@@ -45,11 +44,23 @@ class RegisterStudentForSchedule
                 ]);
             }
 
-            $studyClass = $this->availableClass($course, $data)
-                ?? $this->createClass($course, $data);
+            $studyClass = $this->availableClass($course, $data);
+            $noRoom = false;
+            $noInstructor = false;
+            $price = null;
+            $documentPrice = null;
 
             if ($studyClass === null) {
-                $this->savePendingRegistration($student, $course, $data);
+                $created = $this->createClass($course, $data);
+                $studyClass = $created['class'];
+                $noRoom = $created['no_room'];
+                $noInstructor = $created['no_instructor'];
+                $price = $created['price'];
+                $documentPrice = $created['document_price'];
+            }
+
+            if ($studyClass === null) {
+                $this->saveUnassignedEnrollment($student, $course, $data, $noRoom, $noInstructor, $price, $documentPrice);
 
                 return null;
             }
@@ -81,23 +92,29 @@ class RegisterStudentForSchedule
 
     // No open class had space, and creating a new one wasn't possible (no
     // free room and/or no free instructor for that term/time), so the
-    // student/course/term/time is parked here instead of silently creating a
-    // roomless/teacherless class. Candidate classes an admin may force-assign
-    // the student into (2-week rule, see findEligibleClassesForAdmin) are
-    // snapshotted into meta, and a notification with the pending/student/
-    // candidate class IDs is raised for super_admins/admins, who resolve it
-    // via AssignPendingStudentToClass.
-    private function savePendingRegistration(stdClass $student, Course $course, array $data): void
+    // registration is parked as a classless StudentEnrollment instead of
+    // silently creating a roomless/teacherless class. It still carries a real
+    // fee/document fee (the same price createClass() would have charged) so
+    // staff can record payment right away, before a class is assigned. A
+    // super_admin/admin resolves it from the Registrations tab
+    // (MoveStudentEnrollment assigns a classless enrollment in place - see
+    // its null study_class_id branch).
+    private function saveUnassignedEnrollment(stdClass $student, Course $course, array $data, bool $noRoom, bool $noInstructor, float $price, float $documentPrice): void
     {
-        $candidateClassIds = $this->findEligibleClassesForAdmin($course);
-
-        $pending = PendingRegistration::create([
+        StudentEnrollment::create([
+            'study_class_id' => null,
             'student_id' => $student->id,
             'course_id' => $course->id,
             'term_id' => $data['term_id'],
             'time_id' => $data['time_id'],
-            'status' => 'pending',
-            'meta' => ['candidate_class_ids' => $candidateClassIds],
+            'enrollment_status' => 'unassigned',
+            'source' => 'public_website',
+            'fee_amount' => $price,
+            'document_fee_amount' => $documentPrice,
+            'enrolled_at' => now(),
+            'no_room_and_instructor' => $noRoom && $noInstructor,
+            'no_room' => $noRoom && ! $noInstructor,
+            'no_instructor' => $noInstructor && ! $noRoom,
         ]);
 
         // dashboard_notifications has no per-recipient addressing; the bell
@@ -106,39 +123,9 @@ class RegisterStudentForSchedule
         Notification::create([
             'title' => 'Registration needs manual scheduling',
             'message' => "{$data['name']} wants to join \"{$course->title}\" but no room or instructor is available for that term and time."
-                ." Pending registration #{$pending->id}, student #{$student->id}."
-                .' Classes eligible for assignment (created or starting within 2 weeks): '
-                .($candidateClassIds === [] ? 'none' : implode(', ', $candidateClassIds))
-                .'. Assign them to a class manually.',
-            'type' => 'pending_registration',
+                .' Assign them to a class from the Registrations tab.',
+            'type' => 'unassigned_registration',
         ]);
-    }
-
-    // Open classes for this course an admin may force-assign a parked student
-    // into. A class qualifies when it satisfies AT LEAST one of:
-    //   A) created within the last 2 weeks, or
-    //   B) start_date within [now - 2 weeks, now + 2 weeks]
-    // (start_date is often null for freshly created upcoming classes, which is
-    // why condition B only applies when it is set). Newest first so admins see
-    // the most recently created options first.
-    private function findEligibleClassesForAdmin(Course $course): array
-    {
-        return StudyClass::query()
-            ->where('course_id', $course->id)
-            ->whereIn('status', self::OPEN_CLASS_STATUSES)
-            ->where(function ($query): void {
-                $query->where('created_at', '>=', now()->subWeeks(2)->toDateTimeString())
-                    ->orWhere(function ($query): void {
-                        $query->whereNotNull('start_date')
-                            ->whereBetween('start_date', [
-                                now()->subWeeks(2)->toDateString(),
-                                now()->addWeeks(2)->toDateString(),
-                            ]);
-                    });
-            })
-            ->orderByDesc('id')
-            ->pluck('id')
-            ->all();
     }
 
     private function availableClass(Course $course, array $data): ?StudyClass
@@ -206,10 +193,15 @@ class RegisterStudentForSchedule
         }
     }
 
-    // Returns null (instead of creating a roomless/teacherless class) when a
-    // physical room is required but none is free, or no instructor is free,
-    // for this term/time.
-    private function createClass(Course $course, array $data): ?StudyClass
+    // Doesn't create a roomless/teacherless class when a physical room is
+    // required but none is free, or no instructor is free, for this
+    // term/time - instead reports which resource(s) were missing so the
+    // caller can flag the parked enrollment accordingly. Both checks always
+    // run (no early return) so a "both missing" case is reported precisely,
+    // not just whichever was checked first.
+    //
+    // @return array{class: ?StudyClass, no_room: bool, no_instructor: bool, price: float, document_price: float}
+    private function createClass(Course $course, array $data): array
     {
         $course->loadMissing('track.subCategory.category', 'enrollConfigs.time');
 
@@ -219,23 +211,23 @@ class RegisterStudentForSchedule
             ->first();
 
         $config = $course->enrollConfigForTime(isset($data['time_id']) ? (int) $data['time_id'] : null);
+        $price = $config?->resolvedPrice() ?? $defaults?->price ?? 0;
+        $documentPrice = $config?->document_price ?? $defaults?->document_price ?? 5;
 
         $classTypeId = $this->classTypeId($data, $defaults) ?? $defaults?->class_type_id;
         $baseCapacity = $defaults?->capacity ?: self::DEFAULT_CAPACITY;
         $isOnline = $this->isOnline($classTypeId);
         $room = $isOnline ? null : $this->availableRoom($data, $baseCapacity);
-
-        if (! $isOnline && $room === null) {
-            return null;
-        }
+        $noRoom = ! $isOnline && $room === null;
 
         $teacher = $this->availableInstructor($course, $data);
+        $noInstructor = $teacher === null;
 
-        if ($teacher === null) {
-            return null;
+        if ($noRoom || $noInstructor) {
+            return ['class' => null, 'no_room' => $noRoom, 'no_instructor' => $noInstructor, 'price' => $price, 'document_price' => $documentPrice];
         }
 
-        return StudyClass::create([
+        $studyClass = StudyClass::create([
             'title' => $course->title,
             'course_id' => $course->id,
             'lesson_id' => $defaults?->lesson_id,
@@ -246,12 +238,14 @@ class RegisterStudentForSchedule
             'time_id' => $data['time_id'],
             'status' => 'upcoming',
             'capacity' => $room?->capacity ?: $baseCapacity,
-            'price' => $config?->resolvedPrice() ?? $defaults?->price ?? 0,
-            'document_price' => $config?->document_price ?? $defaults?->document_price ?? 5,
+            'price' => $price,
+            'document_price' => $documentPrice,
             'enrollment_start_date' => now()->toDateString(),
             'start_date' => null,
             'end_date' => null,
         ]);
+
+        return ['class' => $studyClass, 'no_room' => false, 'no_instructor' => false, 'price' => $price, 'document_price' => $documentPrice];
     }
 
     public function repairClass(StudyClass $studyClass): StudyClass

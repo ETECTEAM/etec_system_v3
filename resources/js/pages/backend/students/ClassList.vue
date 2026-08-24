@@ -106,9 +106,18 @@ const registrations = ref([]);
 const registrationsLoading = ref(false);
 const registrationsLoaded = ref(false);
 
+// Rows RegisterStudentForSchedule couldn't slot into a class (no
+// room/instructor free at the time) come back from the same query with
+// study_class_id null and needs_manual_scheduling true - distinct from the
+// "Pending" enrollment_status below, which is a QR registration awaiting
+// instructor approval and already has a class.
 const pendingRegistrationsCount = computed(
-  () => registrations.value.filter((row) => row.enrollment_status === "Pending").length
+  () => registrations.value.filter((row) => row.enrollment_status === "Pending" || row.needs_manual_scheduling).length
 );
+
+function needsManualScheduling(row) {
+  return !!row.needs_manual_scheduling;
+}
 
 async function fetchRegistrations() {
   registrationsLoading.value = true;
@@ -150,6 +159,14 @@ function scheduleLabel(row) {
   const days = studyDaysLabel(row);
   const time = row.start_time && row.end_time ? `${row.start_time} - ${row.end_time}` : "";
   return [days === "-" ? "" : days, time].filter(Boolean).join(", ") || "-";
+}
+
+// No class exists yet for a "needs manual scheduling" row, so there's no
+// real study_days/start_time/end_time to format - fall back to the plain
+// term/time names the student picked on the public form (see
+// GetPublicRegistrations' requested_term/requested_time).
+function requestedScheduleLabel(row) {
+  return [row.requested_term, row.requested_time].filter(Boolean).join(", ") || "-";
 }
 
 function isPendingRegistration(row) {
@@ -532,14 +549,17 @@ onBeforeUnmount(() => {
                 </TableCell>
 
                 <TableCell class="whitespace-nowrap">
-                  <div>
+                  <div v-if="needsManualScheduling(row)">
+                    <p>{{ row.course_title || '-' }}</p>
+                  </div>
+                  <div v-else>
                     <p>{{ row.class_title }}</p>
                     <p v-if="row.course_title" class="text-xs text-slate-500 dark:text-gray-400">{{ row.course_title }}</p>
                   </div>
                 </TableCell>
 
                 <TableCell class="whitespace-nowrap">
-                  {{ scheduleLabel(row) }}
+                  {{ needsManualScheduling(row) ? requestedScheduleLabel(row) : scheduleLabel(row) }}
                 </TableCell>
 
                 <TableCell class="whitespace-nowrap">
@@ -550,13 +570,18 @@ onBeforeUnmount(() => {
                   <span
                     class="inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs"
                     :class="{
-                      'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400': isPendingRegistration(row),
-                      'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400': row.payment_status === 'Paid',
-                      'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400': row.payment_status === 'Partial',
-                      'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400': row.payment_status === 'Unpaid',
+                      'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400': isPendingRegistration(row) || row.payment_status === 'Partial',
+                      'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400': !isPendingRegistration(row) && row.payment_status === 'Paid',
+                      'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400': !isPendingRegistration(row) && row.payment_status === 'Unpaid',
                     }"
                   >
                     {{ isPendingRegistration(row) ? $t('Pending Approval') : row.payment_status }}
+                  </span>
+                  <span
+                    v-if="needsManualScheduling(row)"
+                    class="ml-1 inline-flex whitespace-nowrap rounded-full bg-amber-100 px-3 py-1 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
+                  >
+                    {{ $t('Needs Class') }}
                   </span>
                 </TableCell>
 
@@ -565,7 +590,7 @@ onBeforeUnmount(() => {
                 </TableCell>
 
                 <TableCell>
-                  <div class="flex justify-end items-center gap-1.5">
+                  <div class="flex flex-wrap justify-end items-center gap-1.5">
                     <button
                       v-if="isPendingRegistration(row)"
                       type="button"
@@ -588,7 +613,18 @@ onBeforeUnmount(() => {
                     </button>
 
                     <button
-                      v-if="!isPendingRegistration(row)"
+                      v-if="!isPendingRegistration(row) && needsManualScheduling(row)"
+                      type="button"
+                      class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-100 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+                      :title="$t('Assign to Class')"
+                      @click="openMoveModal(row)"
+                    >
+                      <UserPlus class="h-4 w-4 shrink-0" />
+                      <span class="truncate">{{ $t('Assign to Class') }}</span>
+                    </button>
+
+                    <button
+                      v-if="!isPendingRegistration(row) && !needsManualScheduling(row)"
                       type="button"
                       class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                       :title="$t('Move to Another Class')"

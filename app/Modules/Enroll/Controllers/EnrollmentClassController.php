@@ -61,7 +61,12 @@ class EnrollmentClassController extends Controller
 
     // Moves a public registration's student into a different existing class
     // (e.g. joining a friend's class instead of the one auto-assigned to
-    // them), optionally overriding that class's capacity.
+    // them), optionally overriding that class's capacity. Also handles the
+    // first assignment for a registration RegisterStudentForSchedule parked
+    // with no class at all (enrollment.study_class_id null - see
+    // no_room_and_instructor/no_instructor/no_room) - MoveStudentEnrollment
+    // assigns those in place instead of cancelling a "move" that never had a
+    // real source class.
     public function moveRegistration(
         MoveEnrollmentRequest $request,
         StudentEnrollment $enrollment,

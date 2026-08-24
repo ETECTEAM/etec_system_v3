@@ -116,11 +116,11 @@ class EnrollmentClassControllerTest extends TestCase
             ->assertRedirect('/login');
     }
 
-    public function test_admin_is_forbidden_from_the_super_admin_only_index(): void
+    public function test_admin_can_view_the_class_list(): void
     {
         $this->actingAs($this->admin())
             ->get('/dashboard/enroll')
-            ->assertForbidden();
+            ->assertOk();
     }
 
     // GET create/show pages

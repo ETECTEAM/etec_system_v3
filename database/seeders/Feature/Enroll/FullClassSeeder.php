@@ -5,8 +5,8 @@ namespace Database\Seeders\Feature\Enroll;
 use App\Models\Course;
 use App\Models\InstructorAvailability;
 use App\Models\InstructorData;
-use App\Models\PendingRegistration;
 use App\Models\Room;
+use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Models\Term;
 use App\Models\Time;
@@ -74,14 +74,14 @@ class FullClassSeeder extends Seeder
         ]);
 
         if ($enrollment !== null) {
-            $this->command?->warn("Test registration was assigned to class #{$enrollment->study_class_id} instead of going pending - that class must already have had a room/teacher before this seeder ran.");
+            $this->command?->warn("Test registration was assigned to class #{$enrollment->study_class_id} instead of going unassigned - that class must already have had a room/teacher before this seeder ran.");
 
             return;
         }
 
-        $pending = PendingRegistration::query()->latest('id')->first();
+        $unassigned = StudentEnrollment::query()->where('enrollment_status', 'unassigned')->latest('id')->first();
 
-        $this->command?->info("Pending registration created (id #{$pending?->id}, phone ".self::TEST_PHONE.') - check the dashboard notification bell or the Register Student page to see it.');
+        $this->command?->info("Unassigned enrollment created (id #{$unassigned?->id}, phone ".self::TEST_PHONE.') - check the dashboard notification bell or the Registrations tab on the Class List page to see it.');
     }
 
     private function findComboWithNoOpenClass(): ?array

@@ -9,7 +9,10 @@ import { useI18n } from "@/i18n";
 const page = usePage();
 const toast = useToast();
 const { t } = useI18n();
-const isSuperAdmin = computed(() => (page.props.auth?.roles ?? []).includes("super_admin"));
+const canForceCapacity = computed(() => {
+  const roles = page.props.auth?.roles ?? [];
+  return roles.includes("super_admin") || roles.includes("admin");
+});
 
 const props = defineProps({
   show: {
@@ -23,6 +26,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["close", "moved"]);
+
+// A registration RegisterStudentForSchedule parked with no class at all
+// (no room/instructor free at the time) reaches this same modal with
+// class_id null - MoveStudentEnrollment assigns it in place instead of
+// moving it, so only the copy/labels differ here.
+const isAssign = computed(() => !props.enrollment?.class_id);
 
 const classes = ref([]);
 const classesLoaded = ref(false);
@@ -77,7 +86,7 @@ async function submit() {
       study_class_id: Number(selectedClassId.value),
       force: force.value,
     });
-    toast.success(t('Student moved successfully.'));
+    toast.success(isAssign.value ? t('Student assigned to the class.') : t('Student moved successfully.'));
     emit("moved");
     close();
   } catch (error) {
@@ -99,13 +108,14 @@ function submitAnyway() {
 <template>
   <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4">
     <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
-      <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Move to Another Class') }}</h3>
+      <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ isAssign ? $t('Assign to Class') : $t('Move to Another Class') }}</h3>
       <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">
-        {{ enrollment?.name }} — {{ $t('currently in') }} "{{ enrollment?.class_title }}"
+        <template v-if="isAssign">{{ enrollment?.name }}</template>
+        <template v-else>{{ enrollment?.name }} — {{ $t('currently in') }} "{{ enrollment?.class_title }}"</template>
       </p>
 
       <div class="mt-4">
-        <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Move to') }}</label>
+        <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ isAssign ? $t('Assign to') : $t('Move to') }}</label>
         <SelectSearch
           v-model="selectedClassId"
           :options="classOptions"
@@ -114,12 +124,12 @@ function submitAnyway() {
         />
         <p v-if="errorMessage" class="mt-1 text-xs font-semibold text-red-600">{{ errorMessage }}</p>
         <button
-          v-if="errorMessage === 'This class is full.' && isSuperAdmin"
+          v-if="errorMessage === 'This class is full.' && canForceCapacity"
           type="button"
           @click="submitAnyway"
           class="mt-2 text-xs font-semibold text-amber-700 underline hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
         >
-          {{ $t('Class is full — move the student anyway') }}
+          {{ isAssign ? $t('Class is full — assign anyway') : $t('Class is full — move the student anyway') }}
         </button>
       </div>
 
@@ -133,7 +143,7 @@ function submitAnyway() {
           :disabled="saving || !selectedClassId"
           class="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
         >
-          {{ $t('Move Student') }}
+          {{ isAssign ? $t('Assign Student') : $t('Move Student') }}
         </button>
       </div>
     </div>

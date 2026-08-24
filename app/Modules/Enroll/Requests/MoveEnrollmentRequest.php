@@ -19,8 +19,8 @@ class MoveEnrollmentRequest extends FormRequest
             'force' => [
                 'nullable', 'boolean',
                 function (string $attribute, mixed $value, Closure $fail): void {
-                    if ($value && ! $this->user()?->hasRole('super_admin')) {
-                        $fail('Only a super admin can move a student into a full class.');
+                    if ($value && ! $this->user()?->hasAnyRole(['super_admin', 'admin'])) {
+                        $fail('Only a super admin or admin can move a student into a full class.');
                     }
                 },
             ],

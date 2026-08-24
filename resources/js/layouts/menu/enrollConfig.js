@@ -1,5 +1,5 @@
 export function build(ctx) {
-  if (!ctx.isSuperAdmin || !ctx.canAccessNotifications) return null;
+  if (!ctx.isSuperAdmin && !ctx.isAdmin) return null;
 
   return {
     label: "Enroll Config",
