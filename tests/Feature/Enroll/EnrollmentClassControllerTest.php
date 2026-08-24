@@ -138,6 +138,76 @@ class EnrollmentClassControllerTest extends TestCase
             ->assertOk();
     }
 
+    public function test_guest_is_redirected_to_the_public_qr_join_page_from_the_dashboard_add_student_route(): void
+    {
+        $studyClass = $this->createStudyClass();
+
+        $this->get("/dashboard/enroll/{$studyClass->id}/students/create")
+            ->assertRedirect("/join-class/{$studyClass->id}");
+    }
+
+    public function test_public_qr_join_page_is_available_to_guests(): void
+    {
+        $studyClass = $this->createStudyClass();
+
+        $this->get("/join-class/{$studyClass->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->component('frontend/class-join/JoinClass'));
+    }
+
+    public function test_public_qr_join_page_rejects_pre_end_classes(): void
+    {
+        $studyClass = $this->createStudyClass(['status' => 'pre_end']);
+
+        $this->get("/join-class/{$studyClass->id}")
+            ->assertRedirect('/student-register')
+            ->assertSessionHas('error', 'This class is no longer accepting join requests.');
+    }
+
+    public function test_public_qr_join_page_marks_class_as_locked_for_the_same_browser_after_joining(): void
+    {
+        $studyClass = $this->createStudyClass();
+
+        $this->withSession(['qr_joined_class_ids' => [$studyClass->id]])
+            ->get("/join-class/{$studyClass->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('frontend/class-join/JoinClass')
+                ->where('isLocked', true));
+    }
+
+    public function test_same_browser_cannot_join_the_same_class_twice_but_can_join_a_different_class(): void
+    {
+        $firstClass = $this->createStudyClass(['title' => 'Class One']);
+        $secondClass = $this->createStudyClass(['title' => 'Class Two']);
+
+        $lockedResponse = $this->withSession(['qr_joined_class_ids' => [$firstClass->id]])
+            ->post("/join-class/{$firstClass->id}", [
+                'name' => 'Repeat Student',
+                'gender' => 'male',
+                'phone' => '012345670',
+            ]);
+
+        $lockedResponse->assertRedirect("/join-class/{$firstClass->id}");
+        $lockedResponse->assertSessionHas('error', 'You have already requested this class from this device.');
+
+        $allowedResponse = $this->withSession(['qr_joined_class_ids' => [$firstClass->id]])
+            ->post("/join-class/{$secondClass->id}", [
+                'name' => 'Repeat Student',
+                'gender' => 'male',
+                'phone' => '012345671',
+            ]);
+
+        $allowedResponse->assertRedirect("/join-class/{$secondClass->id}");
+        $allowedResponse->assertSessionHas('success', 'Your request was sent. An instructor will review it before approval.');
+
+        $this->assertDatabaseHas('student_enrollments', [
+            'study_class_id' => $secondClass->id,
+            'source' => 'qr_code',
+            'enrollment_status' => 'pending',
+        ]);
+    }
+
     // POST /dashboard/enroll
 
     public function test_store_creates_a_physical_class_using_course_title_and_room_capacity(): void
@@ -316,6 +386,112 @@ class EnrollmentClassControllerTest extends TestCase
             ->postJson("/dashboard/enroll/{$studyClass->id}/status", ['status' => 'warp-speed'])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['status']);
+    }
+
+    public function test_instructor_can_approve_a_pending_qr_registration_for_own_class(): void
+    {
+        $instructor = $this->instructor();
+        $studyClass = $this->createStudyClass(['teacher_id' => $instructor->id]);
+        $student = Student::create([
+            'full_name' => 'Pending Student',
+            'gender' => 'male',
+            'phone' => '012345679',
+        ]);
+        $enrollment = StudentEnrollment::create([
+            'study_class_id' => $studyClass->id,
+            'student_id' => $student->id,
+            'enrollment_status' => 'pending',
+            'payment_status' => 'unpaid',
+            'source' => 'qr_code',
+            'fee_amount' => 100,
+            'document_fee_amount' => 0,
+            'amount_paid' => 0,
+        ]);
+
+        $this->actingAs($instructor)
+            ->post("/dashboard/enroll/enrollments/{$enrollment->id}/approve")
+            ->assertRedirect();
+
+        $this->assertSame('active', $enrollment->fresh()->enrollment_status);
+    }
+
+    public function test_instructor_can_bulk_approve_pending_qr_registrations_for_own_class(): void
+    {
+        $instructor = $this->instructor();
+        $studyClass = $this->createStudyClass(['teacher_id' => $instructor->id, 'capacity' => 20]);
+
+        $studentA = Student::create([
+            'full_name' => 'Pending Student A',
+            'gender' => 'male',
+            'phone' => '012345680',
+        ]);
+        $studentB = Student::create([
+            'full_name' => 'Pending Student B',
+            'gender' => 'female',
+            'phone' => '012345681',
+        ]);
+
+        $enrollmentA = StudentEnrollment::create([
+            'study_class_id' => $studyClass->id,
+            'student_id' => $studentA->id,
+            'enrollment_status' => 'pending',
+            'payment_status' => 'unpaid',
+            'source' => 'qr_code',
+            'fee_amount' => 100,
+            'document_fee_amount' => 0,
+            'amount_paid' => 0,
+        ]);
+        $enrollmentB = StudentEnrollment::create([
+            'study_class_id' => $studyClass->id,
+            'student_id' => $studentB->id,
+            'enrollment_status' => 'pending',
+            'payment_status' => 'unpaid',
+            'source' => 'qr_code',
+            'fee_amount' => 100,
+            'document_fee_amount' => 0,
+            'amount_paid' => 0,
+        ]);
+
+        $this->actingAs($instructor)
+            ->postJson('/dashboard/enroll/enrollments/approve', [
+                'enrollment_ids' => [$enrollmentA->id, $enrollmentB->id],
+            ])
+            ->assertOk()
+            ->assertJson(['success' => true, 'approved_count' => 2]);
+
+        $this->assertSame('active', $enrollmentA->fresh()->enrollment_status);
+        $this->assertSame('active', $enrollmentB->fresh()->enrollment_status);
+    }
+
+    public function test_pre_end_class_cannot_accept_student_additions_or_collapse_actions(): void
+    {
+        $studyClass = $this->createStudyClass(['status' => 'pre_end']);
+
+        $this->actingAs($this->superAdmin())
+            ->get("/dashboard/enroll/{$studyClass->id}/students/create")
+            ->assertStatus(422);
+
+        $student = Student::create([
+            'full_name' => 'Blocked Student',
+            'gender' => 'male',
+            'phone' => '012345682',
+        ]);
+
+        $this->actingAs($this->superAdmin())
+            ->postJson("/dashboard/enroll/{$studyClass->id}/enrollments", [
+                'student_id' => $student->id,
+            ])
+            ->assertStatus(422);
+
+        $this->actingAs($this->superAdmin())
+            ->postJson("/dashboard/enroll/{$studyClass->id}/instructors", [
+                'instructor_id' => $this->instructor()->id,
+                'owner_term_id' => $studyClass->term_id,
+                'owner_subject' => 'Code',
+                'instructor_term_id' => $studyClass->term_id,
+                'instructor_subject' => 'Math',
+            ])
+            ->assertStatus(422);
     }
 
     // DELETE /dashboard/enroll/{studyClass}

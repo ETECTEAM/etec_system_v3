@@ -38,7 +38,19 @@ const open = ref(false);
 const showQr = ref(false);
 const dropdownRef = ref(null);
 const { t } = useI18n();
-const qrUrl = computed(() => `${window.location.origin}/dashboard/enroll/${props.classData.id}/students/create`);
+const lifecycleStatus = computed(() => String(props.classData?.class_status ?? "").toLowerCase());
+const normalizedLifecycleStatus = computed(() => {
+  switch (lifecycleStatus.value) {
+    case "inactive":
+      return "pre_end";
+    case "completed":
+      return "ended";
+    default:
+      return lifecycleStatus.value;
+  }
+});
+const lockedStudentActions = computed(() => ['pre_end', 'ended', 'cancelled'].includes(normalizedLifecycleStatus.value));
+const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.id}`);
 
 function closeDropdown() {
   open.value = false;
@@ -75,6 +87,14 @@ function updateStatus(status) {
   });
 }
 
+function onMenuItemClick(item) {
+  if (item.disabled) {
+    return;
+  }
+
+  item.action?.();
+}
+
 const menus = computed(() => [
   {
     label: "View Class",
@@ -95,8 +115,14 @@ const menus = computed(() => [
     label: "Add Student",
     icon: UserPlus,
     action: () => router.get(`/dashboard/enroll/${props.classData.id}/students/create`),
+    disabled: lockedStudentActions.value,
   },
-  { label: "Generate QR", icon: QrCode, action: () => { showQr.value = true; open.value = false; } },
+  {
+    label: "Generate QR",
+    icon: QrCode,
+    action: () => { showQr.value = true; open.value = false; },
+    disabled: lockedStudentActions.value,
+  },
   { label: "Switch Teacher", icon: UserCog, action: () => window.alert("Switch teacher is not available yet.") },
 ]
   .filter((item) => !props.hiddenItems.includes(item.label))
@@ -105,7 +131,21 @@ const menus = computed(() => [
 const actions = computed(() => [
   { label: "Pre-End", icon: CirclePause, class: "text-yellow-600", action: () => updateStatus("inactive") },
   { label: "End", icon: CircleX, class: "text-red-600", action: () => updateStatus("completed") },
-].filter((item) => !props.hiddenItems.includes(item.label)));
+].filter((item) => {
+  if (props.hiddenItems.includes(item.label)) {
+    return false;
+  }
+
+  if (item.label === "Pre-End") {
+    return normalizedLifecycleStatus.value !== "pre_end" && normalizedLifecycleStatus.value !== "ended";
+  }
+
+  if (item.label === "End") {
+    return normalizedLifecycleStatus.value !== "ended";
+  }
+
+  return true;
+}));
 </script>
 
 <template>
@@ -122,8 +162,14 @@ const actions = computed(() => [
       <button
         v-for="item in menus"
         :key="item.label"
-        @click="item.action?.()"
-        class="flex w-full items-center gap-3 px-4 py-3 text-left text-slate-700 hover:bg-slate-50 dark:text-gray-300 dark:hover:bg-gray-700"
+        @click="onMenuItemClick(item)"
+        :disabled="item.disabled"
+        :class="[
+          'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors',
+          item.disabled
+            ? 'cursor-not-allowed text-slate-400 dark:text-gray-500'
+            : 'text-slate-700 hover:bg-slate-50 dark:text-gray-300 dark:hover:bg-gray-700',
+        ]"
       >
         <component :is="item.icon" class="h-4 w-4" />
         {{ t(item.label) }}

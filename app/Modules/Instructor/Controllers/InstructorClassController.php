@@ -63,14 +63,22 @@ class InstructorClassController extends Controller
         return Inertia::render('backend/instructors/AttendanceRecord', [
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
+            'pendingRegistrations' => $this->instructorClasses->pendingRegistrations($class->id),
             'attendanceWindow' => $attendanceWindow,
             'todaySession' => $this->sessionBanner->handle($class->id),
         ]);
     }
 
-    public function trackAttendance(Request $request, string $studyClass): Response
+    public function trackAttendance(Request $request, string $studyClass): Response|RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return redirect()
+                ->route('instructor.classes.attendance', $class->id)
+                ->with('warning', 'Attendance can only be tracked while the class is active.');
+        }
+
         $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
         $todaySession = $this->sessionBanner->handle($class->id);
 
@@ -231,6 +239,12 @@ class InstructorClassController extends Controller
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
 
+        if (($class->class_status ?? null) !== 'active') {
+            return redirect()
+                ->route('instructor.classes.attendance', $class->id)
+                ->with('warning', 'Attendance can only be tracked while the class is active.');
+        }
+
         $validated = $request->validate([
             'attendance_date' => ['nullable', 'date'],
             'records' => ['required', 'array', 'min:1'],
@@ -250,6 +264,12 @@ class InstructorClassController extends Controller
     public function overrideAttendance(Request $request, string $studyClass): RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return redirect()
+                ->route('instructor.classes.attendance', $class->id)
+                ->with('warning', 'Attendance can only be tracked while the class is active.');
+        }
 
         $validated = $request->validate([
             'attendance_date' => ['required', 'date'],

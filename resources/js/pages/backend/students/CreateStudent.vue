@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { router, useForm } from "@inertiajs/vue3";
+import { router, useForm, usePage } from "@inertiajs/vue3";
 import { ArrowLeft, Save, UserPlus } from "@lucide/vue";
 import { latinNameError } from "@/composables/useLatinNameValidation";
 
@@ -15,10 +15,19 @@ const props = defineProps({
   },
 });
 
+const page = usePage();
+const isInstructor = computed(() => (page.props.auth?.roles ?? []).includes("instructor"));
+const classListUrl = computed(() => "/dashboard");
+const viewClassUrl = computed(() => (
+  isInstructor.value
+    ? `/dashboard/instructor/classes/${props.classData.id}/attendance`
+    : `/dashboard/enroll/view/${props.classData.id}`
+));
+
 const breadcrumbItems = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Class List", href: "/dashboard/enroll" },
-  { label: "View Class", href: `/dashboard/enroll/view/${props.classData.id}` },
+  { label: "Class List", href: classListUrl.value },
+  { label: "View Class", href: viewClassUrl.value },
   { label: "Add Student", current: true },
 ];
 
@@ -41,11 +50,11 @@ function submit() {
 }
 
 function viewClass() {
-  router.get(`/dashboard/enroll/view/${props.classData.id}`);
+  router.get(viewClassUrl.value);
 }
 
 function classList() {
-  router.get("/dashboard/enroll");
+  router.get(classListUrl.value);
 }
 </script>
 

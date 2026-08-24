@@ -63,6 +63,11 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         Route::get('/buildings/{building}/floors', [EnrollmentClassController::class, 'floors'])->name('enroll.floors');
         Route::get('/floors/{floor}/rooms', [EnrollmentClassController::class, 'rooms'])->name('enroll.rooms');
         Route::get('/courses/{course}/lessons', [EnrollmentClassController::class, 'lessons'])->name('enroll.lessons');
+
+        // Approval of QR registrations should be available to instructors and admins
+        // on the class-management screens, not only super admins.
+        Route::post('/enrollments/{enrollment}/approve', [EnrollmentClassController::class, 'approveEnrollment'])->name('enroll.enrollments.approve');
+        Route::post('/enrollments/approve', [EnrollmentClassController::class, 'approveEnrollments'])->name('enroll.enrollments.approve-bulk');
     });
 
     // Self-registration via the "Generate QR" link an instructor shares with a prospective

@@ -101,15 +101,19 @@ function viewUrl(classData) {
 
 // A class shared with this instructor ("Collapse Class") is taught by them but owned by
 // someone else, so the owner-only actions are dropped rather than left to 403.
-const OWNER_ONLY_ACTIONS = ["Edit Class", "Add Student", "Switch Teacher", "Collapse Class", "Pre-End", "End"];
+const OWNER_ONLY_ACTIONS = ["Edit Class", "Add Student", "Collapse Class", "Pre-End", "End"];
 
 function hiddenItems(classData) {
-  return classData.is_owner ? ["Copy Class"] : ["Copy Class", ...OWNER_ONLY_ACTIONS];
+  return classData.is_owner ? ["Copy Class", "Switch Teacher"] : ["Copy Class", "Switch Teacher", ...OWNER_ONLY_ACTIONS];
 }
 
 // Appended to the shared action menu: attendance tracking is instructor-only, so it
 // has no place on the admin class list the menu was built for.
 function attendanceItem(classData) {
+  if (String(classData.class_status ?? "").toLowerCase() !== "active") {
+    return [];
+  }
+
   return [
     {
       label: "Attendance",

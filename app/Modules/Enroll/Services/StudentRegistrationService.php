@@ -2,6 +2,7 @@
 
 namespace App\Modules\Enroll\Services;
 
+use App\Models\StudyClass;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use stdClass;
@@ -67,7 +68,17 @@ class StudentRegistrationService
         return $this->enrollment($enrollmentId);
     }
 
-    public function ensureClassHasSeat(stdClass $studyClass, string $field = 'student_id'): void
+    public function createPendingEnrollment(array $data): stdClass
+    {
+        return $this->createEnrollment(array_merge([
+            'enrollment_status' => 'pending',
+            'payment_status' => 'unpaid',
+            'source' => 'qr_code',
+            'amount_paid' => 0,
+        ], $data));
+    }
+
+    public function ensureClassHasSeat(StudyClass|stdClass $studyClass, string $field = 'student_id'): void
     {
         if ($this->activeEnrollmentCount((int) $studyClass->id) >= (int) $studyClass->capacity) {
             throw ValidationException::withMessages([
@@ -79,7 +90,7 @@ class StudentRegistrationService
     // Force-enrolling past capacity is a deliberate override (see EnrollStudent),
     // not an error case - bump capacity to fit instead of leaving the class
     // permanently reading as over 100% filled.
-    public function expandCapacityToFit(stdClass $studyClass): void
+    public function expandCapacityToFit(StudyClass|stdClass $studyClass): void
     {
         $seatsNeeded = $this->activeEnrollmentCount((int) $studyClass->id) + 1;
 
@@ -96,6 +107,19 @@ class StudentRegistrationService
         if ($this->activeEnrollmentExistsForClass($studyClassId, $studentId)) {
             throw ValidationException::withMessages([
                 'student_id' => 'This student is already enrolled in this class.',
+            ]);
+        }
+    }
+
+    public function ensureStudentHasNoPendingOrActiveEnrollment(int $studyClassId, int $studentId): void
+    {
+        if (DB::table('student_enrollments')
+            ->where('study_class_id', $studyClassId)
+            ->where('student_id', $studentId)
+            ->whereIn('enrollment_status', ['pending', 'active'])
+            ->exists()) {
+            throw ValidationException::withMessages([
+                'phone' => 'This student already has a request for that class.',
             ]);
         }
     }

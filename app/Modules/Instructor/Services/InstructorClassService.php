@@ -21,6 +21,7 @@ class InstructorClassService
     public const ATTENDANCE_WINDOW_REASON_BEFORE_START = 'before_start';
     public const ATTENDANCE_WINDOW_REASON_AFTER_DEADLINE = 'after_deadline';
     public const ATTENDANCE_WINDOW_REASON_ALREADY_SUBMITTED = 'already_submitted';
+    private const VISIBLE_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
 
     private ?array $termLabels = null;
 
@@ -72,7 +73,7 @@ class InstructorClassService
             ->where('study_classes.teacher_id', $instructor->id);
 
         return [
-            'total_classes' => DB::table('study_classes')->where('teacher_id', $instructor->id)->count(),
+            'total_classes' => $this->classesQuery($instructor)->count(),
             'total_students' => (clone $activeEnrollments)->count(),
             'male_students' => (clone $activeEnrollments)
                 ->join('students', 'students.id', '=', 'student_enrollments.student_id')
@@ -127,6 +128,34 @@ class InstructorClassService
                 $attendanceStats->get($student->id),
                 $todayAttendance->get($student->id),
             ));
+    }
+
+    public function pendingRegistrations(int $studyClassId): Collection
+    {
+        return DB::table('student_enrollments')
+            ->join('students', 'students.id', '=', 'student_enrollments.student_id')
+            ->where('student_enrollments.study_class_id', $studyClassId)
+            ->where('student_enrollments.enrollment_status', 'pending')
+            ->where('student_enrollments.source', 'qr_code')
+            ->orderByDesc('student_enrollments.id')
+            ->select([
+                'student_enrollments.id as enrollment_id',
+                'students.id',
+                'students.full_name',
+                'students.gender',
+                'students.phone',
+                'student_enrollments.created_at as requested_at',
+            ])
+            ->get()
+            ->map(fn (stdClass $student, int $index) => [
+                'roster_no' => $index + 1,
+                'enrollment_id' => $student->enrollment_id,
+                'id' => $student->id,
+                'name' => $student->full_name,
+                'gender' => $student->gender,
+                'phone' => $student->phone,
+                'requested_at' => Carbon::parse($student->requested_at)->format('Y-m-d h:i A'),
+            ]);
     }
 
     public function saveAttendance(User $instructor, int $studyClassId, array $data): void
@@ -348,6 +377,9 @@ class InstructorClassService
             'room' => $class->room_number ?? ($classTypeValue === 'online' ? 'Online' : '-'),
             'status' => $classTypeLabel,
             'class_status' => $class->class_status,
+            'class_status_label' => str_replace('_', ' ', ucfirst($class->class_status)),
+            'class_type' => $classTypeValue,
+            'class_type_label' => $classTypeLabel,
             'term' => $this->termLabel($studyDays),
             'time' => ($timeRange['start'] ?? '-').' - '.($timeRange['end'] ?? '-'),
             // Set when the class is shared and this instructor teaches a named part of
@@ -400,6 +432,7 @@ class InstructorClassService
                 $query->where('study_classes.teacher_id', $instructor->id)
                     ->orWhereNotNull('my_slot.id');
             })
+            ->whereIn('study_classes.status', self::VISIBLE_CLASS_STATUSES)
             ->leftJoin('courses', 'courses.id', '=', 'study_classes.course_id')
             ->leftJoin('course_lessons', 'course_lessons.id', '=', 'study_classes.lesson_id')
             ->leftJoin('users as teachers', 'teachers.id', '=', 'study_classes.teacher_id')

@@ -31,10 +31,12 @@ use App\Modules\Enroll\Requests\SaveStudyClassRequest;
 use App\Modules\Enroll\Requests\ShareClassInstructorRequest;
 use App\Modules\Enroll\Requests\StoreClassStudentRequest;
 use App\Modules\Enroll\Requests\UpdatePublicRegistrationRequest;
+use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -159,8 +161,14 @@ class EnrollmentClassController extends Controller
         ]);
     }
 
-    public function createStudent(StudyClass $studyClass, GetClassList $classList): Response
+    public function createStudent(StudyClass $studyClass, GetClassList $classList): Response|RedirectResponse
     {
+        if (auth()->guest()) {
+            return redirect()->route('frontend.class-join.create', $studyClass);
+        }
+
+        $this->ensureClassAcceptsMutations($studyClass);
+
         $studyClass->load([
             'course:id,title',
             'lesson:id,course_id,title',
@@ -296,6 +304,7 @@ class EnrollmentClassController extends Controller
         StudyClass $studyClass,
         ShareClassWithInstructor $shareClass
     ): RedirectResponse {
+        $this->ensureClassAcceptsMutations($studyClass);
         $this->ensureInstructorOwnsClass($studyClass);
 
         $shareClass->handle($studyClass, $request->validated());
@@ -308,6 +317,7 @@ class EnrollmentClassController extends Controller
         User $user,
         ShareClassWithInstructor $shareClass
     ): RedirectResponse {
+        $this->ensureClassAcceptsMutations($studyClass);
         $this->ensureInstructorOwnsClass($studyClass);
 
         $shareClass->remove($studyClass, $user->id);
@@ -335,6 +345,8 @@ class EnrollmentClassController extends Controller
         StudyClass $studyClass,
         EnrollStudent $enrollStudent
     ): RedirectResponse {
+        $this->ensureClassAcceptsMutations($studyClass);
+
         $enrollStudent->handle(
             $studyClass,
             (int) $request->validated('student_id'),
@@ -349,11 +361,60 @@ class EnrollmentClassController extends Controller
         StudyClass $studyClass,
         CreateClassStudent $createClassStudent
     ): RedirectResponse {
+        $this->ensureClassAcceptsMutations($studyClass);
+
         $createClassStudent->handle($studyClass, $request->validated());
 
         return redirect()
             ->route('enroll.class-students.create', $studyClass)
             ->with('success', 'Student added to class successfully.');
+    }
+
+    public function approveEnrollment(Request $request, StudentEnrollment $enrollment, StudentRegistrationService $registrations): RedirectResponse
+    {
+        DB::transaction(function () use ($enrollment, $registrations): void {
+            $enrollment->loadMissing('studyClass');
+            $this->approvePendingEnrollment($enrollment, $registrations);
+        });
+
+        return back()->with('success', 'Student request approved successfully.');
+    }
+
+    public function approveEnrollments(Request $request, StudentRegistrationService $registrations): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'enrollment_ids' => ['required', 'array', 'min:1'],
+            'enrollment_ids.*' => ['required', 'integer', 'distinct', 'exists:student_enrollments,id'],
+        ]);
+
+        $approvedCount = 0;
+
+        DB::transaction(function () use (&$approvedCount, $validated, $registrations): void {
+            $enrollments = StudentEnrollment::query()
+                ->whereIn('id', $validated['enrollment_ids'])
+                ->with('studyClass')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            foreach ($validated['enrollment_ids'] as $enrollmentId) {
+                $enrollment = $enrollments->get((int) $enrollmentId);
+
+                abort_unless($enrollment !== null, 404, 'One of the selected requests could not be found.');
+
+                $this->approvePendingEnrollment($enrollment, $registrations);
+                $approvedCount++;
+            }
+        });
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'approved_count' => $approvedCount,
+            ]);
+        }
+
+        return back()->with('success', "{$approvedCount} student request".($approvedCount === 1 ? '' : 's').' approved successfully.');
     }
 
     public function deposit(
@@ -425,6 +486,38 @@ class EnrollmentClassController extends Controller
             'start_date' => $studyClass->start_date?->format('Y-m-d'),
             'end_date' => $studyClass->end_date?->format('Y-m-d'),
         ];
+    }
+
+    private function approvePendingEnrollment(StudentEnrollment $enrollment, StudentRegistrationService $registrations): void
+    {
+        abort_unless($enrollment->enrollment_status === 'pending', 422, 'This request has already been resolved.');
+        abort_unless($enrollment->studyClass !== null, 404);
+
+        $this->ensureInstructorOwnsClass($enrollment->studyClass);
+        $registrations->ensureClassHasSeat($enrollment->studyClass, 'student_id');
+
+        $enrollment->update([
+            'enrollment_status' => 'active',
+            'source' => $enrollment->source ?? 'qr_code',
+        ]);
+    }
+
+    private function ensureClassAcceptsMutations(StudyClass $studyClass): void
+    {
+        abort_unless(
+            ! in_array($this->normaliseClassStatus($studyClass->status), ['pre_end', 'ended', 'cancelled'], true),
+            422,
+            'This class is no longer accepting student changes.',
+        );
+    }
+
+    private function normaliseClassStatus(?string $status): string
+    {
+        return match (strtolower((string) $status)) {
+            'inactive' => 'pre_end',
+            'completed' => 'ended',
+            default => strtolower((string) $status),
+        };
     }
 
     private function formatTime(?string $time): ?string

@@ -10,6 +10,17 @@ function toStringOrEmpty(value) {
   return value === null || value === undefined || value === "" ? "" : String(value);
 }
 
+function normalizeClassStatus(value) {
+  switch (String(value ?? "").toLowerCase()) {
+    case "inactive":
+      return "pre_end";
+    case "completed":
+      return "ended";
+    default:
+      return String(value ?? "").toLowerCase();
+  }
+}
+
 function todayIso() {
   return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, matches <input type="date">
 }
@@ -49,6 +60,30 @@ const options = computed(() => ({
     { value: "physical", label: "Physical Class" },
     { value: "online", label: "Online Class" },
   ],
+  statuses: (props.options?.statuses ?? [
+    "upcoming",
+    "active",
+    "pre_end",
+    "ended",
+    "cancelled",
+  ]).map((status) => {
+    if (typeof status === "object" && status !== null) {
+      return status;
+    }
+
+    const value = String(status);
+
+    return {
+      value,
+      label: value === "pre_end"
+        ? "Pre-End"
+        : value === "ended"
+          ? "Ended"
+          : value === "cancelled"
+            ? "Cancelled"
+            : value.charAt(0).toUpperCase() + value.slice(1),
+    };
+  }),
   studyDays: props.options?.studyDays ?? [],
   scheduleGroups: props.options?.scheduleGroups ?? [],
 }));
@@ -77,7 +112,7 @@ const form = useForm({
   class_type_id: toStringOrEmpty(props.classData?.class_type_id),
   term_id: toStringOrEmpty(props.classData?.term_id),
   time_id: toStringOrEmpty(props.classData?.time_id),
-  status: props.classData?.status ?? "active",
+  status: normalizeClassStatus(props.classData?.status ?? "active"),
   capacity: props.classData?.capacity ?? 20,
   price: props.classData?.price ?? 0,
   document_price: props.classData?.document_price ?? 0,
@@ -402,6 +437,23 @@ function submit(copy = false) {
           :placeholder="$t('Select Class Type')"
           :button-class="selectClass"
         />
+      </div>
+
+      <div>
+        <label class="font-semibold mb-2 block">{{ $t('Status') }}</label>
+        <select
+          v-model="form.status"
+          class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
+        >
+          <option
+            v-for="status in options.statuses"
+            :key="status.value"
+            :value="status.value"
+          >
+            {{ status.label }}
+          </option>
+        </select>
+        <p v-if="form.errors.status" class="mt-1 text-xs text-red-600">{{ form.errors.status }}</p>
       </div>
 
       <div>
