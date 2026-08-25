@@ -13,14 +13,66 @@ function showRestrictedPage() {
 
     document.body.innerHTML = ''
 
+    const style = document.createElement('style')
+    style.textContent = `
+        @keyframes dt-pop {
+            0% { transform: scale(0.85); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes dt-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        #devtools-restricted * {
+            box-sizing: border-box;
+        }
+        #devtools-restricted .dt-card {
+            animation: dt-pop 0.35s ease-out;
+            max-width: 480px;
+            width: 100%;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 20px;
+            padding: 40px 32px;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        #devtools-restricted .dt-emoji {
+            font-size: 56px;
+            display: block;
+            margin-bottom: 16px;
+            animation: dt-bounce 1.6s ease-in-out infinite;
+        }
+        #devtools-restricted h1 {
+            font-size: 22px;
+            margin: 0 0 12px;
+            line-height: 1.4;
+        }
+        #devtools-restricted p {
+            font-size: 15px;
+            opacity: 0.75;
+            margin: 0;
+            line-height: 1.6;
+        }
+        #devtools-restricted .dt-sub {
+            margin-top: 18px;
+            font-size: 12px;
+            opacity: 0.4;
+            letter-spacing: 0.5px;
+        }
+    `
+    document.head.appendChild(style)
+
     const restrictedPage = document.createElement('main')
     restrictedPage.id = 'devtools-restricted'
     restrictedPage.setAttribute('role', 'alert')
     restrictedPage.setAttribute('aria-live', 'assertive')
     restrictedPage.innerHTML = `
-        <section>
-            <h1>Ke Bit Inspect Hx Khorm Berk Tab Tmey Inspect Tuk TT</h1>
-            <p>Hot Mong Hah</p>
+        <section class="dt-card">
+            <span class="dt-emoji">🕵️‍♂️</span>
+            <h1>ចាប់បានហើយ! កុំបើក Inspect ទៀតណា 😅</h1>
+            <p>បិទ DevTools ចោល ហើយ Refresh ម្តងទៀត អ្វីៗនឹងវិលមកដូចដើម។</p>
+            <div class="dt-sub">nice try though 👀</div>
         </section>
     `
 
@@ -33,9 +85,9 @@ function showRestrictedPage() {
         justifyContent: 'center',
         padding: '30px',
         boxSizing: 'border-box',
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: '"Segoe UI", Arial, sans-serif',
         textAlign: 'center',
-        background: '#111',
+        background: 'radial-gradient(circle at top, #1f1f26, #0b0b0f 70%)',
         color: '#fff',
     })
 
