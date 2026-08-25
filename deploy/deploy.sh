@@ -29,7 +29,10 @@ docker compose -f "${COMPOSE_FILE}" run --rm --no-deps app sh -c \
   "composer install --no-dev --optimize-autoloader --no-interaction && npm ci && npm run build"
 
 echo "==> Recreating containers"
-docker compose -f "${COMPOSE_FILE}" up -d --force-recreate app reverb queue scheduler
+for svc in app reverb queue scheduler; do
+  docker compose -f "${COMPOSE_FILE}" up -d --force-recreate --no-deps "${svc}"
+  sleep 2
+done
 
 echo "==> Waiting for app container to be ready..."
 for i in $(seq 1 30); do
