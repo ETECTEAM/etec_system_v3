@@ -41,3 +41,40 @@ if(!function_exists('setting')) {
         };
     }
 }
+
+if(!function_exists('official_leave_setting')) {
+    /**
+     * Read an official-leave setting, falling back to config/official-leave.php
+     * when the table has no row (or isn't migrated yet).
+     */
+    function official_leave_setting(string $key): mixed
+    {
+        $default = config("official-leave.{$key}");
+
+        try {
+            $rows = \Illuminate\Support\Facades\Cache::remember(
+                \App\Models\OfficialLeaveSetting::CACHE_KEY,
+                3600,
+                fn () => \App\Models\OfficialLeaveSetting::query()
+                    ->get(['key', 'value', 'type'])
+                    ->keyBy('key'),
+            );
+        } catch (\Throwable) {
+            return $default;
+        }
+
+        $row = $rows->get($key);
+
+        if (! $row || $row->value === null) {
+            return $default;
+        }
+
+        return match ($row->type) {
+            'boolean' => filter_var($row->value, FILTER_VALIDATE_BOOLEAN),
+            'number' => is_numeric($row->value)
+                ? (str_contains($row->value, '.') ? (float) $row->value : (int) $row->value)
+                : $row->value,
+            default => $row->value,
+        };
+    }
+}
