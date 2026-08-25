@@ -71,6 +71,14 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
+echo "==> Ensuring public/storage symlink exists"
+# The production image no longer bakes this in (it's fully shadowed by the
+# code bind mount anyway) - creating it here instead makes a first-ever
+# deploy to a fresh server self-sufficient. Guarded by -L so this stays a
+# no-op on every deploy after the first.
+docker compose -f "${COMPOSE_FILE}" exec -T app sh -c \
+  "[ -L public/storage ] || php artisan storage:link"
+
 echo "==> Warming caches"
 docker compose -f "${COMPOSE_FILE}" exec -T app sh -c \
   "php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan event:cache"

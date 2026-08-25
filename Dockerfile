@@ -55,15 +55,23 @@ EXPOSE 8000 5173 8080
 
 ENTRYPOINT ["/usr/local/bin/entrypoint"]
 
-# --- production: self-contained image, code + built assets baked in, served
-# by php-fpm on 9000 (nginx proxies *.php there, see deploy/nginx/default.conf) ---
+# --- production: runtime only, no application code baked in. Code comes
+# from the deploy host's bind mount (.:/var/www, see docker-compose.prod.yml)
+# - deploy.sh runs composer install / npm build against that mount directly,
+# so doing it again here would be redundant, and worse: baking the ever-
+# changing repo into the image meant `docker compose build` produced a new
+# image on every single deploy, forcing every container to be destroyed and
+# recreated every time even though the running code never actually came from
+# the image in the first place (bind mount shadows it entirely). Keeping
+# this stage code-free means the image - and the need to recreate containers
+# from it - only changes when the Dockerfile itself changes. ---
 FROM base AS production
 
-COPY --chown=www-data:www-data . .
-
-# Recreate the runtime-only storage/cache directories excluded by .dockerignore
-# (they're empty in the repo, kept only via .gitignore, so the build context
-# never has them) before anything tries to write into them.
+# storage/ and bootstrap/cache are separate named volumes (see
+# docker-compose.prod.yml), not part of the bind mount. These directories
+# exist only to seed those volumes with the right structure and a
+# www-data-writable owner the first time each volume is created - unrelated
+# to app source, so they don't change on ordinary code deploys.
 RUN mkdir -p \
         bootstrap/cache \
         storage/app/public \
@@ -72,19 +80,8 @@ RUN mkdir -p \
         storage/framework/testing/disks \
         storage/framework/views \
         storage/logs \
-    && touch storage/logs/laravel.log
-
-RUN composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
-
-RUN npm ci \
-    && npm run build \
-    && rm -rf node_modules
-
-# public/storage was excluded from the build context (it's a symlink into a
-# path that only exists once storage/ is mounted), so recreate it here.
-RUN php artisan storage:link
-
-RUN chown -R www-data:www-data /var/www \
+    && touch storage/logs/laravel.log \
+    && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R ug+rwx storage bootstrap/cache
 
 EXPOSE 9000
