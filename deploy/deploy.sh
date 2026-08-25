@@ -28,6 +28,9 @@ echo "==> Installing dependencies and building assets"
 docker compose -f "${COMPOSE_FILE}" run --rm --no-deps app sh -c \
   "composer install --no-dev --optimize-autoloader --no-interaction && npm ci && npm run build"
 
+echo "==> Clearing any stale/orphaned containers"
+docker compose -f "${COMPOSE_FILE}" rm -f app reverb queue scheduler nginx 2>/dev/null || true
+
 echo "==> Recreating containers"
 for svc in app reverb queue scheduler; do
   docker compose -f "${COMPOSE_FILE}" up -d --force-recreate --no-deps "${svc}"
