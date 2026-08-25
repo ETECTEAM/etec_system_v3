@@ -66,7 +66,8 @@ class TelegramServiceTest extends TestCase
                 return $args['chat_id'] === '12345'
                     && str_contains($args['text'], 'Email: sri***@etec.com')
                     && str_contains($args['text'], 'OTP: 123456')
-                    && ($markup['inline_keyboard'][0][0]['text'] ?? null) === 'Copy code'
+                    && str_contains($args['text'], 'Tap the OTP button below to copy the code.')
+                    && ($markup['inline_keyboard'][0][0]['text'] ?? null) === '123456'
                     && ($markup['inline_keyboard'][0][0]['copy_text']['text'] ?? null) === '123456';
             });
 

@@ -52,11 +52,7 @@ class TelegramService
                 'reply_markup' => json_encode([
                     'inline_keyboard' => [
                         [
-                            ['text' => 'Copy OTP', 'copy_text' => ['text' => $plainCode]],
-                        ],
-                        [
-                            ['text' => 'Approve', 'callback_data' => "approve:{$otp->id}"],
-                            ['text' => 'Reject', 'callback_data' => "reject:{$otp->id}"],
+                            ['text' => $plainCode, 'copy_text' => ['text' => $plainCode]],
                         ],
                     ],
                 ]),
@@ -86,7 +82,7 @@ class TelegramService
             '',
             'OTP: '.$plainCode,
             '',
-            'Please verify this instructor.',
+            'Tap the OTP button below to copy the code.',
         ]);
     }
 

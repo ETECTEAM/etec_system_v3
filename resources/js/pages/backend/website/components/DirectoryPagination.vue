@@ -20,8 +20,8 @@ const pageLinks = computed(() => links.value.filter((link) => !link.label.includ
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 border-t border-slate-800 bg-slate-900 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-    <p class="text-sm text-slate-400">{{ summary }}</p>
+  <div class="flex flex-col gap-3 border-t border-slate-200 bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-900">
+    <p class="text-sm text-slate-600 dark:text-slate-400">{{ summary }}</p>
 
     <div class="flex items-center gap-2 text-sm">
       <component
@@ -29,8 +29,8 @@ const pageLinks = computed(() => links.value.filter((link) => !link.label.includ
         :href="prevLink?.url || undefined"
         class="inline-flex min-w-14 items-center justify-center rounded-xl border px-4 py-2 font-medium transition"
         :class="prevLink?.url
-          ? 'border-slate-700 bg-slate-800/80 text-slate-300 hover:border-slate-500 hover:bg-slate-800'
-          : 'cursor-not-allowed border-slate-700 bg-slate-800/40 text-slate-500 opacity-70'"
+          ? 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800/80 dark:text-slate-300 dark:hover:border-gray-500 dark:hover:bg-gray-800'
+          : 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 opacity-70 dark:border-gray-700 dark:bg-gray-800/40 dark:text-slate-500'"
       >
         {{ $t("Prev") }}
       </component>
@@ -44,8 +44,8 @@ const pageLinks = computed(() => links.value.filter((link) => !link.label.includ
         :class="link.active
           ? 'border-blue-500 bg-blue-600 text-white shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
           : link.url
-            ? 'border-slate-700 bg-slate-800/80 text-slate-300 hover:border-slate-500 hover:bg-slate-800'
-            : 'cursor-default border-slate-700 bg-slate-800/40 text-slate-500 opacity-70'"
+            ? 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800/80 dark:text-slate-300 dark:hover:border-gray-500 dark:hover:bg-gray-800'
+            : 'cursor-default border-slate-200 bg-slate-50 text-slate-400 opacity-70 dark:border-gray-700 dark:bg-gray-800/40 dark:text-slate-500'"
       >
         {{ link.label }}
       </component>
@@ -55,8 +55,8 @@ const pageLinks = computed(() => links.value.filter((link) => !link.label.includ
         :href="nextLink?.url || undefined"
         class="inline-flex min-w-14 items-center justify-center rounded-xl border px-4 py-2 font-medium transition"
         :class="nextLink?.url
-          ? 'border-slate-700 bg-slate-800/80 text-slate-300 hover:border-slate-500 hover:bg-slate-800'
-          : 'cursor-not-allowed border-slate-700 bg-slate-800/40 text-slate-500 opacity-70'"
+          ? 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800/80 dark:text-slate-300 dark:hover:border-gray-500 dark:hover:bg-gray-800'
+          : 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 opacity-70 dark:border-gray-700 dark:bg-gray-800/40 dark:text-slate-500'"
       >
         {{ $t("Next") }}
       </component>

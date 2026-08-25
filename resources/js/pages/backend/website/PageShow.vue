@@ -36,7 +36,6 @@ const breadcrumbs = [
             </dl>
           </div>
           <div class="flex flex-col gap-2">
-            <Link :href="`/dashboard/website/pages/${pageData.id}/preview`" class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">{{ $t('Preview Public Page') }}</Link>
             <Link :href="`/dashboard/website/pages/${pageData.id}/edit`" class="rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-blue-700">{{ $t('Edit Page') }}</Link>
           </div>
         </aside>
