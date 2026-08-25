@@ -16,7 +16,10 @@ use stdClass;
 
 class InstructorClassService
 {
-    public const ATTENDANCE_STATUSES = ['absent', 'present', 'permission'];
+    // 'on_leave' is system-written (auto-record / official-leave approval) but also
+    // selectable here so an instructor tracking attendance manually can record the
+    // office-approved leave day without marking the student absent or burning permission.
+    public const ATTENDANCE_STATUSES = ['absent', 'present', 'permission', 'on_leave'];
     public const ATTENDANCE_WINDOW_REASON_NO_SESSION = 'no_session';
     public const ATTENDANCE_WINDOW_REASON_BEFORE_START = 'before_start';
     public const ATTENDANCE_WINDOW_REASON_AFTER_DEADLINE = 'after_deadline';
@@ -101,6 +104,7 @@ class InstructorClassService
     {
         $attendanceStats = $this->attendanceStats($studyClassId);
         $todayAttendance = $this->todayAttendance($studyClassId);
+        $officialLeavesToday = $this->officialLeavesToday($studyClassId);
 
         return DB::table('student_enrollments')
             ->join('students', 'students.id', '=', 'student_enrollments.student_id')
@@ -127,6 +131,7 @@ class InstructorClassService
                 $index + 1,
                 $attendanceStats->get($student->id),
                 $todayAttendance->get($student->id),
+                $officialLeavesToday->get($student->id),
             ));
     }
 
@@ -195,6 +200,29 @@ class InstructorClassService
             }
 
             $this->assertAttendanceWindowOpen($session);
+
+            // Official leave overrides everything: an approved leave covering the
+            // attendance date locks the student's row — "absent" is never allowed.
+            $blockedNames = DB::table('official_leaves')
+                ->whereIn('student_id', $enrollments->keys())
+                ->where('status', 'approved')
+                ->whereDate('start_date', '<=', $attendanceDate)
+                ->whereDate('end_date', '>=', $attendanceDate)
+                ->pluck('student_id')
+                ->filter(function ($studentId) use ($data) {
+                    $record = collect($data['records'])
+                        ->first(fn ($record) => (int) $record['student_id'] === (int) $studentId);
+
+                    return $record !== null && ($record['status'] ?? '') === 'absent';
+                })
+                ->map(fn ($studentId) => Student::query()->find($studentId)?->full_name ?? "#{$studentId}")
+                ->all();
+
+            if ($blockedNames !== []) {
+                throw ValidationException::withMessages([
+                    'records' => 'Official leave approved for '.implode(', ', array_slice($blockedNames, 0, 3)).' — these students cannot be marked absent.',
+                ]);
+            }
 
             foreach ($data['records'] as $record) {
                 $enrollmentId = (int) $record['enrollment_id'];
@@ -482,6 +510,7 @@ class InstructorClassService
                 DB::raw("sum(case when status = 'present' then 1 else 0 end) as present"),
                 DB::raw("sum(case when status = 'permission' then 1 else 0 end) as permission_count"),
                 DB::raw("sum(case when status = 'absent' then 1 else 0 end) as absent"),
+                DB::raw("sum(case when status = 'on_leave' then 1 else 0 end) as on_leave_count"),
             ])
             ->groupBy('student_id')
             ->get()
@@ -497,7 +526,7 @@ class InstructorClassService
             ->keyBy('student_id');
     }
 
-    private function presentStudent(stdClass $student, int $rosterNo, ?stdClass $attendanceStats = null, ?stdClass $todayAttendance = null): array
+    private function presentStudent(stdClass $student, int $rosterNo, ?stdClass $attendanceStats = null, ?stdClass $todayAttendance = null, ?object $officialLeave = null): array
     {
         return [
             'id' => $student->id,
@@ -508,12 +537,17 @@ class InstructorClassService
             'gender' => $student->gender ?? '-',
             'phone' => $student->phone ?? '-',
             'date_of_birth' => $student->date_of_birth ? Carbon::parse($student->date_of_birth)->format('Y-m-d') : null,
+            'on_leave' => $officialLeave !== null,
+            'on_leave_range' => $officialLeave
+                ? Carbon::parse($officialLeave->start_date)->format('M j').' - '.Carbon::parse($officialLeave->end_date)->format('M j')
+                : null,
             'attendance' => [
                 'total' => (int) ($attendanceStats->total ?? 0),
                 'present' => (int) ($attendanceStats->present ?? 0),
                 'permission' => (int) ($attendanceStats->permission_count ?? 0),
                 'absent' => (int) ($attendanceStats->absent ?? 0),
-                'current_status' => $todayAttendance->status ?? 'absent',
+                'on_leave' => (int) ($attendanceStats->on_leave_count ?? 0),
+                'current_status' => $todayAttendance->status ?? ($officialLeave ? 'on_leave' : 'absent'),
                 'note' => $todayAttendance->note ?? '',
             ],
             'scores' => [
@@ -522,6 +556,27 @@ class InstructorClassService
                 'exam' => (float) ($student->exam_score ?? 0),
             ],
         ];
+    }
+
+    /**
+     * Approved official leaves covering today for this class's students — the source
+     * of the "On Leave" lock in the attendance UI and saveAttendance's absent guard.
+     */
+    private function officialLeavesToday(int $studyClassId): Collection
+    {
+        $today = Carbon::today('Asia/Phnom_Penh')->toDateString();
+
+        return DB::table('official_leaves')
+            ->whereIn('student_id', fn ($query) => $query
+                ->select('se.student_id')
+                ->from('student_enrollments as se')
+                ->whereColumn('se.study_class_id', $studyClassId)
+                ->where('se.enrollment_status', 'active'))
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->get(['student_id', 'start_date', 'end_date'])
+            ->keyBy('student_id');
     }
 
     public function saveScores(int $studyClassId, array $records): void

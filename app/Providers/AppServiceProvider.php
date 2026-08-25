@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\OfficialLeave;
 use App\Models\User;
+use App\Modules\OfficialLeave\Policies\OfficialLeavePolicy;
 use App\Modules\User\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -29,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // URL::forceScheme('https');
         Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(OfficialLeave::class, OfficialLeavePolicy::class);
 
         RateLimiter::for('login', function (Request $request): Limit {
             $login = trim((string) ($request->input('login') ?? $request->input('email') ?? ''));

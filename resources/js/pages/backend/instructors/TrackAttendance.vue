@@ -120,6 +120,12 @@ const statuses = [
     button: "border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300",
     active: "border-amber-500 bg-amber-500 text-white shadow-sm dark:border-amber-400 dark:bg-amber-500 dark:text-white",
   },
+  {
+    value: "on_leave",
+    label: "On Leave",
+    button: "border-violet-200 bg-violet-50 text-violet-700 hover:border-violet-300 hover:bg-violet-100 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300",
+    active: "border-violet-500 bg-violet-600 text-white shadow-sm dark:border-violet-400 dark:bg-violet-500 dark:text-white",
+  },
 ];
 
 const toast = useToast();
@@ -143,9 +149,14 @@ const totals = computed(() => {
   return {
     present: values.filter((value) => value === "present").length,
     permission: values.filter((value) => value === "permission").length,
+    on_leave: values.filter((value) => value === "on_leave").length,
     absent: values.filter((value) => value === "absent").length,
   };
 });
+
+// Official leave overrides attendance: the absent button is locked for these
+// students and they default to On Leave instead.
+const isAbsentLocked = (student) => Boolean(student.on_leave);
 
 const submit = () => {
   if (locked.value) {
@@ -235,7 +246,7 @@ const submit = () => {
         Attendance has already been submitted for this class today. You can view the saved result, but cannot track again today.
       </div>
 
-      <div class="grid gap-3 sm:grid-cols-3">
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
           <p class="text-xs font-black uppercase tracking-[0.14em]">Present</p>
           <p class="mt-1 text-3xl font-black">{{ totals.present }}</p>
@@ -243,6 +254,10 @@ const submit = () => {
         <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
           <p class="text-xs font-black uppercase tracking-[0.14em]">Permission</p>
           <p class="mt-1 text-3xl font-black">{{ totals.permission }}</p>
+        </div>
+        <div class="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300">
+          <p class="text-xs font-black uppercase tracking-[0.14em]">On Leave 🔒</p>
+          <p class="mt-1 text-3xl font-black">{{ totals.on_leave }}</p>
         </div>
         <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
           <p class="text-xs font-black uppercase tracking-[0.14em]">Absent</p>
@@ -278,6 +293,12 @@ const submit = () => {
                 </td>
                 <td class="border-b border-slate-100 px-4 py-4 dark:border-gray-800">
                   <p class="font-black text-slate-950 dark:text-gray-100">{{ student.name }}</p>
+                  <p
+                    v-if="student.on_leave"
+                    class="mt-1 inline-flex items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-black text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300"
+                  >
+                    On Leave 🔒 {{ student.on_leave_range ? `(${student.on_leave_range})` : "" }}
+                  </p>
                 </td>
                 <td class="border-b border-slate-100 px-4 py-4 dark:border-gray-800">
                   <div class="flex flex-wrap justify-center gap-2">
@@ -285,12 +306,14 @@ const submit = () => {
                       v-for="status in statuses"
                       :key="status.value"
                       type="button"
-                      :disabled="attendance[student.id] === status.value || locked"
+                      :disabled="attendance[student.id] === status.value || locked || (status.value === 'absent' && isAbsentLocked(student))"
+                      :title="status.value === 'absent' && isAbsentLocked(student) ? 'Official leave approved — cannot mark absent' : null"
                       :class="[
                         'h-10 rounded-lg border px-3 text-xs font-black transition disabled:cursor-not-allowed',
                         attendance[student.id] === status.value
                           ? status.active
                           : status.button,
+                        status.value === 'absent' && isAbsentLocked(student) ? 'opacity-40' : '',
                       ]"
                       @click="attendance[student.id] = status.value"
                     >

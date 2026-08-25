@@ -10,6 +10,7 @@ import * as instructorScheduleBlocks from "./instructorScheduleBlocks";
 import * as schedule from "./schedule";
 import * as loginSecurity from "./loginSecurity";
 import * as attendanceSettings from "./attendanceSettings";
+import * as officialLeave from "./officialLeave";
 import * as website from "./website";
 
 export const menuDomains = [
@@ -26,4 +27,5 @@ export const menuDomains = [
   schedule,
   loginSecurity,
   attendanceSettings,
+  officialLeave,
 ];

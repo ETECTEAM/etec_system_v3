@@ -6,6 +6,7 @@ use App\Models\ClassSession;
 use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
 use App\Modules\Attendance\Queries\HasApprovedPermission;
+use App\Modules\OfficialLeave\Queries\HasApprovedOfficialLeave;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +18,10 @@ use Illuminate\Support\Facades\DB;
  */
 class AutoRecordSession
 {
-    public function __construct(private readonly HasApprovedPermission $hasApprovedPermission) {}
+    public function __construct(
+        private readonly HasApprovedPermission $hasApprovedPermission,
+        private readonly HasApprovedOfficialLeave $hasApprovedOfficialLeave,
+    ) {}
 
     public function handle(int $sessionId): void
     {
@@ -60,6 +64,15 @@ class AutoRecordSession
             $defaultStatus = in_array($defaultStatus, ['present', 'pending'], true) ? $defaultStatus : 'present';
 
             foreach ($enrollments as $enrollment) {
+                // Official leave outranks everything: it never becomes a permission
+                // (so it never burns quota or converts toward blocks) — it records
+                // its own status.
+                if ($this->hasApprovedOfficialLeave->handle($enrollment->student_id, $session->session_date)) {
+                    $this->insertAttendance($session, $enrollment, 'on_leave');
+
+                    continue;
+                }
+
                 $onLeave = $this->hasApprovedPermission->handle(
                     $enrollment->student_id,
                     $session->study_class_id,
