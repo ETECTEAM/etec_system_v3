@@ -2,6 +2,7 @@
 
 namespace App\Modules\Enroll\Actions;
 
+use App\Models\CourseEnrollConfig;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Modules\Enroll\Services\StudentRegistrationService;
@@ -36,7 +37,8 @@ class MoveStudentEnrollment
 
             $sourceClassId = $enrollment->study_class_id;
             $amountPaid = (float) $enrollment->amount_paid;
-            $totalDue = (float) $targetClass->price + (float) $targetClass->document_price;
+            $resolved = $this->resolveClassPrice($targetClass);
+            $totalDue = $resolved['price'] + $resolved['document_price'];
 
             $moved = $this->enrollStudent->handle($targetClass, $enrollment->student_id, $force, [
                 'source' => $enrollment->source,
@@ -70,13 +72,14 @@ class MoveStudentEnrollment
         // from this specific class's price, so payment_status is recomputed
         // against the amount already paid rather than left as-is.
         $amountPaid = (float) $enrollment->amount_paid;
-        $totalDue = (float) $class->price + (float) $class->document_price;
+        $resolved = $this->resolveClassPrice($class);
+        $totalDue = $resolved['price'] + $resolved['document_price'];
 
         $enrollment->update([
             'study_class_id' => $class->id,
             'enrollment_status' => 'active',
-            'fee_amount' => $class->price,
-            'document_fee_amount' => $class->document_price,
+            'fee_amount' => $resolved['price'],
+            'document_fee_amount' => $resolved['document_price'],
             'payment_status' => $this->paymentStatus($amountPaid, $totalDue),
             'no_room_and_instructor' => false,
             'no_instructor' => false,
@@ -84,6 +87,24 @@ class MoveStudentEnrollment
         ]);
 
         return (object) $enrollment->fresh()->toArray();
+    }
+
+    private function resolveClassPrice(stdClass|StudyClass $class): array
+    {
+        $query = CourseEnrollConfig::where('course_id', $class->course_id);
+
+        if ($class->time_id !== null) {
+            $query->where('time_id', $class->time_id);
+        } else {
+            $query->whereNull('time_id');
+        }
+
+        $config = $query->first();
+
+        return [
+            'price' => $config?->resolvedPrice() ?? (float) $class->price,
+            'document_price' => $config !== null ? (float) $config->document_price : (float) $class->document_price,
+        ];
     }
 
     // A move is the only action that can leave a class with zero active

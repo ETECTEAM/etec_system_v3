@@ -2,6 +2,7 @@
 
 namespace App\Modules\Enroll\Queries;
 
+use App\Models\CourseEnrollConfig;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Models\Term;
@@ -127,6 +128,12 @@ class GetClassList
         $classTypeLabel = $studyClass->classType?->type_name
             ?? ($classTypeValue === 'online' ? 'Online Class' : 'Physical Class');
 
+        $config = $this->resolveEnrollConfig($studyClass);
+        $resolvedPrice = $config?->resolvedPrice() ?? (float) $studyClass->price;
+        $resolvedDocumentPrice = $config !== null
+            ? (float) $config->document_price
+            : (float) $studyClass->document_price;
+
         return [
             'id' => $studyClass->id,
             'title' => $studyClass->title,
@@ -149,8 +156,11 @@ class GetClassList
             'end_time' => $this->formatTime($studyClass->scheduleEndTime()),
             'time' => $this->formatTime($studyClass->scheduleStartTime()).' - '.$this->formatTime($studyClass->scheduleEndTime()),
             'capacity' => $capacity,
-            'price' => (float) $studyClass->price,
-            'document_price' => (float) $studyClass->document_price,
+            'price' => $resolvedPrice,
+            'document_price' => $resolvedDocumentPrice,
+            'resolved_price' => $resolvedPrice,
+            'resolved_document_price' => $resolvedDocumentPrice,
+            'selected_price_type' => $config?->selected_price_type ?? CourseEnrollConfig::PRICE_TYPE_COURSE,
             'enrollment_start_date' => optional($studyClass->enrollment_start_date)->format('Y-m-d'),
             'start_date' => optional($studyClass->start_date)->format('Y-m-d'),
             'end_date' => optional($studyClass->end_date)->format('Y-m-d'),
@@ -160,6 +170,19 @@ class GetClassList
             'filled_percentage' => $filledPercentage,
             'notifications' => 0,
         ];
+    }
+
+    private function resolveEnrollConfig(StudyClass $studyClass): ?CourseEnrollConfig
+    {
+        $query = CourseEnrollConfig::where('course_id', $studyClass->course_id);
+
+        if ($studyClass->time_id !== null) {
+            $query->where('time_id', $studyClass->time_id);
+        } else {
+            $query->whereNull('time_id');
+        }
+
+        return $query->first();
     }
 
     private function summary(): array

@@ -28,12 +28,25 @@ echo "==> Installing dependencies and building assets"
 docker compose -f "${COMPOSE_FILE}" run --rm --no-deps app sh -c \
   "composer install --no-dev --optimize-autoloader --no-interaction && npm ci && npm run build"
 
-echo "==> Clearing any stale/orphaned containers"
-docker compose -f "${COMPOSE_FILE}" rm -f app reverb queue scheduler nginx 2>/dev/null || true
-
 echo "==> Recreating containers"
+# `up --force-recreate` stops+removes+creates each container in one compose
+# call. Docker's container removal is asynchronous under the hood (the
+# daemon returns before overlay/volume cleanup finishes), so a container
+# recreated too soon after being removed can fail with "removal of
+# container ... is already in progress". A separate `rm -f` step right
+# before this loop used to trigger exactly that race every deploy; retrying
+# here instead rides it out.
 for svc in app reverb queue scheduler; do
-  docker compose -f "${COMPOSE_FILE}" up -d --force-recreate --no-deps "${svc}"
+  attempt=1
+  until docker compose -f "${COMPOSE_FILE}" up -d --force-recreate --no-deps "${svc}"; do
+    if [ "$attempt" -ge 10 ]; then
+      echo "ERROR: could not recreate ${svc} after ${attempt} attempts"
+      exit 1
+    fi
+    echo "    ${svc}: container removal still in progress, retrying (${attempt})..."
+    attempt=$((attempt + 1))
+    sleep 3
+  done
   sleep 2
 done
 

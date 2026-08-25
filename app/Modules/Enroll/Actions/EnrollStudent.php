@@ -2,6 +2,7 @@
 
 namespace App\Modules\Enroll\Actions;
 
+use App\Models\CourseEnrollConfig;
 use App\Models\StudyClass;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use Illuminate\Support\Facades\DB;
@@ -28,12 +29,29 @@ class EnrollStudent
                 $this->registrations->ensureClassHasSeat($class);
             }
 
+            $config = $this->resolveEnrollConfig($class);
+            $resolvedFee = $config?->resolvedPrice() ?? (float) $class->price;
+            $resolvedDocFee = $config !== null ? (float) $config->document_price : (float) $class->document_price;
+
             return $this->registrations->createEnrollment(array_merge($overrides, [
                 'study_class_id' => $class->id,
                 'student_id' => $studentId,
-                'fee_amount' => $class->price,
-                'document_fee_amount' => $class->document_price,
+                'fee_amount' => $resolvedFee,
+                'document_fee_amount' => $resolvedDocFee,
             ]));
         });
+    }
+
+    private function resolveEnrollConfig(stdClass $class): ?CourseEnrollConfig
+    {
+        $query = CourseEnrollConfig::where('course_id', $class->course_id);
+
+        if ($class->time_id !== null) {
+            $query->where('time_id', $class->time_id);
+        } else {
+            $query->whereNull('time_id');
+        }
+
+        return $query->first();
     }
 }

@@ -74,7 +74,7 @@ function totalAmount() {
 }
 
 function courseFeeAmount() {
-  return Number(props.classData?.price ?? props.student?.fee_amount ?? props.classData?.course_price ?? 0);
+  return Number(props.classData?.resolved_price ?? props.classData?.price ?? props.student?.fee_amount ?? props.classData?.course_price ?? 0);
 }
 
 function documentFeeAmount() {

@@ -5,6 +5,7 @@ namespace App\Modules\Enroll\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Building;
 use App\Models\Course;
+use App\Models\CourseEnrollConfig;
 use App\Models\Floor;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
@@ -473,6 +474,10 @@ class EnrollmentClassController extends Controller
 
     private function presentClassData(StudyClass $studyClass): array
     {
+        $config = $this->resolveEnrollConfig($studyClass);
+        $resolvedPrice = $config?->resolvedPrice() ?? (float) $studyClass->price;
+        $resolvedDocumentPrice = $config !== null ? (float) $config->document_price : (float) $studyClass->document_price;
+
         return [
             'title' => $studyClass->title,
             'course_id' => $studyClass->course_id,
@@ -490,12 +495,25 @@ class EnrollmentClassController extends Controller
             'start_time' => $this->formatTime($studyClass->scheduleStartTime()),
             'end_time' => $this->formatTime($studyClass->scheduleEndTime()),
             'capacity' => $studyClass->capacity,
-            'price' => round((float) $studyClass->price, 2),
-            'document_price' => round((float) $studyClass->document_price, 2),
+            'price' => $resolvedPrice,
+            'document_price' => $resolvedDocumentPrice,
             'enrollment_start_date' => $studyClass->enrollment_start_date?->format('Y-m-d'),
             'start_date' => $studyClass->start_date?->format('Y-m-d'),
             'end_date' => $studyClass->end_date?->format('Y-m-d'),
         ];
+    }
+
+    private function resolveEnrollConfig(StudyClass $studyClass): ?\App\Models\CourseEnrollConfig
+    {
+        $query = \App\Models\CourseEnrollConfig::where('course_id', $studyClass->course_id);
+
+        if ($studyClass->time_id !== null) {
+            $query->where('time_id', $studyClass->time_id);
+        } else {
+            $query->whereNull('time_id');
+        }
+
+        return $query->first();
     }
 
     private function approvePendingEnrollment(StudentEnrollment $enrollment, StudentRegistrationService $registrations): void
