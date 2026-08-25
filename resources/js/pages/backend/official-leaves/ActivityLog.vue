@@ -1,206 +1,115 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue'
-import { Head } from '@inertiajs/vue3'
-import axios from 'axios'
-import { History } from '@lucide/vue'
-import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
-import { EmptyState } from '../../../components/ui/empty-state'
-import { PageHero } from '../../../components/ui/page-hero'
-import { Pagination } from '../../../components/ui/pagination'
-import { SelectSearch } from '../../../components/ui/select-search'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table'
-import DashboardLayout from '../../../layouts/DashboardLayout.vue'
-import { useI18n } from '@/i18n'
-
-const props = defineProps({
-  actions: {
-    type: Array,
-    default: () => [],
-  },
-})
+import DashboardLayout from '@/layouts/DashboardLayout.vue'
+import { router } from '@inertiajs/vue3'
+import { ref, watch, onMounted } from 'vue'
+import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
+import PageHero from '../../../components/ui/page-hero/PageHero.vue'
+import { useI18n } from '../../../i18n'
 
 const { t } = useI18n()
+const logs = ref({ data: [], links: [], from: 0, to: 0, total: 0 })
+const loading = ref(true)
+const actionFilter = ref('')
+const startDate = ref('')
+const endDate = ref('')
+let timeout = null
+
+const actionColors = {
+  approved: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+  rejected: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+  revoked: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+  setting_updated: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+}
+
+async function fetchLogs(page = 1) {
+  loading.value = true
+  const params = new URLSearchParams()
+  if (actionFilter.value) params.set('action', actionFilter.value)
+  if (startDate.value) params.set('start_date', startDate.value)
+  if (endDate.value) params.set('end_date', endDate.value)
+  params.set('page', page)
+  try {
+    const res = await fetch(`/dashboard/official-leaves/activity-log/data?${params.toString()}`)
+    const data = await res.json()
+    logs.value = data.logs
+  } catch { logs.value = { data: [], links: [], from: 0, to: 0, total: 0 } }
+  finally { loading.value = false }
+}
+
+function applyFilters() { clearTimeout(timeout); timeout = setTimeout(() => fetchLogs(1), 400) }
+watch([actionFilter, startDate, endDate], applyFilters)
+onMounted(() => fetchLogs())
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Official Leave', href: '/dashboard/official-leaves' },
   { label: 'Activity Log', current: true },
 ]
-
-const actionFilter = ref('')
-const dateFrom = ref('')
-const dateTo = ref('')
-
-const logs = ref([])
-const pagination = ref({ current_page: 1, last_page: 1, per_page: 15, total: 0 })
-const isLoading = ref(false)
-const hasLoaded = ref(false)
-const expandedId = ref(null)
-
-const actionOptions = props.actions.map((action) => ({ value: action, label: action }))
-
-async function fetchLogs(pageNumber = 1) {
-  isLoading.value = true
-
-  try {
-    const params = { page: pageNumber, per_page: 15 }
-
-    if (actionFilter.value) params.action = actionFilter.value
-    if (dateFrom.value) params.date_from = dateFrom.value
-    if (dateTo.value) params.date_to = dateTo.value
-
-    const response = await axios.get('/dashboard/official-leaves/activity-log/data', { params })
-
-    logs.value = response.data.data ?? []
-    pagination.value = {
-      current_page: response.data.current_page ?? 1,
-      last_page: response.data.last_page ?? 1,
-      per_page: response.data.per_page ?? 15,
-      total: response.data.total ?? 0,
-    }
-  } catch (error) {
-    console.error('Failed to fetch activity log', error)
-  } finally {
-    hasLoaded.value = true
-    isLoading.value = false
-  }
-}
-
-function toggleRow(log) {
-  expandedId.value = expandedId.value === log.id ? null : log.id
-}
-
-function formatDateTime(value) {
-  if (!value) return '-'
-
-  return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-}
-
-// Compact labels for the audit action verbs.
-function actionLabel(action) {
-  const map = {
-    'qr.generated': t('QR generated'),
-    'leave.submitted': t('Leave submitted'),
-    'leave.approved': t('Leave approved'),
-    'leave.rejected': t('Leave rejected'),
-    'leave.revoked': t('Leave revoked'),
-    'leave.deleted': t('Leave deleted'),
-    'settings.updated': t('Settings updated'),
-  }
-
-  return map[action] ?? action
-}
-
-watch([actionFilter, dateFrom, dateTo], () => fetchLogs(1))
-
-onMounted(() => fetchLogs())
 </script>
 
 <template>
-  <Head :title="$t('Activity Log')" />
-
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero
-        eyebrow="Official Leave"
-        :title="$t('Activity Log')"
-        :description="$t('Every decision and change in the official-leave feature, with before/after values.')"
-      />
+      <PageHero eyebrow="Super Admin" :title="$t('Activity Log')" :description="$t('Audit trail of all leave-related actions.')" />
 
-      <!-- Filters -->
-      <div class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:grid-cols-3">
-        <SelectSearch v-model="actionFilter" :options="actionOptions" :placeholder="$t('All actions')" searchable />
-
-        <div class="flex items-center gap-2 sm:col-span-2">
-          <input
-            v-model="dateFrom"
-            type="date"
-            class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold outline-none transition focus:border-blue-400 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-          />
-          <span class="text-xs font-black text-slate-400">–</span>
-          <input
-            v-model="dateTo"
-            type="date"
-            class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold outline-none transition focus:border-blue-400 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-          />
-        </div>
-      </div>
-
-      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div v-if="isLoading && !hasLoaded" class="space-y-3 p-6">
-          <div v-for="i in 6" :key="i" class="h-10 animate-pulse rounded-lg bg-slate-100 dark:bg-gray-800" />
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800">
+        <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-end">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 dark:text-gray-400 mb-1">{{ $t('Action') }}</label>
+              <select v-model="actionFilter" class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
+                <option value="">{{ $t('All') }}</option>
+                <option value="approved">{{ $t('Approved') }}</option>
+                <option value="rejected">{{ $t('Rejected') }}</option>
+                <option value="revoked">{{ $t('Revoked') }}</option>
+                <option value="setting_updated">{{ $t('Setting Updated') }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 dark:text-gray-400 mb-1">{{ $t('From') }}</label>
+              <input v-model="startDate" type="date" class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 dark:text-gray-400 mb-1">{{ $t('To') }}</label>
+              <input v-model="endDate" type="date" class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
+            </div>
+          </div>
         </div>
 
-        <EmptyState
-          v-else-if="hasLoaded && !logs.length"
-          :icon="History"
-          :title="'No activity yet'"
-          :description="'Audit rows appear here as soon as leaves are requested or decided.'"
-        />
-
-        <Table v-else>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{{ $t('When') }}</TableHead>
-              <TableHead>{{ $t('Action') }}</TableHead>
-              <TableHead>{{ $t('By') }}</TableHead>
-              <TableHead class="text-center">{{ $t('Leave') }}</TableHead>
-              <TableHead>{{ $t('IP address') }}</TableHead>
-              <TableHead class="text-right">{{ $t('Details') }}</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            <template v-for="log in logs" :key="log.id">
-              <TableRow>
-                <TableCell class="whitespace-nowrap text-xs font-semibold text-slate-500 dark:text-gray-400">{{ formatDateTime(log.created_at) }}</TableCell>
-                <TableCell>
-                  <span class="inline-flex rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                    {{ actionLabel(log.action) }}
-                  </span>
-                </TableCell>
-                <TableCell class="text-sm font-bold text-slate-900 dark:text-gray-100">{{ log.user }}</TableCell>
-                <TableCell class="whitespace-nowrap text-center text-xs font-semibold text-slate-500 dark:text-gray-400">
-                  {{ log.leave_id ? `#${log.leave_id}${log.student_name ? ` · ${log.student_name}` : ''}` : '-' }}
-                </TableCell>
-                <TableCell class="font-mono text-xs font-medium text-slate-400">{{ log.ip ?? '-' }}</TableCell>
-                <TableCell class="text-right">
-                  <button
-                    type="button"
-                    class="rounded-lg px-3 py-1.5 text-xs font-bold text-blue-600 transition hover:bg-blue-50 dark:hover:bg-blue-500/10"
-                    @click="toggleRow(log)"
-                  >
-                    {{ expandedId === log.id ? $t('Hide') : $t('View') }}
-                  </button>
-                </TableCell>
-              </TableRow>
-
-              <tr v-if="expandedId === log.id">
-                <td colspan="6" class="bg-slate-50 px-4 py-4 dark:bg-gray-950">
-                  <div class="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <p class="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">Before</p>
-                      <pre class="mt-1 overflow-x-auto rounded-lg border border-slate-200 bg-white p-3 text-[11px] leading-relaxed text-slate-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">{{ JSON.stringify(log.before, null, 2) || '—' }}</pre>
-                    </div>
-                    <div>
-                      <p class="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">After</p>
-                      <pre class="mt-1 overflow-x-auto rounded-lg border border-slate-200 bg-white p-3 text-[11px] leading-relaxed text-slate-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">{{ JSON.stringify(log.after, null, 2) || '—' }}</pre>
-                    </div>
-                  </div>
-                </td>
+        <div class="relative overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-800">
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('User') }}</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('Action') }}</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('Student') }}</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('Details') }}</th>
+                <th class="px-6 py-3 text-left text-slate-600 dark:text-gray-300">{{ $t('Date') }}</th>
               </tr>
-            </template>
-          </TableBody>
-        </Table>
+            </thead>
+            <tbody>
+              <tr v-for="log in logs.data" :key="log.id" class="border-t border-slate-200 hover:bg-slate-50 dark:border-gray-800 dark:hover:bg-gray-800">
+                <td class="px-6 py-4 font-medium text-slate-900 dark:text-gray-100">{{ log.user?.name ?? 'System' }}</td>
+                <td class="px-6 py-4"><span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold" :class="actionColors[log.action] ?? 'bg-gray-100 text-gray-800'">{{ log.action }}</span></td>
+                <td class="px-6 py-4 text-slate-600 dark:text-gray-400">{{ log.leave?.student?.full_name ?? '-' }}</td>
+                <td class="px-6 py-4 text-xs text-slate-600 dark:text-gray-400 max-w-xs">
+                  <div v-if="log.before"><span class="font-medium">{{ $t('Before:') }}</span> <pre class="whitespace-pre-wrap text-xs">{{ JSON.stringify(log.before) }}</pre></div>
+                  <div v-if="log.after" class="mt-1"><span class="font-medium">{{ $t('After:') }}</span> <pre class="whitespace-pre-wrap text-xs">{{ JSON.stringify(log.after) }}</pre></div>
+                </td>
+                <td class="px-6 py-4 text-slate-500 dark:text-gray-400 text-xs">{{ log.created_at }}</td>
+              </tr>
+              <tr v-if="!logs.data?.length && !loading">
+                <td colspan="5" class="py-10 text-center text-slate-500 dark:text-gray-400">{{ $t('No activity logs found.') }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-        <div v-if="pagination.last_page > 1" class="border-t border-slate-100 py-4 dark:border-gray-800">
-          <Pagination
-            :current-page="pagination.current_page"
-            :last-page="pagination.last_page"
-            :disabled="isLoading"
-            @page-change="fetchLogs"
-          />
+        <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
+          <p class="text-sm text-slate-500 dark:text-gray-400">{{ $t('Showing :from-:to of :total', { from: logs.from, to: logs.to, total: logs.total }) }}</p>
+          <div class="flex flex-wrap gap-2 text-sm">
+            <button v-for="link in logs.links" :key="link.label" @click="link.url && fetchLogs(new URL(link.url).searchParams.get('page') || 1)" class="px-3 py-2 rounded-lg border text-sm transition dark:border-gray-700 dark:text-gray-300" :class="{ 'bg-blue-600 text-white border-blue-600': link.active, 'hover:bg-gray-100 dark:hover:bg-gray-800': !link.active, 'opacity-40 pointer-events-none': !link.url }" v-html="link.label" />
+          </div>
         </div>
       </div>
     </section>

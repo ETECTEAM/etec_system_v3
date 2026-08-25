@@ -1,200 +1,99 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { Head, router } from '@inertiajs/vue3'
-import { BarChart3, CalendarClock, GraduationCap, RefreshCw } from '@lucide/vue'
-import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
-import { EmptyState } from '../../../components/ui/empty-state'
-import { PageHero } from '../../../components/ui/page-hero'
-import DashboardLayout from '../../../layouts/DashboardLayout.vue'
-import { useI18n } from '@/i18n'
-
-const props = defineProps({
-  monthly: {
-    type: Array,
-    default: () => [],
-  },
-  perCourse: {
-    type: Array,
-    default: () => [],
-  },
-  topPermissionUsers: {
-    type: Array,
-    default: () => [],
-  },
-  onLeaveToday: {
-    type: Array,
-    default: () => [],
-  },
-})
+import DashboardLayout from '@/layouts/DashboardLayout.vue'
+import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
+import PageHero from '../../../components/ui/page-hero/PageHero.vue'
+import { ref, onMounted } from 'vue'
+import { useI18n } from '../../../i18n'
 
 const { t } = useI18n()
+const data = ref({ leavesPerMonth: [], topStudents: [], currentlyOnLeave: [], classBreakdown: [] })
+const loading = ref(true)
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/dashboard/official-leaves/reports/data')
+    data.value = await res.json()
+  } catch { /* empty */ }
+  finally { loading.value = false }
+})
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Official Leave', href: '/dashboard/official-leaves' },
-  { label: 'Reports', current: true },
+  { label: 'Reports & Stats', current: true },
 ]
-
-const maxMonthly = computed(() => Math.max(1, ...props.monthly.map((m) => m.count)))
-const maxCourse = computed(() => Math.max(1, ...props.perCourse.map((c) => c.count)))
-
-// Quota watchlist bar width — capped at quota so over-quota doesn't overflow.
-function quotaWidth(used, quota) {
-  return `${Math.min(100, Math.round((used / Math.max(1, quota)) * 100))}%`
-}
-
-function quotaTone(used, quota) {
-  if (used >= quota) return 'bg-rose-500'
-
-  if (used >= Math.ceil(quota / 2)) return 'bg-amber-500'
-
-  return 'bg-emerald-500'
-}
-
-const refreshing = ref(false)
-
-async function refresh() {
-  refreshing.value = true
-
-  try {
-    await router.reload({ only: ['monthly', 'perCourse', 'topPermissionUsers', 'onLeaveToday'] })
-  } finally {
-    refreshing.value = false
-  }
-}
 </script>
 
 <template>
-  <Head :title="$t('Leave Reports')" />
-
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
+      <PageHero eyebrow="Super Admin" :title="$t('Reports & Statistics')" :description="$t('Official leave analytics and current leave status.')" />
 
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <PageHero
-          eyebrow="Official Leave"
-          :title="$t('Reports & Stats')"
-          :description="$t('Approved leave trends, quota watchlist, and who is off today.')"
-        />
-
-        <button
-          type="button"
-          :disabled="refreshing"
-          class="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-slate-700 px-4 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
-          @click="refresh"
-        >
-          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': refreshing }" />
-          {{ $t('Refresh') }}
-        </button>
+      <!-- Currently On Leave -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800 p-6">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-4">{{ $t('Students Currently On Leave') }}</h3>
+        <div v-if="data.currentlyOnLeave.length" class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead><tr class="border-b border-gray-200 dark:border-gray-700">
+              <th class="px-4 py-2 text-left text-slate-600 dark:text-gray-300">{{ $t('Student') }}</th>
+              <th class="px-4 py-2 text-left text-slate-600 dark:text-gray-300">{{ $t('Dates') }}</th>
+              <th class="px-4 py-2 text-left text-slate-600 dark:text-gray-300">{{ $t('Reason') }}</th>
+              <th class="px-4 py-2 text-left text-slate-600 dark:text-gray-300">{{ $t('Approved By') }}</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="leave in data.currentlyOnLeave" :key="leave.id" class="border-t border-slate-200 dark:border-gray-800">
+                <td class="px-4 py-3 font-medium text-slate-900 dark:text-gray-100">{{ leave.student?.full_name }}</td>
+                <td class="px-4 py-3 text-slate-600 dark:text-gray-400">{{ leave.start_date }} - {{ leave.end_date }}</td>
+                <td class="px-4 py-3 text-slate-600 dark:text-gray-400">{{ leave.reason }}</td>
+                <td class="px-4 py-3 text-slate-500 dark:text-gray-400">{{ leave.approver?.name ?? '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-else class="text-sm text-slate-500 dark:text-gray-400">{{ $t('No students currently on leave.') }}</p>
       </div>
 
-      <!-- On leave today -->
-      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-6">
-        <h2 class="flex items-center gap-2 text-sm font-black uppercase tracking-[0.14em] text-slate-500 dark:text-gray-400">
-          <CalendarClock class="h-4 w-4" />
-          {{ $t('On approved leave today') }}
-        </h2>
-
-        <EmptyState
-          v-if="!onLeaveToday.length"
-          class="mt-4"
-          :icon="CalendarClock"
-          :title="'Nobody on leave today'"
-          :description="'No student has an approved official leave covering today.'"
-        />
-
-        <ul v-else class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <li
-            v-for="entry in onLeaveToday"
-            :key="entry.leave_id"
-            class="rounded-xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-500/20 dark:bg-violet-500/10"
-          >
-            <p class="font-black text-slate-950 dark:text-gray-100">{{ entry.full_name }}</p>
-            <p class="mt-0.5 text-xs font-semibold text-slate-500 dark:text-gray-400">{{ entry.class ?? $t('All classes') }}</p>
-            <p class="mt-1 text-xs font-bold text-violet-700 dark:text-violet-300">{{ entry.start_date }} → {{ entry.end_date }}</p>
-          </li>
-        </ul>
+      <!-- Leaves Per Month -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800 p-6">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-4">{{ $t('Leaves Per Month') }}</h3>
+        <div v-if="data.leavesPerMonth.length" class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead><tr class="border-b border-gray-200 dark:border-gray-700">
+              <th class="px-4 py-2 text-left text-slate-600 dark:text-gray-300">{{ $t('Month') }}</th>
+              <th class="px-4 py-2 text-center text-slate-600 dark:text-gray-300">{{ $t('Total') }}</th>
+              <th class="px-4 py-2 text-center text-green-600">{{ $t('Approved') }}</th>
+              <th class="px-4 py-2 text-center text-red-600">{{ $t('Rejected') }}</th>
+              <th class="px-4 py-2 text-center text-yellow-600">{{ $t('Pending') }}</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="row in data.leavesPerMonth" :key="row.month" class="border-t border-slate-200 dark:border-gray-800">
+                <td class="px-4 py-3 font-medium text-slate-900 dark:text-gray-100">{{ row.month }}</td>
+                <td class="px-4 py-3 text-center text-slate-700 dark:text-gray-300">{{ row.total }}</td>
+                <td class="px-4 py-3 text-center text-green-600">{{ row.approved }}</td>
+                <td class="px-4 py-3 text-center text-red-600">{{ row.rejected }}</td>
+                <td class="px-4 py-3 text-center text-yellow-600">{{ row.pending }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-else class="text-sm text-slate-500 dark:text-gray-400">{{ $t('No data available.') }}</p>
       </div>
 
-      <div class="grid gap-6 lg:grid-cols-2">
-        <!-- Monthly trend -->
-        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-6">
-          <h2 class="flex items-center gap-2 text-sm font-black uppercase tracking-[0.14em] text-slate-500 dark:text-gray-400">
-            <BarChart3 class="h-4 w-4" />
-            {{ $t('Approved leaves per month') }}
-          </h2>
-
-          <EmptyState v-if="!monthly.length" class="mt-4" :icon="BarChart3" :title="'No data yet'" />
-
-          <div v-else class="mt-5 flex h-44 items-end gap-2 overflow-x-auto pb-1">
-            <div v-for="month in monthly" :key="month.month" class="flex min-w-9 flex-1 flex-col items-center gap-1">
-              <span class="text-[11px] font-black text-slate-500 dark:text-gray-400">{{ month.count }}</span>
-              <div
-                class="w-full rounded-t-md bg-blue-600 transition-all dark:bg-blue-500"
-                :style="{ height: `${Math.max(4, (month.count / maxMonthly) * 130)}px` }"
-                :title="`${month.label}: ${month.count}`"
-              />
-              <span class="whitespace-nowrap text-[10px] font-bold uppercase text-slate-400">{{ month.label.slice(0, 3) }}</span>
+      <!-- Top Students -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800 p-6">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-4">{{ $t('Top Students by Leave Usage') }}</h3>
+        <div v-if="data.topStudents.length" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div v-for="s in data.topStudents" :key="s.student_id" class="p-4 rounded-xl border border-slate-200 dark:border-gray-700">
+            <p class="font-semibold text-slate-900 dark:text-gray-100">{{ s.name }}</p>
+            <div class="mt-2 flex items-center gap-2">
+              <div class="flex-1 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div class="h-2 rounded-full transition-all" :class="s.percentage >= 75 ? 'bg-red-500' : s.percentage >= 50 ? 'bg-yellow-500' : 'bg-green-500'" :style="{ width: Math.min(s.percentage, 100) + '%' }" />
+              </div>
+              <span class="text-xs font-medium text-slate-600 dark:text-gray-400">{{ s.used }}/{{ s.quota }}</span>
             </div>
           </div>
         </div>
-
-        <!-- Per course breakdown -->
-        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-6">
-          <h2 class="flex items-center gap-2 text-sm font-black uppercase tracking-[0.14em] text-slate-500 dark:text-gray-400">
-            <GraduationCap class="h-4 w-4" />
-            {{ $t('Leaves by class / course') }}
-          </h2>
-
-          <EmptyState v-if="!perCourse.length" class="mt-4" :icon="GraduationCap" :title="'No data yet'" />
-
-          <ul v-else class="mt-5 space-y-3">
-            <li v-for="row in perCourse" :key="row.label">
-              <div class="flex items-center justify-between gap-4 text-sm font-semibold text-slate-600 dark:text-gray-300">
-                <span class="truncate">{{ row.label }}</span>
-                <span class="shrink-0 font-black">{{ row.count }}</span>
-              </div>
-              <div class="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-gray-800">
-                <div class="h-full rounded-full bg-indigo-500" :style="{ width: `${(row.count / maxCourse) * 100}%` }" />
-              </div>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Quota watchlist -->
-      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-6">
-        <h2 class="flex items-center gap-2 text-sm font-black uppercase tracking-[0.14em] text-slate-500 dark:text-gray-400">
-          <BarChart3 class="h-4 w-4" />
-          {{ $t('Top permission usage this month') }}
-        </h2>
-
-        <EmptyState
-          v-if="!topPermissionUsers.length"
-          class="mt-4"
-          :icon="BarChart3"
-          :title="'No permissions used yet this month'"
-        />
-
-        <ul v-else class="mt-5 grid gap-3 md:grid-cols-2">
-          <li
-            v-for="(student, index) in topPermissionUsers"
-            :key="student.id"
-            class="rounded-xl border border-slate-200 p-4 dark:border-gray-700"
-          >
-            <div class="flex items-center justify-between gap-3 text-sm">
-              <span class="truncate font-bold text-slate-900 dark:text-gray-100">#{{ index + 1 }} · {{ student.full_name }}</span>
-              <span class="shrink-0 font-black tabular-nums" :class="student.used >= student.quota ? 'text-rose-600' : 'text-slate-500 dark:text-gray-400'">
-                {{ student.used }}/{{ student.quota }}
-              </span>
-            </div>
-
-            <div class="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-gray-800">
-              <div class="h-full rounded-full transition-all" :class="quotaTone(student.used, student.quota)" :style="{ width: quotaWidth(student.used, student.quota) }" />
-            </div>
-          </li>
-        </ul>
+        <p v-else class="text-sm text-slate-500 dark:text-gray-400">{{ $t('No data available.') }}</p>
       </div>
     </section>
   </DashboardLayout>
