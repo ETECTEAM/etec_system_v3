@@ -67,9 +67,6 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
-echo "==> Pruning dev dependencies"
-docker compose -f "${COMPOSE_FILE}" exec -T app npm prune --omit=dev
-
 echo "==> Warming caches"
 docker compose -f "${COMPOSE_FILE}" exec -T app sh -c \
   "php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan event:cache"
@@ -84,8 +81,15 @@ if [ "$RUN_MIGRATE" = true ]; then
   docker compose -f "${COMPOSE_FILE}" exec -T app php artisan migrate --force
 fi
 
+# Hygiene only (shrinks the bind-mounted node_modules / reclaims disk) - not
+# required for the app to serve traffic, so a hiccup here must never stop the
+# script before the steps above (cache warming, nginx reload) have run.
+echo "==> Pruning dev dependencies"
+docker compose -f "${COMPOSE_FILE}" exec -T app npm prune --omit=dev || \
+  echo "    WARNING: npm prune failed/was killed, continuing anyway"
+
 echo "==> Cleaning up old images"
-docker image prune -f
+docker image prune -f || echo "    WARNING: docker image prune failed, continuing anyway"
 
 echo "==> Status:"
 docker compose -f "${COMPOSE_FILE}" ps
