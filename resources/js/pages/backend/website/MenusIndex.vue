@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { Link, router } from "@inertiajs/vue3";
-import { ChevronRight, Eye, Pencil, Plus, Search, Trash2 } from "@lucide/vue";
+import { ChevronRight, Pencil, Plus, Search, Trash2 } from "@lucide/vue";
 import DashboardLayout from "@/layouts/DashboardLayout.vue";
 import Breadcrumbs from "@/components/ui/breadcrumbs/Breadcrumbs.vue";
 import PageHero from "@/components/ui/page-hero/PageHero.vue";
@@ -157,23 +157,23 @@ function deleteMenu(menu) {
       <Breadcrumbs :items="breadcrumbs" />
       <PageHero eyebrow="Website Management" :title="$t('Menu Management')" :description="$t('Control public website navigation, menu status, and display order.')" />
 
-      <div class="overflow-hidden rounded-[26px] border border-slate-800 bg-slate-900 shadow-[0_18px_45px_rgba(15,23,42,0.28)]">
-        <div class="flex flex-col gap-5 border-b border-slate-800 px-6 py-5 lg:flex-row lg:items-start lg:justify-between">
+      <div class="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] dark:border-gray-800 dark:bg-gray-900 dark:shadow-[0_18px_45px_rgba(15,23,42,0.28)]">
+        <div class="flex flex-col gap-5 border-b border-slate-200 px-6 py-5 lg:flex-row lg:items-start lg:justify-between dark:border-gray-800">
           <div>
-            <p class="text-xs font-bold uppercase tracking-[0.32em] text-slate-400">{{ $t('Menu Directory') }}</p>
-            <p class="mt-2 text-base text-slate-300">{{ $t('Read, create, update, and reorder website menu records.') }}</p>
+            <p class="text-xs font-bold uppercase tracking-[0.32em] text-slate-500 dark:text-slate-400">{{ $t('Menu Directory') }}</p>
+            <p class="mt-2 text-base text-slate-600 dark:text-slate-300">{{ $t('Read, create, update, and reorder website menu records.') }}</p>
           </div>
           <div class="flex w-full flex-col gap-3 sm:flex-row lg:w-auto lg:items-center">
             <label class="relative block min-w-0 lg:w-72">
-              <Search class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <Search class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <input
                 v-model="search"
                 type="text"
                 :placeholder="$t('Search menus...')"
-                class="w-full rounded-2xl border border-slate-700 bg-slate-800/80 py-3 pl-11 pr-4 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-500"
+                class="w-full rounded-2xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 dark:border-gray-700 dark:bg-gray-800/80 dark:text-slate-100 dark:placeholder:text-slate-500"
               />
             </label>
-            <span v-if="isSavingOrder" class="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-300">
+            <span v-if="isSavingOrder" class="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-700 dark:text-blue-300">
               {{ $t('Saving order...') }}
             </span>
             <Link href="/dashboard/website/menus/create" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-500">
@@ -186,7 +186,7 @@ function deleteMenu(menu) {
         <div class="overflow-x-auto">
           <table class="w-full min-w-[900px] text-sm">
             <thead>
-              <tr class="border-b border-slate-700 bg-slate-800/70 text-left text-xs font-bold uppercase tracking-[0.28em] text-slate-400">
+              <tr class="border-b border-slate-200 bg-slate-50 text-left text-xs font-bold uppercase tracking-[0.28em] text-slate-500 dark:border-gray-800 dark:bg-gray-800/70 dark:text-slate-400">
                 <th class="w-14 px-4 py-4"></th>
                 <th class="px-6 py-4">{{ $t('No') }}</th>
                 <th class="px-6 py-4">{{ $t('Name') }}</th>
@@ -202,11 +202,11 @@ function deleteMenu(menu) {
                 v-for="row in menuRows"
                 :key="row.menu.id"
                 draggable="true"
-                class="cursor-move border-b border-slate-800 text-slate-200 transition hover:bg-slate-800/55"
+                class="cursor-move border-b border-slate-100 text-slate-700 transition hover:bg-slate-50 dark:border-gray-800 dark:text-slate-200 dark:hover:bg-gray-800/60"
                 :class="{
                   'opacity-50': draggedIndex === row.index,
                   'bg-blue-500/10': dragOverIndex === row.index && draggedIndex !== row.index,
-                  'bg-slate-800/35': row.depth > 0,
+                  'bg-slate-50 dark:bg-gray-800/35': row.depth > 0,
                 }"
                 @dragstart="startDrag(row.index)"
                 @dragenter.prevent="enterDrag(row.index)"
@@ -218,7 +218,7 @@ function deleteMenu(menu) {
                   <button
                     v-if="row.depth === 0 && (row.menu.children_count ?? 0) > 0"
                     type="button"
-                    class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-slate-300 transition hover:bg-slate-700"
+                    class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-slate-300 dark:hover:bg-gray-700"
                     :aria-expanded="expandedMenus[row.menu.id]"
                     :title="expandedMenus[row.menu.id] ? $t('Collapse submenu') : $t('Expand submenu')"
                     @click.stop="toggleExpand(row.menu)"
@@ -227,34 +227,34 @@ function deleteMenu(menu) {
                   </button>
                 </td>
                 <td class="px-6 py-4">
-                  <div class="flex items-center gap-3 text-slate-400">
-                    <span v-if="row.depth === 0" class="rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-bold text-slate-300">{{ row.displayPosition }}</span>
-                    <span v-else class="text-xs font-semibold text-slate-500">-</span>
+                  <div class="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                    <span v-if="row.depth === 0" class="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-gray-800 dark:text-slate-300">{{ row.displayPosition }}</span>
+                    <span v-else class="text-xs font-semibold text-slate-500 dark:text-slate-500">-</span>
                     <span class="select-none text-lg font-bold" :title="$t('Drag to reorder')">↕</span>
                   </div>
                 </td>
-                <td class="px-6 py-4 font-semibold text-white">
+                <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">
                   <div class="flex items-center gap-2" :class="row.depth > 0 ? 'pl-8' : ''">
-                    <span v-if="row.depth > 0" class="h-px w-5 shrink-0 bg-slate-600"></span>
+                    <span v-if="row.depth > 0" class="h-px w-5 shrink-0 bg-slate-300 dark:bg-slate-600"></span>
                     <span>{{ row.menu.name }}</span>
-                    <span v-if="row.depth === 0 && (row.menu.children_count ?? 0) > 0" class="rounded-full bg-blue-500/15 px-2 py-0.5 text-[11px] font-bold text-blue-300">
+                    <span v-if="row.depth === 0 && (row.menu.children_count ?? 0) > 0" class="rounded-full bg-blue-500/15 px-2 py-0.5 text-[11px] font-bold text-blue-700 dark:text-blue-300">
                       {{ row.menu.children_count }}
                     </span>
                   </div>
                 </td>
-                <td class="px-6 py-4 text-slate-300">
-                  <span v-if="row.menu.parent" class="rounded-full bg-slate-800 px-2.5 py-1 text-xs font-bold text-slate-300">{{ row.menu.parent.name }}</span>
-                  <span v-else class="text-slate-500">{{ $t('Top-level menu') }}</span>
+                <td class="px-6 py-4 text-slate-600 dark:text-slate-300">
+                  <span v-if="row.menu.parent" class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-gray-800 dark:text-slate-300">{{ row.menu.parent.name }}</span>
+                  <span v-else class="text-slate-500 dark:text-slate-500">{{ $t('Top-level menu') }}</span>
                 </td>
-                <td class="px-6 py-4 text-slate-300">{{ row.menu.page?.title ?? $t('Missing page') }}</td>
+                <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ row.menu.page?.title ?? $t('Missing page') }}</td>
                 <td class="px-6 py-4">
-                  <span class="inline-flex rounded-lg bg-slate-800 px-3 py-1 font-mono text-xs text-slate-300">/{{ row.menu.page?.slug }}</span>
+                  <span class="inline-flex rounded-lg bg-slate-100 px-3 py-1 font-mono text-xs text-slate-700 dark:bg-gray-800 dark:text-slate-300">/{{ row.menu.page?.slug }}</span>
                 </td>
                 <td class="px-6 py-4">
                   <button
                     type="button"
                     class="rounded-full px-3 py-1 text-xs font-semibold transition"
-                    :class="row.menu.is_active ? 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25' : 'bg-rose-500/15 text-rose-300 hover:bg-rose-500/25'"
+                    :class="row.menu.is_active ? 'bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-300' : 'bg-rose-500/15 text-rose-700 hover:bg-rose-500/25 dark:text-rose-300'"
                     @click="toggleMenu(row.menu)"
                   >
                     {{ row.menu.is_active ? $t('Active') : $t('Inactive') }}
@@ -262,19 +262,9 @@ function deleteMenu(menu) {
                 </td>
                 <td class="px-6 py-4">
                   <div class="flex justify-end gap-2">
-                    <a
-                      v-if="row.menu.resolved_url"
-                      :href="row.menu.resolved_url"
-                      target="_blank"
-                      class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/15 text-blue-300 transition hover:bg-blue-500/25"
-                      :title="$t('View page')"
-                      :aria-label="$t('View page')"
-                    >
-                      <Eye class="h-4 w-4" />
-                    </a>
                     <Link
                       :href="`/dashboard/website/menus/${row.menu.id}/edit`"
-                      class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-300 transition hover:bg-amber-500/25"
+                      class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700 transition hover:bg-amber-500/25 dark:text-amber-300"
                       :title="$t('Edit menu')"
                       :aria-label="$t('Edit menu')"
                     >
@@ -282,7 +272,7 @@ function deleteMenu(menu) {
                     </Link>
                     <button
                       type="button"
-                      class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/15 text-rose-300 transition hover:bg-rose-500/25"
+                      class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/15 text-rose-700 transition hover:bg-rose-500/25 dark:text-rose-300"
                       :title="$t('Delete menu')"
                       :aria-label="$t('Delete menu')"
                       @click="deleteMenu(row.menu)"
@@ -293,7 +283,7 @@ function deleteMenu(menu) {
                 </td>
               </tr>
               <tr v-if="!orderedMenus.length">
-                <td colspan="8" class="px-6 py-12 text-center text-slate-400">
+                <td colspan="8" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
                   {{ $t('No menu items found. Create your first menu to display navigation on the public website.') }}
                 </td>
               </tr>
