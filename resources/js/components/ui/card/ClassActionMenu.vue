@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { router } from "@inertiajs/vue3";
+import { router, usePage } from "@inertiajs/vue3";
 import { QrcodeCanvas } from "qrcode.vue";
 import { useI18n } from "@/i18n";
 import {
@@ -50,6 +50,10 @@ const normalizedLifecycleStatus = computed(() => {
   }
 });
 const lockedStudentActions = computed(() => ['pre_end', 'ended', 'cancelled'].includes(normalizedLifecycleStatus.value));
+const page = usePage();
+const roles = computed(() => page.props.auth?.roles ?? []);
+const isAdminUser = computed(() => roles.value.includes("super_admin") || roles.value.includes("admin"));
+const isInstructor = computed(() => roles.value.includes("instructor") && !isAdminUser.value);
 const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.id}`);
 
 function closeDropdown() {
@@ -126,13 +130,18 @@ const menus = computed(() => [
   { label: "Switch Teacher", icon: UserCog, action: () => window.alert("Switch teacher is not available yet.") },
 ]
   .filter((item) => !props.hiddenItems.includes(item.label))
-  .concat(props.extraItems));
+  .filter((item) => !isAdminUser.value || !["Add Student", "Generate QR"].includes(item.label))
+  .concat(props.extraItems.filter((item) => !isAdminUser.value || item.label !== "Collapse Class")));
 
 const actions = computed(() => [
   { label: "Pre-End", icon: CirclePause, class: "text-yellow-600", action: () => updateStatus("inactive") },
   { label: "End", icon: CircleX, class: "text-red-600", action: () => updateStatus("completed") },
 ].filter((item) => {
   if (props.hiddenItems.includes(item.label)) {
+    return false;
+  }
+
+  if (!isInstructor.value && ["Pre-End", "End"].includes(item.label)) {
     return false;
   }
 
