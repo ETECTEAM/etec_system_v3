@@ -37,6 +37,9 @@ for svc in app reverb queue scheduler; do
   sleep 2
 done
 
+echo "==> Ensuring containers are actually running"
+docker compose -f "${COMPOSE_FILE}" restart app reverb queue scheduler
+
 echo "==> Waiting for app container to be ready..."
 for i in $(seq 1 30); do
   if docker compose -f "${COMPOSE_FILE}" exec -T app php -r "echo 1;" 2>/dev/null | grep -q 1; then
