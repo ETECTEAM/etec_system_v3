@@ -47,9 +47,14 @@ class EnrollmentClassController extends Controller
         return Inertia::render('backend/students/ClassList', $classes->handle($request));
     }
 
-    public function publicRegistrations(GetPublicRegistrations $query): JsonResponse
+    public function publicRegistrations(Request $request, GetPublicRegistrations $query): JsonResponse
     {
-        return response()->json(['data' => $query->handle()]);
+        $registrations = $query->handle($request);
+        $search = $request->string('search')->toString();
+
+        return response()->json(array_merge($registrations->toArray(), [
+            'pending_count' => $query->pendingCount($search),
+        ]));
     }
 
     // Lightweight, unpaginated class list for the "move student to another
@@ -380,7 +385,7 @@ class EnrollmentClassController extends Controller
         DB::transaction(function () use ($enrollment, $registrations): void {
             $enrollment->loadMissing('studyClass');
             $this->approvePendingEnrollment($enrollment, $registrations);
-        });
+        }, 1);
 
         return back()->with('success', 'Student request approved successfully.');
     }
@@ -410,7 +415,7 @@ class EnrollmentClassController extends Controller
                 $this->approvePendingEnrollment($enrollment, $registrations);
                 $approvedCount++;
             }
-        });
+        }, 1);
 
         if ($request->expectsJson()) {
             return response()->json([
