@@ -28,22 +28,17 @@ echo "==> Installing dependencies and building assets"
 docker compose -f "${COMPOSE_FILE}" run --rm --no-deps app sh -c \
   "composer install --no-dev --optimize-autoloader --no-interaction && npm ci && npm run build"
 
-echo "==> Recreating containers"
-# Deliberately NOT --force-recreate: code is bind-mounted (.:/var/www), so a
-# container whose image is unchanged doesn't need to be destroyed and
-# recreated at all - the restart below is enough to make it load the fresh
-# code. Plain `up -d` still recreates automatically on the rare deploy where
-# the image itself changed (Dockerfile edits), which is the only case where
-# recreation is actually needed. Forcing it on every deploy was the real
-# cause of the "container name already in use" / "removal of container ...
-# is already in progress" churn seen on prior runs: Docker's container
-# removal is asynchronous under the hood (the daemon returns before
-# overlay/volume cleanup finishes), so recreating a container too soon after
-# removing it can race. The retry loop stays as a safety net for the rare
-# case `up -d` does need to recreate.
-for svc in app reverb queue scheduler; do
-  attempt=1
-  until docker compose -f "${COMPOSE_FILE}" up -d --no-deps "${svc}"; do
+# Docker's container removal is asynchronous under the hood (the daemon
+# returns before overlay/volume cleanup finishes), so recreating a container
+# too soon after removing it can race with "container name already in use" /
+# "removal of container ... is already in progress". Used for every service
+# `up -d` recreates, nginx included - it hit this same race unprotected
+# before and took the whole deploy down with it.
+up_with_retry() {
+  local svc="$1"
+  shift
+  local attempt=1
+  until docker compose -f "${COMPOSE_FILE}" up -d "$@" "${svc}"; do
     if [ "$attempt" -ge 10 ]; then
       echo "ERROR: could not bring up ${svc} after ${attempt} attempts"
       exit 1
@@ -52,6 +47,18 @@ for svc in app reverb queue scheduler; do
     attempt=$((attempt + 1))
     sleep 3
   done
+}
+
+echo "==> Recreating containers"
+# Deliberately NOT --force-recreate: code is bind-mounted (.:/var/www), so a
+# container whose image is unchanged doesn't need to be destroyed and
+# recreated at all - the restart below is enough to make it load the fresh
+# code. Plain `up -d` still recreates automatically on the rare deploy where
+# the image itself changed (Dockerfile edits), which is the only case where
+# recreation is actually needed. Forcing it on every deploy was the real
+# cause of the container-removal race described above.
+for svc in app reverb queue scheduler; do
+  up_with_retry "${svc}" --no-deps
 done
 
 echo "==> Restarting so every long-running process loads the latest code"
@@ -74,17 +81,18 @@ done
 echo "==> Ensuring public/storage symlink exists"
 # The production image no longer bakes this in (it's fully shadowed by the
 # code bind mount anyway) - creating it here instead makes a first-ever
-# deploy to a fresh server self-sufficient. Guarded by -L so this stays a
-# no-op on every deploy after the first.
+# deploy to a fresh server self-sufficient. Guarded by -e (matching
+# storage:link's own existence check, not just -L) so this stays a no-op on
+# every deploy after the first instead of erroring on "link already exists".
 docker compose -f "${COMPOSE_FILE}" exec -T app sh -c \
-  "[ -L public/storage ] || php artisan storage:link"
+  "[ -e public/storage ] || php artisan storage:link"
 
 echo "==> Warming caches"
 docker compose -f "${COMPOSE_FILE}" exec -T app sh -c \
   "php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan event:cache"
 
 echo "==> Reloading nginx"
-docker compose -f "${COMPOSE_FILE}" up -d nginx
+up_with_retry nginx
 docker compose -f "${COMPOSE_FILE}" exec -T nginx nginx -s reload 2>/dev/null || \
   docker compose -f "${COMPOSE_FILE}" restart nginx
 
