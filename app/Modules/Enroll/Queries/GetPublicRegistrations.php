@@ -3,6 +3,9 @@
 namespace App\Modules\Enroll\Queries;
 
 use App\Models\StudentEnrollment;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 
 /**
  * Lists students who self-registered via the public /classes page
@@ -11,7 +14,29 @@ use App\Models\StudentEnrollment;
  */
 class GetPublicRegistrations
 {
-    public function handle(int $limit = 50): array
+    public function handle(Request $request): LengthAwarePaginator
+    {
+        $search = trim($request->string('search')->toString());
+
+        return $this->baseQuery($search)
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (StudentEnrollment $enrollment) => $this->present($enrollment));
+    }
+
+    public function pendingCount(?string $search = null): int
+    {
+        return $this->baseQuery(trim((string) $search))
+            ->where(function (Builder $query): void {
+                $query->where('enrollment_status', 'pending')
+                    ->orWhere('no_room_and_instructor', true)
+                    ->orWhere('no_instructor', true)
+                    ->orWhere('no_room', true);
+            })
+            ->count();
+    }
+
+    private function baseQuery(string $search = ''): Builder
     {
         return StudentEnrollment::query()
             ->whereIn('source', ['public_website', 'qr_code'])
@@ -33,12 +58,21 @@ class GetPublicRegistrations
                 'term:id,term_name',
                 'time:id,time_name',
             ])
-            ->latest('id')
-            ->limit($limit)
-            ->get()
-            ->map(fn (StudentEnrollment $enrollment) => $this->present($enrollment))
-            ->values()
-            ->all();
+            ->when($search !== '', fn (Builder $query) => $this->applySearch($query, $search))
+            ->latest('id');
+    }
+
+    private function applySearch(Builder $query, string $search): void
+    {
+        $query->where(function (Builder $query) use ($search): void {
+            $query->whereHas('student', function (Builder $query) use ($search): void {
+                $query->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            })
+                ->orWhereHas('studyClass', fn (Builder $query) => $query->where('title', 'like', "%{$search}%"))
+                ->orWhereHas('studyClass.course', fn (Builder $query) => $query->where('title', 'like', "%{$search}%"))
+                ->orWhereHas('course', fn (Builder $query) => $query->where('title', 'like', "%{$search}%"));
+        });
     }
 
     private function present(StudentEnrollment $enrollment): array

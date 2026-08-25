@@ -148,6 +148,37 @@ class EnrollmentClassControllerTest extends TestCase
                 ->where('classes.data.0.title', 'Web Development'));
     }
 
+    public function test_public_registrations_are_paginated(): void
+    {
+        $studyClass = $this->createStudyClass();
+
+        for ($i = 1; $i <= 12; $i++) {
+            $student = Student::create([
+                'full_name' => "Student {$i}",
+                'gender' => 'male',
+                'phone' => '012345'.str_pad((string) $i, 3, '0', STR_PAD_LEFT),
+            ]);
+
+            StudentEnrollment::create([
+                'study_class_id' => $studyClass->id,
+                'student_id' => $student->id,
+                'enrollment_status' => 'active',
+                'payment_status' => 'unpaid',
+                'source' => 'public_website',
+                'fee_amount' => 100,
+                'document_fee_amount' => 0,
+                'amount_paid' => 0,
+            ]);
+        }
+
+        $this->actingAs($this->superAdmin())
+            ->getJson('/dashboard/enroll/registrations/data?page=2')
+            ->assertOk()
+            ->assertJsonPath('current_page', 2)
+            ->assertJsonPath('total', 12)
+            ->assertJsonCount(2, 'data');
+    }
+
     // GET create/show pages
 
     public function test_super_admin_can_view_create_and_show_pages(): void

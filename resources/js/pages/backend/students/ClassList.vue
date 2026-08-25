@@ -97,6 +97,16 @@ function fetchClasses() {
 const registrations = ref([]);
 const registrationsLoading = ref(false);
 const registrationsLoaded = ref(false);
+const registrationsPagination = ref({
+  current_page: 1,
+  from: 0,
+  last_page: 1,
+  links: [],
+  per_page: 10,
+  to: 0,
+  total: 0,
+});
+const registrationPendingCount = ref(0);
 
 // Rows RegisterStudentForSchedule couldn't slot into a class (no
 // room/instructor free at the time) come back from the same query with
@@ -104,19 +114,34 @@ const registrationsLoaded = ref(false);
 // "Pending" enrollment_status below, which is a QR registration awaiting
 // instructor approval and already has a class.
 const pendingRegistrationsCount = computed(
-  () => registrations.value.filter((row) => row.enrollment_status === "Pending" || row.needs_manual_scheduling).length
+  () => registrationPendingCount.value
 );
 
 function needsManualScheduling(row) {
   return !!row.needs_manual_scheduling;
 }
 
-async function fetchRegistrations() {
+async function fetchRegistrations(page = registrationsPagination.value.current_page || 1) {
   registrationsLoading.value = true;
 
   try {
-    const response = await axios.get("/dashboard/enroll/registrations/data");
+    const response = await axios.get("/dashboard/enroll/registrations/data", {
+      params: {
+        page,
+        search: search.value || null,
+      },
+    });
     registrations.value = response.data?.data ?? [];
+    registrationsPagination.value = {
+      current_page: response.data?.current_page ?? 1,
+      from: response.data?.from ?? 0,
+      last_page: response.data?.last_page ?? 1,
+      links: response.data?.links ?? [],
+      per_page: response.data?.per_page ?? 10,
+      to: response.data?.to ?? 0,
+      total: response.data?.total ?? 0,
+    };
+    registrationPendingCount.value = response.data?.pending_count ?? 0;
     registrationsLoaded.value = true;
   } catch (error) {
     console.error("Failed to fetch class registrations", error);
@@ -127,10 +152,22 @@ async function fetchRegistrations() {
 
 function selectRegistrationsTab() {
   viewMode.value = "registrations";
+  fetchRegistrations(1);
+}
 
-  if (!registrationsLoaded.value) {
-    fetchRegistrations();
-  }
+function registrationPageLabel(label) {
+  return String(label)
+    .replace("&laquo;", "‹")
+    .replace("&raquo;", "›")
+    .replace("Previous", "Prev")
+    .replace("Next", "Next");
+}
+
+function goRegistrationPage(link) {
+  if (!link?.url) return;
+
+  const url = new URL(link.url, window.location.origin);
+  fetchRegistrations(Number(url.searchParams.get("page") ?? 1));
 }
 
 const dayAbbreviations = {
@@ -369,7 +406,14 @@ onMounted(() => {
 
 watch(search, () => {
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(fetchClasses, 350);
+  searchTimer = setTimeout(() => {
+    if (viewMode.value === "registrations") {
+      fetchRegistrations(1);
+      return;
+    }
+
+    fetchClasses();
+  }, 350);
 });
 
 onBeforeUnmount(() => {
@@ -656,6 +700,27 @@ onBeforeUnmount(() => {
               </TableRow>
             </TableBody>
           </Table>
+        </div>
+
+        <div v-if="registrationsPagination.total > registrationsPagination.per_page" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-sm text-slate-500 dark:text-gray-400">
+            {{ $t('Showing') }} {{ registrationsPagination.from ?? 0 }} {{ $t('to') }} {{ registrationsPagination.to ?? 0 }} {{ $t('of') }} {{ registrationsPagination.total ?? 0 }}
+          </p>
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              v-for="link in registrationsPagination.links"
+              :key="link.label"
+              type="button"
+              :disabled="!link.url || registrationsLoading"
+              class="inline-flex min-w-9 items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+              :class="link.active
+                ? 'border-blue-900 bg-blue-900 text-white dark:border-blue-500 dark:bg-blue-600'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'"
+              @click="goRegistrationPage(link)"
+            >
+              {{ registrationPageLabel(link.label) }}
+            </button>
+          </div>
         </div>
       </div>
 
