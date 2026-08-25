@@ -4,7 +4,6 @@
 .env.docker
 .env.backup
 .env.production
-docker-compose.prod.yml
 deploy/private/
 .phpactor.json
 .phpunit.result.cache
