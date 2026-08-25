@@ -123,6 +123,31 @@ class EnrollmentClassControllerTest extends TestCase
             ->assertOk();
     }
 
+    public function test_class_list_search_filters_results_server_side(): void
+    {
+        $matchingCourse = $this->createCourse('Web Development');
+        $otherCourse = $this->createCourse('Graphic Design');
+
+        $this->createStudyClass([
+            'title' => 'Web Development',
+            'course_id' => $matchingCourse->id,
+        ]);
+
+        $this->createStudyClass([
+            'title' => 'Graphic Design',
+            'course_id' => $otherCourse->id,
+        ]);
+
+        $this->actingAs($this->superAdmin())
+            ->get('/dashboard/enroll?search=Web%20Development')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('backend/students/ClassList')
+                ->where('filters.search', 'Web Development')
+                ->has('classes.data', 1)
+                ->where('classes.data.0.title', 'Web Development'));
+    }
+
     // GET create/show pages
 
     public function test_super_admin_can_view_create_and_show_pages(): void
