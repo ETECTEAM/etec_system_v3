@@ -29,28 +29,32 @@ docker compose -f "${COMPOSE_FILE}" run --rm --no-deps app sh -c \
   "composer install --no-dev --optimize-autoloader --no-interaction && npm ci && npm run build"
 
 echo "==> Recreating containers"
-# `up --force-recreate` stops+removes+creates each container in one compose
-# call. Docker's container removal is asynchronous under the hood (the
-# daemon returns before overlay/volume cleanup finishes), so a container
-# recreated too soon after being removed can fail with "removal of
-# container ... is already in progress". A separate `rm -f` step right
-# before this loop used to trigger exactly that race every deploy; retrying
-# here instead rides it out.
+# Deliberately NOT --force-recreate: code is bind-mounted (.:/var/www), so a
+# container whose image is unchanged doesn't need to be destroyed and
+# recreated at all - the restart below is enough to make it load the fresh
+# code. Plain `up -d` still recreates automatically on the rare deploy where
+# the image itself changed (Dockerfile edits), which is the only case where
+# recreation is actually needed. Forcing it on every deploy was the real
+# cause of the "container name already in use" / "removal of container ...
+# is already in progress" churn seen on prior runs: Docker's container
+# removal is asynchronous under the hood (the daemon returns before
+# overlay/volume cleanup finishes), so recreating a container too soon after
+# removing it can race. The retry loop stays as a safety net for the rare
+# case `up -d` does need to recreate.
 for svc in app reverb queue scheduler; do
   attempt=1
-  until docker compose -f "${COMPOSE_FILE}" up -d --force-recreate --no-deps "${svc}"; do
+  until docker compose -f "${COMPOSE_FILE}" up -d --no-deps "${svc}"; do
     if [ "$attempt" -ge 10 ]; then
-      echo "ERROR: could not recreate ${svc} after ${attempt} attempts"
+      echo "ERROR: could not bring up ${svc} after ${attempt} attempts"
       exit 1
     fi
     echo "    ${svc}: container removal still in progress, retrying (${attempt})..."
     attempt=$((attempt + 1))
     sleep 3
   done
-  sleep 2
 done
 
-echo "==> Ensuring containers are actually running"
+echo "==> Restarting so every long-running process loads the latest code"
 docker compose -f "${COMPOSE_FILE}" restart app reverb queue scheduler
 
 echo "==> Waiting for app container to be ready..."
