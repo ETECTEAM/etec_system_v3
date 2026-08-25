@@ -28,11 +28,25 @@ echo "==> Installing dependencies and building assets"
 docker compose -f "${COMPOSE_FILE}" run --rm --no-deps app sh -c \
   "composer install --no-dev --optimize-autoloader --no-interaction && npm ci && npm run build"
 
-echo "==> Pruning dev dependencies"
-docker exec system_app_prod npm prune --omit=dev
-
 echo "==> Recreating containers"
 docker compose -f "${COMPOSE_FILE}" up -d --force-recreate app reverb queue scheduler
+
+echo "==> Waiting for app container to be ready..."
+for i in $(seq 1 30); do
+  if docker compose -f "${COMPOSE_FILE}" exec -T app php -r "echo 1;" 2>/dev/null | grep -q 1; then
+    echo "    App ready after ${i}s"
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "ERROR: App container did not become ready within 30s"
+    docker compose -f "${COMPOSE_FILE}" logs app --tail=30
+    exit 1
+  fi
+  sleep 1
+done
+
+echo "==> Pruning dev dependencies"
+docker compose -f "${COMPOSE_FILE}" exec -T app npm prune --omit=dev
 
 echo "==> Warming caches"
 docker compose -f "${COMPOSE_FILE}" exec -T app sh -c \
