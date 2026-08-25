@@ -60,17 +60,6 @@ const toast = useToast();
 const filteredClasses = computed(() => props.classes?.data ?? []);
 let searchTimer = null;
 
-function runSearch() {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    router.get(
-      "/dashboard/enroll",
-      { search: search.value },
-      { preserveState: true, replace: true }
-    );
-  }, 350);
-}
-
 const search = ref(props.filters?.search ?? "");
 
 const breadcrumbItems = [
@@ -79,8 +68,9 @@ const breadcrumbItems = [
 ];
 
 function refresh() {
-    search.value = "";
-    router.visit("/dashboard/enroll", { preserveState: true });
+  clearTimeout(searchTimer);
+  search.value = "";
+  router.get("/dashboard/enroll", {}, { preserveState: true, replace: true, preserveScroll: true });
 }
 
 function goCreateClass() {
@@ -91,12 +81,14 @@ function goRegisterStudent() {
     router.visit("/dashboard/enroll/students/create");
 }
 
-function onSearch() {
-    router.visit("/dashboard/enroll", {
-        data: { search: search.value || null },
-        preserveState: true,
-        replace: true,
-    });
+function fetchClasses() {
+  router.get("/dashboard/enroll", {
+    search: search.value || null,
+  }, {
+    preserveState: true,
+    replace: true,
+    preserveScroll: true,
+  });
 }
 
 // "Registrations" tab — students who self-registered via the public /classes
@@ -375,7 +367,14 @@ onMounted(() => {
     });
 });
 
+watch(search, () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(fetchClasses, 350);
+});
+
 onBeforeUnmount(() => {
+  clearTimeout(searchTimer);
+
   if (notificationsChannel) {
     notificationsChannel.stopListening(".notifications.updated");
   }
