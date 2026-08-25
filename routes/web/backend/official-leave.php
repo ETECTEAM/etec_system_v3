@@ -54,3 +54,9 @@ Route::middleware(['auth', 'active', 'role:super_admin|admin'])
             Route::get('/activity-log/data', [ActivityLogController::class, 'data'])->name('activity-log.data');
         });
     });
+
+// Public QR form routes (student-facing — no auth required)
+Route::middleware('web')->group(function (): void {
+    Route::get('/leave/form/{token}', [LeaveRequestController::class, 'form'])->name('leave.form');
+    Route::post('/leave/request', [LeaveRequestController::class, 'store'])->name('leave.store');
+});

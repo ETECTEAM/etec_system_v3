@@ -3,88 +3,53 @@
 namespace App\Modules\OfficialLeave\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
+use App\Models\OfficialLeave;
 use App\Models\OfficialLeaveSetting;
-use App\Modules\OfficialLeave\Requests\UpdateOfficialLeaveSettingsRequest;
-use App\Modules\OfficialLeave\Services\AuditLogger;
+use App\Modules\OfficialLeave\Requests\UpdateSettingRequest;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/**
- * System-wide official-leave settings (super_admin). Values live in
- * official_leave_settings; config/official-leave.php only holds fallbacks.
- */
 class SettingController extends Controller
 {
-    public function __construct(private readonly AuditLogger $auditLogger) {}
-
     public function edit(): Response
     {
+        $this->authorize('manageSettings', OfficialLeave::class);
+
+        $settings = OfficialLeaveSetting::orderBy('group')->orderBy('key')->get();
+
         return Inertia::render('backend/official-leaves/Settings', [
-            'settings' => $this->presentSettings(),
+            'settings' => $settings,
         ]);
     }
 
-    public function update(UpdateOfficialLeaveSettingsRequest $request): RedirectResponse
+    public function update(UpdateSettingRequest $request): RedirectResponse
     {
-        $validated = $request->validated();
+        $this->authorize('manageSettings', OfficialLeave::class);
 
-        $rows = OfficialLeaveSetting::query()
-            ->whereIn('key', array_keys($validated))
-            ->get()
-            ->keyBy('key');
+        $data = $request->validated();
 
-        $before = $rows->map(fn ($row) => (int) $row->value)->all();
+        foreach ($data as $key => $value) {
+            $setting = OfficialLeaveSetting::where('key', $key)->first();
 
-        // Saved one model at a time so each save fires the booted cache-bust.
-        foreach ($validated as $key => $value) {
-            $row = $rows->get($key);
+            if ($setting) {
+                $before = $setting->value;
+                $setting->update([
+                    'value' => (string) $value,
+                    'updated_by' => $request->user()->id,
+                ]);
 
-            if (! $row) {
-                continue;
+                ActivityLog::create([
+                    'user_id' => $request->user()->id,
+                    'action' => 'setting_updated',
+                    'before' => ['key' => $key, 'value' => $before],
+                    'after' => ['key' => $key, 'value' => $value],
+                    'ip_address' => $request->ip(),
+                ]);
             }
-
-            $row->update([
-                'value' => (string) max($row->min ?? 0, min($row->max ?? PHP_INT_MAX, $value)),
-                'updated_by' => $request->user()->id,
-            ]);
         }
 
-        $after = OfficialLeaveSetting::query()
-            ->whereIn('key', array_keys($validated))
-            ->pluck('value', 'key')
-            ->map(fn ($v) => (int) $v)
-            ->all();
-
-        $this->auditLogger->log(
-            $request->user(),
-            AuditLogger::ACTION_SETTINGS_UPDATED,
-            null,
-            $before,
-            $after,
-            $request->ip(),
-        );
-
-        return redirect()->route('official-leaves.settings.edit')
-            ->with('success', 'Leave settings updated. Changes apply system-wide.');
-    }
-
-    private function presentSettings(): array
-    {
-        return OfficialLeaveSetting::query()
-            ->where('group', 'official_leave')
-            ->orderBy('id')
-            ->get()
-            ->map(fn (OfficialLeaveSetting $row) => [
-                'key' => $row->key,
-                'label' => $row->label,
-                'description' => $row->description,
-                'value' => (int) $row->value,
-                'type' => $row->type,
-                'min' => $row->min,
-                'max' => $row->max,
-                'updated_at' => $row->updated_at?->toIso8601String(),
-            ])
-            ->all();
+        return back()->with('success', 'Settings updated successfully.');
     }
 }

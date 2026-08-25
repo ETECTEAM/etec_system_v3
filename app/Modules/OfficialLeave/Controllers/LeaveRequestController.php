@@ -3,120 +3,113 @@
 namespace App\Modules\OfficialLeave\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\LeaveRequestSession;
 use App\Models\OfficialLeave;
-use App\Models\Student;
-use App\Modules\OfficialLeave\Requests\GenerateLeaveQrRequest;
-use App\Modules\OfficialLeave\Requests\StorePublicLeaveRequest;
-use App\Modules\OfficialLeave\Services\AuditLogger;
-use App\Modules\OfficialLeave\Services\LeavePresenterService;
-use App\Modules\OfficialLeave\Services\LeaveQrService;
-use App\Modules\OfficialLeave\Services\OfficialLeaveService;
+use App\Models\StudyClass;
+use App\Modules\OfficialLeave\Requests\StoreLeaveRequest;
+use App\Modules\OfficialLeave\Services\LeaveRequestService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/**
- * The office desk flow: student search, QR generation, live poll of the scanned
- * session, and the public form endpoints behind the signed URL.
- */
 class LeaveRequestController extends Controller
 {
     public function __construct(
-        private readonly LeaveQrService $qrService,
-        private readonly OfficialLeaveService $leaveService,
-        private readonly LeavePresenterService $presenter,
-        private readonly AuditLogger $auditLogger,
+        private readonly LeaveRequestService $leaveRequestService
     ) {}
 
     public function dashboard(): Response
     {
+        $this->authorize('viewAny', OfficialLeave::class);
+
         return Inertia::render('backend/official-leaves/Dashboard');
     }
 
     public function searchStudents(Request $request): JsonResponse
     {
-        $term = $request->string('search')->toString();
+        $this->authorize('viewAny', OfficialLeave::class);
+
+        $request->validate([
+            'q' => ['required', 'string', 'min:2'],
+        ]);
+
+        $students = $this->leaveRequestService->searchStudents($request->q);
+
+        return response()->json($students);
+    }
+
+    public function generateQr(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', OfficialLeave::class);
+
+        $request->validate([
+            'student_id' => ['required', 'exists:students,id'],
+        ]);
+
+        $result = $this->leaveRequestService->generateQrToken(
+            $request->student_id,
+            $request->user()->id
+        );
 
         return response()->json([
-            'data' => $this->presenter->searchStudents($term),
+            'session_id' => $result['session']->id,
+            'url' => $result['url'],
+            'expires_at' => $result['expires_at'],
+            'token' => $result['token'],
         ]);
     }
 
-    public function generateQr(GenerateLeaveQrRequest $request): JsonResponse
+    public function pollSession(LeaveRequestSession $session): JsonResponse
     {
-        $student = Student::query()->findOrFail($request->validated('student_id'));
+        $this->authorize('viewAny', OfficialLeave::class);
 
-        $session = $this->qrService->createSession($student, $request->user());
+        $leave = OfficialLeave::where('leave_request_session_id', $session->id)
+            ->where('status', OfficialLeave::STATUS_PENDING)
+            ->first();
 
-        $this->auditLogger->log($request->user(), AuditLogger::ACTION_QR_GENERATED, null, null, [
-            'session_id' => $session['session_id'],
-            'student_id' => $student->id,
-        ], $request->ip());
-
-        return response()->json(['data' => $session]);
+        return response()->json([
+            'leave' => $leave,
+        ]);
     }
 
-    /**
-     * Polled every ~3s by the QR modal while it waits for the phone submission.
-     */
-    public function pollSession(Request $request, LeaveRequestSession $session): JsonResponse
+    public function form(string $token): Response|\Illuminate\Http\RedirectResponse
     {
-        if ($session->isUsed()) {
-            // The leave created from this session — this becomes the review card.
-            $leave = OfficialLeave::query()
-                ->where('leave_request_session_id', $session->id)
-                ->first();
+        $session = $this->leaveRequestService->validateToken($token);
 
-            return response()->json([
-                'state' => $leave ? 'submitted' : 'used',
-                'leave' => $leave ? $this->presenter->presentLeave($leave) : null,
-            ]);
+        if (! $session || $session->isExpired() || $session->isUsed()) {
+            return redirect('/')->withErrors(['token' => 'Invalid or expired QR token.']);
         }
 
-        if ($session->isExpired()) {
-            return response()->json([
-                'state' => 'expired',
-                'expires_at' => $session->expires_at->toIso8601String(),
-            ]);
+        $student = $this->leaveRequestService->getStudent($session->student_id);
+
+        return Inertia::render('backend/official-leaves/StudentForm', [
+            'student' => $student,
+            'token' => $token,
+            'expiresAt' => $session->expires_at->toIso8601String(),
+        ]);
+    }
+
+    public function store(StoreLeaveRequest $request): \Illuminate\Http\RedirectResponse
+    {
+        $data = $request->validated();
+        $token = $request->query('token');
+
+        if ($token) {
+            $session = $this->leaveRequestService->validateToken($token);
+            if (! $session || $session->isExpired() || $session->isUsed()) {
+                return back()->withErrors(['token' => 'Invalid or expired QR token.']);
+            }
+            $this->leaveRequestService->consumeToken($session);
+            $data['student_id'] = $session->student_id;
+            $data['leave_request_session_id'] = $session->id;
+        } else {
+            // Office-created record — no session link
         }
 
-        return response()->json([
-            'state' => 'waiting',
-            'expires_at' => $session->expires_at->toIso8601String(),
-            'remaining_seconds' => max(0, now()->diffInSeconds($session->expires_at, false)),
-        ]);
-    }
+        OfficialLeave::create($data);
 
-    /**
-     * Public signed-URL form (route leave.form): shows the request form for a valid,
-     * unused token; friendly states otherwise.
-     */
-    public function showPublicForm(string $token): Response
-    {
-        $resolved = $this->qrService->resolve($token);
-        $session = $resolved['session'];
-        $state = $resolved['state'];
-
-        $studentCard = $session && in_array($state, ['valid', 'already_used'], true)
-            ? $this->presenter->presentStudentCard($session->student)
-            : null;
-
-        return Inertia::render('frontend/LeaveRequestForm', [
-            'state' => $state,
-            'student' => $studentCard,
-            'expiresAt' => $session?->expires_at?->toIso8601String(),
-        ]);
-    }
-
-    public function storePublicForm(StorePublicLeaveRequest $request, string $token): JsonResponse
-    {
-        $leave = $this->leaveService->submitFromToken($token, $request->validated());
-
-        return response()->json([
-            'message' => 'Your leave request was submitted. The office will review it shortly.',
-            'leave_id' => $leave->id,
-        ]);
+        return redirect('/')->with('success', 'Leave request submitted successfully.');
     }
 }

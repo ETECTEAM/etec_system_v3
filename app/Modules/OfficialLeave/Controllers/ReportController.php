@@ -3,35 +3,34 @@
 namespace App\Modules\OfficialLeave\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\OfficialLeave\Services\OfficialLeaveReportService;
-use Illuminate\Http\JsonResponse;
+use App\Models\OfficialLeave;
+use App\Modules\OfficialLeave\Services\ReportService;
+use Illuminate\Support\Facades\Response;
 use Inertia\Inertia;
-use Inertia\Response;
+use Inertia\Response as InertiaResponse;
 
-/**
- * Super-admin reports & stats for the official-leave feature.
- */
 class ReportController extends Controller
 {
-    public function __construct(private readonly OfficialLeaveReportService $reports) {}
+    public function __construct(
+        private readonly ReportService $reportService
+    ) {}
 
-    public function index(): Response
+    public function index(): InertiaResponse
     {
-        return Inertia::render('backend/official-leaves/Reports', [
-            'monthly' => $this->reports->leavesPerMonth(),
-            'perCourse' => $this->reports->leavesPerCourse(),
-            'topPermissionUsers' => $this->reports->topPermissionUsers(),
-            'onLeaveToday' => $this->reports->onLeaveToday(),
-        ]);
+        $this->authorize('viewReports', OfficialLeave::class);
+
+        return Inertia::render('backend/official-leaves/Reports');
     }
 
-    public function data(): JsonResponse
+    public function data(): \Illuminate\Http\JsonResponse
     {
+        $this->authorize('viewReports', OfficialLeave::class);
+
         return response()->json([
-            'monthly' => $this->reports->leavesPerMonth(),
-            'perCourse' => $this->reports->leavesPerCourse(),
-            'topPermissionUsers' => $this->reports->topPermissionUsers(),
-            'onLeaveToday' => $this->reports->onLeaveToday(),
+            'leavesPerMonth' => $this->reportService->getLeavesPerMonth(),
+            'topStudents' => $this->reportService->getTopStudents(),
+            'currentlyOnLeave' => $this->reportService->getCurrentlyOnLeave(),
+            'classBreakdown' => $this->reportService->getClassBreakdown(),
         ]);
     }
 }
