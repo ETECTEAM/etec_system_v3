@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import { QrcodeCanvas } from "qrcode.vue";
 import { useI18n } from "@/i18n";
+import { useConfirm } from "@/composables/useConfirm";
 import {
   MoreVertical,
   Eye,
@@ -38,6 +39,7 @@ const open = ref(false);
 const showQr = ref(false);
 const dropdownRef = ref(null);
 const { t } = useI18n();
+const { confirm } = useConfirm();
 const lifecycleStatus = computed(() => String(props.classData?.class_status ?? "").toLowerCase());
 const normalizedLifecycleStatus = computed(() => {
   switch (lifecycleStatus.value) {
@@ -134,8 +136,28 @@ const menus = computed(() => [
   .concat(props.extraItems.filter((item) => !isAdminUser.value || item.label !== "Collapse Class")));
 
 const actions = computed(() => [
-  { label: "Pre-End", icon: CirclePause, class: "text-yellow-600", action: () => updateStatus("inactive") },
-  { label: "End", icon: CircleX, class: "text-red-600", action: () => updateStatus("completed") },
+  { label: "Pre-End", icon: CirclePause, class: "text-yellow-600", action: async () => {
+    const ok = await confirm({
+      title: t("Pre-End Class?"),
+      message: t("This will lock attendance tracking and prevent new students from joining. Are you sure you want to pre-end this class?"),
+      confirmText: t("Pre-End"),
+      cancelText: t("Cancel"),
+      danger: true,
+    });
+    if (!ok) return;
+    updateStatus("inactive");
+  }},
+  { label: "End", icon: CircleX, class: "text-red-600", action: async () => {
+    const ok = await confirm({
+      title: t("End Class?"),
+      message: t("This will permanently end the class and lock all activity. Are you sure you want to end this class?"),
+      confirmText: t("End"),
+      cancelText: t("Cancel"),
+      danger: true,
+    });
+    if (!ok) return;
+    updateStatus("completed");
+  }},
 ].filter((item) => {
   if (props.hiddenItems.includes(item.label)) {
     return false;

@@ -383,4 +383,73 @@ class InstructorScheduleBlockControllerTest extends TestCase
         $this->assertSame('occupied', $tuesdaySlot['status']);
         $this->assertSame('Basic IT', $tuesdaySlot['class_title']);
     }
+
+    // A manual block must exclude every slot whose time range overlaps it, not just
+    // the exact Time record it was created against - a 03:30-05:00 block makes a
+    // 03:30-05:30 slot unavailable too, even though the two are different Time rows.
+    public function test_manual_block_makes_an_overlapping_different_time_slot_unavailable(): void
+    {
+        $user = User::factory()->create(['status' => 'active']);
+        $user->assignRole('instructor');
+
+        $instructor = InstructorData::create([
+            'user_id' => $user->id,
+            'full_name' => 'Overlap Test Instructor',
+            'available_for_class' => true,
+            'status' => true,
+        ]);
+
+        InstructorAvailability::create([
+            'instructor_id' => $instructor->id,
+            'day_of_week' => 1,
+            'employment_type' => 'full_time',
+            'shift_group' => 'custom',
+            'period' => 'afternoon',
+            'start_time' => '08:00',
+            'end_time' => '18:00',
+            'is_active' => true,
+        ]);
+
+        $term = Term::firstOrCreate(['term_name' => 'Mon & Thu']);
+        $blockedTime = Time::create(['term_id' => $term->id, 'time_name' => '03:30 PM - 05:00 PM']);
+        $overlappingTime = Time::create(['term_id' => $term->id, 'time_name' => '03:30 PM - 05:30 PM']);
+        $touchingTime = Time::create(['term_id' => $term->id, 'time_name' => '05:00 PM - 05:30 PM']);
+
+        $schedule = WorkSchedule::create([
+            'name' => 'Afternoon schedule',
+            'code' => 'afternoon_schedule',
+            'is_active' => true,
+        ]);
+        $schedule->times()->createMany([
+            ['day_of_week' => 1, 'time_id' => $blockedTime->id],
+            ['day_of_week' => 1, 'time_id' => $overlappingTime->id],
+            ['day_of_week' => 1, 'time_id' => $touchingTime->id],
+        ]);
+        $instructor->update(['work_schedule_id' => $schedule->id]);
+
+        InstructorScheduleBlock::create([
+            'instructor_id' => $instructor->id,
+            'day_of_week' => 1,
+            'time_id' => $blockedTime->id,
+            'status' => InstructorScheduleBlock::STATUS_ACTIVE,
+        ]);
+
+        $days = collect(
+            $this->actingAs($instructor->user)
+                ->getJson('/dashboard/instructor-schedule-blocks/data')
+                ->assertOk()
+                ->json('schedule')
+        );
+
+        $mondaySlots = collect($days->firstWhere('day_of_week', 1)['slots']);
+        $blockedSlot = $mondaySlots->firstWhere('time_id', $blockedTime->id);
+        $overlappingSlot = $mondaySlots->firstWhere('time_id', $overlappingTime->id);
+        $touchingSlot = $mondaySlots->firstWhere('time_id', $touchingTime->id);
+
+        $this->assertSame('blocked', $blockedSlot['status']);
+        $this->assertSame('blocked', $overlappingSlot['status']);
+        // Touches the blocked period's boundary (05:00-05:30 right after a
+        // 03:30-05:00 block) without overlapping it, so it must stay available.
+        $this->assertSame('available', $touchingSlot['status']);
+    }
 }

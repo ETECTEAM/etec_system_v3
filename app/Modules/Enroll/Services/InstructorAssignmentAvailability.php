@@ -56,12 +56,20 @@ class InstructorAssignmentAvailability
             }
         }
 
+        // Not an exact time_id match: a block on 03:30-05:00 must also cover a
+        // 03:30-05:30 assignment even though they're different Time records.
         $hasManualBlock = InstructorScheduleBlock::query()
             ->where('instructor_id', $instructor->id)
-            ->where('time_id', $timeId)
             ->whereIn('day_of_week', $days)
             ->where('status', InstructorScheduleBlock::STATUS_ACTIVE)
-            ->exists();
+            ->with('time:id,time_name')
+            ->get()
+            ->contains(function (InstructorScheduleBlock $block) use ($range): bool {
+                $blockRange = StudyClass::parseTimeRange($block->time?->time_name);
+
+                return $blockRange['start'] !== null && $blockRange['end'] !== null
+                    && $range['start'] < $blockRange['end'] && $range['end'] > $blockRange['start'];
+            });
 
         if ($hasManualBlock) {
             return 'The selected instructor has blocked this class schedule.';

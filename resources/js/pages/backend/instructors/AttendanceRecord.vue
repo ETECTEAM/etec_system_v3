@@ -54,10 +54,13 @@ const classLifecycleStatus = computed(() => String(props.classData?.class_status
 const totalPresent = computed(() =>
   rosterStudents.value.reduce((total, student) => total + Number(student.attendance?.present ?? 0), 0),
 );
-const canTrackAttendance = computed(() =>
-  classLifecycleStatus.value === "active"
-  && (props.todaySession?.status === "auto_recorded" || props.attendanceWindow?.can_submit),
-);
+// TESTING ONLY - restore before this reaches production, the real gate is
+// commented out below.
+// const canTrackAttendance = computed(() =>
+//   classLifecycleStatus.value === "active"
+//   && (props.todaySession?.status === "auto_recorded" || props.attendanceWindow?.can_submit),
+// );
+const canTrackAttendance = computed(() => true);
 const trackAttendanceLabel = computed(() => {
   if (classLifecycleStatus.value === "pre_end") {
     return "Pre-End";

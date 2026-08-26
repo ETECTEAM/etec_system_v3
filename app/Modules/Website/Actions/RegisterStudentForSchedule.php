@@ -446,12 +446,27 @@ class RegisterStudentForSchedule
             return false;
         }
 
+        $range = $this->timeRange((int) $data['time_id']);
+
+        if ($range['start'] === null || $range['end'] === null) {
+            return false;
+        }
+
+        // Not an exact time_id match: a block on 03:30-05:00 must also exclude an
+        // instructor for a 03:30-05:30 class even though they're different Time
+        // records.
         return InstructorScheduleBlock::query()
             ->where('instructor_id', $instructor->id)
-            ->where('time_id', $data['time_id'])
             ->whereIn('day_of_week', $days)
             ->where('status', InstructorScheduleBlock::STATUS_ACTIVE)
-            ->exists();
+            ->with('time:id,time_name')
+            ->get()
+            ->contains(function (InstructorScheduleBlock $block) use ($range): bool {
+                $blockRange = StudyClass::parseTimeRange($block->time?->time_name);
+
+                return $blockRange['start'] !== null && $blockRange['end'] !== null
+                    && $range['start'] < $blockRange['end'] && $range['end'] > $blockRange['start'];
+            });
     }
 
     private function bestFieldMatch(Collection $instructors, Course $course): ?InstructorData

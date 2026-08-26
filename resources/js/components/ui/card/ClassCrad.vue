@@ -7,6 +7,7 @@ import NotificationBadge from "../notification-badge/NotificationBadge.vue";
 import ClassActionMenu from "./ClassActionMenu.vue";
 import CollapseClassModal from "./CollapseClassModal.vue";
 import BarClass from "../../../pages/backend/students/components/BarClass.vue";
+import { useConfirm } from "@/composables/useConfirm";
 // import { router } from "@inertiajs/vue3";
 
 const props = defineProps({
@@ -121,6 +122,7 @@ const cardToneClasses = computed(() => {
 const showBarDialog = ref(false);
 const showQrDialog = ref(false);
 const showCollapseDialog = ref(false);
+const { confirm } = useConfirm();
 
 // "Collapse Class" splits the class between two instructors, each teaching their own
 // days — offered for Basic IT classes only. The card owns the dialog, so it hands
@@ -188,6 +190,30 @@ function updateStatus(status) {
             showBarDialog.value = false;
         },
     });
+}
+
+async function confirmPreEnd() {
+    const ok = await confirm({
+        title: "Pre-End Class?",
+        message: "This will lock attendance tracking and prevent new students from joining. Are you sure you want to pre-end this class?",
+        confirmText: "Pre-End",
+        cancelText: "Cancel",
+        danger: true,
+    });
+    if (!ok) return;
+    updateStatus("inactive");
+}
+
+async function confirmEnd() {
+    const ok = await confirm({
+        title: "End Class?",
+        message: "This will permanently end the class and lock all activity. Are you sure you want to end this class?",
+        confirmText: "End",
+        cancelText: "Cancel",
+        danger: true,
+    });
+    if (!ok) return;
+    updateStatus("completed");
 }
 </script>
 
@@ -405,8 +431,8 @@ function updateStatus(status) {
     @switch-teacher="notifyPendingAction('Switch teacher')"
     @attendance="runExtraAction('Attendance')"
     @export="notifyPendingAction('Export student list')"
-    @pre-end="updateStatus('inactive')"
-    @end="updateStatus('completed')"
+    @pre-end="confirmPreEnd"
+    @end="confirmEnd"
 />
 
 <Teleport to="body">

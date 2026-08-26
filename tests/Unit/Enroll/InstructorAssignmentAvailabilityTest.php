@@ -140,6 +140,37 @@ class InstructorAssignmentAvailabilityTest extends TestCase
         $this->assertSame('The selected instructor has blocked this class schedule.', $reason);
     }
 
+    // A block on 09:00-10:30 must also reject a 09:00-11:00 assignment even though
+    // they're different Time records - matching by time_id alone would miss this.
+    public function test_it_rejects_an_instructor_with_a_manual_block_on_an_overlapping_different_time(): void
+    {
+        $instructor = $this->instructor();
+        $term = Term::create(['term_name' => 'Monday']);
+        $blockedTime = Time::create(['term_id' => $term->id, 'time_name' => '09:00 AM - 10:30 AM']);
+        $overlappingTime = Time::create(['term_id' => $term->id, 'time_name' => '09:00 AM - 11:00 AM']);
+
+        InstructorAvailability::create([
+            'instructor_id' => $instructor->id,
+            'day_of_week' => 1,
+            'employment_type' => 'full_time',
+            'shift_group' => 'custom',
+            'period' => 'daytime',
+            'start_time' => '08:00',
+            'end_time' => '12:00',
+            'is_active' => true,
+        ]);
+        InstructorScheduleBlock::create([
+            'instructor_id' => $instructor->id,
+            'day_of_week' => 1,
+            'time_id' => $blockedTime->id,
+            'status' => InstructorScheduleBlock::STATUS_ACTIVE,
+        ]);
+
+        $reason = app(InstructorAssignmentAvailability::class)->unavailableReason($instructor->user_id, $term->id, $overlappingTime->id);
+
+        $this->assertSame('The selected instructor has blocked this class schedule.', $reason);
+    }
+
     public function test_creating_a_class_rejects_an_instructor_outside_their_working_hours(): void
     {
         $instructor = $this->instructor();

@@ -117,17 +117,16 @@ async function submitBlock() {
   isBlocking.value = true
 
   try {
-    const response = await axios.post('/dashboard/instructor-schedule-blocks', {
+    await axios.post('/dashboard/instructor-schedule-blocks', {
       day_of_week: blockModal.value.day_of_week,
       time_id: blockModal.value.time_id,
       reason: blockReason.value || null,
     })
 
-    applySlotUpdate(blockModal.value.day_of_week, blockModal.value.time_id, {
-      status: 'blocked',
-      block_id: response.data.id,
-      reason: response.data.reason,
-    })
+    // Re-fetch rather than patch just this one slot locally: blocking it can also
+    // flip the status of other, overlapping time slots on the same day, and only
+    // the server knows which ones.
+    await fetchSchedule()
 
     toast.success(t('Slot blocked.'))
     closeBlockModal()
@@ -155,11 +154,9 @@ async function unblockSlot(day, slot) {
   try {
     await axios.delete(`/dashboard/instructor-schedule-blocks/block/${slot.block_id}`)
 
-    applySlotUpdate(day.day_of_week, slot.time_id, {
-      status: 'available',
-      block_id: null,
-      reason: null,
-    })
+    // Re-fetch rather than patch locally: removing this block can also flip other,
+    // previously-overlapping time slots back to available.
+    await fetchSchedule()
 
     toast.success(t('Slot unblocked.'))
   } catch (error) {
@@ -206,15 +203,11 @@ async function blockRow(rowIndex, group) {
   blockingRow.value = `${rowIndex}:${group.key}`
 
   try {
-    const response = await axios.post('/dashboard/instructor-schedule-blocks/row', { slots })
+    await axios.post('/dashboard/instructor-schedule-blocks/row', { slots })
 
-    response.data.blocks.forEach((block) => {
-      applySlotUpdate(block.day_of_week, block.time_id, {
-        status: 'blocked',
-        block_id: block.id,
-        reason: block.reason,
-      })
-    })
+    // Re-fetch rather than patch locally: each blocked slot can also flip other,
+    // overlapping time slots on the same day, beyond just the ones in this row.
+    await fetchSchedule()
 
     toast.success(t('Row blocked.'))
   } catch (error) {
@@ -245,13 +238,9 @@ async function unblockRow(rowIndex, group) {
       data: { block_ids: blockedSlots.map(({ slot }) => slot.block_id) },
     })
 
-    blockedSlots.forEach(({ day, slot }) => {
-      applySlotUpdate(day.day_of_week, slot.time_id, {
-        status: 'available',
-        block_id: null,
-        reason: null,
-      })
-    })
+    // Re-fetch rather than patch locally: removing these blocks can also flip
+    // other, previously-overlapping time slots back to available.
+    await fetchSchedule()
 
     toast.success(t('Row unblocked.'))
   } catch (error) {
@@ -259,15 +248,6 @@ async function unblockRow(rowIndex, group) {
     toast.error(t(error.response?.data?.message ?? 'Failed to unblock this row. Please try again.'))
   } finally {
     unblockingRow.value = null
-  }
-}
-
-function applySlotUpdate(dayOfWeek, timeId, changes) {
-  const day = schedule.value.find((d) => d.day_of_week === dayOfWeek)
-  const slot = day?.slots.find((s) => s.time_id === timeId)
-
-  if (slot) {
-    Object.assign(slot, changes)
   }
 }
 </script>
