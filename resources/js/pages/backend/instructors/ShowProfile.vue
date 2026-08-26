@@ -19,6 +19,25 @@ const initials = computed(() => {
   return name[0]?.toUpperCase() ?? '?'
 })
 
+function telegramHref(value) {
+  const raw = (value ?? '').toString().trim()
+
+  if (!raw) {
+    return null
+  }
+
+  if (/^https?:\/\//i.test(raw)) {
+    return raw
+  }
+
+  const normalized = raw
+    .replace(/^@/, '')
+    .replace(/^t\.me\//i, '')
+    .replace(/^telegram\.me\//i, '')
+
+  return normalized ? `https://t.me/${normalized}` : null
+}
+
 function formatFileSize(bytes) {
   if (!bytes) return ''
   if (bytes < 1024) return bytes + ' B'
@@ -151,7 +170,14 @@ function formatFileSize(bytes) {
               <div class="flex justify-between border-b border-slate-100 pb-2 text-sm dark:border-gray-800">
                 <span class="text-slate-500 dark:text-gray-400">{{ $t('Telegram') }}</span>
                 <span v-if="instructorData.telegram" class="font-medium text-blue-900 dark:text-blue-400">
-                  <a :href="instructorData.telegram.startsWith('http') ? instructorData.telegram : 'https://t.me/' + instructorData.telegram" target="_blank" class="hover:underline">{{ instructorData.telegram }}</a>
+                  <a
+                    :href="telegramHref(instructorData.telegram) || undefined"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hover:underline"
+                  >
+                    {{ instructorData.telegram }}
+                  </a>
                 </span>
                 <span v-else class="text-slate-400 dark:text-gray-500">{{ $t('Not provided') }}</span>
               </div>
