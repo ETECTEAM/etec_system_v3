@@ -570,7 +570,7 @@ class InstructorClassService
             ->whereIn('student_id', fn ($query) => $query
                 ->select('se.student_id')
                 ->from('student_enrollments as se')
-                ->whereColumn('se.study_class_id', $studyClassId)
+                ->where('se.study_class_id', $studyClassId)
                 ->where('se.enrollment_status', 'active'))
             ->where('status', 'approved')
             ->whereDate('start_date', '<=', $today)

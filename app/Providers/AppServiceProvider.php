@@ -39,10 +39,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by(strtolower($login).'|'.$request->ip());
         });
 
-        RateLimiter::for('register', function (Request $request): Limit {
-            $email = trim((string) $request->input('email', ''));
+        // Two independently-keyed buckets, same reasoning as password-email below:
+        // without the IP-only bucket, rotating the email field on every request
+        // gets a fresh 5/minute allowance each time from the same IP.
+        RateLimiter::for('register', function (Request $request): array {
+            $email = strtolower(trim((string) $request->input('email', '')));
 
-            return Limit::perMinute(5)->by(strtolower($email).'|'.$request->ip());
+            return [
+                Limit::perMinute(5)->by('email:'.$email.'|'.$request->ip()),
+                Limit::perMinute(10)->by('ip:'.$request->ip()),
+            ];
         });
 
         // Two independently-keyed buckets: an account can't be spammed past

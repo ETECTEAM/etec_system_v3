@@ -13,6 +13,7 @@ const form = useForm({
   email: '',
   password: '',
   password_confirmation: '',
+  website: '', // honeypot: left blank by real users, auto-filled by bots
 })
 
 const showPassword = ref(false)
@@ -36,6 +37,13 @@ function submit() {
     </div>
 
     <form class="space-y-4" @submit.prevent="submit">
+      <div class="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+        <label>
+          Website
+          <input v-model="form.website" type="text" tabindex="-1" autocomplete="off">
+        </label>
+      </div>
+
       <label class="block">
         <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Full Name</span>
         <input
