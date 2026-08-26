@@ -172,9 +172,10 @@ class GetClassList
         ];
     }
 
+    // Excludes schedule_id-scoped rows (always $0 - see CourseEnrollConfig::schedule()).
     private function resolveEnrollConfig(StudyClass $studyClass): ?CourseEnrollConfig
     {
-        $query = CourseEnrollConfig::where('course_id', $studyClass->course_id);
+        $query = CourseEnrollConfig::where('course_id', $studyClass->course_id)->whereNull('schedule_id');
 
         if ($studyClass->time_id !== null) {
             $query->where('time_id', $studyClass->time_id);

@@ -15,6 +15,7 @@ class CourseEnrollConfig extends Model
 
     protected $fillable = [
         'course_id',
+        'schedule_id',
         'time_id',
         'status',
         'start_date',
@@ -28,6 +29,7 @@ class CourseEnrollConfig extends Model
     {
         return [
             'course_id' => 'integer',
+            'schedule_id' => 'integer',
             'time_id' => 'integer',
             'start_date' => 'date',
             'unit_price' => 'decimal:2',
@@ -39,6 +41,12 @@ class CourseEnrollConfig extends Model
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    // NULL on rows that predate the Class Schedules picker.
+    public function schedule()
+    {
+        return $this->belongsTo(Schedule::class);
     }
 
     public function time()

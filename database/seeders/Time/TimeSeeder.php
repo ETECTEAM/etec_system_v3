@@ -25,7 +25,7 @@ class TimeSeeder extends Seeder
             '09:00 am - 10:30 am',
             '11:00 am - 12:15 pm',
             '12:30 pm - 01:45 pm',
-            '02:00 pm - 3:15 pm',
+            '02:00 pm - 03:15 pm',
             '03:30 pm - 05:00 pm',
             '06:00 pm - 07:15 pm',
             '07:15 pm - 08:30 pm',

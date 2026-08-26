@@ -42,6 +42,8 @@ Route::middleware(['auth', 'active', 'verified', 'role:super_admin'])->prefix('d
     Route::get('/courses/{course}/edit', [CourseController::class, 'edit'])->name('courses.edit');
     Route::put('/courses/{course}', [CourseController::class, 'update'])->name('courses.update');
     Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
+    Route::post('/courses/{course}/schedules/toggle', [CourseController::class, 'toggleSchedule'])->name('courses.schedules.toggle');
+    Route::post('/courses/{course}/schedules/class-type', [CourseController::class, 'setClassTypeAvailability'])->name('courses.schedules.class-type');
 
     // Lessons
     Route::get('/lessons', [CourseLessonController::class, 'index'])->name('lessons');

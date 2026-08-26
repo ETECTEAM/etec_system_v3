@@ -7,7 +7,7 @@ import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { SelectSearch } from '../../../components/ui/select-search'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
-import { Clock, Search, Trash2, X } from '@lucide/vue'
+import { ChevronDown, ChevronUp, Search } from '@lucide/vue'
 import { useConfirm } from '../../../composables/useConfirm'
 import { useI18n } from '@/i18n'
 
@@ -16,19 +16,13 @@ const toast = useToast()
 const { confirm } = useConfirm()
 
 // Category -> subCategories -> tracks -> courses, as returned already grouped
-// by GetCourseEnrollConfigs (see that class for why the grouping happens
-// server-side rather than here). Each course carries a configs array - one
-// enrollment schedule per time slot, always with a real id (schedules are
-// only ever created via the "Manage Time Slots" modal, which POSTs with the
-// chosen time_id immediately - there's no unsaved draft-row state to track).
-// times lists every slot the admin can toggle on/off in that modal.
+// by GetCourseEnrollConfigs. Each course carries its default pricing config
+// plus class_schedules (Class Type -> Term -> Time, from Schedule Management).
 const categories = ref([])
-const times = ref([])
 const search = ref('')
 const isLoading = ref(false)
 const hasLoaded = ref(false)
 const savingId = ref(null)
-const deletingId = ref(null)
 const savingOrderId = ref(null)
 const bulkStartDate = ref('')
 const isBulkSaving = ref(false)
@@ -37,11 +31,10 @@ const selectedSubCategory = ref('')
 const selectedTrack = ref('')
 const selectedCourse = ref('')
 
-// The course currently open in the "Manage Time Slots" modal, or null.
-const manageModalCourse = ref(null)
-// Which chip (a time_id, or 'default') is mid-toggle, so only that one
-// chip disables while its own request is in flight.
-const manageModalPendingKey = ref(null)
+// "courseId:classTypeId" pairs the admin has collapsed (expanded by default).
+const collapsed = ref(new Set())
+// "courseId:scheduleId:timeId" of the badge currently mid-request.
+const pendingKey = ref(null)
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -59,7 +52,6 @@ async function fetchCategories() {
     const response = await axios.get('/dashboard/enroll/config/data')
 
     categories.value = response.data.categories ?? []
-    times.value = response.data.times ?? []
   } catch (error) {
     console.error('Failed to fetch course enroll configs', error)
   } finally {
@@ -198,70 +190,59 @@ function resetFilters() {
   selectedCourse.value = ''
 }
 
-function sortConfigs(course) {
-  course.configs.sort((a, b) => (a.time_name ?? '').localeCompare(b.time_name ?? ''))
-}
-
-// Optimistic schedule save: apply the change immediately, roll back on failure.
-// Every row reaching this already has a real id (see manageModalCourse above).
-async function saveConfig(course, config, changes) {
-  const previous = { ...config }
-  Object.assign(config, changes)
-  savingId.value = config.id
+// Optimistic pricing save: apply the change immediately, roll back on failure.
+async function saveConfig(course, changes) {
+  const previous = { ...course.config }
+  Object.assign(course.config, changes)
+  savingId.value = course.config.id
 
   try {
     const payload = {
-      time_id: config.time_id ?? null,
-      status: config.enroll_status,
-      start_date: config.start_date ?? null,
-      unit_price: config.unit_price,
-      course_price: config.course_price,
-      selected_price_type: config.selected_price_type,
-      document_price: config.document_price,
+      status: course.config.enroll_status,
+      start_date: course.config.start_date ?? null,
+      unit_price: course.config.unit_price,
+      course_price: course.config.course_price,
+      selected_price_type: course.config.selected_price_type,
+      document_price: course.config.document_price,
     }
 
-    const response = await axios.put(`/dashboard/enroll/config/${config.id}`, payload)
+    const response = await axios.put(`/dashboard/enroll/config/${course.config.id}`, payload)
 
     const saved = response.data
-    config.id = saved.id
-    config.time_id = saved.time_id
-    config.time_name = saved.time_name
-    config.enroll_status = saved.enroll_status
-    config.start_date = saved.start_date
-    config.unit_price = saved.unit_price
-    config.course_price = saved.course_price
-    config.selected_price_type = saved.selected_price_type
-    config.resolved_price = saved.resolved_price
-    config.document_price = saved.document_price
-
-    sortConfigs(course)
+    course.config.enroll_status = saved.enroll_status
+    course.config.start_date = saved.start_date
+    course.config.unit_price = saved.unit_price
+    course.config.course_price = saved.course_price
+    course.config.selected_price_type = saved.selected_price_type
+    course.config.resolved_price = saved.resolved_price
+    course.config.document_price = saved.document_price
   } catch (error) {
     console.error('Failed to save course enroll config', error)
-    Object.assign(config, previous)
+    Object.assign(course.config, previous)
     toast.error(t(error.response?.data?.message ?? 'Failed to save. Please try again.'))
   } finally {
     savingId.value = null
   }
 }
 
-function toggleStatus(course, config) {
-  saveConfig(course, config, { enroll_status: config.enroll_status === 'open' ? 'closed' : 'open' })
+function toggleStatus(course) {
+  saveConfig(course, { enroll_status: course.config.enroll_status === 'open' ? 'closed' : 'open' })
 }
 
-function updateStartDate(course, config, value) {
-  saveConfig(course, config, { start_date: value || null })
+function updateStartDate(course, value) {
+  saveConfig(course, { start_date: value || null })
 }
 
-function updateUnitPrice(course, config, value) {
-  saveConfig(course, config, { unit_price: value === '' ? 0 : Number(value) })
+function updateUnitPrice(course, value) {
+  saveConfig(course, { unit_price: value === '' ? 0 : Number(value) })
 }
 
-function updateCoursePrice(course, config, value) {
-  saveConfig(course, config, { course_price: value === '' ? 0 : Number(value) })
+function updateCoursePrice(course, value) {
+  saveConfig(course, { course_price: value === '' ? 0 : Number(value) })
 }
 
-function updateSelectedPriceType(course, config, value) {
-  saveConfig(course, config, { selected_price_type: value })
+function updateSelectedPriceType(course, value) {
+  saveConfig(course, { selected_price_type: value })
 }
 
 function priceTypeOptions(config) {
@@ -271,8 +252,8 @@ function priceTypeOptions(config) {
   ]
 }
 
-function updateDocumentPrice(course, config, value) {
-  saveConfig(course, config, { document_price: value === '' ? 0 : Number(value) })
+function updateDocumentPrice(course, value) {
+  saveConfig(course, { document_price: value === '' ? 0 : Number(value) })
 }
 
 // Course-level display order for the public student-register list - 1 shows
@@ -303,90 +284,104 @@ async function updateCourseOrder(course, value) {
   }
 }
 
-// Trash icon in the table - same delete as the modal's toggle-off, but with
-// a confirm step since it's a single-purpose destructive action here rather
-// than a quick toggle the admin is actively managing in the modal.
-async function deleteSchedule(course, config) {
-  const ok = await confirm({
-    title: t('Remove this schedule?'),
-    message: config.time_name
-      ? t('This removes the :time schedule for :course.', { time: config.time_name, course: course.title })
-      : t('This removes the default schedule for :course.', { course: course.title }),
-    confirmText: t('Remove'),
-    danger: true,
-  })
+// One accent per class type so the three sections are easy to tell apart at
+// a glance - keyed by name since that's stable across environments, unlike class_type_id.
+const CLASS_TYPE_ACCENTS = {
+  'Physical Class': {
+    header: 'bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/15',
+    border: 'border-blue-200 dark:border-blue-500/30',
+    text: 'text-blue-800 dark:text-blue-300',
+    dot: 'bg-blue-500',
+  },
+  'Scholarship Class': {
+    header: 'bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/15',
+    border: 'border-amber-200 dark:border-amber-500/30',
+    text: 'text-amber-800 dark:text-amber-300',
+    dot: 'bg-amber-500',
+  },
+  'Online Class': {
+    header: 'bg-violet-50 hover:bg-violet-100 dark:bg-violet-500/10 dark:hover:bg-violet-500/15',
+    border: 'border-violet-200 dark:border-violet-500/30',
+    text: 'text-violet-800 dark:text-violet-300',
+    dot: 'bg-violet-500',
+  },
+}
+const DEFAULT_ACCENT = {
+  header: 'bg-slate-50 hover:bg-slate-100 dark:bg-gray-800/60 dark:hover:bg-gray-800',
+  border: 'border-slate-200 dark:border-gray-800',
+  text: 'text-slate-800 dark:text-gray-200',
+  dot: 'bg-slate-400',
+}
 
-  if (!ok) {
-    return
+function classTypeAccent(classType) {
+  return CLASS_TYPE_ACCENTS[classType.class_type_name] ?? DEFAULT_ACCENT
+}
+
+function isCollapsed(course, classType) {
+  return collapsed.value.has(`${course.id}:${classType.class_type_id}`)
+}
+
+function toggleCollapsed(course, classType) {
+  const key = `${course.id}:${classType.class_type_id}`
+
+  if (collapsed.value.has(key)) {
+    collapsed.value.delete(key)
+  } else {
+    collapsed.value.add(key)
   }
+  // Reassign so the template's reactivity picks up the Set mutation.
+  collapsed.value = new Set(collapsed.value)
+}
 
-  deletingId.value = config.id
+function recomputeEnabled(classType) {
+  classType.is_enabled = classType.terms.some((term) => term.times.some((time) => time.is_open))
+}
+
+// Toggle a single (schedule, time) slot for this course - same endpoint the
+// Course create/edit page's Class Schedules picker uses.
+async function toggleTime(course, classType, term, time) {
+  const key = `${course.id}:${term.schedule_id}:${time.time_id}`
+  const previous = time.is_open
+  time.is_open = !previous
+  recomputeEnabled(classType)
+  pendingKey.value = key
 
   try {
-    await axios.delete(`/dashboard/enroll/config/${config.id}`)
-    course.configs.splice(course.configs.indexOf(config), 1)
-    toast.success(t('Schedule removed.'))
+    await axios.post(`/dashboard/course/courses/${course.id}/schedules/toggle`, {
+      schedule_id: term.schedule_id,
+      time_id: time.time_id,
+    })
   } catch (error) {
-    console.error('Failed to remove schedule', error)
-    toast.error(t('Failed to remove schedule. Please try again.'))
+    console.error('Failed to toggle schedule availability', error)
+    time.is_open = previous
+    recomputeEnabled(classType)
+    toast.error(error.response?.data?.message ?? t('Failed to save. Please try again.'))
   } finally {
-    deletingId.value = null
+    pendingKey.value = null
   }
 }
 
-function openManageModal(course) {
-  manageModalCourse.value = course
-}
-
-function closeManageModal() {
-  manageModalCourse.value = null
-}
-
-// The modal's own list: "Default" (time_id null) plus every real time slot.
-function manageModalSlots() {
-  return [{ key: 'default', time_id: null, label: t('Default') }, ...times.value.map((slot) => ({
-    key: slot.value,
-    time_id: Number(slot.value),
-    label: slot.label,
-  }))]
-}
-
-function configForTimeId(course, timeId) {
-  return course.configs.find((config) => (config.time_id ?? null) === timeId)
-}
-
-// Toggle a slot on/off for the course open in the modal. Off -> on creates a
-// fresh schedule (default price/status, same as a brand-new row always
-// started); on -> off deletes it immediately - no confirm step, since this
-// is the admin actively curating the set of open slots, not a one-off
-// destructive action (that's what the table's trash icon is for).
-async function toggleModalTimeSlot(course, timeId) {
-  const key = timeId ?? 'default'
-  const existing = configForTimeId(course, timeId)
-  manageModalPendingKey.value = key
+// Bulk counterpart to toggleTime() - opens or closes every time under one
+// class type in a single request instead of clicking each badge.
+async function setClassTypeAvailability(course, classType, open) {
+  const previous = classType.terms.map((term) => term.times.map((time) => time.is_open))
+  classType.terms.forEach((term) => term.times.forEach((time) => { time.is_open = open }))
+  recomputeEnabled(classType)
+  const key = `classtype:${course.id}:${classType.class_type_id}`
+  pendingKey.value = key
 
   try {
-    if (existing) {
-      await axios.delete(`/dashboard/enroll/config/${existing.id}`)
-      course.configs.splice(course.configs.indexOf(existing), 1)
-    } else {
-      const response = await axios.post(`/dashboard/enroll/config/${course.id}/schedules`, {
-        time_id: timeId,
-        status: 'open',
-        start_date: null,
-        unit_price: 0,
-        course_price: 0,
-        selected_price_type: 'course',
-        document_price: 5,
-      })
-      course.configs.push(response.data)
-      sortConfigs(course)
-    }
+    await axios.post(`/dashboard/course/courses/${course.id}/schedules/class-type`, {
+      class_type_id: classType.class_type_id,
+      open,
+    })
   } catch (error) {
-    console.error('Failed to toggle schedule', error)
-    toast.error(t(error.response?.data?.message ?? 'Failed to save. Please try again.'))
+    console.error('Failed to bulk-toggle class type availability', error)
+    classType.terms.forEach((term, i) => term.times.forEach((time, j) => { time.is_open = previous[i][j] }))
+    recomputeEnabled(classType)
+    toast.error(error.response?.data?.message ?? t('Failed to save. Please try again.'))
   } finally {
-    manageModalPendingKey.value = null
+    pendingKey.value = null
   }
 }
 
@@ -549,148 +544,165 @@ async function applyStartDateToAll() {
                 </div>
 
                 <div v-for="(course, courseIndex) in track.courses" :key="course.id ?? 'uncategorized'" :class="courseIndex > 0 ? 'mt-6' : 'mt-4'">
-                  <div class="mb-2 flex items-center justify-between gap-3 pl-3">
-                    <div class="flex items-center gap-3">
-                      <h5 class="text-sm font-semibold text-slate-900 dark:text-gray-100">{{ course.title }}</h5>
-                      <div class="flex items-center gap-1.5" :title="$t('Lower numbers show first on the registration page.')">
-                        <label class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Order') }}</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="9999"
-                          :value="course.enroll_order ?? ''"
-                          :disabled="savingOrderId === course.id"
-                          class="w-16 rounded-lg border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                          @change="updateCourseOrder(course, $event.target.value)"
-                        >
-                      </div>
+                  <div class="mb-3 flex items-center gap-3 pl-3">
+                    <h5 class="text-sm font-semibold text-slate-900 dark:text-gray-100">{{ course.title }}</h5>
+                    <div class="flex items-center gap-1.5" :title="$t('Lower numbers show first on the registration page.')">
+                      <label class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Order') }}</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="9999"
+                        :value="course.enroll_order ?? ''"
+                        :disabled="savingOrderId === course.id"
+                        class="w-16 rounded-lg border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                        @change="updateCourseOrder(course, $event.target.value)"
+                      >
                     </div>
-                    <button
-                      type="button"
-                      class="inline-flex items-center gap-1 rounded-lg border border-dashed border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 dark:border-blue-500/40 dark:text-blue-400 dark:hover:bg-blue-500/10"
-                      @click="openManageModal(course)"
-                    >
-                      <Clock class="h-3.5 w-3.5" />
-                      {{ $t('Manage Time Slots') }}
-                    </button>
                   </div>
 
-                  <p v-if="course.configs.length === 0" class="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500 dark:border-gray-700 dark:text-gray-400">
-                    {{ $t('No schedules yet. Use "Manage Time Slots" to open one.') }}
-                  </p>
+                  <!-- Enrollment & pricing: the course's single default config (schedule_id/time_id both null). -->
+                  <div class="rounded-xl border border-slate-200 p-4 dark:border-gray-800">
+                    <div class="mb-3 flex items-center justify-between">
+                      <p class="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400">{{ $t('Enrollment & Pricing') }}</p>
+                      <button
+                        type="button"
+                        :disabled="savingId === course.config.id"
+                        class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold transition disabled:opacity-50"
+                        :class="course.config.enroll_status === 'open' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'"
+                        @click="toggleStatus(course)"
+                      >
+                        {{ course.config.enroll_status === 'open' ? $t('Open') : $t('Closed') }}
+                      </button>
+                    </div>
 
-                  <!-- overflow-y explicit (not left implicit) - CSS computes an unset axis to
-                       auto whenever the other axis is non-visible, which would silently clip
-                       the SelectSearch dropdown (price-to-use) at this container's edge
-                       instead of letting it float above the content below. -->
-                  <div v-else class="overflow-x-auto overflow-y-visible rounded-xl border border-slate-200 dark:border-gray-800">
-                    <table class="w-full min-w-[1020px] text-left text-sm">
-                      <thead class="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-400">
-                        <tr>
-                          <th class="px-4 py-3">{{ $t('Time Slot') }}</th>
-                          <th class="px-4 py-3">{{ $t('Start Date') }}</th>
-                          <th class="px-4 py-3">{{ $t('Unit Price') }}</th>
-                          <th class="px-4 py-3">{{ $t('Course Price') }}</th>
-                          <th class="px-4 py-3">{{ $t('Document Price') }}</th>
-                          <th class="px-4 py-3">{{ $t('Price to Use') }}</th>
-                          <th class="px-4 py-3">{{ $t('Status') }}</th>
-                          <th class="px-4 py-3"></th>
-                        </tr>
-                      </thead>
-                      <tbody class="divide-y divide-slate-100 bg-white dark:divide-gray-800 dark:bg-gray-900">
-                        <tr v-for="config in course.configs" :key="config.id" class="transition hover:bg-slate-50 dark:hover:bg-gray-800">
-                          <td class="px-4 py-3 font-medium text-slate-700 dark:text-gray-300">
-                            {{ config.time_name ?? $t('Default') }}
-                          </td>
-                          <td class="px-4 py-3">
-                            <input
-                              type="date"
-                              :value="config.start_date ?? ''"
-                              :disabled="savingId === config.id || deletingId === config.id"
-                              class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                              @change="updateStartDate(course, config, $event.target.value)"
-                            >
-                          </td>
-                          <td class="px-4 py-3">
-                            <div class="relative w-28">
-                              <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                :value="config.unit_price"
-                                :disabled="savingId === config.id || deletingId === config.id"
-                                class="w-full rounded-lg border border-slate-300 py-1.5 pl-6 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                                @change="updateUnitPrice(course, config, $event.target.value)"
-                              >
-                            </div>
-                          </td>
-                          <td class="px-4 py-3">
-                            <div class="relative w-28">
-                              <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                :value="config.course_price"
-                                :disabled="savingId === config.id || deletingId === config.id"
-                                class="w-full rounded-lg border border-slate-300 py-1.5 pl-6 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                                @change="updateCoursePrice(course, config, $event.target.value)"
-                              >
-                            </div>
-                          </td>
-                          <td class="px-4 py-3">
-                            <div class="relative w-28">
-                              <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                :value="config.document_price"
-                                :disabled="savingId === config.id || deletingId === config.id"
-                                class="w-full rounded-lg border border-slate-300 py-1.5 pl-6 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                                @change="updateDocumentPrice(course, config, $event.target.value)"
-                              >
-                            </div>
-                          </td>
-                          <td class="px-4 py-3">
-                            <div class="w-48">
-                              <SelectSearch
-                                :model-value="config.selected_price_type"
-                                :options="priceTypeOptions(config)"
-                                :disabled="savingId === config.id || deletingId === config.id"
-                                :clearable="false"
-                                :searchable="false"
-                                button-class="flex w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-left text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                                @update:model-value="(value) => updateSelectedPriceType(course, config, value)"
-                              />
-                            </div>
-                          </td>
-                          <td class="px-4 py-3">
-                            <button
-                              type="button"
-                              :disabled="savingId === config.id || deletingId === config.id"
-                              class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold transition disabled:opacity-50"
-                              :class="config.enroll_status === 'open' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'"
-                              @click="toggleStatus(course, config)"
-                            >
-                              {{ config.enroll_status === 'open' ? $t('Open') : $t('Closed') }}
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                      <div>
+                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Start Date') }}</label>
+                        <input
+                          type="date"
+                          :value="course.config.start_date ?? ''"
+                          :disabled="savingId === course.config.id"
+                          class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                          @change="updateStartDate(course, $event.target.value)"
+                        >
+                      </div>
+                      <div>
+                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Unit Price') }}</label>
+                        <div class="relative">
+                          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            :value="course.config.unit_price"
+                            :disabled="savingId === course.config.id"
+                            class="w-full rounded-lg border border-slate-300 py-1.5 pl-6 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                            @change="updateUnitPrice(course, $event.target.value)"
+                          >
+                        </div>
+                      </div>
+                      <div>
+                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Course Price') }}</label>
+                        <div class="relative">
+                          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            :value="course.config.course_price"
+                            :disabled="savingId === course.config.id"
+                            class="w-full rounded-lg border border-slate-300 py-1.5 pl-6 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                            @change="updateCoursePrice(course, $event.target.value)"
+                          >
+                        </div>
+                      </div>
+                      <div>
+                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Document Price') }}</label>
+                        <div class="relative">
+                          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            :value="course.config.document_price"
+                            :disabled="savingId === course.config.id"
+                            class="w-full rounded-lg border border-slate-300 py-1.5 pl-6 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                            @change="updateDocumentPrice(course, $event.target.value)"
+                          >
+                        </div>
+                      </div>
+                      <div>
+                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Price to Use') }}</label>
+                        <SelectSearch
+                          :model-value="course.config.selected_price_type"
+                          :options="priceTypeOptions(course.config)"
+                          :disabled="savingId === course.config.id"
+                          :clearable="false"
+                          :searchable="false"
+                          button-class="flex w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-left text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                          @update:model-value="(value) => updateSelectedPriceType(course, value)"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Class schedules: Class Type -> Term -> Time, sourced from Schedule Management. -->
+                  <div class="mt-3 space-y-3">
+                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400">{{ $t('Class Schedules') }}</p>
+
+                    <div v-for="classType in course.class_schedules" :key="classType.class_type_id"
+                      class="rounded-xl border overflow-hidden" :class="classTypeAccent(classType).border">
+                      <div class="w-full flex items-center justify-between gap-3 px-4 py-3 transition" :class="classTypeAccent(classType).header">
+                        <button type="button" class="flex items-center gap-2.5 min-w-0" @click="toggleCollapsed(course, classType)">
+                          <span class="h-2.5 w-2.5 shrink-0 rounded-full" :class="classTypeAccent(classType).dot" />
+                          <span class="font-semibold" :class="classTypeAccent(classType).text">{{ classType.class_type_name }}</span>
+                          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                            :class="classType.is_enabled ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-200 text-slate-600 dark:bg-gray-700 dark:text-gray-400'">
+                            {{ classType.is_enabled ? $t('ON') : $t('OFF') }}
+                          </span>
+                        </button>
+                        <div class="flex items-center gap-3 shrink-0">
+                          <button type="button"
+                            :disabled="pendingKey === `classtype:${course.id}:${classType.class_type_id}`"
+                            class="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-100"
+                            @click="setClassTypeAvailability(course, classType, true)">
+                            {{ $t('Turn on all') }}
+                          </button>
+                          <span class="text-slate-300 dark:text-gray-600">|</span>
+                          <button type="button"
+                            :disabled="pendingKey === `classtype:${course.id}:${classType.class_type_id}`"
+                            class="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-100"
+                            @click="setClassTypeAvailability(course, classType, false)">
+                            {{ $t('Turn off all') }}
+                          </button>
+                          <button type="button" @click="toggleCollapsed(course, classType)">
+                            <ChevronUp v-if="!isCollapsed(course, classType)" class="h-4 w-4 text-slate-400 dark:text-gray-500" />
+                            <ChevronDown v-else class="h-4 w-4 text-slate-400 dark:text-gray-500" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div v-if="!isCollapsed(course, classType)" class="px-4 py-4 space-y-4">
+                        <p v-if="classType.terms.length === 0" class="text-sm text-slate-500 dark:text-gray-400">
+                          {{ $t('No schedules configured for this class type yet.') }}
+                        </p>
+                        <div v-for="term in classType.terms" :key="term.schedule_id">
+                          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2 dark:text-gray-400">{{ term.term_name }}</p>
+                          <div class="flex flex-wrap gap-2">
+                            <button v-for="time in term.times" :key="time.time_id" type="button"
+                              :disabled="pendingKey === `${course.id}:${term.schedule_id}:${time.time_id}`"
+                              @click="toggleTime(course, classType, term, time)"
+                              class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
+                              :class="time.is_open
+                                ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                : 'border-slate-300 text-slate-500 hover:border-slate-400 dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500'">
+                              <span class="h-2 w-2 rounded-full" :class="time.is_open ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-gray-600'" />
+                              {{ time.time_name }}
                             </button>
-                          </td>
-                          <td class="px-4 py-3">
-                            <button
-                              type="button"
-                              :title="$t('Remove')"
-                              :disabled="savingId === config.id || deletingId === config.id"
-                              class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                              @click="deleteSchedule(course, config)"
-                            >
-                              <Trash2 class="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -699,58 +711,5 @@ async function applyStartDateToAll() {
         </div>
       </div>
     </section>
-
-    <div
-      v-if="manageModalCourse"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4"
-      @click.self="closeManageModal"
-    >
-      <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Manage Time Slots') }}</h3>
-            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ manageModalCourse.title }}</p>
-          </div>
-          <button
-            type="button"
-            :title="$t('Close')"
-            class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-            @click="closeManageModal"
-          >
-            <X class="h-4 w-4" />
-          </button>
-        </div>
-
-        <p class="mt-4 text-xs text-slate-500 dark:text-gray-400">
-          {{ $t('Click a time slot to open it for enrollment. Click it again to remove that schedule.') }}
-        </p>
-
-        <div class="mt-3 flex max-h-80 flex-wrap gap-2 overflow-y-auto py-1">
-          <button
-            v-for="slot in manageModalSlots()"
-            :key="slot.key"
-            type="button"
-            :disabled="manageModalPendingKey === slot.key"
-            class="rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
-            :class="configForTimeId(manageModalCourse, slot.time_id)
-              ? 'border-blue-600 bg-blue-600 text-white dark:border-blue-500 dark:bg-blue-500'
-              : 'border-slate-300 text-slate-600 hover:border-blue-400 hover:text-blue-600 dark:border-gray-600 dark:text-gray-300 dark:hover:border-blue-500 dark:hover:text-blue-400'"
-            @click="toggleModalTimeSlot(manageModalCourse, slot.time_id)"
-          >
-            {{ slot.label }}
-          </button>
-        </div>
-
-        <div class="mt-6 flex justify-end">
-          <button
-            type="button"
-            class="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
-            @click="closeManageModal"
-          >
-            {{ $t('Done') }}
-          </button>
-        </div>
-      </div>
-    </div>
   </DashboardLayout>
 </template>

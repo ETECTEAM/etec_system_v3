@@ -61,7 +61,7 @@ const view = ref("discover");
 const categoryFilter = ref("all");
 const searchQuery = ref("");
 const selectedCourseId = ref(null);
-const selectedSlot = ref(null); // { term_id, time_id, term_name, time_name }
+const selectedSlot = ref(null); // { class_type_id, class_type_name, term_id, term_name, time_id, time_name }
 
 const form = useForm({
   name: "",
@@ -69,6 +69,7 @@ const form = useForm({
   phone: "",
   category_id: "",
   course_id: "",
+  class_type_id: "",
   term_id: "",
   time_id: "",
 });
@@ -95,31 +96,35 @@ function timeSortKey(timeName) {
   return hour * 60 + minute;
 }
 
-// Every real (term, time) combination this course can actually run in —
-// same course/term scoping rule the old two-dropdown picker used
-// (StudentRegisterController::timeIdsForTerm intersected with the course's
-// own enrollConfig time slots), just precomputed as flat tappable slots
-// instead of two dependent <select>s.
+// Every real (class type, term, time) combination this course can run in -
+// strictly what's toggled open on the Class Schedules picker. A course with
+// no open slots for a class type shows none for it here, full stop; there is
+// no "uncurated = show everything" fallback, so what the admin sees as OFF
+// is never secretly bookable.
 function slotsForCourse(course) {
-  const courseTimeIds = (course.time_ids ?? []).map(String);
+  const courseClassTypes = course.class_types ?? [];
   const slots = [];
 
   for (const term of props.terms) {
-    const allowedIds = (term.time_ids ?? []).map(String);
-    const scopedIds = courseTimeIds.length > 0
-      ? courseTimeIds.filter((id) => allowedIds.includes(id))
-      : allowedIds;
+    for (const termClassType of term.class_types ?? []) {
+      const allowedIds = (termClassType.time_ids ?? []).map(String);
+      const courseClassType = courseClassTypes.find((ct) => ct.class_type_id === termClassType.class_type_id);
 
-    for (const idStr of scopedIds) {
-      const time = props.times.find((t) => String(t.id) === idStr);
+      const scopedIds = (courseClassType?.time_ids ?? []).map(String).filter((id) => allowedIds.includes(id));
 
-      if (time) {
-        slots.push({
-          term_id: term.id,
-          time_id: time.id,
-          term_name: term.term_name,
-          time_name: time.time_name,
-        });
+      for (const idStr of scopedIds) {
+        const time = props.times.find((t) => String(t.id) === idStr);
+
+        if (time) {
+          slots.push({
+            class_type_id: termClassType.class_type_id,
+            class_type_name: termClassType.class_type_name,
+            term_id: term.id,
+            term_name: term.term_name,
+            time_id: time.id,
+            time_name: time.time_name,
+          });
+        }
       }
     }
   }
@@ -159,29 +164,43 @@ const selectedCourse = computed(
   () => coursesWithSlots.value.find((c) => String(c.id) === String(selectedCourseId.value)) ?? null
 );
 
-// Grouped by term (Mon & Thu / Sat & Sun) instead of one long flat list —
-// a course can easily offer 10 real slots once both terms fall back to
-// their full schedule, which reads as noise without the term grouping.
+// Grouped Class Type -> Term instead of one flat list.
 const groupedSlots = computed(() => {
   if (!selectedCourse.value) {
     return [];
   }
 
-  const groups = new Map();
+  const classTypeGroups = new Map();
 
   for (const slot of selectedCourse.value.slots) {
-    if (!groups.has(slot.term_id)) {
-      groups.set(slot.term_id, { term_id: slot.term_id, term_name: slot.term_name, slots: [] });
+    if (!classTypeGroups.has(slot.class_type_id)) {
+      classTypeGroups.set(slot.class_type_id, {
+        class_type_id: slot.class_type_id,
+        class_type_name: slot.class_type_name,
+        terms: new Map(),
+      });
     }
 
-    groups.get(slot.term_id).slots.push(slot);
+    const terms = classTypeGroups.get(slot.class_type_id).terms;
+
+    if (!terms.has(slot.term_id)) {
+      terms.set(slot.term_id, { term_id: slot.term_id, term_name: slot.term_name, slots: [] });
+    }
+
+    terms.get(slot.term_id).slots.push(slot);
   }
 
-  return Array.from(groups.values());
+  return Array.from(classTypeGroups.values()).map((group) => ({
+    ...group,
+    terms: Array.from(group.terms.values()),
+  }));
 });
 
 function isSlotSelected(slot) {
-  return !!selectedSlot.value && selectedSlot.value.term_id === slot.term_id && selectedSlot.value.time_id === slot.time_id;
+  return !!selectedSlot.value
+    && selectedSlot.value.class_type_id === slot.class_type_id
+    && selectedSlot.value.term_id === slot.term_id
+    && selectedSlot.value.time_id === slot.time_id;
 }
 
 // A small, deterministic icon per category so the catalog reads visually
@@ -214,6 +233,7 @@ function submit() {
 
   form.category_id = String(selectedCourse.value.category_id);
   form.course_id = String(selectedCourse.value.id);
+  form.class_type_id = selectedSlot.value ? String(selectedSlot.value.class_type_id) : "";
   form.term_id = selectedSlot.value ? String(selectedSlot.value.term_id) : "";
   form.time_id = selectedSlot.value ? String(selectedSlot.value.time_id) : "";
 
@@ -455,29 +475,34 @@ function normalizePhoneInput(event) {
                 </div>
               </div>
 
-              <div class="mt-3.5 grid grid-cols-2 gap-3 sm:mt-5 sm:gap-5">
-                <div v-for="group in groupedSlots" :key="group.term_id" class="min-w-0">
-                  <p class="mb-1.5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wide text-slate-500 sm:mb-2 sm:text-[11px]">
-                    <Calendar class="h-3 w-3 shrink-0 text-slate-400" /> {{ group.term_name }}
-                  </p>
-                  <div class="flex flex-col gap-1.5">
-                    <button
-                      v-for="slot in group.slots"
-                      :key="`${slot.term_id}-${slot.time_id}`"
-                      type="button"
-                      class="flex items-center justify-between gap-1.5 rounded-lg border-2 px-2.5 py-2 text-left transition sm:rounded-xl sm:px-3 sm:py-2.5"
-                      :class="isSlotSelected(slot)
-                        ? 'border-[#1A66FF] bg-[#1A66FF]/5'
-                        : 'border-slate-200 bg-slate-50 hover:border-slate-300'"
-                      @click="pickSlot(slot)"
-                    >
-                      <span class="truncate text-[10px] font-bold text-slate-700 sm:text-xs">{{ slot.time_name }}</span>
-                      <Check v-if="isSlotSelected(slot)" class="h-3.5 w-3.5 shrink-0 text-[#1A66FF]" />
-                    </button>
+              <div class="mt-3.5 space-y-4 sm:mt-5 sm:space-y-5">
+                <div v-for="classTypeGroup in groupedSlots" :key="classTypeGroup.class_type_id">
+                  <p class="mb-2 text-xs font-black text-slate-800 sm:text-sm">{{ classTypeGroup.class_type_name }}</p>
+                  <div class="grid grid-cols-2 gap-3 sm:gap-5">
+                    <div v-for="group in classTypeGroup.terms" :key="group.term_id" class="min-w-0">
+                      <p class="mb-1.5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wide text-slate-500 sm:mb-2 sm:text-[11px]">
+                        <Calendar class="h-3 w-3 shrink-0 text-slate-400" /> {{ group.term_name }}
+                      </p>
+                      <div class="flex flex-col gap-1.5">
+                        <button
+                          v-for="slot in group.slots"
+                          :key="`${slot.class_type_id}-${slot.term_id}-${slot.time_id}`"
+                          type="button"
+                          class="flex items-center justify-between gap-1.5 rounded-lg border-2 px-2.5 py-2 text-left transition sm:rounded-xl sm:px-3 sm:py-2.5"
+                          :class="isSlotSelected(slot)
+                            ? 'border-[#1A66FF] bg-[#1A66FF]/5'
+                            : 'border-slate-200 bg-slate-50 hover:border-slate-300'"
+                          @click="pickSlot(slot)"
+                        >
+                          <span class="truncate text-[10px] font-bold text-slate-700 sm:text-xs">{{ slot.time_name }}</span>
+                          <Check v-if="isSlotSelected(slot)" class="h-3.5 w-3.5 shrink-0 text-[#1A66FF]" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-              <span v-if="form.errors.term_id || form.errors.time_id" class="mt-2 block text-xs font-semibold text-red-600 sm:text-sm">Please pick a schedule slot.</span>
+              <span v-if="form.errors.class_type_id || form.errors.term_id || form.errors.time_id" class="mt-2 block text-xs font-semibold text-red-600 sm:text-sm">Please pick a schedule slot.</span>
             </section>
 
             <button

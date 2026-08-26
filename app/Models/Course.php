@@ -45,10 +45,14 @@ class Course extends Model
 
     // The config that applies to a given time slot: the time-specific config if
     // one exists, otherwise the course's default (time_id NULL) config.
+    //
+    // Excludes schedule_id-scoped rows (always $0 - see schedule()) so a
+    // Class Schedules availability toggle never gets picked up as the price.
     public function enrollConfigForTime(?int $timeId = null): ?CourseEnrollConfig
     {
-        return $this->enrollConfigs
-            ->first(fn (CourseEnrollConfig $config) => $config->time_id === $timeId)
-            ?? $this->enrollConfigs->first(fn (CourseEnrollConfig $config) => $config->time_id === null);
+        $priceConfigs = $this->enrollConfigs->whereNull('schedule_id');
+
+        return $priceConfigs->first(fn (CourseEnrollConfig $config) => $config->time_id === $timeId)
+            ?? $priceConfigs->first(fn (CourseEnrollConfig $config) => $config->time_id === null);
     }
 }

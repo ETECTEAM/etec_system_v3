@@ -4,21 +4,22 @@ namespace App\Modules\Enroll\Queries;
 
 use App\Models\Course;
 use App\Models\CourseEnrollConfig;
-use App\Models\Time;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 
 class GetCourseEnrollConfigs
 {
+    public function __construct(private readonly GetCourseClassSchedules $classSchedules) {}
+
     /**
      * Courses grouped Category -> SubCategory -> CourseTrack, for the
      * enroll-config page's hierarchical table. Each course carries its own
-     * set of enrollment schedules (one per time slot) plus the shared list of
-     * time slots the admin can pick from. Unpaginated - grouping and
-     * per-page course pagination don't compose (a track's courses could
-     * split across pages), and the course count here is small enough
-     * (dozens, not thousands) that loading everything at once is fine.
+     * default pricing config plus its Class Schedules availability.
+     * Unpaginated - grouping and per-page course pagination don't compose (a
+     * track's courses could split across pages), and the course count here
+     * is small enough (dozens, not thousands) that loading everything at
+     * once is fine.
      */
     public function handle(Request $request): array
     {
@@ -27,8 +28,7 @@ class GetCourseEnrollConfigs
         $courses = Course::query()
             ->select(['id', 'title', 'course_track_id', 'enroll_order'])
             ->with([
-                'enrollConfigs:id,course_id,time_id,status,start_date,unit_price,course_price,selected_price_type,document_price',
-                'enrollConfigs.time:id,time_name',
+                'enrollConfig',
                 'track:id,sub_category_id,name',
                 'track.subCategory:id,category_id,name',
                 'track.subCategory.category:id,name',
@@ -39,13 +39,6 @@ class GetCourseEnrollConfigs
 
         return [
             'categories' => $this->group($courses),
-            'times' => Time::query()->orderBy('id')->get(['id', 'time_name'])
-                ->map(fn (Time $time) => [
-                    'value' => (string) $time->id,
-                    'label' => $time->time_name,
-                ])
-                ->values()
-                ->all(),
             'filters' => ['search' => $search],
         ];
     }
@@ -155,23 +148,12 @@ class GetCourseEnrollConfigs
 
     private function present(Course $course): array
     {
-        $configs = $course->enrollConfigs
-            ->sortBy(fn (CourseEnrollConfig $config) => $config->time?->time_name ?? '')
-            ->values()
-            ->map(fn (CourseEnrollConfig $config) => $this->presentConfig($config))
-            ->all();
-
-        // A course with no saved config still renders one default row so the
-        // admin can open/price it from the page (pre-existing behavior kept).
-        if ($configs === []) {
-            $configs[] = $this->presentConfig(null);
-        }
-
         return [
             'id' => $course->id,
             'title' => $course->title,
             'enroll_order' => $course->enroll_order,
-            'configs' => $configs,
+            'config' => $this->presentConfig($course->enrollConfig),
+            'class_schedules' => $this->classSchedules->handle($course),
         ];
     }
 
@@ -179,8 +161,6 @@ class GetCourseEnrollConfigs
     {
         return [
             'id' => $config?->id ?? null,
-            'time_id' => $config?->time_id ?? null,
-            'time_name' => $config?->time?->time_name ?? null,
             'enroll_status' => $config?->status ?? 'open',
             'start_date' => optional($config?->start_date)->format('Y-m-d'),
             'unit_price' => (float) ($config?->unit_price ?? 0),

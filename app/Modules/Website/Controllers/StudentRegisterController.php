@@ -9,6 +9,7 @@ use App\Models\CourseEnrollConfig;
 use App\Models\Schedule;
 use App\Models\Term;
 use App\Models\Time;
+use App\Modules\Enroll\Queries\GetCourseClassSchedules;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
 use App\Modules\Website\Requests\StudentRegisterRequest;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,7 @@ use Inertia\Response;
 
 class StudentRegisterController extends Controller
 {
+
     public function create(): Response
     {
         return Inertia::render('frontend/student-register/StudentRegister', [
@@ -64,24 +66,23 @@ class StudentRegisterController extends Controller
             ->map(fn (Term $term): array => [
                 'id' => $term->id,
                 'term_name' => $term->term_name,
-                'time_ids' => $this->timeIdsForTerm($term->id),
+                'class_types' => $this->classTypesForTerm($term->id),
             ])
             ->all();
     }
 
-    // Scholarship Class runs its own separate time slots and isn't offered
-    // through this public self-registration form, so it's excluded here.
-    private function timeIdsForTerm(int $termId): array
+    private function classTypesForTerm(int $termId): array
     {
         return Schedule::query()
             ->where('term_id', $termId)
-            ->whereHas('classType', fn ($query) => $query->where('type_name', '!=', 'Scholarship Class'))
-            ->with('times:id')
+            ->whereHas('classType', fn ($query) => $query->whereIn('type_name', GetCourseClassSchedules::AVAILABLE_CLASS_TYPES))
+            ->with(['classType:class_type_id,type_name', 'times:id'])
             ->get()
-            ->pluck('times')
-            ->flatten()
-            ->pluck('id')
-            ->unique()
+            ->map(fn (Schedule $schedule): array => [
+                'class_type_id' => $schedule->class_type_id,
+                'class_type_name' => $schedule->classType->type_name,
+                'time_ids' => $schedule->times->pluck('id')->values()->all(),
+            ])
             ->values()
             ->all();
     }
@@ -89,7 +90,7 @@ class StudentRegisterController extends Controller
     private function courses(): array
     {
         return Course::query()
-            ->with('track.subCategory.category:id,name', 'enrollConfigs.time:id,time_name')
+            ->with('track.subCategory.category:id,name', 'enrollConfigs.schedule:id,class_type_id')
             ->where('status', 'active')
             ->select('id', 'course_track_id', 'title', 'level', 'enroll_order')
             // Admin-set display order (Enroll Config page) - 1 shows first;
@@ -105,17 +106,38 @@ class StudentRegisterController extends Controller
                 'category_name' => $course->track?->subCategory?->category?->name,
                 'sub_category_id' => $course->track?->subCategory?->id,
                 'sub_category_name' => $course->track?->subCategory?->name,
-                // The enrollment time slots this course offers - one per open
-                // schedule the admin set on the Enroll Config page. Empty when
-                // the course only has its default (no-slot) schedule, in which
-                // case the chosen term's running slots are offered instead.
-                'time_ids' => $course->enrollConfigs
-                    ->filter(fn (CourseEnrollConfig $config) => $config->time_id !== null && $config->status === 'open')
-                    ->pluck('time_id')
-                    ->values()
-                    ->all(),
+                // Empty means the course has nothing toggled open yet - it
+                // simply won't show any bookable slot, matching what the
+                // Class Schedules picker displays (no hidden fallback).
+                'class_types' => $this->openClassTypesForCourse($course),
             ])
             ->filter(fn (array $course): bool => $course['category_id'] !== null)
+            ->values()
+            ->all();
+    }
+
+    // The default config's status (the course-wide Open/Closed toggle on the
+    // Enroll Config page) is a master switch: closed hides the course from
+    // public registration outright, regardless of which individual class
+    // type/time slots are toggled open, so pausing a course doesn't require
+    // touching every badge.
+    private function openClassTypesForCourse(Course $course): array
+    {
+        $default = $course->enrollConfigs->first(
+            fn (CourseEnrollConfig $config) => $config->schedule_id === null && $config->time_id === null
+        );
+
+        if ($default !== null && $default->status !== 'open') {
+            return [];
+        }
+
+        return $course->enrollConfigs
+            ->filter(fn (CourseEnrollConfig $config) => $config->schedule_id !== null && $config->status === 'open')
+            ->groupBy(fn (CourseEnrollConfig $config) => $config->schedule->class_type_id)
+            ->map(fn ($configs, $classTypeId): array => [
+                'class_type_id' => (int) $classTypeId,
+                'time_ids' => $configs->pluck('time_id')->unique()->values()->all(),
+            ])
             ->values()
             ->all();
     }

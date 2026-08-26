@@ -137,10 +137,16 @@ class RegisterStudentForSchedule
 
     private function availableClass(Course $course, array $data): ?StudyClass
     {
+        // class_type_id disambiguates term+time pairs shared by more than
+        // one class type's schedule.
         $classes = StudyClass::query()
             ->where('course_id', $course->id)
             ->where('term_id', $data['term_id'])
             ->where('time_id', $data['time_id'])
+            ->when(
+                isset($data['class_type_id']),
+                fn ($query) => $query->where('class_type_id', (int) $data['class_type_id']),
+            )
             ->whereIn('status', self::OPEN_CLASS_STATUSES)
             ->orderBy('id')
             ->pluck('id');
@@ -275,6 +281,11 @@ class RegisterStudentForSchedule
 
     private function classTypeId(array $data, ?StudyClass $defaults = null): ?int
     {
+        // Explicit choice (from the public form) wins over the heuristics below.
+        if (isset($data['class_type_id']) && $this->hasScheduleFor((int) $data['class_type_id'], $data)) {
+            return (int) $data['class_type_id'];
+        }
+
         if ($this->hasScheduleFor($defaults?->class_type_id, $data)) {
             return $defaults->class_type_id;
         }

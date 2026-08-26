@@ -5,10 +5,16 @@ namespace App\Modules\Course;
 
 use App\Models\Course;
 use App\Models\Category;
+use App\Models\ClassType;
 use App\Models\CourseEnrollConfig;
+use App\Models\Schedule;
 use App\Models\SubCategory;
 use App\Models\CourseTrack;
+use App\Modules\Enroll\Queries\GetCourseClassSchedules;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Str;
@@ -16,6 +22,7 @@ use Illuminate\Support\Facades\Storage;
 
 class CourseController extends Controller
 {
+
     public function index()
     {
         // Get all courses with relationships
@@ -78,7 +85,7 @@ class CourseController extends Controller
         // migration that dropped price/document_price from courses). The form's
         // single price input maps to the default schedule's course price.
         CourseEnrollConfig::query()->updateOrCreate(
-            ['course_id' => $course->id, 'time_id' => null],
+            ['course_id' => $course->id, 'schedule_id' => null, 'time_id' => null],
             ['course_price' => $validated['price'] ?? 0]
         );
 
@@ -93,7 +100,7 @@ class CourseController extends Controller
         ]);
     }
 
-    public function edit(Course $course)
+    public function edit(Course $course, GetCourseClassSchedules $classSchedules)
     {
         $course->load('track.subCategory.category', 'enrollConfig');
 
@@ -105,8 +112,106 @@ class CourseController extends Controller
             'course' => $course,
             'categories' => $categories,
             'subCategories' => $subCategories,
-            'tracks' => $tracks
+            'tracks' => $tracks,
+            'classSchedules' => $classSchedules->handle($course),
         ]);
+    }
+
+    // Toggle: creates an open row if none exists, deletes it if one does.
+    public function toggleSchedule(Request $request, Course $course): JsonResponse
+    {
+        $validated = $request->validate([
+            'schedule_id' => ['required', 'integer', 'exists:schedules,id'],
+            // Must actually belong to schedule_id via schedule_time.
+            'time_id' => [
+                'required',
+                'integer',
+                Rule::exists('schedule_time', 'time_id')->where('schedule_id', $request->input('schedule_id')),
+            ],
+        ]);
+
+        $schedule = Schedule::query()->with('classType')->findOrFail($validated['schedule_id']);
+
+        abort_unless(
+            in_array($schedule->classType?->type_name, GetCourseClassSchedules::AVAILABLE_CLASS_TYPES, true),
+            422,
+            'This class type is not available for course scheduling.'
+        );
+
+        $existing = CourseEnrollConfig::query()
+            ->where('course_id', $course->id)
+            ->where('schedule_id', $schedule->id)
+            ->where('time_id', $validated['time_id'])
+            ->first();
+
+        if ($existing) {
+            $existing->delete();
+
+            return response()->json(['is_open' => false]);
+        }
+
+        CourseEnrollConfig::query()->create([
+            'course_id' => $course->id,
+            'schedule_id' => $schedule->id,
+            'time_id' => $validated['time_id'],
+            'status' => 'open',
+            'unit_price' => 0,
+            'course_price' => 0,
+            'selected_price_type' => CourseEnrollConfig::PRICE_TYPE_COURSE,
+            'document_price' => 5,
+        ]);
+
+        return response()->json(['is_open' => true]);
+    }
+
+    // Bulk counterpart to toggleSchedule() - opens or closes every time slot
+    // under one class type for this course in a single request, instead of
+    // clicking each badge individually.
+    public function setClassTypeAvailability(Request $request, Course $course): JsonResponse
+    {
+        $validated = $request->validate([
+            'class_type_id' => ['required', 'integer', 'exists:class_type,class_type_id'],
+            'open' => ['required', 'boolean'],
+        ]);
+
+        $classType = ClassType::query()->findOrFail($validated['class_type_id']);
+
+        abort_unless(
+            in_array($classType->type_name, GetCourseClassSchedules::AVAILABLE_CLASS_TYPES, true),
+            422,
+            'This class type is not available for course scheduling.'
+        );
+
+        $schedules = Schedule::query()
+            ->where('class_type_id', $classType->class_type_id)
+            ->with('times:id')
+            ->get();
+
+        DB::transaction(function () use ($course, $schedules, $validated) {
+            if ($validated['open']) {
+                foreach ($schedules as $schedule) {
+                    foreach ($schedule->times as $time) {
+                        CourseEnrollConfig::query()->firstOrCreate(
+                            ['course_id' => $course->id, 'schedule_id' => $schedule->id, 'time_id' => $time->id],
+                            [
+                                'status' => 'open',
+                                'unit_price' => 0,
+                                'course_price' => 0,
+                                'selected_price_type' => CourseEnrollConfig::PRICE_TYPE_COURSE,
+                                'document_price' => 5,
+                            ]
+                        );
+                    }
+                }
+            } else {
+                CourseEnrollConfig::query()
+                    ->where('course_id', $course->id)
+                    ->whereIn('schedule_id', $schedules->pluck('id'))
+                    ->delete();
+            }
+        });
+
+        return response()->json(['open' => $validated['open']]);
     }
 
     public function update(Request $request, Course $course)
@@ -146,7 +251,7 @@ class CourseController extends Controller
         ]);
 
         CourseEnrollConfig::query()->updateOrCreate(
-            ['course_id' => $course->id, 'time_id' => null],
+            ['course_id' => $course->id, 'schedule_id' => null, 'time_id' => null],
             ['course_price' => $validated['price'] ?? 0]
         );
 

@@ -165,6 +165,69 @@
                     </button>
                 </div>
             </form>
+
+            <!-- Edit-only: needs a course id. Each toggle saves immediately, independent of the form above. -->
+            <div v-if="course" class="mt-6 bg-white rounded-xl border border-slate-200 p-4 sm:p-6 shadow-sm dark:bg-gray-900 dark:border-gray-800">
+                <div class="mb-4">
+                    <h2 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Class Schedules') }}</h2>
+                    <p class="text-sm text-slate-500 mt-0.5 dark:text-gray-400">
+                        {{ $t('Choose which existing schedule times this course is open for. Times come from Schedule Management - click one to open or close it for this course.') }}
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <div v-for="classType in schedules" :key="classType.class_type_id"
+                        class="rounded-xl border overflow-hidden" :class="classTypeAccent(classType).border">
+                        <div class="w-full flex items-center justify-between gap-3 px-4 py-3 transition" :class="classTypeAccent(classType).header">
+                            <button type="button" class="flex items-center gap-2.5 min-w-0" @click="toggleCollapsed(classType.class_type_id)">
+                                <span class="h-2.5 w-2.5 shrink-0 rounded-full" :class="classTypeAccent(classType).dot" />
+                                <span class="font-semibold" :class="classTypeAccent(classType).text">{{ classType.class_type_name }}</span>
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                                    :class="classType.is_enabled ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-200 text-slate-600 dark:bg-gray-700 dark:text-gray-400'">
+                                    {{ classType.is_enabled ? $t('ON') : $t('OFF') }}
+                                </span>
+                            </button>
+                            <div class="flex items-center gap-3 shrink-0">
+                                <button type="button"
+                                    :disabled="pendingKey === `classtype:${classType.class_type_id}`"
+                                    class="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-100"
+                                    @click="setClassTypeAvailability(classType, true)">
+                                    {{ $t('Turn on all') }}
+                                </button>
+                                <span class="text-slate-300 dark:text-gray-600">|</span>
+                                <button type="button"
+                                    :disabled="pendingKey === `classtype:${classType.class_type_id}`"
+                                    class="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-100"
+                                    @click="setClassTypeAvailability(classType, false)">
+                                    {{ $t('Turn off all') }}
+                                </button>
+                                <button type="button" @click="toggleCollapsed(classType.class_type_id)">
+                                    <ChevronUp v-if="!collapsed.has(classType.class_type_id)" class="h-4 w-4 text-slate-400 dark:text-gray-500" />
+                                    <ChevronDown v-else class="h-4 w-4 text-slate-400 dark:text-gray-500" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div v-if="!collapsed.has(classType.class_type_id)" class="px-4 py-4 space-y-4">
+                            <div v-for="term in classType.terms" :key="term.schedule_id">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2 dark:text-gray-400">{{ term.term_name }}</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <button v-for="time in term.times" :key="time.time_id" type="button"
+                                        :disabled="pendingKey === `${term.schedule_id}:${time.time_id}`"
+                                        @click="toggleTime(classType, term, time)"
+                                        class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
+                                        :class="time.is_open
+                                            ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                            : 'border-slate-300 text-slate-500 hover:border-slate-400 dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500'">
+                                        <span class="h-2 w-2 rounded-full" :class="time.is_open ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-gray-600'" />
+                                        {{ time.time_name }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </DashboardLayout>
 </template>
@@ -172,6 +235,9 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
+import axios from 'axios';
+import { useToast } from 'vue-toastification';
+import { ChevronDown, ChevronUp } from '@lucide/vue';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 
 const props = defineProps({
@@ -191,11 +257,116 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
+    classSchedules: {
+        type: Array,
+        default: () => []
+    },
     errors: {
         type: Object,
         default: () => ({})
     }
 });
+
+const toast = useToast();
+
+// Local mutable copy for optimistic toggling - see toggleTime().
+const schedules = ref(props.classSchedules.map((classType) => ({ ...classType })));
+const collapsed = ref(new Set());
+// "scheduleId:timeId" of the badge currently mid-request.
+const pendingKey = ref(null);
+
+// One accent per class type so the three sections are easy to tell apart at
+// a glance - keyed by name since that's stable across environments, unlike class_type_id.
+const CLASS_TYPE_ACCENTS = {
+    'Physical Class': {
+        header: 'bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/15',
+        border: 'border-blue-200 dark:border-blue-500/30',
+        text: 'text-blue-800 dark:text-blue-300',
+        dot: 'bg-blue-500',
+    },
+    'Scholarship Class': {
+        header: 'bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/15',
+        border: 'border-amber-200 dark:border-amber-500/30',
+        text: 'text-amber-800 dark:text-amber-300',
+        dot: 'bg-amber-500',
+    },
+    'Online Class': {
+        header: 'bg-violet-50 hover:bg-violet-100 dark:bg-violet-500/10 dark:hover:bg-violet-500/15',
+        border: 'border-violet-200 dark:border-violet-500/30',
+        text: 'text-violet-800 dark:text-violet-300',
+        dot: 'bg-violet-500',
+    },
+};
+const DEFAULT_ACCENT = {
+    header: 'bg-slate-50 hover:bg-slate-100 dark:bg-gray-800/60 dark:hover:bg-gray-800',
+    border: 'border-slate-200 dark:border-gray-800',
+    text: 'text-slate-800 dark:text-gray-200',
+    dot: 'bg-slate-400',
+};
+
+function classTypeAccent(classType) {
+    return CLASS_TYPE_ACCENTS[classType.class_type_name] ?? DEFAULT_ACCENT
+}
+
+function toggleCollapsed(classTypeId) {
+    if (collapsed.value.has(classTypeId)) {
+        collapsed.value.delete(classTypeId)
+    } else {
+        collapsed.value.add(classTypeId)
+    }
+    // Reassign so the template's reactivity picks up the Set mutation.
+    collapsed.value = new Set(collapsed.value)
+}
+
+function recomputeEnabled(classType) {
+    classType.is_enabled = classType.terms.some((term) => term.times.some((time) => time.is_open))
+}
+
+async function toggleTime(classType, term, time) {
+    const key = `${term.schedule_id}:${time.time_id}`
+    const previous = time.is_open
+    time.is_open = !previous
+    recomputeEnabled(classType)
+    pendingKey.value = key
+
+    try {
+        await axios.post(`/dashboard/course/courses/${props.course.id}/schedules/toggle`, {
+            schedule_id: term.schedule_id,
+            time_id: time.time_id,
+        })
+    } catch (error) {
+        console.error('Failed to toggle schedule availability', error)
+        time.is_open = previous
+        recomputeEnabled(classType)
+        toast.error(error.response?.data?.message ?? 'Failed to save. Please try again.')
+    } finally {
+        pendingKey.value = null
+    }
+}
+
+// Bulk counterpart to toggleTime() - opens or closes every time under one
+// class type in a single request instead of clicking each badge.
+async function setClassTypeAvailability(classType, open) {
+    const previous = classType.terms.map((term) => term.times.map((time) => time.is_open))
+    classType.terms.forEach((term) => term.times.forEach((time) => { time.is_open = open }))
+    recomputeEnabled(classType)
+    const key = `classtype:${classType.class_type_id}`
+    pendingKey.value = key
+
+    try {
+        await axios.post(`/dashboard/course/courses/${props.course.id}/schedules/class-type`, {
+            class_type_id: classType.class_type_id,
+            open,
+        })
+    } catch (error) {
+        console.error('Failed to bulk-toggle class type availability', error)
+        classType.terms.forEach((term, i) => term.times.forEach((time, j) => { time.is_open = previous[i][j] }))
+        recomputeEnabled(classType)
+        toast.error(error.response?.data?.message ?? 'Failed to save. Please try again.')
+    } finally {
+        pendingKey.value = null
+    }
+}
 
 const imagePreview = ref(null);
 const existingThumbnail = ref(props.course?.thumbnail || null);
