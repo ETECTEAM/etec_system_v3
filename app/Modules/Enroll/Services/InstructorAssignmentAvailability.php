@@ -75,12 +75,16 @@ class InstructorAssignmentAvailability
     }
 
     /**
-     * Whether this instructor already teaches another open class on any of the
-     * given weekdays at the same time slot. The conflict days come from the
-     * class's own term for an unshared class, or from the instructor's
-     * study_class_instructors pivot term for a shared/collapsed class — so
-     * "Mon & Thu" and "Thu & Fri" correctly collide on Thursday even though
-     * their term_ids differ, and shared instructors are counted too.
+     * Whether this instructor already teaches another open class on any of the given
+     * weekdays at an overlapping time. The conflict days come from the class's own
+     * term for an unshared class, or from the instructor's study_class_instructors
+     * pivot term for a shared/collapsed class — so "Mon & Thu" and "Thu & Fri"
+     * correctly collide on Thursday even though their term_ids differ, and shared
+     * instructors are counted too.
+     *
+     * Not filtered by an exact time_id match: two different Time records (9:00-10:30
+     * and 9:00-11:00) share no time_id but do overlap, so every one of the
+     * instructor's open classes is checked against the actual [start, end) range.
      */
     public function hasConflictingClass(int $userId, array $days, int $timeId, ?int $exceptClassId = null): bool
     {
@@ -88,8 +92,13 @@ class InstructorAssignmentAvailability
             return false;
         }
 
+        $range = StudyClass::parseTimeRange(Time::query()->whereKey($timeId)->value('time_name'));
+
+        if ($range['start'] === null || $range['end'] === null) {
+            return false;
+        }
+
         $classes = StudyClass::query()
-            ->where('time_id', $timeId)
             ->whereIn('status', self::OPEN_CLASS_STATUSES)
             ->where(fn (Builder $query) => $query
                 ->where('teacher_id', $userId)
@@ -97,6 +106,7 @@ class InstructorAssignmentAvailability
             ->when($exceptClassId !== null, fn (Builder $query) => $query->where('id', '!=', $exceptClassId))
             ->with([
                 'term:id,term_name',
+                'time:id,time_name',
                 'instructors' => fn ($query) => $query->where('users.id', $userId)->select('users.id'),
             ])
             ->get();
@@ -110,7 +120,17 @@ class InstructorAssignmentAvailability
         foreach ($classes as $class) {
             $classDays = $this->instructorDaysInClass($userId, $class, $termNames);
 
-            if (array_intersect($days, $classDays) !== []) {
+            if (array_intersect($days, $classDays) === []) {
+                continue;
+            }
+
+            $classRange = StudyClass::parseTimeRange($class->time?->time_name);
+
+            if ($classRange['start'] === null || $classRange['end'] === null) {
+                continue;
+            }
+
+            if ($range['start'] < $classRange['end'] && $range['end'] > $classRange['start']) {
                 return true;
             }
         }
@@ -119,11 +139,15 @@ class InstructorAssignmentAvailability
     }
 
     /**
-     * Every (day_of_week, time_id) slot this instructor is already teaching
-     * an open class in, across the whole week - used to mark those slots
-     * "occupied" on the instructor's own availability calendar instead of
-     * showing them as plain "available" just because they fall inside a
-     * configured working window.
+     * Every (day_of_week, start, end) slot this instructor is already teaching an open
+     * class in, across the whole week - used to mark those slots "occupied" on the
+     * instructor's own availability calendar instead of showing them as plain
+     * "available" just because they fall inside a configured working window.
+     *
+     * Carries the class's own parsed start/end rather than just its time_id: the
+     * caller must flag a candidate slot occupied whenever its time range actually
+     * overlaps this one, even when the two belong to different Time records (a
+     * 9:00-10:30 class and a 9:00-11:00 class share no time_id but do overlap).
      */
     public function occupiedSlots(int $userId): Collection
     {
@@ -134,6 +158,7 @@ class InstructorAssignmentAvailability
                 ->orWhereHas('instructors', fn ($query) => $query->where('users.id', $userId)))
             ->with([
                 'term:id,term_name',
+                'time:id,time_name',
                 'instructors' => fn ($query) => $query->where('users.id', $userId)->select('users.id'),
             ])
             ->get(['id', 'title', 'term_id', 'time_id', 'teacher_id', 'status']);
@@ -145,14 +170,24 @@ class InstructorAssignmentAvailability
         $termNames = $this->termNamesFor($classes);
 
         return $classes
-            ->flatMap(fn (StudyClass $class): array => collect($this->instructorDaysInClass($userId, $class, $termNames))
-                ->map(fn (int $day): array => [
-                    'day_of_week' => $day,
-                    'time_id' => $class->time_id,
-                    'class_id' => $class->id,
-                    'title' => $class->title,
-                ])
-                ->all())
+            ->flatMap(function (StudyClass $class) use ($userId, $termNames): array {
+                $range = StudyClass::parseTimeRange($class->time?->time_name);
+
+                if ($range['start'] === null || $range['end'] === null) {
+                    return [];
+                }
+
+                return collect($this->instructorDaysInClass($userId, $class, $termNames))
+                    ->map(fn (int $day): array => [
+                        'day_of_week' => $day,
+                        'time_id' => $class->time_id,
+                        'start' => $range['start'],
+                        'end' => $range['end'],
+                        'class_id' => $class->id,
+                        'title' => $class->title,
+                    ])
+                    ->all();
+            })
             ->values();
     }
 

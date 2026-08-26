@@ -148,9 +148,23 @@ class StudyClass extends Model
     }
 
     /**
-     * Parses a Term's term_name ("Mon & Tue") into English weekday names. Static and
-     * public so callers with a term_name that isn't $this->term (e.g. a shared class's
-     * co-instructor slot — see study_class_instructors) can use the same parsing.
+     * Weekday order used to resolve a term's day range - Monday-first, matching how
+     * every term_name in the terms table ("Mon & Thu", "Wed & Thu", ...) is written.
+     */
+    private const WEEKDAY_ORDER = [
+        'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+    ];
+
+    /**
+     * Parses a Term's term_name into English weekday names. Static and public so callers
+     * with a term_name that isn't $this->term (e.g. a shared class's co-instructor slot —
+     * see study_class_instructors) can use the same parsing.
+     *
+     * A two-part name is a continuous weekday RANGE in this application's domain
+     * language, not a list of just those two days: "Mon & Thu" means Monday through
+     * Thursday inclusive (Mon, Tue, Wed, Thu), the same way a person would read "Mon-Thu"
+     * on a store's opening hours sign. A single-day name ("Saturday") returns just that
+     * day. Every term_name actually in use (see TermSeeder) is one of these two shapes.
      */
     public static function parseTermDays(?string $termName): array
     {
@@ -164,11 +178,27 @@ class StudyClass extends Model
             'Sun' => 'Sunday', 'Sunday' => 'Sunday',
         ];
 
-        return collect(preg_split('/\s*(?:-|,|&|\/|\+|and)\s*/i', (string) $termName))
+        $tokens = collect(preg_split('/\s*(?:-|,|&|\/|\+|and)\s*/i', (string) $termName))
             ->map(fn (string $day) => $dayMap[trim($day)] ?? null)
             ->filter()
-            ->values()
-            ->all();
+            ->values();
+
+        if ($tokens->isEmpty()) {
+            return [];
+        }
+
+        $start = array_search($tokens->first(), self::WEEKDAY_ORDER, true);
+        $end = array_search($tokens->last(), self::WEEKDAY_ORDER, true);
+
+        if ($start === false || $end === false) {
+            return $tokens->all();
+        }
+
+        if ($start > $end) {
+            [$start, $end] = [$end, $start];
+        }
+
+        return array_slice(self::WEEKDAY_ORDER, $start, $end - $start + 1);
     }
 
     /**

@@ -489,18 +489,13 @@ class RegisterStudentForSchedule
     private function termDays(int $termId): array
     {
         $termName = Term::query()->whereKey($termId)->value('term_name');
-        $dayMap = [
-            'Mon' => 1, 'Monday' => 1,
-            'Tue' => 2, 'Tues' => 2, 'Tuesday' => 2,
-            'Wed' => 3, 'Wednesday' => 3,
-            'Thu' => 4, 'Thur' => 4, 'Thurs' => 4, 'Thursday' => 4,
-            'Fri' => 5, 'Friday' => 5,
-            'Sat' => 6, 'Saturday' => 6,
-            'Sun' => 7, 'Sunday' => 7,
+        $dayNumbers = [
+            'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4,
+            'Friday' => 5, 'Saturday' => 6, 'Sunday' => 7,
         ];
 
-        return collect(preg_split('/\s*(?:-|,|&|\/|\+|and)\s*/i', (string) $termName))
-            ->map(fn (string $day): ?int => $dayMap[trim($day)] ?? null)
+        return collect(StudyClass::parseTermDays($termName))
+            ->map(fn (string $day): ?int => $dayNumbers[$day] ?? null)
             ->filter()
             ->values()
             ->all();

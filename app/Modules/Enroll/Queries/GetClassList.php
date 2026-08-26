@@ -234,31 +234,7 @@ class GetClassList
 
     private function parseTermDays(?string $termName): array
     {
-        $dayMap = [
-            'Mon' => 'Monday',
-            'Monday' => 'Monday',
-            'Tue' => 'Tuesday',
-            'Tues' => 'Tuesday',
-            'Tuesday' => 'Tuesday',
-            'Wed' => 'Wednesday',
-            'Wednesday' => 'Wednesday',
-            'Thu' => 'Thursday',
-            'Thur' => 'Thursday',
-            'Thurs' => 'Thursday',
-            'Thursday' => 'Thursday',
-            'Fri' => 'Friday',
-            'Friday' => 'Friday',
-            'Sat' => 'Saturday',
-            'Saturday' => 'Saturday',
-            'Sun' => 'Sunday',
-            'Sunday' => 'Sunday',
-        ];
-
-        return collect(preg_split('/\s*(?:-|,|&|\/|\+|and)\s*/i', (string) $termName))
-            ->map(fn (string $day) => $dayMap[trim($day)] ?? null)
-            ->filter()
-            ->values()
-            ->all();
+        return StudyClass::parseTermDays($termName);
     }
 
     private function studyDaysKey(array $studyDays): string

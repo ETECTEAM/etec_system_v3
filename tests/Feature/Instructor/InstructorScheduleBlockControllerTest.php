@@ -354,9 +354,9 @@ class InstructorScheduleBlockControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        // The class's own term is "Mon & Thu" - Tuesday isn't one of its
-        // days, so it should stay "available" there even though Monday
-        // shows "occupied" for the exact same time slot.
+        // "Mon & Thu" is a continuous weekday range in this app's domain language -
+        // Monday through Thursday inclusive - so Tuesday is one of its days too and
+        // must also read as "occupied", not just Monday.
         StudyClass::create([
             'title' => 'Basic IT',
             'course_id' => $course->id,
@@ -380,7 +380,7 @@ class InstructorScheduleBlockControllerTest extends TestCase
 
         $this->assertSame('occupied', $mondaySlot['status']);
         $this->assertSame('Basic IT', $mondaySlot['class_title']);
-        $this->assertSame('available', $tuesdaySlot['status']);
-        $this->assertNull($tuesdaySlot['class_title']);
+        $this->assertSame('occupied', $tuesdaySlot['status']);
+        $this->assertSame('Basic IT', $tuesdaySlot['class_title']);
     }
 }

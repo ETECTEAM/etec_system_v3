@@ -51,8 +51,13 @@ class InstructorScheduleBlockController extends Controller
 
         $availabilities = $instructorData->availabilities()->where('is_active', true)->get(['day_of_week', 'start_time', 'end_time']);
         $blocks = $instructorData->scheduleBlocks()->where('status', InstructorScheduleBlock::STATUS_ACTIVE)->get(['id', 'day_of_week', 'time_id', 'reason']);
-        $occupied = $instructorAvailability->occupiedSlots($instructorData->user_id)
-            ->keyBy(fn (array $slot): string => "{$slot['day_of_week']}:{$slot['time_id']}");
+        // Grouped by day, not keyed by "day:time_id": an occupying class can be booked
+        // under a different Time record than the slot being checked (9:00-10:30 vs
+        // 9:00-11:00 share no time_id) and still overlap it, so every slot on a day
+        // has to be checked against all of that day's occupied ranges, not just one
+        // with a matching time_id.
+        $occupiedByDay = $instructorAvailability->occupiedSlots($instructorData->user_id)
+            ->groupBy('day_of_week');
 
         $workingDays = $availabilities->pluck('day_of_week')->unique()->sort()->values()->all();
         $dayWindows = $availabilities->groupBy('day_of_week')
@@ -86,13 +91,14 @@ class InstructorScheduleBlockController extends Controller
                 ->values()
             );
 
-        $schedule = collect(range(1, 7))->map(function (int $day) use ($dayWindows, $workingDays, $blocks, $dayTimeIds, $timeModels, $occupied): array {
+        $schedule = collect(range(1, 7))->map(function (int $day) use ($dayWindows, $workingDays, $blocks, $dayTimeIds, $timeModels, $occupiedByDay): array {
             $isWorking = in_array($day, $workingDays);
 
             // Only Time records assigned to THIS day via WorkScheduleTime.
             $dayTimeEntries = $dayTimeIds->get($day, collect());
+            $dayOccupied = $occupiedByDay->get($day, collect());
 
-            $slots = $dayTimeEntries->map(function (int $timeId) use ($day, $isWorking, $dayWindows, $blocks, $timeModels, $occupied): array {
+            $slots = $dayTimeEntries->map(function (int $timeId) use ($day, $isWorking, $dayWindows, $blocks, $timeModels, $dayOccupied): array {
                 $time = $timeModels->get($timeId);
                 $timeName = $time?->time_name ?? '';
 
@@ -108,7 +114,15 @@ class InstructorScheduleBlockController extends Controller
                 }
 
                 $block = $blocks->first(fn (InstructorScheduleBlock $b): bool => $b->day_of_week === $day && $b->time_id === $timeId);
-                $class = $occupied->get("{$day}:{$timeId}");
+
+                // Any actual overlap with an already-assigned class occupies this slot,
+                // not just an exact time_id match - a 9:00-11:00 slot is occupied by a
+                // class booked 9:00-10:30 even though they're different Time records.
+                // Touching boundaries (10:30-12:00 next to a 9:00-10:30 class) don't
+                // count, hence strict < / > rather than <= / >=.
+                $class = ($start !== null && $end !== null)
+                    ? $dayOccupied->first(fn (array $o): bool => $start < $o['end'] && $end > $o['start'])
+                    : null;
 
                 // A slot the instructor is already teaching an open class in is
                 // "occupied", not plain "available" - that state wins over a
