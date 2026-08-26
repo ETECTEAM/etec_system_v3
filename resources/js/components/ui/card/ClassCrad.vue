@@ -53,6 +53,10 @@ const emit = defineEmits([
 ]);
 
 const capacity = computed(() => props.classData.capacity);
+const isFull = computed(() => {
+    if (!capacity.value) return false;
+    return (props.classData.students ?? 0) >= capacity.value;
+});
 const lifecycleStatus = computed(() => String(props.classData.class_status ?? "").toLowerCase());
 const normalizedLifecycleStatus = computed(() => {
     switch (lifecycleStatus.value) {
@@ -344,6 +348,26 @@ async function confirmEnd() {
                         ]"
                     ></span>
                     {{ lifecycleLabel }}
+                </span>
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-xs sm:text-sm text-slate-500 dark:text-gray-400">Enrollment</span>
+                <span
+                    :class="[
+                        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ring-1 ring-inset',
+                        isFull
+                            ? 'bg-rose-50 text-rose-700 ring-rose-600/20'
+                            : 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+                    ]"
+                >
+                    <span
+                        :class="[
+                            'w-1.5 h-1.5 rounded-full',
+                            isFull ? 'bg-rose-500' : 'bg-emerald-500',
+                        ]"
+                    ></span>
+                    {{ isFull ? 'Full' : 'Open' }}
                 </span>
             </div>
 

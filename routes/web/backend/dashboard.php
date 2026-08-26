@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Modules\Instructor\Services\InstructorClassService;
+use App\Modules\Enroll\Actions\ActivateUpcomingClasses;
 
 /*
 |--------------------------------------------------------------------------
@@ -10,10 +11,12 @@ use App\Modules\Instructor\Services\InstructorClassService;
 */
 
 Route::middleware(['auth', 'active', 'permission:dashboard.view'])->group(function () {
-    Route::get('/dashboard', function (InstructorClassService $instructorClasses) {
+    Route::get('/dashboard', function (InstructorClassService $instructorClasses, ActivateUpcomingClasses $activate) {
         $user = request()->user();
 
         if ($user->hasRole('instructor')) {
+            $activate->handle();
+
             $instructorData = $user->instructorData()
                 ->with(['profilePhoto', 'cvFile', 'attachments'])
                 ->first();
