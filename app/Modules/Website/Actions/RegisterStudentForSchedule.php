@@ -65,12 +65,19 @@ class RegisterStudentForSchedule
                 return null;
             }
 
+            // Re-resolves the current CourseEnrollConfig rather than trusting
+            // $studyClass->price: that column is only ever set once, when the
+            // class itself was first created (see createClass() below), so an
+            // admin changing "Price to Use" afterward would otherwise never
+            // reach a student registering into that same pre-existing class.
+            $config = $course->enrollConfigForTime(isset($data['time_id']) ? (int) $data['time_id'] : null);
+
             $enrollment = StudentEnrollment::create([
                 'study_class_id' => $studyClass->id,
                 'student_id' => $student->id,
                 'source' => 'public_website',
-                'fee_amount' => $studyClass->price,
-                'document_fee_amount' => $studyClass->document_price,
+                'fee_amount' => $config?->resolvedPrice() ?? $studyClass->price,
+                'document_fee_amount' => $config?->document_price ?? $studyClass->document_price,
                 'enrolled_at' => now(),
             ]);
 
