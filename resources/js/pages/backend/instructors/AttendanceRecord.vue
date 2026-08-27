@@ -491,7 +491,7 @@ async function approveAllPendingRegistrations() {
 
       <div>
         <h2 class="text-xl font-black text-blue-950 dark:text-gray-100">Track Attendance</h2>
-        <p class="text-sm font-semibold text-slate-500 dark:text-gray-400">Track your student attendance</p>
+        <p class="text-sm font-medium text-slate-500 dark:text-gray-400">Track your student attendance</p>
       </div>
 
       <Teleport to="body">
@@ -630,21 +630,17 @@ async function approveAllPendingRegistrations() {
           Student Attendance & Score
         </div>
         <div class="overflow-x-auto">
-          <table class="min-w-[1180px] w-full border-collapse text-center text-sm">
+          <table class="min-w-[1080px] w-full border-collapse text-center text-sm select-none">
             <thead>
               <tr class="bg-blue-100 text-slate-950 dark:bg-blue-950/60 dark:text-gray-100">
                 <th class="border border-slate-300 px-3 py-3 dark:border-gray-700" rowspan="2">Nº</th>
                 <th class="border border-slate-300 px-3 py-3 dark:border-gray-700" rowspan="2">Student</th>
                 <th class="border border-slate-300 px-3 py-3 dark:border-gray-700" rowspan="2">Gender</th>
-                <th class="border border-slate-300 px-3 py-3 text-center dark:border-gray-700" colspan="4">Attendance</th>
+                <th class="border border-slate-300 px-3 py-3 text-center dark:border-gray-700" rowspan="2">Attendance</th>
                 <th class="border border-slate-300 px-3 py-3 text-center dark:border-gray-700" colspan="3">Score</th>
                 <th class="border border-slate-300 px-3 py-3 text-center dark:border-gray-700" rowspan="2">Action</th>
               </tr>
               <tr class="bg-blue-100 text-slate-950 dark:bg-blue-950/60 dark:text-gray-100">
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Total</th>
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Present</th>
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Permission</th>
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Absent</th>
                 <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Attendance Score</th>
                 <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Activity Score</th>
                 <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Exam Score</th>
@@ -673,28 +669,26 @@ async function approveAllPendingRegistrations() {
                     {{ student.gender || "-" }}
                   </span>
                 </td>
-                <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <span class="inline-flex min-w-14 justify-center rounded-lg bg-slate-100 px-3 py-2 text-sm font-black text-slate-700 dark:bg-gray-800 dark:text-gray-200">
-                    {{ student.attendance?.total ?? 0 }}
-                  </span>
+                <td class="border border-slate-200 px-0 py-4 dark:border-gray-800">
+                  <div class="mx-auto w-full max-w-[10.75rem] rounded-xl bg-emerald-600 px-3 py-3 text-left text-white shadow-sm">
+                    <div class="space-y-2.5">
+                      <p class="text-sm font-bold leading-none">
+                        Total: <span class="font-black">{{ student.attendance?.total ?? 0 }}</span>
+                      </p>
+                      <p class="text-sm font-bold leading-none">
+                        Present: <span class="font-black">{{ student.attendance?.present ?? 0 }}</span>
+                      </p>
+                      <p class="text-sm font-bold leading-none">
+                        Permission: <span class="font-black">{{ student.attendance?.permission ?? 0 }}</span>
+                      </p>
+                      <p class="inline-flex rounded-md bg-white px-2 py-0.5 text-sm font-bold leading-none text-rose-500">
+                        Absent: <span class="font-black">{{ student.attendance?.absent ?? 0 }}</span>
+                      </p>
+                    </div>
+                  </div>
                 </td>
                 <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <span class="inline-flex min-w-14 justify-center rounded-lg bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-                    {{ student.attendance?.present ?? 0 }}
-                  </span>
-                </td>
-                <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <span class="inline-flex min-w-14 justify-center rounded-lg bg-amber-50 px-3 py-2 text-sm font-black text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
-                    {{ student.attendance?.permission ?? 0 }}
-                  </span>
-                </td>
-                <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <span class="inline-flex min-w-14 justify-center rounded-lg bg-rose-50 px-3 py-2 text-sm font-black text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
-                    {{ student.attendance?.absent ?? 0 }}
-                  </span>
-                </td>
-                <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <input v-model.number="student.scores.attendance" type="number" min="0" max="100" step="0.01" class="h-10 w-28 rounded-lg border border-slate-300 bg-slate-100 px-3 text-center font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:focus:ring-blue-500/10" />
+                  <input v-model.number="student.scores.attendance" type="number" min="0" max="100" step="0.01" readonly class="h-10 w-28 rounded-lg border border-slate-300 bg-slate-100 px-3 text-center font-semibold text-slate-500 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 readonly:cursor-not-allowed dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:focus:ring-blue-500/10" />
                 </td>
                 <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
                   <input v-model.number="student.scores.activity" type="number" min="0" max="100" step="0.01" class="h-10 w-28 rounded-lg border border-slate-300 bg-white px-3 text-center font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-950 dark:focus:ring-blue-500/10" />
@@ -731,7 +725,7 @@ async function approveAllPendingRegistrations() {
                 </td>
               </tr>
               <tr v-if="!rosterStudents.length">
-                <td class="border border-slate-200 px-3 py-12 text-center text-sm font-semibold text-slate-500 dark:border-gray-800" colspan="11">
+                <td class="border border-slate-200 px-3 py-12 text-center text-sm font-semibold text-slate-500 dark:border-gray-800" colspan="8">
                   No students are enrolled in this class yet.
                 </td>
               </tr>
