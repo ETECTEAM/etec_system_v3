@@ -5,8 +5,8 @@ namespace App\Modules\Auth\Services;
 use App\Models\OtpVerification;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Telegram\Bot\Laravel\Facades\Telegram;
 use Throwable;
 
 /**
@@ -16,12 +16,12 @@ class TelegramService
 {
     public function sendAdminApprovalRequest(User $user, OtpVerification $otp, string $plainCode): void
     {
-        $adminChatId = config('telegram.admin_chat_id');
-        $botToken = config('telegram.bots.'.config('telegram.default', 'mybot').'.token');
+        $chatId = (string) config('services.telegram.otp_chat_id');
+        $botToken = (string) config('services.telegram.otp_bot_token');
         $lockKey = "telegram:approval-request:{$otp->id}";
 
-        if (! $adminChatId) {
-            Log::warning('Telegram OTP approval not sent: TELEGRAM_ADMIN_CHAT_ID is missing.', [
+        if ($chatId === '') {
+            Log::warning('Telegram OTP approval not sent: TELEGRAM_OTP_CHAT_ID is missing.', [
                 'otp_id' => $otp->id,
                 'user_id' => $user->id,
             ]);
@@ -29,8 +29,8 @@ class TelegramService
             return;
         }
 
-        if (! $botToken) {
-            Log::warning('Telegram OTP approval not sent: TELEGRAM_BOT_TOKEN is missing.', [
+        if ($botToken === '') {
+            Log::warning('Telegram OTP approval not sent: TELEGRAM_OTP_BOT_TOKEN is missing.', [
                 'otp_id' => $otp->id,
                 'user_id' => $user->id,
             ]);
@@ -45,28 +45,40 @@ class TelegramService
         $message = $this->buildMessage($user, $plainCode);
 
         try {
-            Telegram::sendMessage([
-                'chat_id' => $adminChatId,
-                'text' => $message,
-                'parse_mode' => 'HTML',
-                'reply_markup' => json_encode([
-                    'inline_keyboard' => [
-                        [
-                            ['text' => $plainCode, 'copy_text' => ['text' => $plainCode]],
+            $response = Http::asForm()
+                ->acceptJson()
+                ->connectTimeout(5)
+                ->timeout(10)
+                ->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                    'chat_id' => $chatId,
+                    'text' => $message,
+                    'parse_mode' => 'HTML',
+                    'reply_markup' => json_encode([
+                        'inline_keyboard' => [
+                            [
+                                ['text' => $plainCode, 'copy_text' => ['text' => $plainCode]],
+                            ],
                         ],
-                    ],
-                ]),
-            ]);
+                    ]),
+                ]);
+
+            if (! $response->successful()) {
+                Cache::forget($lockKey);
+
+                Log::warning('Telegram OTP approval failed.', [
+                    'otp_id' => $otp->id,
+                    'user_id' => $user->id,
+                    'status' => $response->status(),
+                ]);
+            }
         } catch (Throwable $e) {
             Cache::forget($lockKey);
 
             Log::error('Telegram OTP approval failed.', [
                 'otp_id' => $otp->id,
                 'user_id' => $user->id,
-                'error' => $e->getMessage(),
+                'exception' => $e::class,
             ]);
-
-            throw $e;
         }
     }
 

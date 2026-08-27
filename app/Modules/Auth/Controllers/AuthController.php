@@ -32,6 +32,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
@@ -104,7 +105,14 @@ class AuthController extends Controller
         }
 
         $request->session()->put('pending_verification_user_id', $user->id);
-        PendingUserRegistered::dispatch($user, $otp, $plainCode);
+
+        try {
+            PendingUserRegistered::dispatch($user, $otp, $plainCode);
+        } catch (Throwable $e) {
+            // Registration must still succeed even if a notification listener or
+            // Telegram delivery path fails.
+            report($e);
+        }
 
         return redirect('/code-verify')
             ->with('success', 'Registration received. Enter your verification code to activate your account.');

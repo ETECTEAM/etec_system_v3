@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\TelegramService;
 use App\Console\Commands\AutoRecordAttendanceCommand;
 use App\Console\Commands\GenerateClassSessionsCommand;
 use App\Console\Commands\SendAttendanceDigestCommand;
@@ -95,6 +96,15 @@ return Application::configure(basePath: dirname(__DIR__))
             ->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->report(function (Throwable $e): void {
+            $request = app()->bound('request') ? app('request') : null;
+            $command = app()->runningInConsole() ? ($_SERVER['argv'][1] ?? 'console') : null;
+
+            app(TelegramService::class)->sendErrorLog(
+                app(TelegramService::class)->buildErrorMessage($e, $request, $command)
+            );
+        });
+
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Unauthenticated.'], 401);
