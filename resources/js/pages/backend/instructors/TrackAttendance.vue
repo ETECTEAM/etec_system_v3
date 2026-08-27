@@ -1,7 +1,9 @@
 <script setup>
 import { computed, reactive } from "vue";
-import { Head, Link, useForm } from "@inertiajs/vue3";
-import { ArrowLeft, Bot, Clock, Save } from "@lucide/vue";
+import { Head, Link, router, useForm } from "@inertiajs/vue3";
+import axios from "axios";
+import { QrcodeCanvas } from "qrcode.vue";
+import { ArrowLeft, Bot, Clock, PauseCircle, PlayCircle, QrCode, Save, ShieldAlert } from "@lucide/vue";
 import { useToast } from "vue-toastification";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
@@ -26,6 +28,14 @@ const props = defineProps({
   // Today's ClassSession row (status/recorded_at/can_override) — null if none was
   // generated for today (e.g. the class doesn't meet today).
   todaySession: {
+    type: Object,
+    default: null,
+  },
+  attendanceSession: {
+    type: Object,
+    default: null,
+  },
+  attendanceSummary: {
     type: Object,
     default: null,
   },
@@ -101,6 +111,25 @@ const submitLabel = computed(() => {
   return "Submitted Today";
 });
 
+const sessionState = computed(() => String(props.attendanceSession?.status ?? "inactive"));
+const qrUrl = computed(() => props.attendanceSession?.qr_url ?? "");
+const suspiciousRecords = computed(() => props.attendanceSummary?.records?.filter((record) => record.verification_status === "suspicious") ?? []);
+const sessionStatusLabel = computed(() => {
+  if (sessionState.value === "active") {
+    return "ACTIVE";
+  }
+
+  if (sessionState.value === "stopped") {
+    return "STOPPED";
+  }
+
+  if (sessionState.value === "expired") {
+    return "EXPIRED";
+  }
+
+  return "INACTIVE";
+});
+
 const statuses = [
   {
     value: "absent",
@@ -157,6 +186,26 @@ const totals = computed(() => {
 // Official leave overrides attendance: the absent button is locked for these
 // students and they default to On Leave instead.
 const isAbsentLocked = (student) => Boolean(student.on_leave);
+
+async function startSession() {
+  try {
+    await axios.post(`/dashboard/instructor/classes/${props.classData.id}/attendance/session`);
+    router.reload({ preserveScroll: true });
+    toast.success("Attendance session started successfully.");
+  } catch (error) {
+    toast.error(error.response?.data?.message ?? "Failed to start the attendance session.");
+  }
+}
+
+async function stopSession() {
+  try {
+    await axios.delete(`/dashboard/instructor/classes/${props.classData.id}/attendance/session`);
+    router.reload({ preserveScroll: true });
+    toast.success("Attendance session stopped successfully.");
+  } catch (error) {
+    toast.error(error.response?.data?.message ?? "Failed to stop the attendance session.");
+  }
+}
 
 const submit = () => {
   if (locked.value) {
@@ -265,6 +314,81 @@ const submit = () => {
         </div>
       </div>
 
+      <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-black uppercase tracking-[0.16em] text-blue-600 dark:text-blue-400">Attendance Session</p>
+              <h2 class="mt-1 text-xl font-black text-slate-950 dark:text-gray-100">{{ classData.title }}</h2>
+              <p class="mt-1 text-sm font-semibold text-slate-500 dark:text-gray-400">Date: {{ attendanceSession?.attendance_date ?? "-" }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-if="sessionState !== 'active'"
+                type="button"
+                class="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-700"
+                @click="startSession"
+              >
+                <PlayCircle class="h-4 w-4" />
+                Start Attendance
+              </button>
+              <button
+                v-else
+                type="button"
+                class="inline-flex h-10 items-center gap-2 rounded-lg bg-rose-600 px-4 text-sm font-bold text-white transition hover:bg-rose-700"
+                @click="stopSession"
+              >
+                <PauseCircle class="h-4 w-4" />
+                Stop Attendance
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-4 grid gap-3 sm:grid-cols-3">
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-800 dark:bg-gray-950">
+              <p class="text-xs font-black uppercase tracking-[0.14em] text-slate-500 dark:text-gray-400">Session Status</p>
+              <p class="mt-1 text-lg font-black text-slate-950 dark:text-gray-100">{{ sessionStatusLabel }}</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-800 dark:bg-gray-950">
+              <p class="text-xs font-black uppercase tracking-[0.14em] text-slate-500 dark:text-gray-400">Expires</p>
+              <p class="mt-1 text-lg font-black text-slate-950 dark:text-gray-100">{{ attendanceSession?.expires_at ?? "-" }}</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-800 dark:bg-gray-950">
+              <p class="text-xs font-black uppercase tracking-[0.14em] text-slate-500 dark:text-gray-400">Present</p>
+              <p class="mt-1 text-lg font-black text-slate-950 dark:text-gray-100">{{ attendanceSummary?.present ?? 0 }} / {{ attendanceSummary?.total ?? 0 }}</p>
+            </div>
+          </div>
+
+          <div v-if="suspiciousRecords.length" class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
+            <div class="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+              <ShieldAlert class="h-4 w-4" />
+              <p class="text-sm font-black uppercase tracking-[0.14em]">Suspicious submissions</p>
+            </div>
+            <div class="mt-3 space-y-2">
+              <div v-for="record in suspiciousRecords" :key="`${record.student_id}-${record.time}`" class="rounded-lg bg-white/80 px-3 py-2 text-sm font-semibold text-slate-700 dark:bg-gray-900/70 dark:text-gray-200">
+                Student #{{ record.student_id }} - {{ record.verification_reason ?? "Suspicious" }} ({{ record.time }})
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <div class="flex items-center gap-2">
+            <QrCode class="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <p class="text-xs font-black uppercase tracking-[0.16em] text-blue-600 dark:text-blue-400">QR Code</p>
+          </div>
+          <div class="mt-4 flex justify-center rounded-2xl border border-slate-200 bg-white p-4 dark:border-gray-800">
+            <QrcodeCanvas v-if="qrUrl" :value="qrUrl" :size="220" level="H" />
+            <div v-else class="grid h-[220px] w-[220px] place-items-center text-sm font-semibold text-slate-500 dark:text-gray-400">
+              Start attendance to generate a QR code.
+            </div>
+          </div>
+          <a v-if="qrUrl" :href="qrUrl" target="_blank" class="mt-4 block break-all text-xs font-semibold text-blue-700 hover:underline dark:text-blue-400">
+            {{ qrUrl }}
+          </a>
+        </div>
+      </div>
+
       <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <p v-if="form.errors.records" class="border-b border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">{{ form.errors.records }}</p>
         <div class="overflow-x-auto">
@@ -293,6 +417,12 @@ const submit = () => {
                 </td>
                 <td class="border-b border-slate-100 px-4 py-4 dark:border-gray-800">
                   <p class="font-black text-slate-950 dark:text-gray-100">{{ student.name }}</p>
+                  <p
+                    v-if="student.attendance?.verification_status === 'suspicious'"
+                    class="mt-1 inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-black text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+                  >
+                    Suspicious
+                  </p>
                   <p
                     v-if="student.on_leave"
                     class="mt-1 inline-flex items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-black text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300"

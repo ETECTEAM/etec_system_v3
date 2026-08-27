@@ -5,6 +5,7 @@ namespace App\Modules\Instructor\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Attendance\Actions\OverrideAttendanceRecord;
 use App\Modules\Attendance\Queries\GetSessionBanner;
+use App\Modules\Attendance\Services\AttendanceQrService;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Models\StudyClass;
 use App\Modules\Instructor\Services\InstructorClassService;
@@ -22,6 +23,7 @@ class InstructorClassController extends Controller
         private readonly InstructorClassService $instructorClasses,
         private readonly OverrideAttendanceRecord $overrideAttendance,
         private readonly GetSessionBanner $sessionBanner,
+        private readonly AttendanceQrService $attendanceQr,
     ) {}
 
     public function create(): Response
@@ -41,6 +43,9 @@ class InstructorClassController extends Controller
             'class_type_id' => ['nullable', 'exists:class_type,class_type_id'],
             'capacity'      => ['nullable', 'integer', 'min:0'],
             'status'        => ['nullable', 'string', Rule::in(GetClassFormOptions::STATUSES)],
+            'attendance_latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'attendance_longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'attendance_radius_meters' => ['nullable', 'integer', 'min:1', 'max:5000'],
         ]);
 
         $this->instructorClasses->createClass($request->user(), $validated);
@@ -72,6 +77,7 @@ class InstructorClassController extends Controller
     public function trackAttendance(Request $request, string $studyClass): Response|RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $studyClassModel = StudyClass::query()->findOrFail($class->id);
 
         if (($class->class_status ?? null) !== 'active') {
             return redirect()
@@ -81,21 +87,45 @@ class InstructorClassController extends Controller
 
         $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
         $todaySession = $this->sessionBanner->handle($class->id);
-
-        if (! $attendanceWindow['can_submit'] && ($todaySession['status'] ?? null) !== 'auto_recorded') {
-            return redirect()
-                ->route('instructor.classes.attendance', $class->id)
-                ->with('warning', 'Attendance can only be tracked during the class start window.');
-        }
+        $attendanceSession = $this->attendanceQr->getOrCreateTodaySession($studyClassModel, $request->user());
+        $attendanceSummary = $this->attendanceQr->teacherSummary($attendanceSession, $studyClassModel);
 
         return Inertia::render('backend/instructors/TrackAttendance', [
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
             'attendanceLocked' => $this->instructorClasses->hasAttendanceForDate($class->id, Carbon::today('Asia/Phnom_Penh'))
-                || ! $attendanceWindow['can_submit'],
+                || ! ($attendanceWindow['can_submit'] ?? false)
+                || ($attendanceSession->status === \App\Models\AttendanceSession::STATUS_STOPPED),
             'attendanceWindow' => $attendanceWindow,
             'todaySession' => $todaySession,
+            'attendanceSession' => $this->attendanceQr->presentSession($attendanceSession, $studyClassModel),
+            'attendanceSummary' => $attendanceSummary,
         ]);
+    }
+
+    public function startAttendanceSession(Request $request, string $studyClass): RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $studyClassModel = StudyClass::query()->findOrFail($class->id);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return back()->with('warning', 'Attendance can only be tracked while the class is active.');
+        }
+
+        $this->attendanceQr->startSession($studyClassModel, $request->user());
+
+        return back()->with('success', 'Attendance session started successfully.');
+    }
+
+    public function stopAttendanceSession(Request $request, string $studyClass): RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $studyClassModel = StudyClass::query()->findOrFail($class->id);
+        $session = $this->attendanceQr->getOrCreateTodaySession($studyClassModel, $request->user());
+
+        $this->attendanceQr->stopSession($session, $request->user());
+
+        return back()->with('success', 'Attendance session stopped successfully.');
     }
 
     public function studentAttendance(Request $request, string $studyClass, string $student): Response

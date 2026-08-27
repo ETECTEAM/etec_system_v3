@@ -15,13 +15,28 @@ class StudentAttendance extends Model
 
     public const SOURCE_ADMIN_EDIT = 'admin_edit';
 
+    public const SOURCE_QR = 'qr_code';
+
     protected $fillable = [
         'study_class_id',
         'student_enrollment_id',
+        'attendance_session_id',
         'student_id',
         'tracked_by',
         'attendance_date',
+        'latitude',
+        'longitude',
+        'location_accuracy',
+        'distance_from_class',
+        'ip_address',
+        'user_agent',
+        'browser',
+        'operating_system',
+        'device_type',
+        'device_identifier',
         'status',
+        'verification_status',
+        'verification_reason',
         'source',
         'note',
     ];
@@ -31,10 +46,20 @@ class StudentAttendance extends Model
         return [
             'study_class_id' => 'integer',
             'student_enrollment_id' => 'integer',
+            'attendance_session_id' => 'integer',
             'student_id' => 'integer',
             'tracked_by' => 'integer',
             'attendance_date' => 'date',
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
+            'location_accuracy' => 'decimal:2',
+            'distance_from_class' => 'decimal:2',
         ];
+    }
+
+    public function attendanceSession()
+    {
+        return $this->belongsTo(AttendanceSession::class);
     }
 
     public function studyClass()
