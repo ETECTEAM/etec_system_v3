@@ -82,17 +82,17 @@ class InstructorClassController extends Controller
         $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
         $todaySession = $this->sessionBanner->handle($class->id);
 
-        if (! $attendanceWindow['can_submit'] && ($todaySession['status'] ?? null) !== 'auto_recorded') {
+        if (($attendanceWindow['reason'] ?? null) === InstructorClassService::ATTENDANCE_WINDOW_REASON_NO_SESSION) {
             return redirect()
                 ->route('instructor.classes.attendance', $class->id)
-                ->with('warning', 'Attendance can only be tracked during the class start window.');
+                ->with('warning', 'This class does not have a session today.');
         }
 
         return Inertia::render('backend/instructors/TrackAttendance', [
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
             'attendanceLocked' => $this->instructorClasses->hasAttendanceForDate($class->id, Carbon::today('Asia/Phnom_Penh'))
-                || ! $attendanceWindow['can_submit'],
+                || ($attendanceWindow['reason'] ?? null) === InstructorClassService::ATTENDANCE_WINDOW_REASON_NO_SESSION,
             'attendanceWindow' => $attendanceWindow,
             'todaySession' => $todaySession,
         ]);
