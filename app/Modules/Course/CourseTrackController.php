@@ -18,8 +18,10 @@ class CourseTrackController extends Controller
     public function index()
     {
         $tracks = CourseTrack::with('subCategory')->get();
-        return Inertia::render('backend/courses/Tracks', [
-            'tracks' => $tracks
+        $allSubCategories = SubCategory::where('status', 'active')->get();
+        return Inertia::render('backend/courses/Track/TrackIndex', [
+            'tracks' => $tracks,
+            'allSubCategories' => $allSubCategories
         ]);
     }
 
@@ -29,7 +31,7 @@ class CourseTrackController extends Controller
     public function create()
     {
         $subCategories = SubCategory::where('status', 'active')->get();
-        return Inertia::render('backend/courses/TrackForm', [
+        return Inertia::render('backend/courses/Track/TrackForm', [
             'track' => null,
             'subCategories' => $subCategories
         ]);
@@ -75,7 +77,7 @@ class CourseTrackController extends Controller
     public function edit(CourseTrack $track)
     {
         $subCategories = SubCategory::where('status', 'active')->get();
-        return Inertia::render('backend/courses/TrackForm', [
+        return Inertia::render('backend/courses/Track/TrackForm', [
             'track' => $track,
             'subCategories' => $subCategories
         ]);
@@ -100,6 +102,10 @@ class CourseTrackController extends Controller
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'] ?? 'active'
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $track->fresh('subCategory')]);
+        }
 
         return redirect()->route('course.tracks')->with('success', 'Track updated successfully');
     }
