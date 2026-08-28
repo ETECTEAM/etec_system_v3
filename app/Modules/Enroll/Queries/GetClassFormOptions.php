@@ -70,10 +70,15 @@ class GetClassFormOptions
                         ->map(fn (Schedule $schedule) => [
                             'term_id' => $schedule->term_id,
                             'term_name' => $schedule->term?->term_name ?? '-',
-                            'times' => $schedule->times->map(fn (Time $time) => [
-                                'id' => $time->id,
-                                'time_name' => $time->time_name,
-                            ])->values(),
+                            // Chronological, not the string sort the DB returns:
+                            // "02:00 PM" must come after "09:00", which alphabetical order gets wrong.
+                            'times' => $schedule->times
+                                ->sortBy(fn (Time $time) => StudyClass::parseTimeRange($time->time_name)['start'] ?? '99:99')
+                                ->values()
+                                ->map(fn (Time $time) => [
+                                    'id' => $time->id,
+                                    'time_name' => $time->time_name,
+                                ])->values(),
                         ]),
                 ];
             })

@@ -2,7 +2,8 @@
 import { router } from "@inertiajs/vue3";
 import { route } from "ziggy-js";
 import { Eye, Pencil, Trash2, Copy } from "@lucide/vue";
-// import { router } from "@inertiajs/vue3";
+import { useI18n } from "@/i18n";
+import { useConfirm } from "@/composables/useConfirm";
 
 import Table from "../../../../components/ui/table/Table.vue";
 import TableHeader from "../../../../components/ui/table/TableHeader.vue";
@@ -18,6 +19,9 @@ const props = defineProps({
   },
 });
 
+const { t } = useI18n();
+const { confirm } = useConfirm();
+
 const viewClass = (id) => {
   router.get(`/dashboard/enroll/view/${id}`);
 };
@@ -30,10 +34,18 @@ const copyClass = (id) => {
   router.get(`/dashboard/enroll/copy/${id}`);
 };
 
-const deleteClass = (id) => {
-  if (confirm("Are you sure you want to delete this class?")) {
-    router.delete(`/dashboard/enroll/${id}`);
-  }
+const deleteClass = async (id) => {
+  const ok = await confirm({
+    title: t("Delete Class?"),
+    message: t("Are you sure you want to delete this class? This cannot be undone."),
+    confirmText: t("Delete"),
+    cancelText: t("Cancel"),
+    danger: true,
+  });
+
+  if (!ok) return;
+
+  router.delete(`/dashboard/enroll/${id}`);
 };
 </script>
 

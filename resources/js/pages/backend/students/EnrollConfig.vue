@@ -1,11 +1,12 @@
 <script setup>
 import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useToast } from 'vue-toastification'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { SelectSearch } from '../../../components/ui/select-search'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import { ChevronDown, ChevronUp, Search } from '@lucide/vue'
 import { useConfirm } from '../../../composables/useConfirm'
@@ -15,13 +16,20 @@ const { t } = useI18n()
 const toast = useToast()
 const { confirm } = useConfirm()
 
+const props = defineProps({
+  // { categories: [...], filters: {...} } from CourseEnrollConfigController@index.
+  initial: { type: Object, default: () => ({ categories: [] }) },
+})
+
 // Category -> subCategories -> tracks -> courses, as returned already grouped
 // by GetCourseEnrollConfigs. Each course carries its default pricing config
 // plus class_schedules (Class Type -> Term -> Time, from Schedule Management).
-const categories = ref([])
+// Seeded from the Inertia prop so the tree is on screen at first paint;
+// fetchCategories() refreshes it in place after a bulk save.
+const categories = ref(props.initial.categories ?? [])
 const search = ref('')
 const isLoading = ref(false)
-const hasLoaded = ref(false)
+const hasLoaded = ref(true)
 const savingId = ref(null)
 const savingOrderId = ref(null)
 const bulkStartDate = ref('')
@@ -40,10 +48,6 @@ const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Enroll Config', current: true },
 ]
-
-onMounted(() => {
-  fetchCategories()
-})
 
 async function fetchCategories() {
   isLoading.value = true
@@ -202,7 +206,6 @@ async function saveConfig(course, changes) {
       start_date: course.config.start_date ?? null,
       unit_price: course.config.unit_price,
       course_price: course.config.course_price,
-      selected_price_type: course.config.selected_price_type,
       document_price: course.config.document_price,
     }
 
@@ -213,7 +216,6 @@ async function saveConfig(course, changes) {
     course.config.start_date = saved.start_date
     course.config.unit_price = saved.unit_price
     course.config.course_price = saved.course_price
-    course.config.selected_price_type = saved.selected_price_type
     course.config.resolved_price = saved.resolved_price
     course.config.document_price = saved.document_price
   } catch (error) {
@@ -239,17 +241,6 @@ function updateUnitPrice(course, value) {
 
 function updateCoursePrice(course, value) {
   saveConfig(course, { course_price: value === '' ? 0 : Number(value) })
-}
-
-function updateSelectedPriceType(course, value) {
-  saveConfig(course, { selected_price_type: value })
-}
-
-function priceTypeOptions(config) {
-  return [
-    { value: 'unit', label: `${t('Unit Price')} ($${Number(config.unit_price ?? 0).toFixed(2)})` },
-    { value: 'course', label: `${t('Course Price')} ($${Number(config.course_price ?? 0).toFixed(2)})` },
-  ]
 }
 
 function updateDocumentPrice(course, value) {
@@ -361,6 +352,39 @@ async function toggleTime(course, classType, term, time) {
   }
 }
 
+// Per-slot class cap: how many live classes this course may run in one
+// class-type + term + time slot. Blank clears it (unlimited). Same optimistic
+// pattern as toggleTime().
+async function updateTimeMaxClasses(course, term, time, rawValue) {
+  const n = Math.trunc(Number(String(rawValue ?? '').trim()))
+  // 0 (or blank / negative / NaN) means unlimited -> stored as null.
+  const max = Number.isFinite(n) && n >= 1 ? n : null
+  const previous = time.max_classes ?? null
+
+  if (max === previous) {
+    return
+  }
+
+  time.max_classes = max
+  const key = `max:${course.id}:${term.schedule_id}:${time.time_id}`
+  pendingKey.value = key
+
+  try {
+    const { data } = await axios.post(`/dashboard/course/courses/${course.id}/schedules/max-classes`, {
+      schedule_id: term.schedule_id,
+      time_id: time.time_id,
+      max_classes: max,
+    })
+    time.max_classes = data.max_classes ?? null
+  } catch (error) {
+    console.error('Failed to set slot class limit', error)
+    time.max_classes = previous
+    toast.error(error.response?.data?.message ?? t('Failed to save. Please try again.'))
+  } finally {
+    pendingKey.value = null
+  }
+}
+
 // Bulk counterpart to toggleTime() - opens or closes every time under one
 // class type in a single request instead of clicking each badge.
 async function setClassTypeAvailability(course, classType, open) {
@@ -425,9 +449,14 @@ async function applyStartDateToAll() {
 
       <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="mb-5 flex flex-col gap-3 rounded-xl border border-dashed border-slate-300 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700">
-          <div>
-            <p class="text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Set start date for all courses') }}</p>
-            <p class="text-xs text-slate-500 dark:text-gray-400">{{ $t('Applies to every course at once, so you do not have to set each one individually.') }}</p>
+          <div class="relative w-full sm:max-w-xs">
+            <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
+            <input
+              v-model="search"
+              type="search"
+              class="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+              :placeholder="$t('Search courses...')"
+            >
           </div>
 
           <div class="flex items-center gap-2">
@@ -450,20 +479,6 @@ async function applyStartDateToAll() {
 
         <div class="flex flex-col gap-4">
           <div class="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <!-- Search courses by name -->
-            <div class="space-y-1.5 text-left">
-              <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">{{ $t('Search') }}</label>
-              <div class="relative">
-                <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
-                <input
-                  v-model="search"
-                  type="search"
-                  class="w-full rounded-xl border border-slate-300 py-3 pl-9 pr-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                  :placeholder="$t('Search courses...')"
-                >
-              </div>
-            </div>
-
             <!-- Filter by category -->
             <div class="space-y-1.5 text-left">
               <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">{{ $t('Category') }}</label>
@@ -507,16 +522,18 @@ async function applyStartDateToAll() {
                 button-class="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-3 text-left text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
               />
             </div>
-          </div>
 
-          <div v-if="hasActiveFilters" class="flex justify-end">
-            <button
-              type="button"
-              @click="resetFilters"
-              class="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-            >
-              {{ $t('Reset Filters') }}
-            </button>
+            <!-- Reset: sits in the filter row, aligned under the dropdowns -->
+            <div v-if="hasActiveFilters" class="flex flex-col space-y-1.5 text-left">
+              <label aria-hidden="true" class="block select-none text-xs font-bold uppercase tracking-wider text-transparent">{{ $t('Reset') }}</label>
+              <button
+                type="button"
+                @click="resetFilters"
+                class="w-full rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                {{ $t('Reset Filters') }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -543,167 +560,181 @@ async function applyStartDateToAll() {
                   <h4 class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ track.name }}</h4>
                 </div>
 
-                <div v-for="(course, courseIndex) in track.courses" :key="course.id ?? 'uncategorized'" :class="courseIndex > 0 ? 'mt-6' : 'mt-4'">
-                  <div class="mb-3 flex items-center gap-3 pl-3">
-                    <h5 class="text-sm font-semibold text-slate-900 dark:text-gray-100">{{ course.title }}</h5>
-                    <div class="flex items-center gap-1.5" :title="$t('Lower numbers show first on the registration page.')">
-                      <label class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Order') }}</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="9999"
-                        :value="course.enroll_order ?? ''"
-                        :disabled="savingOrderId === course.id"
-                        class="w-16 rounded-lg border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                        @change="updateCourseOrder(course, $event.target.value)"
-                      >
-                    </div>
-                  </div>
-
-                  <!-- Enrollment & pricing: the course's single default config (schedule_id/time_id both null). -->
-                  <div class="rounded-xl border border-slate-200 p-4 dark:border-gray-800">
-                    <div class="mb-3 flex items-center justify-between">
-                      <p class="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400">{{ $t('Enrollment & Pricing') }}</p>
-                      <button
-                        type="button"
-                        :disabled="savingId === course.config.id"
-                        class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold transition disabled:opacity-50"
-                        :class="course.config.enroll_status === 'open' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'"
-                        @click="toggleStatus(course)"
-                      >
-                        {{ course.config.enroll_status === 'open' ? $t('Open') : $t('Closed') }}
-                      </button>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                      <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Start Date') }}</label>
-                        <input
-                          type="date"
-                          :value="course.config.start_date ?? ''"
-                          :disabled="savingId === course.config.id"
-                          class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                          @change="updateStartDate(course, $event.target.value)"
-                        >
-                      </div>
-                      <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Unit Price') }}</label>
-                        <div class="relative">
-                          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
+                <Table class="mt-3">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{{ $t('Course') }}</TableHead>
+                      <TableHead>{{ $t('Order') }}</TableHead>
+                      <TableHead>{{ $t('Start Date') }}</TableHead>
+                      <TableHead>{{ $t('Unit Price') }}</TableHead>
+                      <TableHead>{{ $t('Course Price') }}</TableHead>
+                      <TableHead>{{ $t('Document Price') }}</TableHead>
+                      <TableHead>{{ $t('Status') }}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <template v-for="course in track.courses" :key="course.id ?? 'uncategorized'">
+                      <!-- Course + its default (course-wide) enrollment config -->
+                      <TableRow>
+                        <TableCell class="whitespace-nowrap font-semibold text-slate-900 dark:text-gray-100">{{ course.title }}</TableCell>
+                        <TableCell>
                           <input
                             type="number"
-                            min="0"
-                            step="0.01"
-                            :value="course.config.unit_price"
-                            :disabled="savingId === course.config.id"
-                            class="w-full rounded-lg border border-slate-300 py-1.5 pl-6 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                            @change="updateUnitPrice(course, $event.target.value)"
+                            min="1"
+                            max="9999"
+                            :value="course.enroll_order ?? ''"
+                            :disabled="savingOrderId === course.id"
+                            :title="$t('Lower numbers show first on the registration page.')"
+                            class="w-16 rounded-lg border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                            @change="updateCourseOrder(course, $event.target.value)"
                           >
-                        </div>
-                      </div>
-                      <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Course Price') }}</label>
-                        <div class="relative">
-                          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
+                        </TableCell>
+                        <TableCell>
                           <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            :value="course.config.course_price"
+                            type="date"
+                            :value="course.config.start_date ?? ''"
                             :disabled="savingId === course.config.id"
-                            class="w-full rounded-lg border border-slate-300 py-1.5 pl-6 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                            @change="updateCoursePrice(course, $event.target.value)"
+                            class="w-36 rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                            @change="updateStartDate(course, $event.target.value)"
                           >
-                        </div>
-                      </div>
-                      <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Document Price') }}</label>
-                        <div class="relative">
-                          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            :value="course.config.document_price"
-                            :disabled="savingId === course.config.id"
-                            class="w-full rounded-lg border border-slate-300 py-1.5 pl-6 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                            @change="updateDocumentPrice(course, $event.target.value)"
-                          >
-                        </div>
-                      </div>
-                      <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">{{ $t('Price to Use') }}</label>
-                        <SelectSearch
-                          :model-value="course.config.selected_price_type"
-                          :options="priceTypeOptions(course.config)"
-                          :disabled="savingId === course.config.id"
-                          :clearable="false"
-                          button-class="flex w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-left text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                          @update:model-value="(value) => updateSelectedPriceType(course, value)"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Class schedules: Class Type -> Term -> Time, sourced from Schedule Management. -->
-                  <div class="mt-3 space-y-3">
-                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400">{{ $t('Class Schedules') }}</p>
-
-                    <div v-for="classType in course.class_schedules" :key="classType.class_type_id"
-                      class="rounded-xl border overflow-hidden" :class="classTypeAccent(classType).border">
-                      <div class="w-full flex items-center justify-between gap-3 px-4 py-3 transition" :class="classTypeAccent(classType).header">
-                        <button type="button" class="flex items-center gap-2.5 min-w-0" @click="toggleCollapsed(course, classType)">
-                          <span class="h-2.5 w-2.5 shrink-0 rounded-full" :class="classTypeAccent(classType).dot" />
-                          <span class="font-semibold" :class="classTypeAccent(classType).text">{{ classType.class_type_name }}</span>
-                          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                            :class="classType.is_enabled ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-200 text-slate-600 dark:bg-gray-700 dark:text-gray-400'">
-                            {{ classType.is_enabled ? $t('ON') : $t('OFF') }}
-                          </span>
-                        </button>
-                        <div class="flex items-center gap-3 shrink-0">
-                          <button type="button"
-                            :disabled="pendingKey === `classtype:${course.id}:${classType.class_type_id}`"
-                            class="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-100"
-                            @click="setClassTypeAvailability(course, classType, true)">
-                            {{ $t('Turn on all') }}
-                          </button>
-                          <span class="text-slate-300 dark:text-gray-600">|</span>
-                          <button type="button"
-                            :disabled="pendingKey === `classtype:${course.id}:${classType.class_type_id}`"
-                            class="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-100"
-                            @click="setClassTypeAvailability(course, classType, false)">
-                            {{ $t('Turn off all') }}
-                          </button>
-                          <button type="button" @click="toggleCollapsed(course, classType)">
-                            <ChevronUp v-if="!isCollapsed(course, classType)" class="h-4 w-4 text-slate-400 dark:text-gray-500" />
-                            <ChevronDown v-else class="h-4 w-4 text-slate-400 dark:text-gray-500" />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div v-if="!isCollapsed(course, classType)" class="px-4 py-4 space-y-4">
-                        <p v-if="classType.terms.length === 0" class="text-sm text-slate-500 dark:text-gray-400">
-                          {{ $t('No schedules configured for this class type yet.') }}
-                        </p>
-                        <div v-for="term in classType.terms" :key="term.schedule_id">
-                          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2 dark:text-gray-400">{{ term.term_name }}</p>
-                          <div class="flex flex-wrap gap-2">
-                            <button v-for="time in term.times" :key="time.time_id" type="button"
-                              :disabled="pendingKey === `${course.id}:${term.schedule_id}:${time.time_id}`"
-                              @click="toggleTime(course, classType, term, time)"
-                              class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
-                              :class="time.is_open
-                                ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                : 'border-slate-300 text-slate-500 hover:border-slate-400 dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500'">
-                              <span class="h-2 w-2 rounded-full" :class="time.is_open ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-gray-600'" />
-                              {{ time.time_name }}
-                            </button>
+                        </TableCell>
+                        <TableCell>
+                          <div class="relative w-24">
+                            <span class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              :value="course.config.unit_price"
+                              :disabled="savingId === course.config.id"
+                              class="w-full rounded-lg border border-slate-300 py-1.5 pl-5 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                              @change="updateUnitPrice(course, $event.target.value)"
+                            >
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                        </TableCell>
+                        <TableCell>
+                          <div class="relative w-24">
+                            <span class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              :value="course.config.course_price"
+                              :disabled="savingId === course.config.id"
+                              class="w-full rounded-lg border border-slate-300 py-1.5 pl-5 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                              @change="updateCoursePrice(course, $event.target.value)"
+                            >
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div class="relative w-24">
+                            <span class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">$</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              :value="course.config.document_price"
+                              :disabled="savingId === course.config.id"
+                              class="w-full rounded-lg border border-slate-300 py-1.5 pl-5 pr-2 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                              @change="updateDocumentPrice(course, $event.target.value)"
+                            >
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <button
+                            type="button"
+                            :disabled="savingId === course.config.id"
+                            class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold transition disabled:opacity-50"
+                            :class="course.config.enroll_status === 'open' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'"
+                            @click="toggleStatus(course)"
+                          >
+                            {{ course.config.enroll_status === 'open' ? $t('Open') : $t('Closed') }}
+                          </button>
+                        </TableCell>
+                      </TableRow>
+
+                      <!-- Class schedules: Class Type -> Term -> Time, sourced from Schedule Management. -->
+                      <TableRow>
+                        <TableCell :colspan="7" class="bg-slate-50/60 dark:bg-gray-800/30">
+                          <div class="space-y-3">
+                            <p class="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400">{{ $t('Class Schedules') }}</p>
+
+                            <div v-for="classType in course.class_schedules" :key="classType.class_type_id"
+                              class="rounded-xl border overflow-hidden" :class="classTypeAccent(classType).border">
+                              <div class="w-full flex items-center justify-between gap-3 px-4 py-3 transition" :class="classTypeAccent(classType).header">
+                                <button type="button" class="flex items-center gap-2.5 min-w-0" @click="toggleCollapsed(course, classType)">
+                                  <span class="h-2.5 w-2.5 shrink-0 rounded-full" :class="classTypeAccent(classType).dot" />
+                                  <span class="font-semibold" :class="classTypeAccent(classType).text">{{ classType.class_type_name }}</span>
+                                  <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                                    :class="classType.is_enabled ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-200 text-slate-600 dark:bg-gray-700 dark:text-gray-400'">
+                                    {{ classType.is_enabled ? $t('ON') : $t('OFF') }}
+                                  </span>
+                                </button>
+                                <div class="flex items-center gap-3 shrink-0">
+                                  <button type="button"
+                                    :disabled="pendingKey === `classtype:${course.id}:${classType.class_type_id}`"
+                                    class="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-100"
+                                    @click="setClassTypeAvailability(course, classType, true)">
+                                    {{ $t('Turn on all') }}
+                                  </button>
+                                  <span class="text-slate-300 dark:text-gray-600">|</span>
+                                  <button type="button"
+                                    :disabled="pendingKey === `classtype:${course.id}:${classType.class_type_id}`"
+                                    class="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-100"
+                                    @click="setClassTypeAvailability(course, classType, false)">
+                                    {{ $t('Turn off all') }}
+                                  </button>
+                                  <button type="button" @click="toggleCollapsed(course, classType)">
+                                    <ChevronUp v-if="!isCollapsed(course, classType)" class="h-4 w-4 text-slate-400 dark:text-gray-500" />
+                                    <ChevronDown v-else class="h-4 w-4 text-slate-400 dark:text-gray-500" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div v-if="!isCollapsed(course, classType)" class="px-4 py-4 space-y-4">
+                                <p v-if="classType.terms.length === 0" class="text-sm text-slate-500 dark:text-gray-400">
+                                  {{ $t('No schedules configured for this class type yet.') }}
+                                </p>
+                                <div v-for="term in classType.terms" :key="term.schedule_id">
+                                  <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2 dark:text-gray-400">{{ term.term_name }}</p>
+                                  <div class="flex flex-wrap gap-2">
+                                    <div v-for="time in term.times" :key="time.time_id"
+                                      class="inline-flex items-center gap-1.5 rounded-full border py-1 pr-1 pl-3 text-xs font-medium transition"
+                                      :class="time.is_open
+                                        ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-500/40 dark:bg-emerald-500/10'
+                                        : 'border-slate-300 dark:border-gray-600'">
+                                      <button type="button"
+                                        :disabled="pendingKey === `${course.id}:${term.schedule_id}:${time.time_id}`"
+                                        @click="toggleTime(course, classType, term, time)"
+                                        class="inline-flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+                                        :class="time.is_open
+                                          ? 'text-emerald-700 dark:text-emerald-400'
+                                          : 'text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200'">
+                                        <span class="h-2 w-2 rounded-full" :class="time.is_open ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-gray-600'" />
+                                        {{ time.time_name }}
+                                      </button>
+
+                                      <span v-if="time.is_open"
+                                        class="flex items-center gap-1 border-l border-emerald-300/70 pl-1.5 dark:border-emerald-500/30"
+                                        :title="$t('Max classes that can run in this slot. 0 = unlimited.')">
+                                        <input type="number" min="0" inputmode="numeric"
+                                          :value="time.max_classes ?? 0"
+                                          :disabled="pendingKey === `max:${course.id}:${term.schedule_id}:${time.time_id}`"
+                                          @change="updateTimeMaxClasses(course, term, time, $event.target.value)"
+                                          class="w-11 rounded-md border border-emerald-300 bg-white px-1 py-0.5 text-center text-[11px] text-emerald-800 outline-none focus:border-emerald-500 disabled:opacity-50 dark:border-emerald-500/40 dark:bg-gray-900 dark:text-emerald-300" />
+                                        <span class="text-[10px] text-emerald-600/80 dark:text-emerald-400/70">{{ time.max_classes ? $t('max') : $t('∞ max') }}</span>
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </template>
+                  </TableBody>
+                </Table>
               </div>
             </div>
           </div>

@@ -3,7 +3,8 @@ import { computed, ref, watch } from "vue";
 import axios from "axios";
 import { usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
-import { Search } from "@lucide/vue";
+import { Search, UserRound, X } from "@lucide/vue";
+import { SelectSearch } from "@/components/ui/select-search";
 import { useI18n } from "@/i18n";
 
 const page = usePage();
@@ -37,6 +38,7 @@ const classes = ref([]);
 const classesLoaded = ref(false);
 const classesLoading = ref(false);
 const search = ref("");
+const teacherFilter = ref("");
 const selectedClassId = ref("");
 const forceOverride = ref(false);
 const saving = ref(false);
@@ -47,15 +49,80 @@ const selectableClasses = computed(() =>
   classes.value.filter((item) => item.id !== props.enrollment?.class_id)
 );
 
+// "Just starting" = a class whose start_date is within the last 3 weeks, so the
+// student joining it now hasn't missed much.
+const RECENT_START_DAYS = 21;
+
+function daysSinceStart(item) {
+  if (!item.start_date) return null;
+  const start = new Date(`${item.start_date}T00:00:00`);
+  if (Number.isNaN(start.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((today - start) / 86400000);
+}
+
+function isRecentlyStarted(item) {
+  const days = daysSinceStart(item);
+  return days !== null && days >= 0 && days <= RECENT_START_DAYS;
+}
+
+// A badge for every class, so the start state reads at a glance:
+//   green  — started within the last 3 weeks (safe to join now)
+//   amber  — running longer than that
+//   sky    — start date is still in the future
+//   slate  — no start date set
+function startBadge(item) {
+  const days = daysSinceStart(item);
+
+  if (days === null) {
+    return { label: t("No start date"), classes: "bg-slate-100 text-slate-500 dark:bg-gray-700 dark:text-gray-400" };
+  }
+  if (days < 0) {
+    return { label: t("Not started"), classes: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300" };
+  }
+  if (days <= RECENT_START_DAYS) {
+    return { label: t("Just started"), classes: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" };
+  }
+  return { label: t("In progress"), classes: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" };
+}
+
+// Distinct instructor names across the offerable classes, for the filter dropdown.
+const teacherOptions = computed(() => {
+  const names = new Set(
+    selectableClasses.value
+      .map((item) => item.teacher)
+      .filter((name) => name && name !== "-")
+  );
+  return [...names]
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => ({ label: name, value: name }));
+});
+
 const filteredClasses = computed(() => {
   const query = search.value.trim().toLowerCase();
-  if (!query) return selectableClasses.value;
 
-  return selectableClasses.value.filter((item) =>
-    [item.course, item.title, item.term, item.time, item.teacher].some((field) =>
-      String(field ?? "").toLowerCase().includes(query)
-    )
-  );
+  let base = selectableClasses.value;
+
+  if (teacherFilter.value) {
+    base = base.filter((item) => item.teacher === teacherFilter.value);
+  }
+
+  if (query) {
+    base = base.filter((item) =>
+      [item.course, item.title, item.term, item.time, item.teacher].some((field) =>
+        String(field ?? "").toLowerCase().includes(query)
+      )
+    );
+  }
+
+  // Just-started classes float to the top, then alphabetical by course.
+  return [...base].sort((a, b) => {
+    const ra = isRecentlyStarted(a) ? 0 : 1;
+    const rb = isRecentlyStarted(b) ? 0 : 1;
+    if (ra !== rb) return ra - rb;
+    return String(a.course ?? "").localeCompare(String(b.course ?? ""));
+  });
 });
 
 const selectedClass = computed(
@@ -98,6 +165,7 @@ watch(selectedClassId, () => {
 function close() {
   selectedClassId.value = "";
   search.value = "";
+  teacherFilter.value = "";
   forceOverride.value = false;
   errorMessage.value = "";
   emit("close");
@@ -162,23 +230,44 @@ function submitAnyway() {
 <template>
   <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4">
     <div class="flex h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-gray-900">
-      <div class="border-b border-slate-200 px-6 py-4 dark:border-gray-700">
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ isAssign ? $t('Assign to Class') : $t('Move to Another Class') }}</h3>
-        <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">
-          <template v-if="isAssign">{{ enrollment?.name }}</template>
-          <template v-else>{{ enrollment?.name }} — {{ $t('currently in') }} "{{ enrollment?.class_title }}"</template>
-        </p>
+      <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4 dark:border-gray-700">
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ isAssign ? $t('Assign to Class') : $t('Move to Another Class') }}</h3>
+          <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">
+            <template v-if="isAssign">{{ enrollment?.name }}</template>
+            <template v-else>{{ enrollment?.name }} — {{ $t('currently in') }} "{{ enrollment?.class_title }}"</template>
+          </p>
+        </div>
+        <button
+          type="button"
+          :aria-label="$t('Close')"
+          class="-mr-2 -mt-1 shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+          @click="close"
+        >
+          <X class="h-5 w-5" />
+        </button>
       </div>
 
       <div class="border-b border-slate-200 bg-slate-50 px-6 py-3 dark:border-gray-700 dark:bg-gray-800/60">
-        <div class="relative">
-          <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            v-model="search"
-            type="text"
-            :placeholder="$t('Search by course, schedule, time slot or teacher...')"
-            class="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900/20 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-          />
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div class="relative flex-1">
+            <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              v-model="search"
+              type="text"
+              :placeholder="$t('Search by course, schedule or time slot...')"
+              class="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900/20 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+            />
+          </div>
+          <div class="shrink-0 sm:w-56">
+            <SelectSearch
+              v-model="teacherFilter"
+              :options="teacherOptions"
+              :placeholder="$t('All instructors')"
+              :searchable="teacherOptions.length > 6"
+              button-class="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm text-slate-900 transition focus:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900/20 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+            />
+          </div>
         </div>
         <p class="mt-2 text-xs text-slate-500 dark:text-gray-400">
           {{ filteredClasses.length }} / {{ selectableClasses.length }} {{ $t('classes') }}
@@ -202,7 +291,11 @@ function submitAnyway() {
               <td colspan="6" class="px-6 py-12 text-center text-sm text-slate-500 dark:text-gray-400">{{ $t('Loading classes...') }}</td>
             </tr>
             <tr v-else-if="filteredClasses.length === 0">
-              <td colspan="6" class="px-6 py-12 text-center text-sm text-slate-500 dark:text-gray-400">{{ $t('No classes match your search.') }}</td>
+              <td colspan="6" class="px-6 py-12 text-center text-sm text-slate-500 dark:text-gray-400">
+                {{ selectableClasses.length === 0
+                  ? $t('There are no other open classes to move this student to.')
+                  : $t('No classes match your search.') }}
+              </td>
             </tr>
             <tr
               v-for="item in filteredClasses"
@@ -224,10 +317,31 @@ function submitAnyway() {
               <td class="px-4 py-3">
                 <p class="font-semibold text-slate-900 dark:text-gray-100">{{ item.course }}</p>
                 <p class="text-xs text-slate-500 dark:text-gray-400">{{ item.title }}</p>
+                <span
+                  :title="item.start_date || ''"
+                  class="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                  :class="startBadge(item).classes"
+                >
+                  {{ startBadge(item).label }}
+                </span>
               </td>
               <td class="px-4 py-3 text-slate-700 dark:text-gray-300">{{ item.term }}</td>
               <td class="px-4 py-3 text-slate-700 dark:text-gray-300">{{ item.time }}</td>
-              <td class="px-4 py-3 text-slate-700 dark:text-gray-300">{{ item.teacher }}</td>
+              <td class="px-4 py-3">
+                <span
+                  v-if="item.teacher && item.teacher !== '-'"
+                  class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300"
+                >
+                  <UserRound class="h-3 w-3" />
+                  {{ item.teacher }}
+                </span>
+                <span
+                  v-else
+                  class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-gray-700 dark:text-gray-400"
+                >
+                  {{ $t('Unassigned') }}
+                </span>
+              </td>
               <td class="whitespace-nowrap px-6 py-3">
                 <span
                   class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"

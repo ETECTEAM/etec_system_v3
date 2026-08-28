@@ -42,17 +42,8 @@ class EnrollStudent
         });
     }
 
-    // Excludes schedule_id-scoped rows (always $0 - see CourseEnrollConfig::schedule()).
     private function resolveEnrollConfig(stdClass $class): ?CourseEnrollConfig
     {
-        $query = CourseEnrollConfig::where('course_id', $class->course_id)->whereNull('schedule_id');
-
-        if ($class->time_id !== null) {
-            $query->where('time_id', $class->time_id);
-        } else {
-            $query->whereNull('time_id');
-        }
-
-        return $query->first();
+        return CourseEnrollConfig::forCourseTime($class->course_id, $class->time_id);
     }
 }

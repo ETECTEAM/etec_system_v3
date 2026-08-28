@@ -10,6 +10,7 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
     Route::put('/profile', [InstructorProfileController::class, 'update'])->middleware('throttle:10,1');
     Route::delete('/profile/attachments/{type}', [InstructorProfileController::class, 'destroyAttachment'])->middleware('throttle:10,1');
 
+    Route::get('/pre-attendance', [InstructorClassController::class, 'preAttendance'])->name('instructor.pre-attendance');
     Route::get('/classes/create', [InstructorClassController::class, 'create'])->name('instructor.classes.create');
     Route::post('/classes', [InstructorClassController::class, 'store'])->name('instructor.classes.store');
     Route::get('/classes/{studyClass}', [InstructorClassController::class, 'show'])->name('instructor.classes.show');

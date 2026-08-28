@@ -8,6 +8,8 @@ use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Models\User;
+use App\Modules\Enroll\Queries\GetClassFormOptions;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -25,15 +27,27 @@ class InstructorClassService
 
     private ?array $termLabels = null;
 
-    public function formOptions(): array
+    /**
+     * @param  int|null  $instructorUserId  when set, the schedule picker is narrowed to
+     *                                       only the term/time slots this instructor is
+     *                                       actually free for (availability window, no
+     *                                       manual block, no overlapping class).
+     */
+    public function formOptions(?int $instructorUserId = null): array
     {
+        $scheduleGroups = app(GetClassFormOptions::class)->scheduleGroups();
+
+        if ($instructorUserId !== null) {
+            $scheduleGroups = app(InstructorAssignmentAvailability::class)
+                ->filterScheduleGroups($instructorUserId, $scheduleGroups);
+        }
+
         return [
-            'courses' => DB::table('courses')->select('id', 'title')->get(),
-            'lessons' => DB::table('course_lessons')->select('id', 'title')->get(),
-            'terms' => DB::table('terms')->select('id', 'term_name')->get(),
-            'times' => DB::table('times')->select('id', 'time_name')->get(),
-            'rooms' => DB::table('rooms')->select('id', 'room_number')->get(),
-            'classTypes' => DB::table('class_type')->select('class_type_id', 'type_name')->get(),
+            'courses' => DB::table('courses')->select('id', 'title')->orderBy('title')->get(),
+            'lessons' => DB::table('course_lessons')->select('id', 'title')->orderBy('title')->get(),
+            'rooms' => DB::table('rooms')->select('id', 'room_number')->orderBy('room_number')->get(),
+            'classTypes' => DB::table('class_type')->select('class_type_id', 'type_name')->orderBy('class_type_id')->get(),
+            'scheduleGroups' => $scheduleGroups,
         ];
     }
 
@@ -87,6 +101,88 @@ class InstructorClassService
                 ->where('students.gender', 'female')
                 ->count(),
         ];
+    }
+
+    public function preAttendanceClasses(User $instructor): Collection
+    {
+        $today = Carbon::today('Asia/Phnom_Penh');
+
+        $classes = $this->classesQuery($instructor)
+            ->join('class_sessions', function ($join) use ($today) {
+                $join->on('class_sessions.study_class_id', '=', 'study_classes.id')
+                    ->whereDate('class_sessions.session_date', '=', $today->toDateString());
+            })
+            ->whereIn('class_sessions.status', [
+                ClassSession::STATUS_PRE_ATTENDANCE,
+                ClassSession::STATUS_PARTIAL,
+            ])
+            ->addSelect([
+                'class_sessions.status as session_status',
+                'class_sessions.session_date',
+                'class_sessions.recorded_at',
+            ])
+            ->orderBy('class_sessions.scheduled_start')
+            ->orderBy('study_classes.id')
+            ->get();
+
+        if ($classes->isEmpty()) {
+            return collect();
+        }
+
+        $classIds = $classes->pluck('id');
+        $trackedCounts = DB::table('student_attendances')
+            ->whereIn('study_class_id', $classIds)
+            ->whereDate('attendance_date', $today)
+            ->select('study_class_id', DB::raw('count(*) as tracked_count'))
+            ->groupBy('study_class_id')
+            ->pluck('tracked_count', 'study_class_id');
+
+        $unresolvedStudents = DB::table('student_enrollments')
+            ->join('students', 'students.id', '=', 'student_enrollments.student_id')
+            ->leftJoin('student_attendances', function ($join) use ($today) {
+                $join->on('student_attendances.student_enrollment_id', '=', 'student_enrollments.id')
+                    ->whereDate('student_attendances.attendance_date', '=', $today->toDateString());
+            })
+            ->whereIn('student_enrollments.study_class_id', $classIds)
+            ->where('student_enrollments.enrollment_status', 'active')
+            ->whereNull('student_attendances.id')
+            ->orderBy('student_enrollments.study_class_id')
+            ->orderBy('student_enrollments.id')
+            ->select([
+                'student_enrollments.study_class_id',
+                'students.id as student_id',
+                'students.full_name',
+            ])
+            ->get()
+            ->groupBy('study_class_id')
+            ->map(fn (Collection $students) => $students
+                ->map(fn (stdClass $student) => [
+                    'id' => (int) $student->student_id,
+                    'name' => $student->full_name ?? '-',
+                ])
+                ->values()
+                ->all());
+
+        return $classes
+            ->map(function (stdClass $class) use ($trackedCounts, $unresolvedStudents): array {
+                $presentedClass = $this->presentClass($class);
+                $pendingStudents = $unresolvedStudents->get($class->id, []);
+                $trackedCount = (int) ($trackedCounts[$class->id] ?? 0);
+
+                return [
+                    ...$presentedClass,
+                    'session_status' => $class->session_status,
+                    'session_status_label' => str_replace('_', ' ', ucfirst((string) $class->session_status)),
+                    'session_date' => Carbon::parse($class->session_date)->format('Y-m-d'),
+                    'recorded_at' => $class->recorded_at ? Carbon::parse($class->recorded_at)->format('Y-m-d H:i') : null,
+                    'tracked_count' => $trackedCount,
+                    'unresolved_count' => count($pendingStudents),
+                    'unresolved_students' => $pendingStudents,
+                    'can_retrack' => strtolower((string) ($class->class_status ?? '')) === 'active',
+                ];
+            })
+            ->filter(fn (array $class) => $class['unresolved_count'] > 0)
+            ->values();
     }
 
     public function findForInstructor(User $instructor, int $studyClassId): stdClass

@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { router } from "@inertiajs/vue3";
 import axios from "axios";
-import { Search, RotateCcw, Plus, LayoutGrid, Table2, UserPlus, UserCheck, Printer, Pencil, ArrowRightLeft } from "@lucide/vue";
+import { Search, RotateCcw, Plus, LayoutGrid, Table2, UserPlus, UserCheck, Printer, Pencil, ArrowRightLeft, X, Check } from "@lucide/vue";
 import { useToast } from "vue-toastification";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
@@ -181,6 +181,9 @@ const dayAbbreviations = {
 };
 
 function studyDaysLabel(row) {
+  // Prefer the term name as written ("Mon & Thu"); study_days expands a
+  // two-part term into a full weekday range ("Mon & Tue & Wed & Thu").
+  if (row.term_name) return row.term_name;
   return (row.study_days ?? []).map((day) => dayAbbreviations[day] ?? day).join(" & ") || "-";
 }
 
@@ -324,36 +327,37 @@ async function confirmMarkPaidAndPrint() {
 // Edit a public registration's basic info (name/gender/phone) inline from
 // the Registrations tab — the only editable fields for a submission; class
 // assignment itself isn't editable here (see EnrollmentClassController::updateRegistration).
-const editModalOpen = ref(false);
-const editingRow = ref(null);
-const editForm = ref({ name: "", gender: "", phone: "" });
+const editingId = ref(null); // enrollment_id of the row being edited inline
+const editDraft = ref({ name: "", gender: "", phone: "" });
 const editErrors = ref({});
 const editSaving = ref(false);
-const editNameLiveError = computed(() => latinNameError(editForm.value.name));
+const editNameLiveError = computed(() => latinNameError(editDraft.value.name));
 
-function openEditModal(row) {
-  editingRow.value = row;
-  editForm.value = { name: row.name, gender: row.gender, phone: row.phone };
+function isEditing(row) {
+  return editingId.value === row.enrollment_id;
+}
+
+function startEdit(row) {
+  editingId.value = row.enrollment_id;
+  editDraft.value = { name: row.name, gender: row.gender, phone: row.phone };
   editErrors.value = {};
-  editModalOpen.value = true;
 }
 
 function cancelEdit() {
-  editModalOpen.value = false;
-  editingRow.value = null;
+  editingId.value = null;
+  editErrors.value = {};
 }
 
-async function submitEdit() {
-  if (!editingRow.value || editNameLiveError.value) return;
+async function saveEdit(row) {
+  if (!isEditing(row) || editNameLiveError.value) return;
 
   editSaving.value = true;
   editErrors.value = {};
 
   try {
-    await axios.put(`/dashboard/enroll/registrations/${editingRow.value.enrollment_id}`, editForm.value);
-    Object.assign(editingRow.value, editForm.value);
-    editModalOpen.value = false;
-    editingRow.value = null;
+    await axios.put(`/dashboard/enroll/registrations/${row.enrollment_id}`, editDraft.value);
+    Object.assign(row, editDraft.value);
+    editingId.value = null;
   } catch (error) {
     editErrors.value = error.response?.data?.errors ?? {};
   } finally {
@@ -580,15 +584,39 @@ onBeforeUnmount(() => {
             <TableBody>
               <TableRow v-for="row in registrations" :key="row.enrollment_id">
                 <TableCell class="whitespace-nowrap font-semibold">
-                  {{ row.name }}
+                  <template v-if="isEditing(row)">
+                    <input
+                      v-model="editDraft.name"
+                      type="text"
+                      class="w-36 rounded-lg border px-2 py-1 text-sm font-normal outline-none transition focus:ring-2"
+                      :class="editNameLiveError || editErrors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 focus:border-blue-600 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200'"
+                    >
+                    <p v-if="editNameLiveError || editErrors.name" class="mt-1 text-[11px] font-semibold text-red-600">{{ editNameLiveError || editErrors.name[0] }}</p>
+                  </template>
+                  <template v-else>{{ row.name }}</template>
                 </TableCell>
 
                 <TableCell>
-                  {{ row.gender }}
+                  <template v-if="isEditing(row)">
+                    <div class="inline-flex overflow-hidden rounded-lg border border-slate-300 dark:border-gray-600">
+                      <button type="button" class="px-2.5 py-1 text-xs font-semibold transition" :class="editDraft.gender === 'male' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-gray-800 dark:text-gray-300'" @click="editDraft.gender = 'male'">{{ $t('Male') }}</button>
+                      <button type="button" class="border-l border-slate-300 px-2.5 py-1 text-xs font-semibold transition dark:border-gray-600" :class="editDraft.gender === 'female' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-gray-800 dark:text-gray-300'" @click="editDraft.gender = 'female'">{{ $t('Female') }}</button>
+                    </div>
+                    <p v-if="editErrors.gender" class="mt-1 text-[11px] font-semibold text-red-600">{{ editErrors.gender[0] }}</p>
+                  </template>
+                  <template v-else>{{ row.gender }}</template>
                 </TableCell>
 
                 <TableCell class="whitespace-nowrap">
-                  {{ row.phone }}
+                  <template v-if="isEditing(row)">
+                    <input
+                      v-model="editDraft.phone"
+                      type="text"
+                      class="w-32 rounded-lg border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                    >
+                    <p v-if="editErrors.phone" class="mt-1 text-[11px] font-semibold text-red-600">{{ editErrors.phone[0] }}</p>
+                  </template>
+                  <template v-else>{{ row.phone }}</template>
                 </TableCell>
 
                 <TableCell class="whitespace-nowrap">
@@ -634,6 +662,29 @@ onBeforeUnmount(() => {
 
                 <TableCell>
                   <div class="flex flex-wrap justify-end items-center gap-1.5">
+                    <template v-if="isEditing(row)">
+                      <button
+                        type="button"
+                        :disabled="editSaving || !!editNameLiveError"
+                        class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        :title="$t('Save')"
+                        @click="saveEdit(row)"
+                      >
+                        <Check class="h-4 w-4 shrink-0" />
+                        <span class="truncate">{{ editSaving ? $t('Saving...') : $t('Save') }}</span>
+                      </button>
+                      <button
+                        type="button"
+                        :disabled="editSaving"
+                        class="inline-flex items-center justify-center rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        :title="$t('Cancel')"
+                        @click="cancelEdit"
+                      >
+                        <X class="h-4 w-4 shrink-0" />
+                      </button>
+                    </template>
+
+                    <template v-else>
                     <button
                       v-if="isPendingRegistration(row)"
                       type="button"
@@ -650,7 +701,7 @@ onBeforeUnmount(() => {
                       type="button"
                       class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                       :title="$t('Edit')"
-                      @click="openEditModal(row)"
+                      @click="startEdit(row)"
                     >
                       <Pencil class="h-4 w-4 shrink-0" />
                     </button>
@@ -669,8 +720,9 @@ onBeforeUnmount(() => {
                     <button
                       v-if="!isPendingRegistration(row) && !needsManualScheduling(row)"
                       type="button"
-                      class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                      :title="$t('Move to Another Class')"
+                      class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-slate-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:disabled:hover:bg-gray-800"
+                      :disabled="row.payment_status !== 'Paid'"
+                      :title="row.payment_status === 'Paid' ? $t('Move to Another Class') : $t('Record payment and print the receipt before moving this student.')"
                       @click="openMoveModal(row)"
                     >
                       <ArrowRightLeft class="h-4 w-4 shrink-0" />
@@ -687,6 +739,7 @@ onBeforeUnmount(() => {
                       <Printer class="h-4 w-4 shrink-0" />
                       <span class="truncate">{{ row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record Payment') }}</span>
                     </button>
+                    </template>
                   </div>
                 </TableCell>
               </TableRow>
@@ -736,7 +789,12 @@ onBeforeUnmount(() => {
       <!-- Record Payment & Print confirmation -->
       <div v-if="confirmPaidModalOpen && pendingRow" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4">
         <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Record Payment & Print Receipt') }}</h3>
+          <div class="flex items-start justify-between gap-4">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Record Payment & Print Receipt') }}</h3>
+            <button type="button" :aria-label="$t('Close')" class="-mr-2 -mt-1 shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="cancelMarkPaid">
+              <X class="h-5 w-5" />
+            </button>
+          </div>
 
           <div class="mt-4 space-y-2 rounded-xl bg-slate-50 p-4 text-sm dark:bg-gray-800">
             <div class="flex justify-between">
@@ -796,79 +854,6 @@ onBeforeUnmount(() => {
               class="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
               {{ printingId === pendingRow.enrollment_id ? $t('Saving...') : $t('Record Payment & Print') }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Edit registration info (name/gender/phone only) -->
-      <div v-if="editModalOpen && editingRow" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4">
-        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Edit Student Info') }}</h3>
-
-          <div class="mt-4 space-y-4">
-            <label class="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-gray-300">
-              {{ $t('Name') }}
-              <input
-                v-model="editForm.name"
-                type="text"
-                :class="[
-                  'w-full rounded-xl border px-4 py-3 text-sm outline-none focus:ring-2 dark:bg-gray-800 dark:text-gray-200',
-                  editNameLiveError ? 'border-red-300 focus:border-red-500 focus:ring-red-100 dark:border-red-500/60' : 'border-slate-300 focus:border-indigo-400 focus:ring-indigo-100 dark:border-gray-600',
-                ]"
-              />
-              <span v-if="editNameLiveError || editErrors.name" class="text-xs font-semibold text-red-600">{{ editNameLiveError || editErrors.name[0] }}</span>
-            </label>
-
-            <div class="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-gray-300">
-              {{ $t('Gender') }}
-              <div class="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  class="rounded-xl border-2 px-4 py-2.5 text-sm font-semibold transition"
-                  :class="editForm.gender === 'male'
-                    ? 'border-blue-900 bg-blue-50 text-blue-900 dark:border-blue-500 dark:bg-blue-500/10 dark:text-blue-400'
-                    : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400'"
-                  @click="editForm.gender = 'male'"
-                >
-                  {{ $t('Male') }}
-                </button>
-                <button
-                  type="button"
-                  class="rounded-xl border-2 px-4 py-2.5 text-sm font-semibold transition"
-                  :class="editForm.gender === 'female'
-                    ? 'border-blue-900 bg-blue-50 text-blue-900 dark:border-blue-500 dark:bg-blue-500/10 dark:text-blue-400'
-                    : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400'"
-                  @click="editForm.gender = 'female'"
-                >
-                  {{ $t('Female') }}
-                </button>
-              </div>
-              <span v-if="editErrors.gender" class="text-xs font-semibold text-red-600">{{ editErrors.gender[0] }}</span>
-            </div>
-
-            <label class="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-gray-300">
-              Phone
-              <input
-                v-model="editForm.phone"
-                type="text"
-                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-              />
-              <span v-if="editErrors.phone" class="text-xs font-semibold text-red-600">{{ editErrors.phone[0] }}</span>
-            </label>
-          </div>
-
-          <div class="mt-6 flex justify-end gap-3">
-            <button type="button" @click="cancelEdit" class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-              {{ $t('Cancel') }}
-            </button>
-            <button
-              type="button"
-              @click="submitEdit"
-              :disabled="editSaving || !!editNameLiveError"
-              class="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
-            >
-              {{ editSaving ? $t('Saving...') : $t('Save Changes') }}
             </button>
           </div>
         </div>
