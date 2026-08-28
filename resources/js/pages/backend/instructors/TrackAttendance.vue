@@ -66,14 +66,6 @@ const windowMessage = computed(() => {
     return "This class does not have a session today.";
   }
 
-  if (props.attendanceWindow.reason === "before_start") {
-    return `Attendance opens at ${props.attendanceWindow.starts_at} and closes at ${props.attendanceWindow.ends_at}.`;
-  }
-
-  if (props.attendanceWindow.reason === "after_deadline") {
-    return `The attendance window closed at ${props.attendanceWindow.ends_at}.`;
-  }
-
   return null;
 });
 const submitLabel = computed(() => {
