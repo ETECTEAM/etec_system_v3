@@ -178,7 +178,6 @@ class GetCourseEnrollConfigs
             'start_date' => optional($config?->start_date)->format('Y-m-d'),
             'unit_price' => (float) ($config?->unit_price ?? 0),
             'course_price' => (float) ($config?->course_price ?? 0),
-            'selected_price_type' => $config?->selected_price_type ?? CourseEnrollConfig::PRICE_TYPE_COURSE,
             'resolved_price' => $config?->resolvedPrice() ?? 0,
             'document_price' => (float) ($config?->document_price ?? 5),
         ];

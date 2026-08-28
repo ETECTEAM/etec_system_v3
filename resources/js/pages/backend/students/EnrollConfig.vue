@@ -206,7 +206,6 @@ async function saveConfig(course, changes) {
       start_date: course.config.start_date ?? null,
       unit_price: course.config.unit_price,
       course_price: course.config.course_price,
-      selected_price_type: course.config.selected_price_type,
       document_price: course.config.document_price,
     }
 
@@ -217,7 +216,6 @@ async function saveConfig(course, changes) {
     course.config.start_date = saved.start_date
     course.config.unit_price = saved.unit_price
     course.config.course_price = saved.course_price
-    course.config.selected_price_type = saved.selected_price_type
     course.config.resolved_price = saved.resolved_price
     course.config.document_price = saved.document_price
   } catch (error) {
@@ -243,17 +241,6 @@ function updateUnitPrice(course, value) {
 
 function updateCoursePrice(course, value) {
   saveConfig(course, { course_price: value === '' ? 0 : Number(value) })
-}
-
-function updateSelectedPriceType(course, value) {
-  saveConfig(course, { selected_price_type: value })
-}
-
-function priceTypeOptions(config) {
-  return [
-    { value: 'unit', label: `${t('Unit Price')} ($${Number(config.unit_price ?? 0).toFixed(2)})` },
-    { value: 'course', label: `${t('Course Price')} ($${Number(config.course_price ?? 0).toFixed(2)})` },
-  ]
 }
 
 function updateDocumentPrice(course, value) {
@@ -549,7 +536,6 @@ async function applyStartDateToAll() {
                       <TableHead>{{ $t('Unit Price') }}</TableHead>
                       <TableHead>{{ $t('Course Price') }}</TableHead>
                       <TableHead>{{ $t('Document Price') }}</TableHead>
-                      <TableHead>{{ $t('Price to Use') }}</TableHead>
                       <TableHead>{{ $t('Status') }}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -622,19 +608,6 @@ async function applyStartDateToAll() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div class="w-64">
-                            <SelectSearch
-                              :model-value="course.config.selected_price_type"
-                              :options="priceTypeOptions(course.config)"
-                              :disabled="savingId === course.config.id"
-                              :clearable="false"
-                              :searchable="false"
-                              button-class="flex w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-left text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                              @update:model-value="(value) => updateSelectedPriceType(course, value)"
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell>
                           <button
                             type="button"
                             :disabled="savingId === course.config.id"
@@ -649,7 +622,7 @@ async function applyStartDateToAll() {
 
                       <!-- Class schedules: Class Type -> Term -> Time, sourced from Schedule Management. -->
                       <TableRow>
-                        <TableCell :colspan="8" class="bg-slate-50/60 dark:bg-gray-800/30">
+                        <TableCell :colspan="7" class="bg-slate-50/60 dark:bg-gray-800/30">
                           <div class="space-y-3">
                             <p class="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400">{{ $t('Class Schedules') }}</p>
 

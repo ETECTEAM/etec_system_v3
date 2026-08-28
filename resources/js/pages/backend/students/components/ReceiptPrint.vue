@@ -81,6 +81,23 @@ function documentFeeAmount() {
   return Number(props.classData?.document_price ?? props.student?.document_fee_amount ?? 0);
 }
 
+// Shows both Enroll Config prices side by side (Course Price is the charged
+// fee, Unit Price is a reference). Falls back to the single resolved fee when
+// no breakdown was passed (e.g. the Class List / View Class receipt paths).
+function feeBreakdown() {
+  const unit = props.classData?.unit_price;
+  const course = props.classData?.course_price;
+
+  if (unit == null && course == null) {
+    return money(courseFeeAmount());
+  }
+
+  const parts = [];
+  if (unit != null) parts.push(`Unit ${money(unit)}`);
+  if (course != null) parts.push(`Course ${money(course)}`);
+  return parts.join("  |  ");
+}
+
 function paidAmount() {
   return Number(props.student?.amount_paid ?? props.student?.deposit_amount ?? 0);
 }
@@ -169,7 +186,7 @@ function timeWithTerm() {
         </div>
         <div class="receipt-row">
           <span class="label">តម្លៃ / Fee</span>
-          <strong class="line">{{ money(courseFeeAmount()) }}</strong>
+          <strong class="line fee-breakdown">{{ feeBreakdown() }}</strong>
           <span class="label tiny">កាលបរិច្ឆេទចូលរៀន</span>
           <strong class="line time-term">{{ valueOrDash(classData?.enroll_start_date) }}</strong>
         </div>
@@ -478,6 +495,11 @@ function timeWithTerm() {
 
   .line.wide {
     min-width: 116mm;
+  }
+
+  .fee-breakdown {
+    font-size: 8.8pt;
+    white-space: nowrap;
   }
 
   .payment-line {
