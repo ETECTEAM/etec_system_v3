@@ -3,12 +3,17 @@ import { router } from "@inertiajs/vue3";
 import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,} from "@lucide/vue";
 import { ref, computed } from "vue";
 import { QrcodeCanvas } from "qrcode.vue";
+import axios from "axios";
+import { useToast } from "vue-toastification";
 import NotificationBadge from "../notification-badge/NotificationBadge.vue";
 import ClassActionMenu from "./ClassActionMenu.vue";
 import CollapseClassModal from "./CollapseClassModal.vue";
 import BarClass from "../../../pages/backend/students/components/BarClass.vue";
 import { useConfirm } from "@/composables/useConfirm";
-// import { router } from "@inertiajs/vue3";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
+const toast = useToast();
 
 const props = defineProps({
     classData: Object,
@@ -128,6 +133,12 @@ const showQrDialog = ref(false);
 const showCollapseDialog = ref(false);
 const { confirm } = useConfirm();
 
+// Inline capacity editing
+const editingCapacity = ref(false);
+const capacityInput = ref(props.classData.capacity);
+const savingCapacity = ref(false);
+const savedCapacity = ref(false);
+
 // "Collapse Class" splits the class between two instructors, each teaching their own
 // days — offered for Basic IT classes only. The card owns the dialog, so it hands
 // the menu the entry that opens it.
@@ -218,6 +229,37 @@ async function confirmEnd() {
     });
     if (!ok) return;
     updateStatus("completed");
+}
+
+function startEditCapacity() {
+    capacityInput.value = props.classData.capacity;
+    editingCapacity.value = true;
+    savedCapacity.value = false;
+}
+
+async function saveCapacity() {
+    const newValue = Number(capacityInput.value);
+    if (!newValue || newValue < 1 || newValue === props.classData.capacity) {
+        editingCapacity.value = false;
+        return;
+    }
+
+    savingCapacity.value = true;
+    try {
+        const response = await axios.patch(`/dashboard/enroll/${props.classData.id}/capacity`, {
+            capacity: newValue,
+        });
+        props.classData.capacity = response.data.capacity;
+        savedCapacity.value = true;
+        toast.success(t("Class capacity updated."));
+        setTimeout(() => { savedCapacity.value = false; }, 2000);
+    } catch (error) {
+        capacityInput.value = props.classData.capacity;
+        toast.error(t(error.response?.data?.message ?? "Failed to update capacity. Please try again."));
+    } finally {
+        savingCapacity.value = false;
+        editingCapacity.value = false;
+    }
 }
 </script>
 
@@ -399,9 +441,29 @@ async function confirmEnd() {
                     <Users class="w-3.5 h-3.5 shrink-0" />
                     <span class="text-xs sm:text-sm">Students</span>
                 </div>
-                <span class="text-xs sm:text-sm font-semibold text-slate-800 tabular-nums dark:text-gray-200">
-                    {{ classData.students }} / {{ capacity }}
-                </span>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-xs sm:text-sm font-semibold text-slate-800 tabular-nums dark:text-gray-200">
+                        {{ classData.students }} /
+                    </span>
+                    <input
+                        v-if="editingCapacity"
+                        v-model="capacityInput"
+                        type="number"
+                        min="1"
+                        class="w-14 text-xs sm:text-sm font-semibold text-slate-800 tabular-nums dark:text-gray-200 bg-white border border-blue-300 rounded px-1.5 py-0.5 text-center outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-blue-600"
+                        @keyup.enter="saveCapacity"
+                        @blur="saveCapacity"
+                    />
+                    <span
+                        v-else
+                        class="text-xs sm:text-sm font-semibold text-slate-800 tabular-nums dark:text-gray-200 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        @click="startEditCapacity"
+                    >
+                        {{ capacity }}
+                    </span>
+                    <span v-if="savingCapacity" class="text-[10px] text-blue-600 dark:text-blue-400">Saving...</span>
+                    <span v-else-if="savedCapacity" class="text-[10px] text-emerald-600 dark:text-emerald-400">&#10003; Saved</span>
+                </div>
             </div>
 
             <div

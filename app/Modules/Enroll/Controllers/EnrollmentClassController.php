@@ -247,6 +247,24 @@ class EnrollmentClassController extends Controller
         return back()->with('success', 'Class status updated successfully.');
     }
 
+    public function updateCapacity(Request $request, StudyClass $studyClass): \Illuminate\Http\JsonResponse
+    {
+        $this->ensureInstructorOwnsClass($studyClass);
+
+        $validated = $request->validate([
+            'capacity' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $studyClass->update([
+            'capacity' => $validated['capacity'],
+        ]);
+
+        return response()->json([
+            'capacity' => $studyClass->capacity,
+            'message' => 'Class capacity updated successfully.',
+        ]);
+    }
+
     public function destroy(StudyClass $studyClass): RedirectResponse
     {
         $studyClass->enrollments()->delete();

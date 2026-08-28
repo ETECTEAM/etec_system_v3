@@ -57,6 +57,8 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         Route::put('/{studyClass}', [EnrollmentClassController::class, 'update'])->name('enroll.update');
         // Pre-End / End from the class action menu.
         Route::post('/{studyClass}/status', [EnrollmentClassController::class, 'updateStatus'])->name('enroll.status');
+        // Inline capacity edit from the class card.
+        Route::patch('/{studyClass}/capacity', [EnrollmentClassController::class, 'updateCapacity'])->name('enroll.capacity');
 
         // "Collapse Class": split one class between two instructors, each teaching their
         // own days (e.g. Code on Mon & Tue, Network on Wed & Thu).
