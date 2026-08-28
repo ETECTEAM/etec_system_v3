@@ -199,8 +199,6 @@ class InstructorClassService
                 ]);
             }
 
-            $this->assertAttendanceWindowOpen($session);
-
             // Official leave overrides everything: an approved leave covering the
             // attendance date locks the student's row — "absent" is never allowed.
             $blockedNames = DB::table('official_leaves')
@@ -298,17 +296,6 @@ class InstructorClassService
             'starts_at' => $window['starts_at']->format('Y-m-d H:i'),
             'ends_at' => $window['ends_at']->format('Y-m-d H:i'),
         ];
-    }
-
-    private function assertAttendanceWindowOpen(ClassSession $session): void
-    {
-        $window = $this->windowForSession($session);
-
-        if ($window['now']->lessThan($window['starts_at']) || $window['now']->greaterThan($window['ends_at'])) {
-            throw ValidationException::withMessages([
-                'records' => 'Attendance can only be tracked from the class start time until the configured grace period ends.',
-            ]);
-        }
     }
 
     private function windowForSession(ClassSession $session): array
