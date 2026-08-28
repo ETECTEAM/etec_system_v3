@@ -167,7 +167,6 @@ class GetClassList
             'attendance_radius_meters' => $studyClass->attendance_radius_meters !== null ? (int) $studyClass->attendance_radius_meters : null,
             'resolved_price' => $resolvedPrice,
             'resolved_document_price' => $resolvedDocumentPrice,
-            'selected_price_type' => $config?->selected_price_type ?? CourseEnrollConfig::PRICE_TYPE_COURSE,
             'enrollment_start_date' => optional($studyClass->enrollment_start_date)->format('Y-m-d'),
             'start_date' => optional($studyClass->start_date)->format('Y-m-d'),
             'end_date' => optional($studyClass->end_date)->format('Y-m-d'),

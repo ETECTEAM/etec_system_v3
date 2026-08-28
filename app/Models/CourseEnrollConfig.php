@@ -59,9 +59,9 @@ class CourseEnrollConfig extends Model
     // auditing what was charged) never loses the other figure.
     public function resolvedPrice(): float
     {
-        return $this->selected_price_type === self::PRICE_TYPE_UNIT
-            ? (float) $this->unit_price
-            : (float) $this->course_price;
+        // The "Price to Use" selector was removed - Course Price is always the
+        // charged fee. Unit Price is kept on the record as a reference figure.
+        return (float) $this->course_price;
     }
 
     /**

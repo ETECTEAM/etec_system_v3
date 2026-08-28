@@ -12,19 +12,25 @@ class Course extends Model
     use HasFactory;
 
     /**
-     * Courses that are open for enrollment: the course-wide Open/Closed toggle
-     * on the Enroll Config page - the config row with no schedule and no time
-     * slot - is "open", or was never set. Mirrors the master-switch rule the
-     * public student-register page applies (see
-     * StudentRegisterController::openClassTypesForCourse()).
+     * Courses that can actually take a registration on the Enroll Config page:
+     *  1. at least one Class Schedules time slot is turned ON - i.e. a config
+     *     row scoped to a schedule exists (toggling a chip creates/deletes one),
+     *     so the course has a real bookable time; and
+     *  2. the course-wide Open/Closed master switch (the config row with no
+     *     schedule and no time slot) is not set to closed.
+     *
+     * The course-wide "Open" toggle alone isn't enough - a course can be Open
+     * with every Class Schedule OFF, which leaves nothing to enroll into.
      */
     public function scopeEnrollmentOpen(Builder $query): Builder
     {
-        return $query->whereDoesntHave('enrollConfigs', function (Builder $config): void {
-            $config->whereNull('schedule_id')
-                ->whereNull('time_id')
-                ->where(fn (Builder $status) => $status->whereNull('status')->orWhere('status', '!=', 'open'));
-        });
+        return $query
+            ->whereHas('enrollConfigs', fn (Builder $config) => $config->whereNotNull('schedule_id'))
+            ->whereDoesntHave('enrollConfigs', function (Builder $config): void {
+                $config->whereNull('schedule_id')
+                    ->whereNull('time_id')
+                    ->where(fn (Builder $status) => $status->whereNull('status')->orWhere('status', '!=', 'open'));
+            });
     }
 
     protected $fillable = [

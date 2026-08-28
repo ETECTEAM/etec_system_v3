@@ -39,7 +39,6 @@ class CourseEnrollConfigController extends Controller
             'start_date' => ['nullable', 'date'],
             'unit_price' => ['nullable', 'numeric', 'min:0'],
             'course_price' => ['nullable', 'numeric', 'min:0'],
-            'selected_price_type' => ['required', 'string', 'in:unit,course'],
             'document_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
@@ -58,7 +57,6 @@ class CourseEnrollConfigController extends Controller
             'start_date' => ['nullable', 'date'],
             'unit_price' => ['nullable', 'numeric', 'min:0'],
             'course_price' => ['nullable', 'numeric', 'min:0'],
-            'selected_price_type' => ['required', 'string', 'in:unit,course'],
             'document_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
@@ -128,7 +126,6 @@ class CourseEnrollConfigController extends Controller
             'start_date' => optional($config->start_date)->format('Y-m-d'),
             'unit_price' => (float) $config->unit_price,
             'course_price' => (float) $config->course_price,
-            'selected_price_type' => $config->selected_price_type,
             'resolved_price' => $config->resolvedPrice(),
             'document_price' => (float) $config->document_price,
         ];
