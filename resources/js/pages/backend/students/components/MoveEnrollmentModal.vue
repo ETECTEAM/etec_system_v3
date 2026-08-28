@@ -4,6 +4,7 @@ import axios from "axios";
 import { usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import { Search, UserRound, X } from "@lucide/vue";
+import { SelectSearch } from "@/components/ui/select-search";
 import { useI18n } from "@/i18n";
 
 const page = usePage();
@@ -93,7 +94,9 @@ const teacherOptions = computed(() => {
       .map((item) => item.teacher)
       .filter((name) => name && name !== "-")
   );
-  return [...names].sort((a, b) => a.localeCompare(b));
+  return [...names]
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => ({ label: name, value: name }));
 });
 
 const filteredClasses = computed(() => {
@@ -256,13 +259,15 @@ function submitAnyway() {
               class="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900/20 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             />
           </div>
-          <select
-            v-model="teacherFilter"
-            class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900/20 sm:w-56 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-          >
-            <option value="">{{ $t('All instructors') }}</option>
-            <option v-for="name in teacherOptions" :key="name" :value="name">{{ name }}</option>
-          </select>
+          <div class="shrink-0 sm:w-56">
+            <SelectSearch
+              v-model="teacherFilter"
+              :options="teacherOptions"
+              :placeholder="$t('All instructors')"
+              :searchable="teacherOptions.length > 6"
+              button-class="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm text-slate-900 transition focus:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900/20 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+            />
+          </div>
         </div>
         <p class="mt-2 text-xs text-slate-500 dark:text-gray-400">
           {{ filteredClasses.length }} / {{ selectableClasses.length }} {{ $t('classes') }}
