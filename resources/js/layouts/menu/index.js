@@ -5,6 +5,7 @@ import * as enrollConfig from "./enrollConfig";
 import * as registerStudent from "./registerStudent";
 import * as course from "./course";
 import * as profile from "./profile";
+import * as preAttendance from "./preAttendance";
 import * as user from "./user";
 import * as instructorScheduleBlocks from "./instructorScheduleBlocks";
 import * as schedule from "./schedule";
@@ -21,6 +22,7 @@ export const menuDomains = [
   registerStudent,
   course,
   profile,
+  preAttendance,
   user,
   website,
   instructorScheduleBlocks,
