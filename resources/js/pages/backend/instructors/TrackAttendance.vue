@@ -1,12 +1,13 @@
 <script setup>
-import { computed, reactive } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive } from "vue";
 import { Head, Link, router, useForm } from "@inertiajs/vue3";
 import axios from "axios";
 import { QrcodeCanvas } from "qrcode.vue";
-import { ArrowLeft, Bot, Clock, PauseCircle, PlayCircle, QrCode, Save, ShieldAlert } from "@lucide/vue";
+import { ArrowLeft, Bot, Clock, PlayCircle, QrCode, Save, ShieldAlert } from "@lucide/vue";
 import { useToast } from "vue-toastification";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
+import { getEcho } from "../../../echo";
 
 const props = defineProps({
   classData: {
@@ -112,8 +113,17 @@ const submitLabel = computed(() => {
 });
 
 const sessionState = computed(() => String(props.attendanceSession?.status ?? "inactive"));
+const canCorrectQrAttendance = computed(() => sessionState.value === "active");
 const qrUrl = computed(() => props.attendanceSession?.qr_url ?? "");
-const suspiciousRecords = computed(() => props.attendanceSummary?.records?.filter((record) => record.verification_status === "suspicious") ?? []);
+const liveAttendanceSummary = reactive({
+  present: props.attendanceSummary?.present ?? 0,
+  total: props.attendanceSummary?.total ?? props.students.length,
+  records: [...(props.attendanceSummary?.records ?? [])],
+});
+const liveVerification = reactive(
+  Object.fromEntries(liveAttendanceSummary.records.map((record) => [record.student_id, record])),
+);
+const suspiciousRecords = computed(() => liveAttendanceSummary.records.filter((record) => record.verification_status === "suspicious"));
 const sessionStatusLabel = computed(() => {
   if (sessionState.value === "active") {
     return "ACTIVE";
@@ -149,27 +159,26 @@ const statuses = [
     button: "border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300",
     active: "border-amber-500 bg-amber-500 text-white shadow-sm dark:border-amber-400 dark:bg-amber-500 dark:text-white",
   },
-  {
-    value: "on_leave",
-    label: "On Leave",
-    button: "border-violet-200 bg-violet-50 text-violet-700 hover:border-violet-300 hover:bg-violet-100 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300",
-    active: "border-violet-500 bg-violet-600 text-white shadow-sm dark:border-violet-400 dark:bg-violet-500 dark:text-white",
-  },
 ];
+const statusValues = statuses.map((status) => status.value);
+const normalizeAttendanceStatus = (status) => statusValues.includes(status) ? status : "absent";
 
 const toast = useToast();
 
 const attendance = reactive(
-  Object.fromEntries(props.students.map((student) => [student.id, student.attendance?.current_status ?? "absent"])),
+  Object.fromEntries(props.students.map((student) => [student.id, normalizeAttendanceStatus(student.attendance?.current_status)])),
 );
 
 const permissionNotes = reactive(
   Object.fromEntries(props.students.map((student) => [student.id, student.attendance?.note ?? ""])),
 );
 
+let attendanceChannel = null;
+
 const form = useForm({
   attendance_date: new Date().toISOString().slice(0, 10),
   records: [],
+  stop_session: false,
 });
 
 const totals = computed(() => {
@@ -178,14 +187,47 @@ const totals = computed(() => {
   return {
     present: values.filter((value) => value === "present").length,
     permission: values.filter((value) => value === "permission").length,
-    on_leave: values.filter((value) => value === "on_leave").length,
     absent: values.filter((value) => value === "absent").length,
   };
 });
 
-// Official leave overrides attendance: the absent button is locked for these
-// students and they default to On Leave instead.
-const isAbsentLocked = (student) => Boolean(student.on_leave);
+const studentVerification = (student) => liveVerification[student.id] ?? student.attendance ?? {};
+
+function handleQrSubmitted(event) {
+  const record = event.attendance;
+
+  if (!record || Number(record.class_id) !== Number(props.classData.id)) {
+    return;
+  }
+
+  attendance[record.student_id] = normalizeAttendanceStatus(record.status ?? "present");
+  permissionNotes[record.student_id] = "";
+  liveVerification[record.student_id] = record;
+
+  if (event.summary) {
+    liveAttendanceSummary.present = event.summary.present ?? liveAttendanceSummary.present;
+    liveAttendanceSummary.total = event.summary.total ?? liveAttendanceSummary.total;
+    liveAttendanceSummary.records = [...(event.summary.records ?? liveAttendanceSummary.records)];
+  } else {
+    liveAttendanceSummary.present = Object.values(attendance).filter((value) => value === "present").length;
+    liveAttendanceSummary.records = [
+      ...liveAttendanceSummary.records.filter((item) => Number(item.student_id) !== Number(record.student_id)),
+      record,
+    ];
+  }
+
+  toast.success(`Student #${record.student_id} submitted attendance.`);
+}
+
+onMounted(() => {
+  attendanceChannel = getEcho()
+    ?.private(`attendance.class.${props.classData.id}`)
+    .listen(".attendance.qr-submitted", handleQrSubmitted);
+});
+
+onBeforeUnmount(() => {
+  attendanceChannel?.stopListening(".attendance.qr-submitted", handleQrSubmitted);
+});
 
 async function startSession() {
   try {
@@ -197,22 +239,13 @@ async function startSession() {
   }
 }
 
-async function stopSession() {
-  try {
-    await axios.delete(`/dashboard/instructor/classes/${props.classData.id}/attendance/session`);
-    router.reload({ preserveScroll: true });
-    toast.success("Attendance session stopped successfully.");
-  } catch (error) {
-    toast.error(error.response?.data?.message ?? "Failed to stop the attendance session.");
-  }
-}
-
-const submit = () => {
+const submit = (stopSessionAfterSave = false) => {
   if (locked.value) {
     toast.warning(windowMessage.value ?? "Attendance has already been submitted for this class today.");
     return;
   }
 
+  form.stop_session = stopSessionAfterSave === true;
   form.records = props.students.map((student) => ({
     student_id: student.id,
     enrollment_id: student.enrollment_id,
@@ -262,7 +295,7 @@ const submit = () => {
             type="button"
             :disabled="form.processing || !students.length || locked"
             class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
-            @click="submit"
+            @click="submit()"
           >
             <Save class="h-4 w-4" />
             {{ submitLabel }}
@@ -285,7 +318,7 @@ const submit = () => {
       </div>
 
       <div
-        v-else-if="windowMessage"
+        v-else-if="windowMessage && !canCorrectQrAttendance"
         class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300"
       >
         {{ windowMessage }}
@@ -295,7 +328,7 @@ const submit = () => {
         Attendance has already been submitted for this class today. You can view the saved result, but cannot track again today.
       </div>
 
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid gap-3 sm:grid-cols-3">
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
           <p class="text-xs font-black uppercase tracking-[0.14em]">Present</p>
           <p class="mt-1 text-3xl font-black">{{ totals.present }}</p>
@@ -303,10 +336,6 @@ const submit = () => {
         <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
           <p class="text-xs font-black uppercase tracking-[0.14em]">Permission</p>
           <p class="mt-1 text-3xl font-black">{{ totals.permission }}</p>
-        </div>
-        <div class="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300">
-          <p class="text-xs font-black uppercase tracking-[0.14em]">On Leave 🔒</p>
-          <p class="mt-1 text-3xl font-black">{{ totals.on_leave }}</p>
         </div>
         <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
           <p class="text-xs font-black uppercase tracking-[0.14em]">Absent</p>
@@ -336,9 +365,10 @@ const submit = () => {
                 v-else
                 type="button"
                 class="inline-flex h-10 items-center gap-2 rounded-lg bg-rose-600 px-4 text-sm font-bold text-white transition hover:bg-rose-700"
-                @click="stopSession"
+                :disabled="form.processing || !students.length || locked"
+                @click="submit(true)"
               >
-                <PauseCircle class="h-4 w-4" />
+                <Save class="h-4 w-4" />
                 Stop Attendance
               </button>
             </div>
@@ -355,7 +385,7 @@ const submit = () => {
             </div>
             <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-800 dark:bg-gray-950">
               <p class="text-xs font-black uppercase tracking-[0.14em] text-slate-500 dark:text-gray-400">Present</p>
-              <p class="mt-1 text-lg font-black text-slate-950 dark:text-gray-100">{{ attendanceSummary?.present ?? 0 }} / {{ attendanceSummary?.total ?? 0 }}</p>
+              <p class="mt-1 text-lg font-black text-slate-950 dark:text-gray-100">{{ liveAttendanceSummary.present }} / {{ liveAttendanceSummary.total }}</p>
             </div>
           </div>
 
@@ -418,16 +448,10 @@ const submit = () => {
                 <td class="border-b border-slate-100 px-4 py-4 dark:border-gray-800">
                   <p class="font-black text-slate-950 dark:text-gray-100">{{ student.name }}</p>
                   <p
-                    v-if="student.attendance?.verification_status === 'suspicious'"
+                    v-if="studentVerification(student).verification_status === 'suspicious'"
                     class="mt-1 inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-black text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
                   >
                     Suspicious
-                  </p>
-                  <p
-                    v-if="student.on_leave"
-                    class="mt-1 inline-flex items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-black text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300"
-                  >
-                    On Leave 🔒 {{ student.on_leave_range ? `(${student.on_leave_range})` : "" }}
                   </p>
                 </td>
                 <td class="border-b border-slate-100 px-4 py-4 dark:border-gray-800">
@@ -436,14 +460,12 @@ const submit = () => {
                       v-for="status in statuses"
                       :key="status.value"
                       type="button"
-                      :disabled="attendance[student.id] === status.value || locked || (status.value === 'absent' && isAbsentLocked(student))"
-                      :title="status.value === 'absent' && isAbsentLocked(student) ? 'Official leave approved — cannot mark absent' : null"
+                      :disabled="attendance[student.id] === status.value || locked"
                       :class="[
                         'h-10 rounded-lg border px-3 text-xs font-black transition disabled:cursor-not-allowed',
                         attendance[student.id] === status.value
                           ? status.active
                           : status.button,
-                        status.value === 'absent' && isAbsentLocked(student) ? 'opacity-40' : '',
                       ]"
                       @click="attendance[student.id] = status.value"
                     >

@@ -3,6 +3,7 @@
 namespace App\Modules\Instructor\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\AttendanceSession;
 use App\Modules\Attendance\Actions\OverrideAttendanceRecord;
 use App\Modules\Attendance\Queries\GetSessionBanner;
 use App\Modules\Attendance\Services\AttendanceQrService;
@@ -88,17 +89,20 @@ class InstructorClassController extends Controller
         $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
         $todaySession = $this->sessionBanner->handle($class->id);
         $attendanceSession = $this->attendanceQr->getOrCreateTodaySession($studyClassModel, $request->user());
+        $presentedAttendanceSession = $this->attendanceQr->presentSession($attendanceSession, $studyClassModel);
         $attendanceSummary = $this->attendanceQr->teacherSummary($attendanceSession, $studyClassModel);
+        $canCorrectQrAttendance = $presentedAttendanceSession['status'] === AttendanceSession::STATUS_ACTIVE;
 
         return Inertia::render('backend/instructors/TrackAttendance', [
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
-            'attendanceLocked' => $this->instructorClasses->hasAttendanceForDate($class->id, Carbon::today('Asia/Phnom_Penh'))
-                || ! ($attendanceWindow['can_submit'] ?? false)
-                || ($attendanceSession->status === \App\Models\AttendanceSession::STATUS_STOPPED),
+            'attendanceLocked' => ! $canCorrectQrAttendance
+                && ($this->instructorClasses->hasAttendanceForDate($class->id, Carbon::today('Asia/Phnom_Penh'))
+                    || ! ($attendanceWindow['can_submit'] ?? false)
+                    || ($attendanceSession->status === AttendanceSession::STATUS_STOPPED)),
             'attendanceWindow' => $attendanceWindow,
             'todaySession' => $todaySession,
-            'attendanceSession' => $this->attendanceQr->presentSession($attendanceSession, $studyClassModel),
+            'attendanceSession' => $presentedAttendanceSession,
             'attendanceSummary' => $attendanceSummary,
         ]);
     }
@@ -282,6 +286,7 @@ class InstructorClassController extends Controller
             'records.*.enrollment_id' => ['required', 'integer', 'exists:student_enrollments,id'],
             'records.*.status' => ['required', 'string', Rule::in(InstructorClassService::ATTENDANCE_STATUSES)],
             'records.*.note' => ['nullable', 'string', 'max:255'],
+            'stop_session' => ['nullable', 'boolean'],
         ]);
 
         $this->instructorClasses->saveAttendance($request->user(), $class->id, $validated);

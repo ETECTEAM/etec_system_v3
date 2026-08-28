@@ -3,6 +3,7 @@
 namespace App\Modules\Attendance\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Attendance\Events\AttendanceQrSubmitted;
 use App\Modules\Attendance\Services\AttendanceQrService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,14 +22,14 @@ class AttendanceQrController extends Controller
 
     public function store(Request $request, string $token): JsonResponse|RedirectResponse
     {
-        $session = $this->attendanceQr->resolveSession($token);
+        $sessionData = $this->attendanceQr->resolveActiveSessionData($token);
 
-        if (! $session) {
+        if (! $sessionData) {
             return $this->invalidResponse($request, 'Invalid or expired attendance QR code.');
         }
 
         $validated = $request->validate([
-            'student_id' => ['required', 'integer', 'exists:students,id'],
+            'student_id' => ['required', 'integer'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'accuracy' => ['required', 'numeric', 'min:0'],
@@ -36,19 +37,25 @@ class AttendanceQrController extends Controller
             'device_identifier' => ['required', 'string', 'max:255'],
         ]);
 
-        $attendance = $this->attendanceQr->recordAttendance($request, $session, $validated);
+        $attendance = $this->attendanceQr->recordAttendanceFromQr($request, $sessionData, $validated);
+
+        $attendancePayload = [
+            'student_id' => $attendance->student_id,
+            'class_id' => $attendance->study_class_id,
+            'date' => $attendance->attendance_date->format('Y-m-d'),
+            'time' => $attendance->created_at?->format('H:i'),
+            'status' => $attendance->status,
+            'verification_status' => $attendance->verification_status,
+            'verification_reason' => $attendance->verification_reason,
+        ];
+
+        app()->terminating(function () use ($attendance, $attendancePayload): void {
+            AttendanceQrSubmitted::dispatch($attendance->study_class_id, $attendancePayload);
+        });
 
         $payload = [
             'message' => 'Attendance recorded successfully.',
-            'attendance' => [
-                'student_id' => $attendance->student_id,
-                'class_id' => $attendance->study_class_id,
-                'date' => $attendance->attendance_date->format('Y-m-d'),
-                'time' => $attendance->created_at?->format('H:i'),
-                'status' => $attendance->status,
-                'verification_status' => $attendance->verification_status,
-                'verification_reason' => $attendance->verification_reason,
-            ],
+            'attendance' => $attendancePayload,
         ];
 
         return $request->expectsJson()

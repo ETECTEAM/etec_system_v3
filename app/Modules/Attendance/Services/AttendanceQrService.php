@@ -3,18 +3,18 @@
 namespace App\Modules\Attendance\Services;
 
 use App\Models\AttendanceSession;
-use App\Models\Student;
 use App\Models\StudentAttendance;
-use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use stdClass;
+use Throwable;
 
 class AttendanceQrService
 {
@@ -28,6 +28,8 @@ class AttendanceQrService
 
         if ($session instanceof AttendanceSession) {
             if ($session->status === AttendanceSession::STATUS_ACTIVE && $session->expires_at?->isFuture()) {
+                $this->cacheSession($session);
+
                 return $session;
             }
 
@@ -44,7 +46,8 @@ class AttendanceQrService
         $token = Str::random(64);
         $expiresAt = $now->copy()->addMinutes($this->ttlMinutes($studyClass));
 
-        return DB::transaction(function () use ($studyClass, $creator, $date, $now, $token, $expiresAt): AttendanceSession {
+        $oldToken = null;
+        $session = DB::transaction(function () use ($studyClass, $creator, $date, $now, $token, $expiresAt, &$oldToken): AttendanceSession {
             $session = AttendanceSession::query()
                 ->where('study_class_id', $studyClass->id)
                 ->whereDate('attendance_date', $date)
@@ -63,6 +66,8 @@ class AttendanceQrService
                 ]);
             }
 
+            $oldToken = $session->qr_token;
+
             $session->update([
                 'qr_token' => $token,
                 'started_at' => $now,
@@ -75,15 +80,27 @@ class AttendanceQrService
 
             return $session->refresh();
         });
+
+        if ($oldToken !== null) {
+            $this->forgetSessionCache($oldToken);
+        }
+
+        $this->cacheSession($session);
+
+        return $session;
     }
 
     public function stopSession(AttendanceSession $session, User $user): AttendanceSession
     {
+        $token = $session->qr_token;
+
         $session->update([
             'status' => AttendanceSession::STATUS_STOPPED,
             'stopped_by' => $user->id,
             'stopped_at' => now(),
         ]);
+
+        $this->forgetSessionCache($token);
 
         return $session->refresh();
     }
@@ -100,9 +117,59 @@ class AttendanceQrService
 
         if ($session->status === AttendanceSession::STATUS_ACTIVE && $session->expires_at !== null && $session->expires_at->isPast()) {
             $session->update(['status' => AttendanceSession::STATUS_EXPIRED]);
+            $this->forgetSessionCache($token);
         }
 
         return $session->refresh();
+    }
+
+    public function resolveActiveSessionData(string $token): ?array
+    {
+        $cached = $this->cachedSessionData($token);
+
+        if ($cached !== null) {
+            if ($this->isActiveSessionData($cached)) {
+                return $cached;
+            }
+
+            $this->expireSessionDataIfNeeded($cached);
+            $this->forgetSessionCache($token);
+
+            return null;
+        }
+
+        $row = DB::table('attendance_sessions')
+            ->join('study_classes', 'study_classes.id', '=', 'attendance_sessions.study_class_id')
+            ->where('attendance_sessions.qr_token', $token)
+            ->select([
+                'attendance_sessions.id',
+                'attendance_sessions.study_class_id',
+                'attendance_sessions.qr_token',
+                'attendance_sessions.attendance_date',
+                'attendance_sessions.started_at',
+                'attendance_sessions.expires_at',
+                'attendance_sessions.status',
+                'study_classes.attendance_latitude',
+                'study_classes.attendance_longitude',
+                'study_classes.attendance_radius_meters',
+            ])
+            ->first();
+
+        if (! $row) {
+            return null;
+        }
+
+        $sessionData = $this->normalizeSessionData((array) $row);
+
+        if (! $this->isActiveSessionData($sessionData)) {
+            $this->expireSessionDataIfNeeded($sessionData);
+
+            return null;
+        }
+
+        $this->putSessionCache($sessionData);
+
+        return $sessionData;
     }
 
     public function publicViewData(string $token): array
@@ -134,42 +201,35 @@ class AttendanceQrService
         ];
     }
 
-    public function recordAttendance(Request $request, AttendanceSession $session, array $payload): StudentAttendance
+    public function recordAttendanceFromQr(Request $request, array $sessionData, array $payload): StudentAttendance
     {
-        $studyClass = StudyClass::query()->findOrFail($session->study_class_id);
-        $student = Student::query()->find($payload['student_id']);
-
-        if (! $student) {
-            throw ValidationException::withMessages(['student_id' => 'Invalid Student ID or PIN.']);
-        }
-
-        $enrollment = StudentEnrollment::query()
-            ->where('study_class_id', $studyClass->id)
-            ->where('student_id', $student->id)
+        $studentId = (int) $payload['student_id'];
+        $enrollment = DB::table('student_enrollments')
+            ->where('student_id', $studentId)
+            ->where('study_class_id', (int) $sessionData['study_class_id'])
             ->where('enrollment_status', 'active')
+            ->select(['id'])
             ->first();
 
         if (! $enrollment) {
             throw ValidationException::withMessages(['student_id' => 'You are not enrolled in this class.']);
         }
 
-        if ($session->status !== AttendanceSession::STATUS_ACTIVE || ($session->expires_at && $session->expires_at->isPast())) {
-            throw ValidationException::withMessages(['qr' => 'This attendance QR code has expired. Please scan the current QR code.']);
-        }
-
-        $date = Carbon::parse($session->attendance_date)->toDateString();
+        $date = Carbon::parse($sessionData['attendance_date'])->toDateString();
         $ipAddress = $request->ip();
-        $location = $this->validateLocation($studyClass, $payload);
+        $location = $this->validateLocation($sessionData, $payload);
         $device = $this->presentDevice($payload['user_agent'] ?? null);
         $verification = $this->verificationState($location['verification_status']);
 
         try {
-            return DB::transaction(function () use ($request, $session, $studyClass, $enrollment, $student, $date, $payload, $ipAddress, $location, $device, $verification): StudentAttendance {
+            return DB::transaction(function () use ($sessionData, $enrollment, $studentId, $date, $payload, $ipAddress, $location, $device, $verification): StudentAttendance {
+                $this->assertSessionActiveForInsert((int) $sessionData['id'], (string) $sessionData['qr_token']);
+
                 return StudentAttendance::create([
-                    'study_class_id' => $studyClass->id,
-                    'student_enrollment_id' => $enrollment->id,
-                    'attendance_session_id' => $session->id,
-                    'student_id' => $student->id,
+                    'study_class_id' => (int) $sessionData['study_class_id'],
+                    'student_enrollment_id' => (int) $enrollment->id,
+                    'attendance_session_id' => (int) $sessionData['id'],
+                    'student_id' => $studentId,
                     'tracked_by' => null,
                     'attendance_date' => $date,
                     'latitude' => $payload['latitude'],
@@ -190,7 +250,7 @@ class AttendanceQrService
                 ]);
             });
         } catch (QueryException $exception) {
-            if ((int) $exception->errorInfo[1] === 1062) {
+            if ($this->isDuplicateAttendance($exception)) {
                 throw ValidationException::withMessages([
                     'student_id' => 'You have already submitted attendance for this class today.',
                 ]);
@@ -257,30 +317,30 @@ class AttendanceQrService
         return AttendanceSession::STATUS_ACTIVE;
     }
 
-    private function validateLocation(StudyClass $studyClass, array $payload): array
+    private function validateLocation(array $sessionData, array $payload): array
     {
         $latitude = (float) $payload['latitude'];
         $longitude = (float) $payload['longitude'];
         $accuracy = (float) $payload['accuracy'];
 
-        if ($studyClass->attendance_latitude === null || $studyClass->attendance_longitude === null || $studyClass->attendance_radius_meters === null) {
+        if ($sessionData['attendance_latitude'] === null || $sessionData['attendance_longitude'] === null || $sessionData['attendance_radius_meters'] === null) {
             return ['distance' => null, 'verification_status' => 'verified', 'reason' => null];
         }
 
-        if ($accuracy > max((float) $studyClass->attendance_radius_meters, 50)) {
+        if ($accuracy > max((float) $sessionData['attendance_radius_meters'], 50)) {
             throw ValidationException::withMessages([
                 'location' => 'Your location could not be verified accurately. Please enable GPS and try again.',
             ]);
         }
 
         $distance = $this->distanceMeters(
-            (float) $studyClass->attendance_latitude,
-            (float) $studyClass->attendance_longitude,
+            (float) $sessionData['attendance_latitude'],
+            (float) $sessionData['attendance_longitude'],
             $latitude,
             $longitude,
         );
 
-        if ($distance > (float) $studyClass->attendance_radius_meters) {
+        if ($distance > (float) $sessionData['attendance_radius_meters']) {
             throw ValidationException::withMessages([
                 'location' => 'Attendance cannot be submitted because you are outside the allowed classroom location.',
             ]);
@@ -342,6 +402,149 @@ class AttendanceQrService
         $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
 
         return 2 * $earthRadius * asin(min(1, sqrt($a)));
+    }
+
+    private function cacheSession(AttendanceSession $session): void
+    {
+        $data = $this->sessionCachePayload($session);
+
+        if ($data !== null) {
+            $this->putSessionCache($data);
+        }
+    }
+
+    private function sessionCachePayload(AttendanceSession $session): ?array
+    {
+        $studyClass = StudyClass::query()
+            ->whereKey($session->study_class_id)
+            ->first(['id', 'attendance_latitude', 'attendance_longitude', 'attendance_radius_meters']);
+
+        if (! $studyClass) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $session->id,
+            'study_class_id' => (int) $session->study_class_id,
+            'qr_token' => (string) $session->qr_token,
+            'attendance_date' => $session->attendance_date->format('Y-m-d'),
+            'started_at' => $session->started_at?->format('Y-m-d H:i:s'),
+            'expires_at' => $session->expires_at?->format('Y-m-d H:i:s'),
+            'status' => (string) $session->status,
+            'attendance_latitude' => $studyClass->attendance_latitude,
+            'attendance_longitude' => $studyClass->attendance_longitude,
+            'attendance_radius_meters' => $studyClass->attendance_radius_meters,
+        ];
+    }
+
+    private function cachedSessionData(string $token): ?array
+    {
+        try {
+            $data = Cache::get($this->sessionCacheKey($token));
+        } catch (Throwable) {
+            return null;
+        }
+
+        return is_array($data) ? $this->normalizeSessionData($data) : null;
+    }
+
+    private function putSessionCache(array $sessionData): void
+    {
+        try {
+            Cache::put(
+                $this->sessionCacheKey((string) $sessionData['qr_token']),
+                $sessionData,
+                now()->addSeconds($this->sessionCacheTtl($sessionData)),
+            );
+        } catch (Throwable) {
+            // Cache is an optimization only; MySQL remains the source of truth.
+        }
+    }
+
+    private function forgetSessionCache(string $token): void
+    {
+        try {
+            Cache::forget($this->sessionCacheKey($token));
+        } catch (Throwable) {
+            // Cache is an optimization only; MySQL remains the source of truth.
+        }
+    }
+
+    private function sessionCacheKey(string $token): string
+    {
+        return 'attendance:qr-session:'.$token;
+    }
+
+    private function sessionCacheTtl(array $sessionData): int
+    {
+        $expiresAt = Carbon::parse($sessionData['expires_at']);
+
+        return (int) max(60, Carbon::now('Asia/Phnom_Penh')->diffInSeconds($expiresAt, false) + 300);
+    }
+
+    private function normalizeSessionData(array $data): array
+    {
+        return [
+            'id' => (int) $data['id'],
+            'study_class_id' => (int) $data['study_class_id'],
+            'qr_token' => (string) $data['qr_token'],
+            'attendance_date' => (string) $data['attendance_date'],
+            'started_at' => $data['started_at'] === null ? null : (string) $data['started_at'],
+            'expires_at' => $data['expires_at'] === null ? null : (string) $data['expires_at'],
+            'status' => (string) $data['status'],
+            'attendance_latitude' => $data['attendance_latitude'] ?? null,
+            'attendance_longitude' => $data['attendance_longitude'] ?? null,
+            'attendance_radius_meters' => $data['attendance_radius_meters'] ?? null,
+        ];
+    }
+
+    private function isActiveSessionData(array $sessionData): bool
+    {
+        if ($sessionData['status'] !== AttendanceSession::STATUS_ACTIVE || $sessionData['expires_at'] === null) {
+            return false;
+        }
+
+        return Carbon::parse($sessionData['expires_at'], 'Asia/Phnom_Penh')->isFuture();
+    }
+
+    private function expireSessionDataIfNeeded(array $sessionData): void
+    {
+        if ($sessionData['status'] !== AttendanceSession::STATUS_ACTIVE || $sessionData['expires_at'] === null) {
+            return;
+        }
+
+        if (Carbon::parse($sessionData['expires_at'], 'Asia/Phnom_Penh')->isFuture()) {
+            return;
+        }
+
+        DB::table('attendance_sessions')
+            ->where('id', (int) $sessionData['id'])
+            ->where('status', AttendanceSession::STATUS_ACTIVE)
+            ->update(['status' => AttendanceSession::STATUS_EXPIRED, 'updated_at' => now()]);
+    }
+
+    private function assertSessionActiveForInsert(int $sessionId, string $token): void
+    {
+        $active = DB::table('attendance_sessions')
+            ->where('id', $sessionId)
+            ->where('status', AttendanceSession::STATUS_ACTIVE)
+            ->where('expires_at', '>', Carbon::now('Asia/Phnom_Penh'))
+            ->lockForUpdate()
+            ->first(['id']);
+
+        if (! $active) {
+            $this->forgetSessionCache($token);
+
+            throw ValidationException::withMessages(['qr' => 'This attendance QR code has expired. Please scan the current QR code.']);
+        }
+    }
+
+    private function isDuplicateAttendance(QueryException $exception): bool
+    {
+        $sqlState = (string) ($exception->errorInfo[0] ?? '');
+        $driverCode = (string) ($exception->errorInfo[1] ?? '');
+
+        return $sqlState === '23000' || $driverCode === '1062';
     }
 
     private function ipInRange(string $ip, string $range): bool
