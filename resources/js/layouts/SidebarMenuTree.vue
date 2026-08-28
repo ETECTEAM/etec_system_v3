@@ -80,7 +80,7 @@ function firstChildHref(item) {
           :class="[
             'flex w-full items-center rounded-xl text-sm font-semibold transition',
             collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2',
-            isChildActive(item.children) ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100',
+            isChildActive(item.children) ? 'text-blue-700 dark:text-blue-400' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100',
             depth > 0 && !collapsed ? 'rounded-lg font-medium' : '',
           ]"
           @click="collapsed ? emit('close') : emit('toggle', nestedKey(item))"
