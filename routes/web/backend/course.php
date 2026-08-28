@@ -1,14 +1,14 @@
 <?php
 
 use App\Modules\Course\CategoryController;
-use App\Modules\Course\SubCategoryController;
-use App\Modules\Course\CourseTrackController;
 use App\Modules\Course\CourseController;
 use App\Modules\Course\CourseLessonController;
+use App\Modules\Course\CourseTrackController;
+use App\Modules\Course\SubCategoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'active', 'verified', 'role:super_admin'])->prefix('dashboard/course')->name('course.')->group(function () {
-    
+
     // Categories
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories');
     Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
@@ -44,6 +44,7 @@ Route::middleware(['auth', 'active', 'verified', 'role:super_admin'])->prefix('d
     Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
     Route::post('/courses/{course}/schedules/toggle', [CourseController::class, 'toggleSchedule'])->name('courses.schedules.toggle');
     Route::post('/courses/{course}/schedules/class-type', [CourseController::class, 'setClassTypeAvailability'])->name('courses.schedules.class-type');
+    Route::post('/courses/{course}/schedules/max-classes', [CourseController::class, 'setScheduleMaxClasses'])->name('courses.schedules.max-classes');
 
     // Lessons
     Route::get('/lessons', [CourseLessonController::class, 'index'])->name('lessons');

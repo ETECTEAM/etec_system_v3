@@ -352,6 +352,39 @@ async function toggleTime(course, classType, term, time) {
   }
 }
 
+// Per-slot class cap: how many live classes this course may run in one
+// class-type + term + time slot. Blank clears it (unlimited). Same optimistic
+// pattern as toggleTime().
+async function updateTimeMaxClasses(course, term, time, rawValue) {
+  const n = Math.trunc(Number(String(rawValue ?? '').trim()))
+  // 0 (or blank / negative / NaN) means unlimited -> stored as null.
+  const max = Number.isFinite(n) && n >= 1 ? n : null
+  const previous = time.max_classes ?? null
+
+  if (max === previous) {
+    return
+  }
+
+  time.max_classes = max
+  const key = `max:${course.id}:${term.schedule_id}:${time.time_id}`
+  pendingKey.value = key
+
+  try {
+    const { data } = await axios.post(`/dashboard/course/courses/${course.id}/schedules/max-classes`, {
+      schedule_id: term.schedule_id,
+      time_id: time.time_id,
+      max_classes: max,
+    })
+    time.max_classes = data.max_classes ?? null
+  } catch (error) {
+    console.error('Failed to set slot class limit', error)
+    time.max_classes = previous
+    toast.error(error.response?.data?.message ?? t('Failed to save. Please try again.'))
+  } finally {
+    pendingKey.value = null
+  }
+}
+
 // Bulk counterpart to toggleTime() - opens or closes every time under one
 // class type in a single request instead of clicking each badge.
 async function setClassTypeAvailability(course, classType, open) {
@@ -665,16 +698,33 @@ async function applyStartDateToAll() {
                                 <div v-for="term in classType.terms" :key="term.schedule_id">
                                   <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2 dark:text-gray-400">{{ term.term_name }}</p>
                                   <div class="flex flex-wrap gap-2">
-                                    <button v-for="time in term.times" :key="time.time_id" type="button"
-                                      :disabled="pendingKey === `${course.id}:${term.schedule_id}:${time.time_id}`"
-                                      @click="toggleTime(course, classType, term, time)"
-                                      class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
+                                    <div v-for="time in term.times" :key="time.time_id"
+                                      class="inline-flex items-center gap-1.5 rounded-full border py-1 pr-1 pl-3 text-xs font-medium transition"
                                       :class="time.is_open
-                                        ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                        : 'border-slate-300 text-slate-500 hover:border-slate-400 dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500'">
-                                      <span class="h-2 w-2 rounded-full" :class="time.is_open ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-gray-600'" />
-                                      {{ time.time_name }}
-                                    </button>
+                                        ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-500/40 dark:bg-emerald-500/10'
+                                        : 'border-slate-300 dark:border-gray-600'">
+                                      <button type="button"
+                                        :disabled="pendingKey === `${course.id}:${term.schedule_id}:${time.time_id}`"
+                                        @click="toggleTime(course, classType, term, time)"
+                                        class="inline-flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+                                        :class="time.is_open
+                                          ? 'text-emerald-700 dark:text-emerald-400'
+                                          : 'text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200'">
+                                        <span class="h-2 w-2 rounded-full" :class="time.is_open ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-gray-600'" />
+                                        {{ time.time_name }}
+                                      </button>
+
+                                      <span v-if="time.is_open"
+                                        class="flex items-center gap-1 border-l border-emerald-300/70 pl-1.5 dark:border-emerald-500/30"
+                                        :title="$t('Max classes that can run in this slot. 0 = unlimited.')">
+                                        <input type="number" min="0" inputmode="numeric"
+                                          :value="time.max_classes ?? 0"
+                                          :disabled="pendingKey === `max:${course.id}:${term.schedule_id}:${time.time_id}`"
+                                          @change="updateTimeMaxClasses(course, term, time, $event.target.value)"
+                                          class="w-11 rounded-md border border-emerald-300 bg-white px-1 py-0.5 text-center text-[11px] text-emerald-800 outline-none focus:border-emerald-500 disabled:opacity-50 dark:border-emerald-500/40 dark:bg-gray-900 dark:text-emerald-300" />
+                                        <span class="text-[10px] text-emerald-600/80 dark:text-emerald-400/70">{{ time.max_classes ? $t('max') : $t('∞ max') }}</span>
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>

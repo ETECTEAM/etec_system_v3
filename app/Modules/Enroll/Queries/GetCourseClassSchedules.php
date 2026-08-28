@@ -40,15 +40,14 @@ class GetCourseClassSchedules
             return [];
         }
 
-        // "scheduleId:timeId" sets that are open, grouped by course.
-        $openKeysByCourse = CourseEnrollConfig::query()
+        // Open schedule-scoped rows keyed "scheduleId:timeId", grouped by course -
+        // carries max_classes so the page can show / edit each slot's class limit.
+        $openConfigsByCourse = CourseEnrollConfig::query()
             ->whereIn('course_id', $courseIds)
             ->whereNotNull('schedule_id')
-            ->get(['course_id', 'schedule_id', 'time_id'])
+            ->get(['course_id', 'schedule_id', 'time_id', 'max_classes'])
             ->groupBy('course_id')
-            ->map(fn (Collection $rows) => $rows
-                ->map(fn (CourseEnrollConfig $config) => "{$config->schedule_id}:{$config->time_id}")
-                ->flip());
+            ->map(fn (Collection $rows) => $rows->keyBy(fn (CourseEnrollConfig $config) => "{$config->schedule_id}:{$config->time_id}"));
 
         $schedules = Schedule::query()
             ->whereHas('classType', fn ($query) => $query->whereIn('type_name', self::AVAILABLE_CLASS_TYPES))
@@ -61,33 +60,38 @@ class GetCourseClassSchedules
 
         return $courseIds
             ->mapWithKeys(fn (int $courseId) => [
-                $courseId => $this->build($schedules, $openKeysByCourse->get($courseId) ?? collect()),
+                $courseId => $this->build($schedules, $openConfigsByCourse->get($courseId) ?? collect()),
             ])
             ->all();
     }
 
     /**
      * @param  EloquentCollection<int, Schedule>  $schedules  the full schedule tree, fetched once
-     * @param  Collection<string, int>  $openKeys  flipped "scheduleId:timeId" => index lookup for one course
+     * @param  Collection<string, CourseEnrollConfig>  $openConfigs  open rows keyed "scheduleId:timeId" for one course
      * @return array<int, array<string, mixed>>
      */
-    private function build(EloquentCollection $schedules, Collection $openKeys): array
+    private function build(EloquentCollection $schedules, Collection $openConfigs): array
     {
         return $schedules
             ->groupBy(fn (Schedule $schedule) => $schedule->classType->type_name)
             ->sortBy(fn ($group, $typeName) => array_search($typeName, self::AVAILABLE_CLASS_TYPES))
-            ->map(function ($group) use ($openKeys) {
+            ->map(function ($group) use ($openConfigs) {
                 $terms = $group
                     ->sortBy(fn (Schedule $schedule) => $schedule->term?->term_name ?? '')
                     ->map(fn (Schedule $schedule) => [
                         'schedule_id' => $schedule->id,
                         'term_id' => $schedule->term_id,
                         'term_name' => $schedule->term?->term_name,
-                        'times' => $schedule->times->map(fn ($time) => [
-                            'time_id' => $time->id,
-                            'time_name' => $time->time_name,
-                            'is_open' => $openKeys->has("{$schedule->id}:{$time->id}"),
-                        ])->values()->all(),
+                        'times' => $schedule->times->map(function ($time) use ($schedule, $openConfigs) {
+                            $config = $openConfigs->get("{$schedule->id}:{$time->id}");
+
+                            return [
+                                'time_id' => $time->id,
+                                'time_name' => $time->time_name,
+                                'is_open' => $config !== null,
+                                'max_classes' => $config?->max_classes,
+                            ];
+                        })->values()->all(),
                     ])
                     ->values()
                     ->all();
