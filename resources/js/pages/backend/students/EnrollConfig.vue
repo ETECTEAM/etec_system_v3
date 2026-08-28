@@ -638,7 +638,6 @@ async function applyStartDateToAll() {
                           :options="priceTypeOptions(course.config)"
                           :disabled="savingId === course.config.id"
                           :clearable="false"
-                          :searchable="false"
                           button-class="flex w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-left text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
                           @update:model-value="(value) => updateSelectedPriceType(course, value)"
                         />

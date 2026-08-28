@@ -54,7 +54,6 @@
                                 v-model="selectedType"
                                 :options="classTypeOptions"
                                 :placeholder="$t('Type')"
-                                :search-placeholder="$t('Search types...')"
                                 :button-class="filterSelectClass"
                             />
                         </div>
@@ -64,7 +63,6 @@
                                 v-model="selectedTerm"
                                 :options="termOptions"
                                 :placeholder="$t('Term')"
-                                :search-placeholder="$t('Search terms...')"
                                 :button-class="filterSelectClass"
                             />
                         </div>
@@ -74,7 +72,6 @@
                                 v-model="selectedTime"
                                 :options="timeOptions"
                                 :placeholder="$t('Time')"
-                                :search-placeholder="$t('Search times...')"
                                 :button-class="filterSelectClass"
                             />
                         </div>
@@ -84,7 +81,6 @@
                                 v-model="selectedStatus"
                                 :options="statusOptions"
                                 :placeholder="$t('Status')"
-                                :search-placeholder="$t('Search status...')"
                                 :button-class="filterSelectClass"
                             />
                         </div>
