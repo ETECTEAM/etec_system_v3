@@ -622,7 +622,7 @@ async function applyStartDateToAll() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div class="w-44">
+                          <div class="w-64">
                             <SelectSearch
                               :model-value="course.config.selected_price_type"
                               :options="priceTypeOptions(course.config)"

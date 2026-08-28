@@ -8,6 +8,8 @@ use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Models\User;
+use App\Modules\Enroll\Queries\GetClassFormOptions;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -28,15 +30,27 @@ class InstructorClassService
 
     private ?array $termLabels = null;
 
-    public function formOptions(): array
+    /**
+     * @param  int|null  $instructorUserId  when set, the schedule picker is narrowed to
+     *                                       only the term/time slots this instructor is
+     *                                       actually free for (availability window, no
+     *                                       manual block, no overlapping class).
+     */
+    public function formOptions(?int $instructorUserId = null): array
     {
+        $scheduleGroups = app(GetClassFormOptions::class)->scheduleGroups();
+
+        if ($instructorUserId !== null) {
+            $scheduleGroups = app(InstructorAssignmentAvailability::class)
+                ->filterScheduleGroups($instructorUserId, $scheduleGroups);
+        }
+
         return [
-            'courses' => DB::table('courses')->select('id', 'title')->get(),
-            'lessons' => DB::table('course_lessons')->select('id', 'title')->get(),
-            'terms' => DB::table('terms')->select('id', 'term_name')->get(),
-            'times' => DB::table('times')->select('id', 'time_name')->get(),
-            'rooms' => DB::table('rooms')->select('id', 'room_number')->get(),
-            'classTypes' => DB::table('class_type')->select('class_type_id', 'type_name')->get(),
+            'courses' => DB::table('courses')->select('id', 'title')->orderBy('title')->get(),
+            'lessons' => DB::table('course_lessons')->select('id', 'title')->orderBy('title')->get(),
+            'rooms' => DB::table('rooms')->select('id', 'room_number')->orderBy('room_number')->get(),
+            'classTypes' => DB::table('class_type')->select('class_type_id', 'type_name')->orderBy('class_type_id')->get(),
+            'scheduleGroups' => $scheduleGroups,
         ];
     }
 

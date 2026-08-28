@@ -1,6 +1,6 @@
 <script setup>
-import { router } from "@inertiajs/vue3";
-import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,} from "@lucide/vue";
+import { router, usePage } from "@inertiajs/vue3";
+import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,Pencil,} from "@lucide/vue";
 import { ref, computed } from "vue";
 import { QrcodeCanvas } from "qrcode.vue";
 import axios from "axios";
@@ -14,6 +14,14 @@ import { useI18n } from "@/i18n";
 
 const { t } = useI18n();
 const toast = useToast();
+const page = usePage();
+
+// Inline capacity editing is an admin/super-admin action; instructors see the
+// number as plain text on their dashboard cards.
+const isAdmin = computed(() => {
+    const roles = page.props.auth?.roles ?? [];
+    return roles.includes("super_admin") || roles.includes("admin");
+});
 
 const props = defineProps({
     classData: Object,
@@ -454,10 +462,19 @@ async function saveCapacity() {
                         @keyup.enter="saveCapacity"
                         @blur="saveCapacity"
                     />
+                    <button
+                        v-else-if="isAdmin"
+                        type="button"
+                        :title="t('Edit class capacity')"
+                        class="inline-flex items-center gap-1 border-b border-dashed border-slate-300 text-xs sm:text-sm font-semibold text-slate-800 tabular-nums transition-colors hover:border-blue-500 hover:text-blue-600 dark:border-gray-600 dark:text-gray-200 dark:hover:border-blue-500 dark:hover:text-blue-400"
+                        @click="startEditCapacity"
+                    >
+                        {{ capacity }}
+                        <Pencil class="h-3 w-3 text-slate-400 dark:text-gray-500" />
+                    </button>
                     <span
                         v-else
-                        class="text-xs sm:text-sm font-semibold text-slate-800 tabular-nums dark:text-gray-200 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                        @click="startEditCapacity"
+                        class="text-xs sm:text-sm font-semibold text-slate-800 tabular-nums dark:text-gray-200"
                     >
                         {{ capacity }}
                     </span>

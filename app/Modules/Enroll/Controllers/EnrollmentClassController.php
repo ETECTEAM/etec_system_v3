@@ -32,6 +32,7 @@ use App\Modules\Enroll\Requests\SaveStudyClassRequest;
 use App\Modules\Enroll\Requests\ShareClassInstructorRequest;
 use App\Modules\Enroll\Requests\StoreClassStudentRequest;
 use App\Modules\Enroll\Requests\UpdatePublicRegistrationRequest;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
 use Illuminate\Http\JsonResponse;
@@ -88,7 +89,7 @@ class EnrollmentClassController extends Controller
     public function create(GetClassFormOptions $options): Response
     {
         return Inertia::render('backend/students/CreateClass', [
-            'options' => $options->handle(),
+            'options' => $this->scopeScheduleOptionsToInstructor($options->handle()),
         ]);
     }
 
@@ -146,7 +147,7 @@ class EnrollmentClassController extends Controller
                 'id' => $studyClass->id,
                 ...$this->presentClassData($studyClass),
             ],
-            'options' => $options->handle($studyClass),
+            'options' => $this->scopeScheduleOptionsToInstructor($options->handle($studyClass), $studyClass->id),
         ]);
     }
 
@@ -168,7 +169,7 @@ class EnrollmentClassController extends Controller
 
         return Inertia::render('backend/students/CreateClass', [
             'classData' => $this->presentClassData($studyClass),
-            'options' => $options->handle($studyClass),
+            'options' => $this->scopeScheduleOptionsToInstructor($options->handle($studyClass)),
         ]);
     }
 
@@ -595,6 +596,33 @@ class EnrollmentClassController extends Controller
         return $user !== null
             && $user->hasRole('instructor')
             && ! $user->hasAnyRole(['admin', 'super_admin']);
+    }
+
+    /**
+     * When a self-managing instructor opens the class form, narrow its schedule
+     * picker (scheduleGroups) to only the term/time slots they can actually be
+     * assigned to — inside an availability window, not manually blocked, not
+     * overlapping a class they already teach. Admins keep the full list: they
+     * choose the teacher, and CreateStudyClass / SaveStudyClassRequest still
+     * validate the final pick. $exceptClassId skips the class being edited so
+     * its own current slot stays selectable.
+     *
+     * @param  array<string, mixed>  $optionsData
+     * @return array<string, mixed>
+     */
+    private function scopeScheduleOptionsToInstructor(array $optionsData, ?int $exceptClassId = null): array
+    {
+        if (! $this->isSelfManagingInstructor()) {
+            return $optionsData;
+        }
+
+        $optionsData['scheduleGroups'] = app(InstructorAssignmentAvailability::class)->filterScheduleGroups(
+            (int) auth()->id(),
+            $optionsData['scheduleGroups'] ?? [],
+            $exceptClassId,
+        );
+
+        return $optionsData;
     }
 
     /**
