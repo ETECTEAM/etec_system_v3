@@ -97,11 +97,14 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->report(function (Throwable $e): void {
+            if (app()->runningInConsole()) {
+                return;
+            }
+
             $request = app()->bound('request') ? app('request') : null;
-            $command = app()->runningInConsole() ? ($_SERVER['argv'][1] ?? 'console') : null;
 
             app(TelegramService::class)->sendErrorLog(
-                app(TelegramService::class)->buildErrorMessage($e, $request, $command)
+                app(TelegramService::class)->buildErrorMessage($e, $request)
             );
         });
 
