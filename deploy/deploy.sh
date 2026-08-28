@@ -26,7 +26,7 @@ docker compose -f "${COMPOSE_FILE}" build app reverb nginx
 
 echo "==> Installing dependencies and building assets"
 docker compose -f "${COMPOSE_FILE}" run --rm --no-deps app sh -c \
-  "composer install --no-dev --optimize-autoloader --no-interaction && npm ci && npm run build"
+  "composer install --no-dev --optimize-autoloader --no-interaction && rm -rf node_modules && npm ci && npm run build"
 
 # Docker's container removal is asynchronous under the hood (the daemon
 # returns before overlay/volume cleanup finishes), so recreating a container
