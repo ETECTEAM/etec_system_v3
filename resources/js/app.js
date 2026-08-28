@@ -20,10 +20,10 @@ const toastOptions = {
 createInertiaApp({
     resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob('./pages/**/*.vue')),
     progress: {
-        delay: 250,
-        color: '#026393',
+        delay: 0,
+        color: '#0b72a5',
         includeCSS: true,
-        showSpinner: true,
+        showSpinner: false,
     },
     setup({ el, App, props, plugin }) {
         const initialLocale = props.initialPage?.props?.locale?.current ?? 'en'

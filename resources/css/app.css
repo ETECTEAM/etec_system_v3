@@ -134,8 +134,13 @@ input:-webkit-autofill:active {
     }
 }
 
-/* Inertia progress bar height */
+/* Inertia progress bar & spinner */
 #nprogress .bar {
-    height: 3px;
+    height: 3px !important;
+    z-index: 99999 !important;
+}
+
+#nprogress .spinner {
+    z-index: 99999 !important;
 }
 
