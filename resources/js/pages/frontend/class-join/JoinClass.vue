@@ -27,6 +27,7 @@ const form = useForm({
   name: "",
   gender: "",
   phone: "",
+  attendance_pin: "",
 });
 
 const joinUrl = computed(() => `/join-class/${props.classData.id}`);
@@ -118,6 +119,17 @@ function normalizePhoneInput(event) {
               />
             </div>
             <p v-if="form.errors.phone" class="mt-1 text-xs font-semibold text-rose-600">{{ form.errors.phone }}</p>
+          </label>
+
+          <label class="block">
+            <span class="mb-2 block text-sm font-semibold text-slate-700">Attendance PIN</span>
+            <input
+              v-model="form.attendance_pin"
+              type="password"
+              autocomplete="off"
+              placeholder="Optional PIN"
+              class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+            />
           </label>
 
           <button

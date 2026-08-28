@@ -14,6 +14,7 @@ class Student extends Model
         'gender',
         'date_of_birth',
         'phone',
+        'attendance_pin_hash',
         'address',
         'student_status',
         'course_id',
@@ -36,6 +37,11 @@ class Student extends Model
     public function scores(): HasMany
     {
         return $this->hasMany(StudentScore::class);
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(StudentAttendance::class);
     }
 
     public function course(): BelongsTo

@@ -25,6 +25,9 @@ const form = useForm({
   room_id: '',
   capacity: 20,
   status: 'upcoming',
+  attendance_latitude: '',
+  attendance_longitude: '',
+  attendance_radius_meters: '',
 });
 
 const breadcrumbItems = [

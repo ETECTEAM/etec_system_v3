@@ -6,7 +6,6 @@ import { PageHero } from '@/components/ui/page-hero';
 
 const form = useForm({
     type_name: '',
-    description: '',
     is_active: true,
 });
 
@@ -32,13 +31,8 @@ const submit = () => {
                 <form @submit.prevent="submit" class="space-y-6">
                     <label class="block">
                         <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Type Name') }}</span>
-                        <input v-model="form.type_name" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" :placeholder="$t('e.g. Science')" required>
+                        <input v-model="form.type_name" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" :placeholder="$t('e.g. Hybrid')" required>
                         <span v-if="form.errors.type_name" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.type_name }}</span>
-                    </label>
-
-                    <label class="block">
-                        <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Description') }}</span>
-                        <textarea v-model="form.description" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" rows="3"></textarea>
                     </label>
 
                     <div class="flex items-center gap-4">

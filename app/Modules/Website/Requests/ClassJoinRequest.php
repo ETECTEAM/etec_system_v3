@@ -19,6 +19,7 @@ class ClassJoinRequest extends FormRequest
             'name' => ['required', 'string', 'max:255', new LatinName],
             'gender' => ['required', 'string', Rule::in(['male', 'female'])],
             'phone' => ['required', 'string', 'regex:/^[0-9]{9,12}$/'],
+            'attendance_pin' => ['nullable', 'string', 'min:4', 'max:32'],
         ];
     }
 }

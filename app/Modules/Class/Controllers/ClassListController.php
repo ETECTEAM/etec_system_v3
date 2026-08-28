@@ -85,7 +85,7 @@ class ClassListController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title'         => ['required', 'string', 'max:255'],
+            'title'         => ['nullable', 'string', 'max:255'],
             'teacher_id'    => ['nullable', 'exists:users,id'],
             'course_id'     => ['required', 'exists:courses,id'],
             'lesson_id'     => ['nullable', 'exists:course_lessons,id'],
@@ -96,6 +96,10 @@ class ClassListController extends Controller
             'capacity'      => ['nullable', 'integer', 'min:0'],
             'status'        => ['nullable', 'string', Rule::in(GetClassFormOptions::STATUSES)],
         ]);
+
+        $validated['title'] = filled($validated['title'] ?? null)
+            ? $validated['title']
+            : Course::findOrFail($validated['course_id'])->title;
 
         StudyClass::create($validated);
 

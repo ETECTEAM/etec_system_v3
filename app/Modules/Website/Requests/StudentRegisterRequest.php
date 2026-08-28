@@ -24,6 +24,7 @@ class StudentRegisterRequest extends FormRequest
             'name' => ['required', 'string', 'max:255', new LatinName],
             'gender' => ['required', 'string', Rule::in(['male', 'female'])],
             'phone' => ['required', 'string', 'regex:/^[0-9]{9,12}$/'],
+            'attendance_pin' => ['nullable', 'string', 'min:4', 'max:32'],
             'category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('status', 'active')],
             'course_id' => [
                 'required', 'integer', Rule::exists('courses', 'id')->where('status', 'active'),

@@ -153,6 +153,7 @@ function classList() {
                 {{ form.errors.phone }}
               </p>
             </div>
+
           </div>
 
           <div class="mt-6 flex justify-end">

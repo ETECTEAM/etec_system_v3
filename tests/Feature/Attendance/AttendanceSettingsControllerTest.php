@@ -57,6 +57,7 @@ class AttendanceSettingsControllerTest extends TestCase
                 'auto_record_default_status' => 'present',
                 'auto_record_notify_instructor' => true,
                 'auto_record_allow_override' => true,
+                'auto_record_allow_track_anytime' => false,
                 'auto_record_override_hours' => 24,
             ]);
 
@@ -74,6 +75,7 @@ class AttendanceSettingsControllerTest extends TestCase
                 'auto_record_default_status' => 'absent',
                 'auto_record_notify_instructor' => true,
                 'auto_record_allow_override' => true,
+                'auto_record_allow_track_anytime' => false,
                 'auto_record_override_hours' => 24,
             ]);
 
@@ -91,6 +93,7 @@ class AttendanceSettingsControllerTest extends TestCase
                 'auto_record_default_status' => 'pending',
                 'auto_record_notify_instructor' => false,
                 'auto_record_allow_override' => true,
+                'auto_record_allow_track_anytime' => true,
                 'auto_record_override_hours' => 48,
             ])
             ->assertRedirect(route('attendance-settings.edit'));
@@ -98,6 +101,7 @@ class AttendanceSettingsControllerTest extends TestCase
         // Cache must have been busted by the save, not just the database row.
         $this->assertSame(10, setting('attendance.auto_record_grace_minutes'));
         $this->assertSame('pending', setting('attendance.auto_record_default_status'));
+        $this->assertTrue(setting('attendance.auto_record_allow_track_anytime'));
         $this->assertSame(48, setting('attendance.auto_record_override_hours'));
     }
 }
