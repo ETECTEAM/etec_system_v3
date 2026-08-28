@@ -131,6 +131,13 @@ class StudentRegisterController extends Controller
             return [];
         }
 
+        // start_date is the class intake open date. Once that date is in the
+        // past the intake is considered closed and new walk-ins should no
+        // longer see it — hide the course. Null means no date restriction.
+        if ($default !== null && $default->start_date !== null && $default->start_date->isPast()) {
+            return [];
+        }
+
         return $course->enrollConfigs
             ->filter(fn (CourseEnrollConfig $config) => $config->schedule_id !== null && $config->status === 'open')
             ->groupBy(fn (CourseEnrollConfig $config) => $config->schedule->class_type_id)

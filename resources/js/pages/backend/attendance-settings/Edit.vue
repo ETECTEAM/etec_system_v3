@@ -91,7 +91,6 @@ const breadcrumbItems = [
       <PageHero
         eyebrow="Attendance"
         :title="$t('Auto-Record Attendance')"
-        :description="$t('Configure whether attendance is recorded automatically when an instructor forgets to submit it.')"
       />
 
       <div class="grid gap-6 lg:grid-cols-3">

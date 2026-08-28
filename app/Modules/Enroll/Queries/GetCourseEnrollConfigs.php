@@ -13,6 +13,15 @@ class GetCourseEnrollConfigs
     public function __construct(private readonly GetCourseClassSchedules $classSchedules) {}
 
     /**
+     * Class Type -> Term -> Time availability per course id, prefetched once in
+     * handle() so present() doesn't hit the DB per course. Request-scoped: this
+     * query object is resolved fresh for each request.
+     *
+     * @var array<int, array<int, array<string, mixed>>>
+     */
+    private array $schedulesByCourse = [];
+
+    /**
      * Courses grouped Category -> SubCategory -> CourseTrack, for the
      * enroll-config page's hierarchical table. Each course carries its own
      * default pricing config plus its Class Schedules availability.
@@ -36,6 +45,10 @@ class GetCourseEnrollConfigs
             ->when($search !== '', fn (Builder $query) => $query->where('title', 'like', "%{$search}%"))
             ->orderBy('title')
             ->get();
+
+        // One pair of queries for every course's class-schedule availability,
+        // instead of two per course inside present().
+        $this->schedulesByCourse = $this->classSchedules->handleMany($courses->pluck('id'));
 
         return [
             'categories' => $this->group($courses),
@@ -153,7 +166,7 @@ class GetCourseEnrollConfigs
             'title' => $course->title,
             'enroll_order' => $course->enroll_order,
             'config' => $this->presentConfig($course->enrollConfig),
-            'class_schedules' => $this->classSchedules->handle($course),
+            'class_schedules' => $this->schedulesByCourse[$course->id] ?? [],
         ];
     }
 

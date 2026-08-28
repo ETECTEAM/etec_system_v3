@@ -5,20 +5,50 @@ namespace App\Modules\Enroll\Queries;
 use App\Models\Course;
 use App\Models\CourseEnrollConfig;
 use App\Models\Schedule;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Collection;
 
 class GetCourseClassSchedules
 {
     public const AVAILABLE_CLASS_TYPES = ['Physical Class', 'Scholarship Class', 'Online Class'];
 
-    // Class Type -> Term -> Time from Schedule Management, each time marked
-    // open/closed for this course. is_enabled is derived, not stored.
+    /**
+     * Class Type -> Term -> Time from Schedule Management, each time marked
+     * open/closed for this one course. is_enabled is derived, not stored.
+     *
+     * @return array<int, array<string, mixed>>
+     */
     public function handle(Course $course): array
     {
-        $openKeys = CourseEnrollConfig::where('course_id', $course->id)
+        return $this->handleMany([$course->id])[$course->id] ?? [];
+    }
+
+    /**
+     * Same shape as handle(), but for many courses at once, keyed by course id.
+     * Fetches the schedule tree once and every course's open slots in a single
+     * query - two queries total instead of two per course (the enroll-config
+     * page renders dozens of courses, so the per-course version was ~2N).
+     *
+     * @param  iterable<int>  $courseIds
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    public function handleMany(iterable $courseIds): array
+    {
+        $courseIds = collect($courseIds)->map(fn ($id) => (int) $id)->unique()->values();
+
+        if ($courseIds->isEmpty()) {
+            return [];
+        }
+
+        // "scheduleId:timeId" sets that are open, grouped by course.
+        $openKeysByCourse = CourseEnrollConfig::query()
+            ->whereIn('course_id', $courseIds)
             ->whereNotNull('schedule_id')
-            ->get(['schedule_id', 'time_id'])
-            ->map(fn (CourseEnrollConfig $config) => "{$config->schedule_id}:{$config->time_id}")
-            ->flip();
+            ->get(['course_id', 'schedule_id', 'time_id'])
+            ->groupBy('course_id')
+            ->map(fn (Collection $rows) => $rows
+                ->map(fn (CourseEnrollConfig $config) => "{$config->schedule_id}:{$config->time_id}")
+                ->flip());
 
         $schedules = Schedule::query()
             ->whereHas('classType', fn ($query) => $query->whereIn('type_name', self::AVAILABLE_CLASS_TYPES))
@@ -29,6 +59,20 @@ class GetCourseClassSchedules
             ])
             ->get();
 
+        return $courseIds
+            ->mapWithKeys(fn (int $courseId) => [
+                $courseId => $this->build($schedules, $openKeysByCourse->get($courseId) ?? collect()),
+            ])
+            ->all();
+    }
+
+    /**
+     * @param  EloquentCollection<int, Schedule>  $schedules  the full schedule tree, fetched once
+     * @param  Collection<string, int>  $openKeys  flipped "scheduleId:timeId" => index lookup for one course
+     * @return array<int, array<string, mixed>>
+     */
+    private function build(EloquentCollection $schedules, Collection $openKeys): array
+    {
         return $schedules
             ->groupBy(fn (Schedule $schedule) => $schedule->classType->type_name)
             ->sortBy(fn ($group, $typeName) => array_search($typeName, self::AVAILABLE_CLASS_TYPES))

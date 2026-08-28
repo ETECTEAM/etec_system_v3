@@ -15,9 +15,13 @@ use Inertia\Response;
 
 class CourseEnrollConfigController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request, GetCourseEnrollConfigs $configs): Response
     {
-        return Inertia::render('backend/students/EnrollConfig');
+        // Rendered as a prop so the page arrives with its data on first paint -
+        // no empty-then-populate flash from a second XHR after mount.
+        return Inertia::render('backend/students/EnrollConfig', [
+            'initial' => $configs->handle($request),
+        ]);
     }
 
     public function data(Request $request, GetCourseEnrollConfigs $configs): JsonResponse

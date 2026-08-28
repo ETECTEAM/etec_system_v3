@@ -3,12 +3,29 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Course extends Model
 {
     use HasFactory;
+
+    /**
+     * Courses that are open for enrollment: the course-wide Open/Closed toggle
+     * on the Enroll Config page - the config row with no schedule and no time
+     * slot - is "open", or was never set. Mirrors the master-switch rule the
+     * public student-register page applies (see
+     * StudentRegisterController::openClassTypesForCourse()).
+     */
+    public function scopeEnrollmentOpen(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('enrollConfigs', function (Builder $config): void {
+            $config->whereNull('schedule_id')
+                ->whereNull('time_id')
+                ->where(fn (Builder $status) => $status->whereNull('status')->orWhere('status', '!=', 'open'));
+        });
+    }
 
     protected $fillable = [
         'course_track_id',

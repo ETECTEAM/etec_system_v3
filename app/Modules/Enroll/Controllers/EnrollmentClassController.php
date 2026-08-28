@@ -199,7 +199,9 @@ class EnrollmentClassController extends Controller
     public function createRegisteredStudent(GetClassFormOptions $options): Response
     {
         return Inertia::render('backend/students/RegisterStudent', [
-            'courses' => Course::query()->select('id', 'title')->orderBy('title')->get(),
+            // Only courses whose Enroll Config course-wide toggle is Open (or unset) -
+            // a course paused there disappears from the registration picker.
+            'courses' => Course::query()->enrollmentOpen()->select('id', 'title')->orderBy('title')->get(),
             'scheduleGroups' => $options->scheduleGroups(),
         ]);
     }
