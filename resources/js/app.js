@@ -21,7 +21,7 @@ createInertiaApp({
     resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob('./pages/**/*.vue')),
     progress: {
         delay: 250,
-        color: '#0284c7',
+        color: '#026393',
         includeCSS: true,
         showSpinner: true,
     },

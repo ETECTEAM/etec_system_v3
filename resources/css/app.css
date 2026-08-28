@@ -133,3 +133,9 @@ input:-webkit-autofill:active {
         overflow: hidden;
     }
 }
+
+/* Inertia progress bar height */
+#nprogress .bar {
+    height: 3px;
+}
+
