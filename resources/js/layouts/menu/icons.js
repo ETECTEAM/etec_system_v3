@@ -19,6 +19,7 @@ import {
   Bot,
   BadgeCheck,
   MapPin,
+  ClipboardCheck,
 } from "@lucide/vue";
 
 // Maps a menu item's `icon` string to its Lucide component.
@@ -42,6 +43,7 @@ export const menuIcons = {
   attendance_settings: Bot,
   certificate: BadgeCheck,
   access_locations: MapPin,
+  pre_attendance: ClipboardCheck,
 };
 
 // Used when an item's `icon` key has no entry above.

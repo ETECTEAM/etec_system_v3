@@ -96,6 +96,13 @@ class InstructorClassController extends Controller
         ]);
     }
 
+    public function preAttendance(Request $request): Response
+    {
+        return Inertia::render('backend/instructors/PreAttendance', [
+            'classes' => $this->instructorClasses->preAttendanceClasses($request->user()),
+        ]);
+    }
+
     public function trackAttendance(Request $request, string $studyClass): Response|RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
