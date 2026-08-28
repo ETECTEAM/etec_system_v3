@@ -4,14 +4,15 @@ namespace App\Modules\Enroll\Requests;
 
 use App\Models\ClassType;
 use App\Models\Course;
+use App\Models\CourseEnrollConfig;
 use App\Models\CourseLesson;
 use App\Models\Room;
 use App\Models\Schedule;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class SaveStudyClassRequest extends FormRequest
 {
@@ -94,28 +95,70 @@ class SaveStudyClassRequest extends FormRequest
 
     public function after(): array
     {
-        return [function (Validator $validator): void {
-            if ($validator->errors()->isNotEmpty() || ! $this->filled('teacher_id')) {
-                return;
-            }
+        return [
+            function (Validator $validator): void {
+                if ($validator->errors()->isNotEmpty() || ! $this->filled('teacher_id')) {
+                    return;
+                }
 
-            $studyClass = $this->route('studyClass');
+                $studyClass = $this->route('studyClass');
 
-            if ($studyClass && (int) $studyClass->teacher_id === (int) $this->input('teacher_id')) {
-                return;
-            }
+                if ($studyClass && (int) $studyClass->teacher_id === (int) $this->input('teacher_id')) {
+                    return;
+                }
 
-            $reason = app(InstructorAssignmentAvailability::class)->unavailableReason(
-                (int) $this->input('teacher_id'),
-                (int) $this->input('term_id'),
-                (int) $this->input('time_id'),
-                $studyClass?->id,
-            );
+                $reason = app(InstructorAssignmentAvailability::class)->unavailableReason(
+                    (int) $this->input('teacher_id'),
+                    (int) $this->input('term_id'),
+                    (int) $this->input('time_id'),
+                    $studyClass?->id,
+                );
 
-            if ($reason !== null) {
-                $validator->errors()->add('teacher_id', $reason);
-            }
-        }];
+                if ($reason !== null) {
+                    $validator->errors()->add('teacher_id', $reason);
+                }
+            },
+
+            // Per-course time-slot class limit (set on the Enroll Config page's
+            // time badges): block a create - or a move into a different slot -
+            // once that course + class type + term + time already has
+            // max_classes live classes.
+            function (Validator $validator): void {
+                if ($validator->errors()->isNotEmpty()
+                    || ! $this->filled('time_id')
+                    || ! $this->filled('course_id')
+                    || ! $this->filled('class_type_id')
+                    || ! $this->filled('term_id')) {
+                    return;
+                }
+
+                $studyClass = $this->route('studyClass');
+
+                // Editing a class that stays in the same slot never adds to the count.
+                if ($studyClass
+                    && (int) $studyClass->course_id === (int) $this->input('course_id')
+                    && (int) $studyClass->class_type_id === (int) $this->input('class_type_id')
+                    && (int) $studyClass->term_id === (int) $this->input('term_id')
+                    && (int) $studyClass->time_id === (int) $this->input('time_id')) {
+                    return;
+                }
+
+                $config = CourseEnrollConfig::forClassSlot(
+                    $this->input('course_id'),
+                    $this->input('class_type_id'),
+                    $this->input('term_id'),
+                    $this->input('time_id'),
+                );
+
+                if ($config && $config->classSlotFull($studyClass?->id)) {
+                    $noun = $config->max_classes === 1 ? 'class' : 'classes';
+                    $validator->errors()->add(
+                        'time_id',
+                        "This time slot is full for this course - only {$config->max_classes} {$noun} allowed. Raise the limit on the Enroll Config page, or end / cancel a class in this slot.",
+                    );
+                }
+            },
+        ];
     }
 
     private function isOnline(): bool
