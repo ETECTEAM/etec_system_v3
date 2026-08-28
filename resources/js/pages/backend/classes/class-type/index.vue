@@ -91,7 +91,13 @@ watch(perPage, () => fetchClassTypes(1))
       <Card padding="p-0">
         <div class="flex justify-between border-b border-slate-200 px-6 py-5 dark:border-gray-800">
           <input v-model="search" type="text" :placeholder="$t('Search by name...')" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 lg:max-w-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20">
-          <Link href="/dashboard/class-types/create" class="ml-4 inline-flex shrink-0 items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500">{{ $t('Create Class Type') }}</Link>
+          <Link
+            href="/dashboard/class-types/create"
+            class="ml-4 inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            {{ $t('Create Class Type') }}
+          </Link>
         </div>
         <div class="relative">
           <Table>
