@@ -428,6 +428,8 @@ export const backendFinalTranslations = {
     "Instructor correction": "ការកែតម្រូវរបស់គ្រូ",
     "Allow instructor override": "អនុញ្ញាតឱ្យគ្រូកែតម្រូវ",
     "Override window (hours)": "ថិរវេលាកែតម្រូវ (ម៉ោង)",
+    "Allow tracking anytime": "អនុញ្ញាតឱ្យតាមដានវត្តមានគ្រប់ពេល",
+    "Lets instructors track attendance outside the scheduled session window.": "អនុញ្ញាតឱ្យគ្រូតាមដានវត្តមានក្រៅថិរវេលាវគ្គសិក្សាដែលបានកំណត់។",
     "Notify instructor": "ជូនដំណឹងដល់គ្រូ",
     "A class already over is never auto-recorded after the fact - it is marked missed instead, for an admin to review.": "ថ្នាក់ដែលបានបញ្ចប់រួចមិនដែលត្រូវបានកត់ត្រាដោយស្វ័យប្រវត្តិឡើយ - វានឹងត្រូវសម្គាល់ថាខកខាន ដើម្បីឱ្យអ្នកគ្រប់គ្រងពិនិត្យ។",
     "Auto-record preview": "ការបង្ហាញពេលកត់ត្រាស្វ័យប្រវត្តិ",

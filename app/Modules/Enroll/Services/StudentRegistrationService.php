@@ -4,6 +4,7 @@ namespace App\Modules\Enroll\Services;
 
 use App\Models\StudyClass;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use stdClass;
 
@@ -29,6 +30,9 @@ class StudentRegistrationService
             'document_fee_amount' => isset($extra['document_fee_amount'])
                 ? round((float) $extra['document_fee_amount'], 2)
                 : (isset($data['document_price']) ? round((float) $data['document_price'], 2) : null),
+            'attendance_pin_hash' => ! empty($data['attendance_pin'])
+                ? Hash::make((string) $data['attendance_pin'])
+                : null,
             'created_at' => $now,
             'updated_at' => $now,
         ]);

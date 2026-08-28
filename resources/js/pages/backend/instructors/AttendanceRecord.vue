@@ -45,6 +45,14 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  canTrackAttendance: {
+    type: Boolean,
+    default: false,
+  },
+  trackAttendanceLabel: {
+    type: String,
+    default: "Track Attendance",
+  },
 });
 
 const rosterStudents = ref([]);
@@ -54,40 +62,6 @@ const classLifecycleStatus = computed(() => String(props.classData?.class_status
 const totalPresent = computed(() =>
   rosterStudents.value.reduce((total, student) => total + Number(student.attendance?.present ?? 0), 0),
 );
-// TESTING ONLY - restore before this reaches production, the real gate is
-// commented out below.
-// const canTrackAttendance = computed(() =>
-//   classLifecycleStatus.value === "active"
-//   && (props.todaySession?.status === "auto_recorded" || props.attendanceWindow?.can_submit),
-// );
-const canTrackAttendance = computed(() => true);
-const trackAttendanceLabel = computed(() => {
-  if (classLifecycleStatus.value === "pre_end") {
-    return "Pre-End";
-  }
-
-  if (classLifecycleStatus.value === "ended") {
-    return "Ended";
-  }
-
-  if (props.todaySession?.status === "auto_recorded") {
-    return "Track Attendance";
-  }
-
-  if (props.attendanceWindow?.reason === "before_start") {
-    return "Not Started";
-  }
-
-  if (props.attendanceWindow?.reason === "after_deadline") {
-    return "Window Closed";
-  }
-
-  if (props.attendanceWindow?.reason === "no_session") {
-    return "No Session";
-  }
-
-  return "Track Attendance";
-});
 const lifecycleNotice = computed(() => {
   if (classLifecycleStatus.value === "pre_end") {
     return "This class has been pre-ended. Attendance tracking is closed.";
@@ -431,12 +405,12 @@ async function approveAllPendingRegistrations() {
             {{ scoreSaving ? "Saving..." : "Save Score" }}
           </button>
           <Link
-            v-if="canTrackAttendance"
+            v-if="props.canTrackAttendance"
             :href="`/dashboard/instructor/classes/${classData.id}/attendance/track`"
             class="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md"
           >
             <ClipboardCheck class="h-4 w-4" />
-            Track Attendance
+            {{ props.trackAttendanceLabel }}
           </Link>
           <button
             v-else
@@ -445,7 +419,7 @@ async function approveAllPendingRegistrations() {
             disabled
           >
             <ClipboardCheck class="h-4 w-4" />
-            {{ trackAttendanceLabel }}
+            {{ props.trackAttendanceLabel }}
           </button>
         </div>
       </div>
