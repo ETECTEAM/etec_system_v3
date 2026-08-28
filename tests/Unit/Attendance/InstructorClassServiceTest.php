@@ -85,6 +85,40 @@ class InstructorClassServiceTest extends TestCase
         ]);
     }
 
+    public function test_manual_attendance_can_be_saved_before_start_when_track_anytime_is_enabled(): void
+    {
+        GradingSetting::query()->updateOrCreate(
+            ['key' => 'attendance.auto_record_allow_track_anytime'],
+            ['value' => 'true', 'type' => 'boolean', 'label' => 'Allow tracking anytime', 'group' => 'attendance'],
+        );
+        Cache::forget(GradingSetting::CACHE_KEY);
+
+        $now = Carbon::parse('2026-08-21 08:50:00', 'Asia/Phnom_Penh');
+        Carbon::setTestNow($now);
+
+        $class = $this->makeStudyClass();
+        $student = $this->makeStudent();
+        $enrollment = $this->enroll($class, $student);
+        $session = $this->sessionFor(Carbon::parse('2026-08-21 09:00:00', 'Asia/Phnom_Penh'), 20, ['class' => $class]);
+
+        $this->service->saveAttendance($class->teacher, $class->id, [
+            'attendance_date' => '2026-08-21',
+            'records' => [[
+                'student_id' => $student->id,
+                'enrollment_id' => $enrollment->id,
+                'status' => 'present',
+                'note' => null,
+            ]],
+        ]);
+
+        $this->assertSame(ClassSession::STATUS_RECORDED, $session->fresh()->status);
+        $this->assertDatabaseHas('student_attendances', [
+            'study_class_id' => $class->id,
+            'student_enrollment_id' => $enrollment->id,
+            'status' => 'present',
+        ]);
+    }
+
     public function test_manual_attendance_is_rejected_after_the_grace_window(): void
     {
         $now = Carbon::parse('2026-08-21 09:21:00', 'Asia/Phnom_Penh');
@@ -138,6 +172,132 @@ class InstructorClassServiceTest extends TestCase
             'note' => 'On time',
         ]);
         $this->assertSame(ClassSession::STATUS_RECORDED, $session->fresh()->status);
+    }
+
+    public function test_manual_save_before_grace_finalizes_all_submitted_students_without_pre_attendance(): void
+    {
+        $now = Carbon::parse('2026-08-21 09:10:00', 'Asia/Phnom_Penh');
+        Carbon::setTestNow($now);
+
+        $class = $this->makeStudyClass();
+        $present = $this->makeStudent();
+        $untouched = $this->makeStudent();
+        $presentEnrollment = $this->enroll($class, $present);
+        $untouchedEnrollment = $this->enroll($class, $untouched);
+        $session = $this->sessionFor(Carbon::parse('2026-08-21 09:00:00', 'Asia/Phnom_Penh'), 20, ['class' => $class]);
+
+        $this->service->saveAttendance($class->teacher, $class->id, [
+            'attendance_date' => '2026-08-21',
+            'records' => [
+                [
+                    'student_id' => $present->id,
+                    'enrollment_id' => $presentEnrollment->id,
+                    'status' => 'present',
+                    'note' => null,
+                ],
+                [
+                    'student_id' => $untouched->id,
+                    'enrollment_id' => $untouchedEnrollment->id,
+                    'status' => 'absent',
+                    'note' => null,
+                ],
+            ],
+        ]);
+
+        $this->assertSame(ClassSession::STATUS_RECORDED, $session->fresh()->status);
+        $this->assertDatabaseCount('student_attendances', 2);
+    }
+
+    public function test_auto_recorded_session_cannot_be_manually_saved_even_when_track_anytime_is_enabled(): void
+    {
+        GradingSetting::query()->updateOrCreate(
+            ['key' => 'attendance.auto_record_allow_track_anytime'],
+            ['value' => 'true', 'type' => 'boolean', 'label' => 'Allow tracking anytime', 'group' => 'attendance'],
+        );
+        Cache::forget(GradingSetting::CACHE_KEY);
+
+        $now = Carbon::parse('2026-08-21 09:30:00', 'Asia/Phnom_Penh');
+        Carbon::setTestNow($now);
+
+        $class = $this->makeStudyClass();
+        $student = $this->makeStudent();
+        $enrollment = $this->enroll($class, $student);
+        $session = $this->sessionFor(Carbon::parse('2026-08-21 09:00:00', 'Asia/Phnom_Penh'), 20, ['class' => $class]);
+        $session->update([
+            'status' => ClassSession::STATUS_AUTO_RECORDED,
+            'recorded_at' => Carbon::parse('2026-08-21 09:20:00', 'Asia/Phnom_Penh'),
+        ]);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('The system already auto-recorded this class.');
+
+        $this->service->saveAttendance($class->teacher, $class->id, [
+            'attendance_date' => '2026-08-21',
+            'records' => [[
+                'student_id' => $student->id,
+                'enrollment_id' => $enrollment->id,
+                'status' => 'present',
+                'note' => null,
+            ]],
+        ]);
+    }
+
+    public function test_partial_pre_attendance_completion_preserves_existing_rows_and_records_remaining_students(): void
+    {
+        $now = Carbon::parse('2026-08-21 09:30:00', 'Asia/Phnom_Penh');
+        Carbon::setTestNow($now);
+
+        $class = $this->makeStudyClass();
+        $tracked = $this->makeStudent();
+        $unresolved = $this->makeStudent();
+        $trackedEnrollment = $this->enroll($class, $tracked);
+        $unresolvedEnrollment = $this->enroll($class, $unresolved);
+        $session = $this->sessionFor(Carbon::parse('2026-08-21 09:00:00', 'Asia/Phnom_Penh'), 20, ['class' => $class]);
+        $session->update([
+            'status' => ClassSession::STATUS_PARTIAL,
+            'recorded_at' => Carbon::parse('2026-08-21 09:20:00', 'Asia/Phnom_Penh'),
+            'grace_minutes_used' => 20,
+        ]);
+
+        StudentAttendance::create([
+            'study_class_id' => $class->id,
+            'student_enrollment_id' => $trackedEnrollment->id,
+            'student_id' => $tracked->id,
+            'attendance_date' => '2026-08-21',
+            'status' => 'present',
+            'source' => StudentAttendance::SOURCE_QR,
+        ]);
+
+        $this->service->saveAttendance($class->teacher, $class->id, [
+            'attendance_date' => '2026-08-21',
+            'records' => [
+                [
+                    'student_id' => $tracked->id,
+                    'enrollment_id' => $trackedEnrollment->id,
+                    'status' => 'present',
+                    'note' => null,
+                ],
+                [
+                    'student_id' => $unresolved->id,
+                    'enrollment_id' => $unresolvedEnrollment->id,
+                    'status' => 'absent',
+                    'note' => null,
+                ],
+            ],
+        ]);
+
+        $this->assertSame(ClassSession::STATUS_RECORDED, $session->fresh()->status);
+        $this->assertDatabaseCount('student_attendances', 2);
+        $this->assertDatabaseHas('student_attendances', [
+            'student_enrollment_id' => $trackedEnrollment->id,
+            'status' => 'present',
+            'source' => StudentAttendance::SOURCE_QR,
+        ]);
+        $this->assertDatabaseHas('student_attendances', [
+            'student_enrollment_id' => $unresolvedEnrollment->id,
+            'status' => 'absent',
+            'source' => StudentAttendance::SOURCE_MANUAL,
+        ]);
     }
 
     public function test_auto_recorded_pending_rows_finalize_to_absent_after_override_window(): void

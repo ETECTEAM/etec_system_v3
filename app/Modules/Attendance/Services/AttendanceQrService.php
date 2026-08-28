@@ -33,7 +33,7 @@ class AttendanceQrService
                 return $session;
             }
 
-            return $session;
+            return $this->startSession($studyClass, $creator);
         }
 
         return $this->startSession($studyClass, $creator);

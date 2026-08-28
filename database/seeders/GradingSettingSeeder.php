@@ -54,6 +54,14 @@ class GradingSettingSeeder extends Seeder
                 'group' => 'attendance',
             ],
             [
+                'key' => 'attendance.auto_record_allow_track_anytime',
+                'value' => 'false',
+                'type' => 'boolean',
+                'label' => 'Allow tracking anytime',
+                'description' => 'Development/testing switch that lets instructors track attendance outside the scheduled session window.',
+                'group' => 'attendance',
+            ],
+            [
                 'key' => 'attendance.auto_record_override_hours',
                 'value' => '24',
                 'type' => 'number',

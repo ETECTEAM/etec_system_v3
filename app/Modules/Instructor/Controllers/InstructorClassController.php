@@ -64,14 +64,18 @@ class InstructorClassController extends Controller
     public function attendance(Request $request, string $studyClass): Response
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $this->instructorClasses->ensureTodayAttendanceSession($class, $request->user());
         $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
+        $todaySession = $this->sessionBanner->handle($class->id);
 
         return Inertia::render('backend/instructors/AttendanceRecord', [
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
             'pendingRegistrations' => $this->instructorClasses->pendingRegistrations($class->id),
             'attendanceWindow' => $attendanceWindow,
-            'todaySession' => $this->sessionBanner->handle($class->id),
+            'todaySession' => $todaySession,
+            'canTrackAttendance' => $this->instructorClasses->canTrackAttendance($class, $attendanceWindow, $todaySession),
+            'trackAttendanceLabel' => $this->instructorClasses->trackAttendanceLabel($class, $attendanceWindow, $todaySession),
         ]);
     }
 
@@ -86,20 +90,37 @@ class InstructorClassController extends Controller
                 ->with('warning', 'Attendance can only be tracked while the class is active.');
         }
 
+        $this->instructorClasses->ensureTodayAttendanceSession($class, $request->user());
         $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
         $todaySession = $this->sessionBanner->handle($class->id);
-        $attendanceSession = $this->attendanceQr->getOrCreateTodaySession($studyClassModel, $request->user());
-        $presentedAttendanceSession = $this->attendanceQr->presentSession($attendanceSession, $studyClassModel);
-        $attendanceSummary = $this->attendanceQr->teacherSummary($attendanceSession, $studyClassModel);
-        $canCorrectQrAttendance = $presentedAttendanceSession['status'] === AttendanceSession::STATUS_ACTIVE;
+        $hasAttendance = $this->instructorClasses->hasAttendanceForDate($class->id, Carbon::today('Asia/Phnom_Penh'));
+        $canCompletePreAttendance = (bool) ($todaySession['is_pre_attendance'] ?? false);
+        $allowTrackAnytime = $this->instructorClasses->allowTrackAnytime();
+        $isAutoRecorded = ($todaySession['status'] ?? null) === 'auto_recorded';
+        $canOpenAttendance = ! $isAutoRecorded && ($allowTrackAnytime || $canCompletePreAttendance || (bool) ($attendanceWindow['can_submit'] ?? false));
+        $attendanceSession = $canOpenAttendance
+            ? $this->attendanceQr->getOrCreateTodaySession($studyClassModel, $request->user())
+            : AttendanceSession::query()
+                ->where('study_class_id', $class->id)
+                ->whereDate('attendance_date', Carbon::today('Asia/Phnom_Penh'))
+                ->first();
+        $presentedAttendanceSession = $attendanceSession
+            ? $this->attendanceQr->presentSession($attendanceSession, $studyClassModel)
+            : null;
+        $attendanceSummary = $attendanceSession
+            ? $this->attendanceQr->teacherSummary($attendanceSession, $studyClassModel)
+            : null;
+        $canCorrectQrAttendance = ($presentedAttendanceSession['status'] ?? null) === AttendanceSession::STATUS_ACTIVE;
 
         return Inertia::render('backend/instructors/TrackAttendance', [
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
-            'attendanceLocked' => ! $canCorrectQrAttendance
-                && ($this->instructorClasses->hasAttendanceForDate($class->id, Carbon::today('Asia/Phnom_Penh'))
+            'attendanceLocked' => $isAutoRecorded || (! $canCorrectQrAttendance
+                && ! $allowTrackAnytime
+                && ! $canCompletePreAttendance
+                && ($hasAttendance
                     || ! ($attendanceWindow['can_submit'] ?? false)
-                    || ($attendanceSession->status === AttendanceSession::STATUS_STOPPED)),
+                    || ($presentedAttendanceSession['status'] ?? null) === AttendanceSession::STATUS_STOPPED)),
             'attendanceWindow' => $attendanceWindow,
             'todaySession' => $todaySession,
             'attendanceSession' => $presentedAttendanceSession,
