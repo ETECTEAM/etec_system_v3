@@ -526,15 +526,7 @@ class EnrollmentClassController extends Controller
 
     private function resolveEnrollConfig(StudyClass $studyClass): ?\App\Models\CourseEnrollConfig
     {
-        $query = \App\Models\CourseEnrollConfig::where('course_id', $studyClass->course_id);
-
-        if ($studyClass->time_id !== null) {
-            $query->where('time_id', $studyClass->time_id);
-        } else {
-            $query->whereNull('time_id');
-        }
-
-        return $query->first();
+        return \App\Models\CourseEnrollConfig::forCourseTime($studyClass->course_id, $studyClass->time_id);
     }
 
     private function approvePendingEnrollment(StudentEnrollment $enrollment, StudentRegistrationService $registrations): void

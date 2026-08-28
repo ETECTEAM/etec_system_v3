@@ -181,6 +181,9 @@ const dayAbbreviations = {
 };
 
 function studyDaysLabel(row) {
+  // Prefer the term name as written ("Mon & Thu"); study_days expands a
+  // two-part term into a full weekday range ("Mon & Tue & Wed & Thu").
+  if (row.term_name) return row.term_name;
   return (row.study_days ?? []).map((day) => dayAbbreviations[day] ?? day).join(" & ") || "-";
 }
 
@@ -669,8 +672,9 @@ onBeforeUnmount(() => {
                     <button
                       v-if="!isPendingRegistration(row) && !needsManualScheduling(row)"
                       type="button"
-                      class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                      :title="$t('Move to Another Class')"
+                      class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-slate-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:disabled:hover:bg-gray-800"
+                      :disabled="row.payment_status !== 'Paid'"
+                      :title="row.payment_status === 'Paid' ? $t('Move to Another Class') : $t('Record payment and print the receipt before moving this student.')"
                       @click="openMoveModal(row)"
                     >
                       <ArrowRightLeft class="h-4 w-4 shrink-0" />

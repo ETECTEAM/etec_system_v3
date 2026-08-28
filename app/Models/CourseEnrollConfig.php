@@ -63,4 +63,35 @@ class CourseEnrollConfig extends Model
             ? (float) $this->unit_price
             : (float) $this->course_price;
     }
+
+    /**
+     * The pricing config that applies to a class: the row scoped to $timeId if
+     * one exists, otherwise the course-wide (time_id NULL) row. schedule_id-
+     * scoped rows are excluded - they're availability toggles, always $0 (see
+     * schedule()).
+     *
+     * The course-wide fallback matters: a course priced only at the course
+     * level (a single time_id NULL row) would otherwise resolve to no config
+     * for any class that carries a time_id, zeroing the fee. Mirrors
+     * Course::enrollConfigForTime().
+     */
+    public static function forCourseTime(int|string $courseId, int|string|null $timeId): ?self
+    {
+        $courseId = (int) $courseId;
+        $timeId = $timeId === null ? null : (int) $timeId;
+
+        $priceConfigs = fn () => static::query()
+            ->where('course_id', $courseId)
+            ->whereNull('schedule_id');
+
+        if ($timeId !== null) {
+            $specific = $priceConfigs()->where('time_id', $timeId)->first();
+
+            if ($specific !== null) {
+                return $specific;
+            }
+        }
+
+        return $priceConfigs()->whereNull('time_id')->first();
+    }
 }

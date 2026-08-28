@@ -35,6 +35,15 @@ class MoveStudentEnrollment
                 return $this->assignUnassigned($enrollment, $targetClass, $force);
             }
 
+            // A real move re-prices the enrollment to the target class, so the
+            // student's receipt for the current class must be settled first -
+            // the "Move" button in the UI is disabled until then too.
+            if ($enrollment->payment_status !== 'paid') {
+                throw ValidationException::withMessages([
+                    'study_class_id' => 'Record the payment and print the receipt for this student before moving them to another class.',
+                ]);
+            }
+
             $sourceClassId = $enrollment->study_class_id;
             $amountPaid = (float) $enrollment->amount_paid;
             $resolved = $this->resolveClassPrice($targetClass);
@@ -91,15 +100,7 @@ class MoveStudentEnrollment
 
     private function resolveClassPrice(stdClass|StudyClass $class): array
     {
-        $query = CourseEnrollConfig::where('course_id', $class->course_id);
-
-        if ($class->time_id !== null) {
-            $query->where('time_id', $class->time_id);
-        } else {
-            $query->whereNull('time_id');
-        }
-
-        $config = $query->first();
+        $config = CourseEnrollConfig::forCourseTime($class->course_id, $class->time_id);
 
         return [
             'price' => $config?->resolvedPrice() ?? (float) $class->price,
