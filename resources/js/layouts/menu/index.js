@@ -1,3 +1,4 @@
+import * as accessLocation from "./accessLocation";
 import * as building from "./building";
 import * as classes from "./classes";
 import * as enroll from "./enroll";
@@ -30,4 +31,5 @@ export const menuDomains = [
   loginSecurity,
   attendanceSettings,
   officialLeave,
+  accessLocation,
 ];

@@ -18,6 +18,7 @@ import {
   SlidersHorizontal,
   Bot,
   BadgeCheck,
+  MapPin,
 } from "@lucide/vue";
 
 // Maps a menu item's `icon` string to its Lucide component.
@@ -40,6 +41,7 @@ export const menuIcons = {
   "enroll-config": SlidersHorizontal,
   attendance_settings: Bot,
   certificate: BadgeCheck,
+  access_locations: MapPin,
 };
 
 // Used when an item's `icon` key has no entry above.
