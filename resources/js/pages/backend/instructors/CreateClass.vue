@@ -16,7 +16,7 @@ const props = defineProps({
 });
 
 const form = useForm({
-  title: '',
+  // Title is not shown on the form - the server sets it to the course title.
   course_id: '',
   lesson_id: '',
   class_type_id: '',
@@ -123,17 +123,7 @@ const submit = () => {
           {{ $t('You have no available schedule slots. Set your working hours under Busy Time, or ask an admin to update your availability.') }}
         </p>
 
-        <form @submit.prevent="submit" class="grid gap-6 lg:grid-cols-2">
-          <label class="block lg:col-span-2">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Title') }}</span>
-            <input
-              type="text"
-              v-model="form.title"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-            />
-            <span v-if="form.errors.title" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.title }}</span>
-          </label>
-
+        <form @submit.prevent="submit" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Course') }}</span>
             <SelectSearch
@@ -224,7 +214,7 @@ const submit = () => {
             <span v-if="form.errors.status" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.status }}</span>
           </label>
 
-          <div class="lg:col-span-2 flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-gray-800">
+          <div class="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-gray-800">
             <Link
               href="/dashboard"
               class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"

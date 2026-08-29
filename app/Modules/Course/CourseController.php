@@ -33,7 +33,7 @@ class CourseController extends Controller
         $allSubCategories = SubCategory::where('status', 'active')->get();
         $allTracks = CourseTrack::where('status', 'active')->get();
 
-        return Inertia::render('backend/courses/Courses', [
+        return Inertia::render('backend/courses/Course/CourseIndex', [
             'courses' => $courses,
             'allCategories' => $allCategories,
             'allSubCategories' => $allSubCategories,
@@ -47,7 +47,7 @@ class CourseController extends Controller
         $subCategories = SubCategory::where('status', 'active')->get();
         $tracks = CourseTrack::where('status', 'active')->get();
 
-        return Inertia::render('backend/courses/CourseForm', [
+        return Inertia::render('backend/courses/Course/CourseForm', [
             'course' => null,
             'categories' => $categories,
             'subCategories' => $subCategories,
@@ -84,10 +84,12 @@ class CourseController extends Controller
         // Price lives on CourseEnrollConfig, not the courses table (see the
         // migration that dropped price/document_price from courses). The form's
         // single price input maps to the default schedule's course price.
-        CourseEnrollConfig::query()->updateOrCreate(
-            ['course_id' => $course->id, 'schedule_id' => null, 'time_id' => null],
-            ['course_price' => $validated['price'] ?? 0]
-        );
+        if (array_key_exists('price', $validated)) {
+            CourseEnrollConfig::query()->updateOrCreate(
+                ['course_id' => $course->id, 'schedule_id' => null, 'time_id' => null],
+                ['course_price' => $validated['price'] ?? 0]
+            );
+        }
 
         return redirect()->route('course.courses')->with('success', 'Course created successfully');
     }
@@ -109,7 +111,7 @@ class CourseController extends Controller
         $subCategories = SubCategory::where('status', 'active')->get();
         $tracks = CourseTrack::where('status', 'active')->get();
 
-        return Inertia::render('backend/courses/CourseForm', [
+        return Inertia::render('backend/courses/Course/CourseForm', [
             'course' => $course,
             'categories' => $categories,
             'subCategories' => $subCategories,
@@ -281,6 +283,10 @@ class CourseController extends Controller
             ['course_id' => $course->id, 'schedule_id' => null, 'time_id' => null],
             ['course_price' => $validated['price'] ?? 0]
         );
+
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $course->fresh('track.subCategory.category')]);
+        }
 
         return redirect()->route('course.courses')->with('success', 'Course updated successfully');
     }
