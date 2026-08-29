@@ -20,8 +20,8 @@ const statusClasses = {
   present: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300",
   permission: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300",
   absent: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300",
-  on_leave: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300",
 };
+const displayStatus = (status) => statusClasses[status] ? status : "absent";
 
 const attendanceScore = computed(() => {
   const total = Number(props.student.attendance?.total ?? 0);
@@ -102,7 +102,7 @@ const attendanceScore = computed(() => {
               <tr v-for="record in student.records" :key="`${record.date}-${record.status}`" class="align-middle hover:bg-slate-50/80 dark:hover:bg-gray-800/50">
                 <td class="border-b border-slate-100 px-4 py-4 font-mono font-bold text-slate-700 dark:border-gray-800 dark:text-gray-300">{{ record.date }}</td>
                 <td class="border-b border-slate-100 px-4 py-4 dark:border-gray-800">
-                  <span :class="['inline-flex rounded-lg border px-3 py-1 text-xs font-black capitalize', statusClasses[record.status] ?? statusClasses.absent]">{{ record.status }}</span>
+                  <span :class="['inline-flex rounded-lg border px-3 py-1 text-xs font-black capitalize', statusClasses[displayStatus(record.status)] ?? statusClasses.absent]">{{ displayStatus(record.status) }}</span>
                 </td>
                 <td class="border-b border-slate-100 px-4 py-4 font-semibold text-slate-600 dark:border-gray-800 dark:text-gray-300">{{ record.note }}</td>
                 <td class="border-b border-slate-100 px-4 py-4 font-semibold text-slate-600 dark:border-gray-800 dark:text-gray-300">{{ record.tracked_by }}</td>

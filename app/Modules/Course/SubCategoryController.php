@@ -15,8 +15,10 @@ class SubCategoryController extends Controller
     public function index()
     {
         $subCategories = SubCategory::with('category')->get();
-        return Inertia::render('backend/courses/SubCategories', [
-            'subCategories' => $subCategories
+        $allCategories = Category::all();
+        return Inertia::render('backend/courses/SubCategory/SubCategoryIndex', [
+            'subCategories' => $subCategories,
+            'allCategories' => $allCategories
         ]);
     }
 
@@ -24,7 +26,7 @@ class SubCategoryController extends Controller
     {
         // Change: use 'status' instead of 'is_active'
         $categories = Category::where('status', 'active')->get();
-        return Inertia::render('backend/courses/SubCategoryForm', [
+        return Inertia::render('backend/courses/SubCategory/SubCategoryForm', [
             'subCategory' => null,
             'categories' => $categories
         ]);
@@ -52,7 +54,7 @@ class SubCategoryController extends Controller
     {
         // Change: use 'status' instead of 'is_active'
         $categories = Category::where('status', 'active')->get();
-        return Inertia::render('backend/courses/SubCategoryForm', [
+        return Inertia::render('backend/courses/SubCategory/SubCategoryForm', [
             'subCategory' => $subCategory,
             'categories' => $categories
         ]);
@@ -72,6 +74,10 @@ class SubCategoryController extends Controller
             'slug' => Str::slug($validated['name']),
             'status' => $validated['status'] ?? 'active'  // Change: use 'status'
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $subCategory->fresh('category')]);
+        }
 
         return redirect()->route('course.subcategories')->with('success', 'Sub Category updated successfully');
     }

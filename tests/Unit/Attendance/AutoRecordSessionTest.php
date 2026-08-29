@@ -5,7 +5,6 @@ namespace Tests\Unit\Attendance;
 use App\Models\ClassSession;
 use App\Models\GradingSetting;
 use App\Models\StudentAttendance;
-use App\Models\StudentPermission;
 use App\Modules\Attendance\Actions\AutoRecordSession;
 use Database\Seeders\Core\RoleSeeder;
 use Database\Seeders\GradingSettingSeeder;
@@ -81,7 +80,7 @@ class AutoRecordSessionTest extends TestCase
         $this->assertDatabaseCount('student_attendances', 0);
     }
 
-    public function test_exactly_at_grace_boundary_is_recorded(): void
+    public function test_exactly_at_grace_boundary_moves_untracked_session_to_pre_attendance(): void
     {
         $now = Carbon::parse('2026-08-18 09:15:00', 'Asia/Phnom_Penh');
         Carbon::setTestNow($now);
@@ -92,11 +91,11 @@ class AutoRecordSessionTest extends TestCase
 
         Artisan::call('attendance:auto-record');
 
-        $this->assertSame(ClassSession::STATUS_AUTO_RECORDED, $session->fresh()->status);
-        $this->assertDatabaseCount('student_attendances', 1);
+        $this->assertSame(ClassSession::STATUS_PRE_ATTENDANCE, $session->fresh()->status);
+        $this->assertDatabaseCount('student_attendances', 0);
     }
 
-    public function test_one_minute_after_grace_elapses_is_recorded(): void
+    public function test_one_minute_after_grace_elapses_moves_untracked_session_to_pre_attendance(): void
     {
         $now = Carbon::parse('2026-08-18 09:16:00', 'Asia/Phnom_Penh');
         Carbon::setTestNow($now);
@@ -107,7 +106,8 @@ class AutoRecordSessionTest extends TestCase
 
         Artisan::call('attendance:auto-record');
 
-        $this->assertSame(ClassSession::STATUS_AUTO_RECORDED, $session->fresh()->status);
+        $this->assertSame(ClassSession::STATUS_PRE_ATTENDANCE, $session->fresh()->status);
+        $this->assertDatabaseCount('student_attendances', 0);
     }
 
     // ─── Disabled switch ────────────────────────────────────────────────────
@@ -146,7 +146,7 @@ class AutoRecordSessionTest extends TestCase
         $this->assertSame(ClassSession::STATUS_RECORDED, $session->fresh()->status);
     }
 
-    public function test_a_student_row_already_present_does_not_crash_the_batch(): void
+    public function test_partial_tracked_session_preserves_existing_rows_and_marks_partial(): void
     {
         $class = $this->makeStudyClass();
         $student = $this->makeStudent();
@@ -170,45 +170,87 @@ class AutoRecordSessionTest extends TestCase
 
         $this->action->handle($session->id);
 
-        $this->assertDatabaseCount('student_attendances', 2);
+        $this->assertDatabaseCount('student_attendances', 1);
         $this->assertDatabaseHas('student_attendances', [
             'student_enrollment_id' => $enrollment->id,
             'source' => StudentAttendance::SOURCE_MANUAL,
         ]);
-        $this->assertDatabaseHas('student_attendances', [
+        $this->assertDatabaseMissing('student_attendances', [
             'student_enrollment_id' => $second->id,
-            'source' => StudentAttendance::SOURCE_AUTO,
         ]);
-        $this->assertSame(ClassSession::STATUS_AUTO_RECORDED, $session->fresh()->status);
+        $this->assertSame(ClassSession::STATUS_PARTIAL, $session->fresh()->status);
     }
 
-    // ─── Approved-permission exemption ─────────────────────────────────────
-
-    public function test_student_on_approved_leave_is_recorded_as_permission_not_present(): void
+    public function test_fully_tracked_session_is_auto_recorded_without_overwriting_statuses(): void
     {
         $class = $this->makeStudyClass();
-        $onLeave = $this->makeStudent();
         $present = $this->makeStudent();
-        $this->enroll($class, $onLeave);
-        $this->enroll($class, $present);
-
+        $late = $this->makeStudent();
+        $presentEnrollment = $this->enroll($class, $present);
+        $lateEnrollment = $this->enroll($class, $late);
         $session = $this->makeSession(Carbon::now('Asia/Phnom_Penh'), -30, ['class' => $class]);
 
-        StudentPermission::create([
-            'student_id' => $onLeave->id,
-            'start_date' => $session->session_date,
-            'end_date' => $session->session_date,
+        StudentAttendance::create([
+            'study_class_id' => $class->id,
+            'student_enrollment_id' => $presentEnrollment->id,
+            'student_id' => $present->id,
+            'attendance_date' => $session->session_date,
+            'status' => 'present',
+            'source' => StudentAttendance::SOURCE_QR,
+        ]);
+
+        StudentAttendance::create([
+            'study_class_id' => $class->id,
+            'student_enrollment_id' => $lateEnrollment->id,
+            'student_id' => $late->id,
+            'attendance_date' => $session->session_date,
+            'status' => 'permission',
+            'source' => StudentAttendance::SOURCE_MANUAL,
         ]);
 
         $this->action->handle($session->id);
 
-        $this->assertDatabaseHas('student_attendances', ['student_id' => $onLeave->id, 'status' => 'permission']);
-        $this->assertDatabaseHas('student_attendances', ['student_id' => $present->id, 'status' => 'present']);
+        $this->assertSame(ClassSession::STATUS_AUTO_RECORDED, $session->fresh()->status);
+        $this->assertDatabaseCount('student_attendances', 2);
+        $this->assertDatabaseHas('student_attendances', [
+            'student_enrollment_id' => $presentEnrollment->id,
+            'status' => 'present',
+            'source' => StudentAttendance::SOURCE_QR,
+        ]);
+        $this->assertDatabaseHas('student_attendances', [
+            'student_enrollment_id' => $lateEnrollment->id,
+            'status' => 'permission',
+            'source' => StudentAttendance::SOURCE_MANUAL,
+        ]);
+    }
+
+    public function test_auto_record_is_idempotent_for_partial_sessions(): void
+    {
+        $class = $this->makeStudyClass();
+        $student = $this->makeStudent();
+        $enrollment = $this->enroll($class, $student);
+        $this->enroll($class, $this->makeStudent());
+        $session = $this->makeSession(Carbon::now('Asia/Phnom_Penh'), -30, ['class' => $class]);
+
+        StudentAttendance::create([
+            'study_class_id' => $class->id,
+            'student_enrollment_id' => $enrollment->id,
+            'student_id' => $student->id,
+            'attendance_date' => $session->session_date,
+            'status' => 'present',
+            'source' => StudentAttendance::SOURCE_QR,
+        ]);
+
+        $this->action->handle($session->id);
+        $this->action->handle($session->id);
+
+        $this->assertSame(ClassSession::STATUS_PARTIAL, $session->fresh()->status);
+        $this->assertDatabaseCount('student_attendances', 1);
     }
 
     // ─── Past-end-time session ──────────────────────────────────────────────
 
-    public function test_session_past_its_own_end_time_is_marked_missed_not_recorded(): void
+    public function test_session_past_its_own_end_time_is_moved_to_pre_attendance_not_recorded(): void
     {
         $now = Carbon::parse('2026-08-18 11:00:00', 'Asia/Phnom_Penh');
         Carbon::setTestNow($now);
@@ -220,7 +262,7 @@ class AutoRecordSessionTest extends TestCase
 
         $this->action->handle($session->id);
 
-        $this->assertSame(ClassSession::STATUS_MISSED, $session->fresh()->status);
+        $this->assertSame(ClassSession::STATUS_PRE_ATTENDANCE, $session->fresh()->status);
         $this->assertDatabaseCount('student_attendances', 0);
     }
 

@@ -14,14 +14,14 @@ class CategoryController extends Controller
     {
         // Change: use 'status' instead of 'is_active'
         $categories = Category::with('subCategories')->get();
-        return Inertia::render('backend/courses/Categories', [
+        return Inertia::render('backend/courses/Category/CategoryIndex', [
             'categories' => $categories
         ]);
     }
 
     public function create()
     {
-        return Inertia::render('backend/courses/CategoryForm', [
+        return Inertia::render('backend/courses/Category/CategoryForm', [
             'category' => null
         ]);
     }
@@ -43,7 +43,7 @@ class CategoryController extends Controller
 
     public function edit(Category $category)
     {
-        return Inertia::render('backend/courses/CategoryForm', [
+        return Inertia::render('backend/courses/Category/CategoryForm', [
             'category' => $category
         ]);
     }
@@ -59,6 +59,12 @@ class CategoryController extends Controller
             'name' => $validated['name'],
             'status' => $validated['status'] ?? 'active'  // Change: use 'status'
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => $category->fresh(),
+            ]);
+        }
 
         return redirect()->route('course.categories')->with('success', 'Category updated successfully');
     }

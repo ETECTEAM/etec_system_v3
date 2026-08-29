@@ -1,43 +1,43 @@
 <?php
+
 // app/Modules/Course/CourseController.php
 
 namespace App\Modules\Course;
 
-use App\Models\Course;
+use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\ClassType;
+use App\Models\Course;
 use App\Models\CourseEnrollConfig;
+use App\Models\CourseTrack;
 use App\Models\Schedule;
 use App\Models\SubCategory;
-use App\Models\CourseTrack;
 use App\Modules\Enroll\Queries\GetCourseClassSchedules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-use App\Http\Controllers\Controller;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
 
 class CourseController extends Controller
 {
-
     public function index()
     {
         // Get all courses with relationships
         $courses = Course::with(['track.subCategory.category'])->get();
-        
+
         // Get all data for filters
         $allCategories = Category::where('status', 'active')->get();
         $allSubCategories = SubCategory::where('status', 'active')->get();
         $allTracks = CourseTrack::where('status', 'active')->get();
 
-        return Inertia::render('backend/courses/Courses', [
+        return Inertia::render('backend/courses/Course/CourseIndex', [
             'courses' => $courses,
             'allCategories' => $allCategories,
             'allSubCategories' => $allSubCategories,
-            'allTracks' => $allTracks
+            'allTracks' => $allTracks,
         ]);
     }
 
@@ -47,11 +47,11 @@ class CourseController extends Controller
         $subCategories = SubCategory::where('status', 'active')->get();
         $tracks = CourseTrack::where('status', 'active')->get();
 
-        return Inertia::render('backend/courses/CourseForm', [
+        return Inertia::render('backend/courses/Course/CourseForm', [
             'course' => null,
             'categories' => $categories,
             'subCategories' => $subCategories,
-            'tracks' => $tracks
+            'tracks' => $tracks,
         ]);
     }
 
@@ -63,7 +63,7 @@ class CourseController extends Controller
             'level' => 'nullable|in:beginner,intermediate,advanced',
             'price' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:active,inactive',
-            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         // Handle file upload
@@ -78,16 +78,18 @@ class CourseController extends Controller
             'slug' => Str::slug($validated['title']),
             'level' => $validated['level'] ?? 'beginner',
             'status' => $validated['status'] ?? 'active',
-            'thumbnail' => $thumbnailPath
+            'thumbnail' => $thumbnailPath,
         ]);
 
         // Price lives on CourseEnrollConfig, not the courses table (see the
         // migration that dropped price/document_price from courses). The form's
         // single price input maps to the default schedule's course price.
-        CourseEnrollConfig::query()->updateOrCreate(
-            ['course_id' => $course->id, 'schedule_id' => null, 'time_id' => null],
-            ['course_price' => $validated['price'] ?? 0]
-        );
+        if (array_key_exists('price', $validated)) {
+            CourseEnrollConfig::query()->updateOrCreate(
+                ['course_id' => $course->id, 'schedule_id' => null, 'time_id' => null],
+                ['course_price' => $validated['price'] ?? 0]
+            );
+        }
 
         return redirect()->route('course.courses')->with('success', 'Course created successfully');
     }
@@ -95,8 +97,9 @@ class CourseController extends Controller
     public function show(Course $course)
     {
         $course->load(['track.subCategory.category', 'lessons']);
+
         return Inertia::render('backend/courses/CourseShow', [
-            'course' => $course
+            'course' => $course,
         ]);
     }
 
@@ -108,7 +111,7 @@ class CourseController extends Controller
         $subCategories = SubCategory::where('status', 'active')->get();
         $tracks = CourseTrack::where('status', 'active')->get();
 
-        return Inertia::render('backend/courses/CourseForm', [
+        return Inertia::render('backend/courses/Course/CourseForm', [
             'course' => $course,
             'categories' => $categories,
             'subCategories' => $subCategories,
@@ -162,6 +165,32 @@ class CourseController extends Controller
         ]);
 
         return response()->json(['is_open' => true]);
+    }
+
+    // Set (or clear) how many live classes this course may run in one class-type
+    // + term + time slot. Writes max_classes on the same schedule-scoped row
+    // toggleSchedule() creates, so the slot must already be open. 0 or null =
+    // no limit (stored as null).
+    public function setScheduleMaxClasses(Request $request, Course $course): JsonResponse
+    {
+        $validated = $request->validate([
+            'schedule_id' => ['required', 'integer', 'exists:schedules,id'],
+            'time_id' => ['required', 'integer'],
+            'max_classes' => ['nullable', 'integer', 'min:0', 'max:1000'],
+        ]);
+
+        $config = CourseEnrollConfig::query()
+            ->where('course_id', $course->id)
+            ->where('schedule_id', $validated['schedule_id'])
+            ->where('time_id', $validated['time_id'])
+            ->first();
+
+        abort_unless($config !== null, 422, 'Open this time slot before setting a class limit.');
+
+        // 0 (and null) both mean unlimited.
+        $config->update(['max_classes' => ($validated['max_classes'] ?? 0) ?: null]);
+
+        return response()->json(['max_classes' => $config->max_classes]);
     }
 
     // Bulk counterpart to toggleSchedule() - opens or closes every time slot
@@ -218,11 +247,11 @@ class CourseController extends Controller
     {
         $validated = $request->validate([
             'course_track_id' => 'required|exists:course_tracks,id',
-            'title' => 'required|string|max:255|unique:courses,title,' . $course->id,
+            'title' => 'required|string|max:255|unique:courses,title,'.$course->id,
             'level' => 'nullable|in:beginner,intermediate,advanced',
             'price' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:active,inactive',
-            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         // Handle thumbnail upload
@@ -237,7 +266,7 @@ class CourseController extends Controller
         }
 
         // Remove thumbnail from validated if not uploaded (to keep existing)
-        if (!isset($validated['thumbnail'])) {
+        if (! isset($validated['thumbnail'])) {
             unset($validated['thumbnail']);
         }
 
@@ -247,13 +276,17 @@ class CourseController extends Controller
             'slug' => Str::slug($validated['title']),
             'level' => $validated['level'] ?? 'beginner',
             'status' => $validated['status'] ?? 'active',
-            'thumbnail' => $validated['thumbnail'] ?? $course->thumbnail
+            'thumbnail' => $validated['thumbnail'] ?? $course->thumbnail,
         ]);
 
         CourseEnrollConfig::query()->updateOrCreate(
             ['course_id' => $course->id, 'schedule_id' => null, 'time_id' => null],
             ['course_price' => $validated['price'] ?? 0]
         );
+
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $course->fresh('track.subCategory.category')]);
+        }
 
         return redirect()->route('course.courses')->with('success', 'Course updated successfully');
     }
@@ -266,6 +299,7 @@ class CourseController extends Controller
         }
 
         $course->delete();
+
         return redirect()->route('course.courses')->with('success', 'Course deleted successfully');
     }
 }

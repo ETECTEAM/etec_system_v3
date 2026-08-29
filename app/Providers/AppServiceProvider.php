@@ -73,6 +73,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->ip());
         });
 
+        RateLimiter::for('attendance-qr-submit', function (Request $request): array {
+            $studentId = (string) $request->input('student_id', 'guest');
+            $token = (string) $request->route('token', '');
+
+            return [
+                Limit::perMinute(10)->by('student:'.$studentId.'|token:'.$token),
+                Limit::perMinute(90)->by('ip:'.$request->ip().'|token:'.$token),
+            ];
+        });
+
         Gate::before(function ($user, string $ability): ?bool {
             return $user->hasRole('super_admin') ? true : null;
         });

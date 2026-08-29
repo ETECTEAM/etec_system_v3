@@ -32,6 +32,9 @@ class GetClassList
                 'capacity',
                 'price',
                 'document_price',
+                'attendance_latitude',
+                'attendance_longitude',
+                'attendance_radius_meters',
                 'enrollment_start_date',
                 'start_date',
                 'end_date',
@@ -72,7 +75,7 @@ class GetClassList
     public function forSelect(): array
     {
         return StudyClass::query()
-            ->select(['id', 'title', 'course_id', 'teacher_id', 'term_id', 'time_id', 'capacity'])
+            ->select(['id', 'title', 'course_id', 'teacher_id', 'term_id', 'time_id', 'capacity', 'start_date'])
             ->with([
                 'course:id,title',
                 'teacher:id,name',
@@ -99,6 +102,7 @@ class GetClassList
                     'current_students' => $currentStudents,
                     'capacity' => $capacity,
                     'is_full' => $currentStudents >= $capacity,
+                    'start_date' => $studyClass->start_date?->toDateString(),
                 ];
             })
             ->values()
@@ -158,9 +162,11 @@ class GetClassList
             'capacity' => $capacity,
             'price' => $resolvedPrice,
             'document_price' => $resolvedDocumentPrice,
+            'attendance_latitude' => $studyClass->attendance_latitude !== null ? (float) $studyClass->attendance_latitude : null,
+            'attendance_longitude' => $studyClass->attendance_longitude !== null ? (float) $studyClass->attendance_longitude : null,
+            'attendance_radius_meters' => $studyClass->attendance_radius_meters !== null ? (int) $studyClass->attendance_radius_meters : null,
             'resolved_price' => $resolvedPrice,
             'resolved_document_price' => $resolvedDocumentPrice,
-            'selected_price_type' => $config?->selected_price_type ?? CourseEnrollConfig::PRICE_TYPE_COURSE,
             'enrollment_start_date' => optional($studyClass->enrollment_start_date)->format('Y-m-d'),
             'start_date' => optional($studyClass->start_date)->format('Y-m-d'),
             'end_date' => optional($studyClass->end_date)->format('Y-m-d'),
@@ -172,18 +178,9 @@ class GetClassList
         ];
     }
 
-    // Excludes schedule_id-scoped rows (always $0 - see CourseEnrollConfig::schedule()).
     private function resolveEnrollConfig(StudyClass $studyClass): ?CourseEnrollConfig
     {
-        $query = CourseEnrollConfig::where('course_id', $studyClass->course_id)->whereNull('schedule_id');
-
-        if ($studyClass->time_id !== null) {
-            $query->where('time_id', $studyClass->time_id);
-        } else {
-            $query->whereNull('time_id');
-        }
-
-        return $query->first();
+        return CourseEnrollConfig::forCourseTime($studyClass->course_id, $studyClass->time_id);
     }
 
     private function summary(): array

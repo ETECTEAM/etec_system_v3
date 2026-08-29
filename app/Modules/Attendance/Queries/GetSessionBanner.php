@@ -27,11 +27,16 @@ class GetSessionBanner
         $overrideHours = (int) setting('attendance.auto_record_override_hours', 24);
         $allowOverride = (bool) setting('attendance.auto_record_allow_override', true);
         $deadline = $session->recorded_at ? $session->recorded_at->copy()->addHours($overrideHours) : null;
+        $isPreAttendance = in_array($session->status, [
+            ClassSession::STATUS_PRE_ATTENDANCE,
+            ClassSession::STATUS_PARTIAL,
+        ], true);
 
         return [
             'session_date' => $session->session_date->toDateString(),
             'status' => $session->status,
             'recorded_at' => $session->recorded_at?->format('Y-m-d H:i'),
+            'is_pre_attendance' => $isPreAttendance,
             'can_override' => $session->status === ClassSession::STATUS_AUTO_RECORDED
                 && $allowOverride
                 && $deadline

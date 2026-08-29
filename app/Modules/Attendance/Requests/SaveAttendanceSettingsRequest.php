@@ -22,6 +22,7 @@ class SaveAttendanceSettingsRequest extends FormRequest
             'auto_record_default_status' => ['required', Rule::in(['present', 'pending'])],
             'auto_record_notify_instructor' => ['required', 'boolean'],
             'auto_record_allow_override' => ['required', 'boolean'],
+            'auto_record_allow_track_anytime' => ['required', 'boolean'],
             'auto_record_override_hours' => ['required', 'integer', 'min:1'],
         ];
     }

@@ -105,42 +105,39 @@
                                     {{ (currentPage - 1) * perPage + index + 1 }}
                                 </TableCell>
                                 <TableCell>
-                                    <p class="text-sm font-medium text-slate-900 dark:text-gray-100">{{ lesson.title }}</p>
-                                    <p v-if="lesson.description" class="max-w-xs truncate text-xs text-slate-500 dark:text-gray-400">{{ lesson.description }}</p>
+                                    <input type="text" :value="lesson.title" :disabled="savingId === lesson.id" class="w-full min-w-0 rounded-lg border border-transparent bg-transparent -ml-2 px-2 py-1 text-sm font-semibold text-slate-900 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20" @change="saveLessonField(lesson, 'title', $event.target.value.trim())">
                                 </TableCell>
                                 <TableCell>
-                                    <span class="text-sm text-slate-600 dark:text-gray-300">{{ lesson.course?.title }}</span>
+                                    <select :value="lesson.course_id" :disabled="savingId === lesson.id" class="w-full max-w-[200px] min-w-[120px] rounded-lg border border-transparent bg-transparent -ml-2 px-2 py-1 text-sm font-medium text-slate-700 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20" @change="saveLessonField(lesson, 'course_id', parseInt($event.target.value))">
+                                        <option v-for="course in allCourses" :key="course.id" :value="course.id">{{ course.title }}</option>
+                                    </select>
                                 </TableCell>
                                 <TableCell>
-                                    <span class="text-sm text-slate-600 dark:text-gray-300">{{ lesson.order_number || 0 }}</span>
+                                    <input type="number" :value="lesson.order_number || 0" :disabled="savingId === lesson.id" class="w-20 rounded-lg border border-transparent bg-transparent -ml-2 px-2 py-1 text-sm font-medium text-slate-700 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20" @change="saveLessonField(lesson, 'order_number', parseInt($event.target.value))">
                                 </TableCell>
                                 <TableCell>
-                                    <span class="text-sm text-slate-600 dark:text-gray-300">{{ lesson.duration || 0 }} {{ $t('min') }}</span>
+                                    <div class="flex items-center -ml-2">
+                                        <input type="number" :value="lesson.duration || 0" :disabled="savingId === lesson.id" class="w-16 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-medium text-slate-700 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 text-right dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20" @change="saveLessonField(lesson, 'duration', parseInt($event.target.value))">
+                                        <span class="ml-1 text-sm text-slate-500">{{ $t('min') }}</span>
+                                    </div>
                                 </TableCell>
                                 <TableCell>
-                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="lesson.status === 'active' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'">
-                                        {{ lesson.status === 'active' ? $t('Active') : $t('Inactive') }}
-                                    </span>
+                                    <select :value="lesson.status" :disabled="savingId === lesson.id" :class="[
+                                        'w-full max-w-[120px] rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-medium transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20',
+                                        lesson.status === 'active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-gray-400'
+                                    ]" @change="saveLessonField(lesson, 'status', $event.target.value)">
+                                        <option value="active">{{ $t('Active') }}</option>
+                                        <option value="inactive">{{ $t('Inactive') }}</option>
+                                    </select>
                                 </TableCell>
                                 <TableCell class="text-right">
                                     <div class="flex justify-end gap-2">
-                                        <Link
-                                            :href="`/dashboard/course/lessons/${lesson.id}/edit`"
-                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
-                                            :title="$t('Edit')"
-                                            :aria-label="$t('Edit lesson')"
-                                        >
-                                            <Pencil class="h-4 w-4" />
-                                        </Link>
-
                                         <button
                                             type="button"
-                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
-                                            :title="$t('Delete')"
-                                            :aria-label="$t('Delete lesson')"
+                                            class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
                                             @click="confirmDelete(lesson)"
                                         >
-                                            <Trash2 class="h-4 w-4" />
+                                            {{ $t('Delete') }}
                                         </button>
                                     </div>
                                 </TableCell>
@@ -232,6 +229,7 @@
 </template>
 
 <script setup>
+import axios from 'axios';
 import { ref, computed, watch } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import { Pencil, Search, Trash2 } from '@lucide/vue';
@@ -241,6 +239,11 @@ import { PageHero } from '@/components/ui/page-hero';
 import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Pagination } from '@/components/ui/pagination';
 import { SelectSearch } from '@/components/ui/select-search';
+import { useI18n } from '@/i18n';
+import { useToast } from 'vue-toastification';
+
+const { t } = useI18n();
+const toast = useToast();
 
 const props = defineProps({
     lessons: {
@@ -259,6 +262,7 @@ const filters = ref({
     course_id: '',
     status: ''
 });
+const savingId = ref(null);
 
 // Pagination
 const currentPage = ref(1);
@@ -368,6 +372,31 @@ const resetFilters = () => {
         status: ''
     };
 };
+
+async function saveLessonField(lesson, field, value) {
+    const previous = lesson[field];
+    if (value === previous || savingId.value !== null) return;
+    savingId.value = lesson.id;
+    try {
+        const response = await axios.put(`/dashboard/course/lessons/${lesson.id}`, {
+            course_id: field === 'course_id' ? value : lesson.course_id,
+            title: field === 'title' ? value : lesson.title,
+            description: lesson.description,
+            content: lesson.content,
+            video_url: lesson.video_url,
+            duration: field === 'duration' ? value : (lesson.duration ?? 0),
+            order_number: field === 'order_number' ? value : lesson.order_number,
+            status: field === 'status' ? value : lesson.status,
+        });
+        Object.assign(lesson, response.data.data ?? { [field]: value });
+        toast.success(t('Lesson updated.'));
+    } catch (error) {
+        lesson[field] = previous;
+        toast.error(t(error.response?.data?.message ?? 'Failed to update lesson. Please try again.'));
+    } finally {
+        savingId.value = null;
+    }
+}
 
 const showDeleteModal = ref(false);
 const deleteItem = ref(null);

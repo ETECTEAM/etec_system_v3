@@ -2,14 +2,7 @@
     <DashboardLayout>
         <div class="w-full">
 
-            <!-- Breadcrumb -->
-            <nav class="flex items-center gap-1.5 text-sm text-slate-400 dark:text-gray-500 mb-4">
-                <span>{{ $t('Dashboard') }}</span>
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-                <span class="text-slate-600 dark:text-gray-300 font-medium">{{ $t('Courses') }}</span>
-            </nav>
+            <Breadcrumbs :items="breadcrumbItems" />
 
             <PageHero
                 eyebrow="Course Management"
@@ -32,36 +25,30 @@
 
             <Card padding="p-0">
                 <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
-                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div class="min-w-0 shrink-0">
-                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-gray-500">{{ $t('Course Directory') }}</p>
-                            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t('Read, create, update, and delete course records') }}</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-center w-full">
+                        <div class="col-span-1">
+                            <input
+                                v-model="filters.search"
+                                type="text"
+                                :placeholder="$t('Search courses...')"
+                                class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+                                @input="applyFilters"
+                            >
                         </div>
-
-                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
-                            <div class="relative">
-                                <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
-                                <input
-                                    v-model="filters.search"
-                                    type="text"
-                                    :placeholder="$t('Search courses...')"
-                                    class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:w-56 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                                    @input="applyFilters"
-                                >
-                            </div>
-
+                        <div class="col-span-1 sm:col-start-2 md:col-start-3 flex justify-end">
                             <Link
                                 href="/dashboard/course/courses/create"
-                                class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+                                class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
                             >
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                                {{ $t('Course') }}
+                                {{ $t('Create Course') }}
                             </Link>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Filters -->
-                    <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-gray-800">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                         <SelectSearch
                             v-model="filters.category_id"
                             :options="categoryOptions"
@@ -98,10 +85,8 @@
                         <TableHeader>
                             <TableRow>
                                 <TableHead class="w-16">{{ $t('No') }}</TableHead>
-                                <TableHead>{{ $t('Title') }}</TableHead>
-                                <TableHead>{{ $t('Category') }}</TableHead>
-                                <TableHead>{{ $t('Sub Category') }}</TableHead>
-                                <TableHead>{{ $t('Track') }}</TableHead>
+                                <TableHead class="w-2/5">{{ $t('Course Details') }}</TableHead>
+                                <TableHead>{{ $t('Track Assignment') }}</TableHead>
                                 <TableHead>{{ $t('Status') }}</TableHead>
                                 <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
                             </TableRow>
@@ -112,91 +97,57 @@
                                     {{ (currentPage - 1) * perPage + index + 1 }}
                                 </TableCell>
                                 <TableCell>
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-slate-100 dark:bg-gray-800">
-                                            <img v-if="course.thumbnail" :src="`/storage/${course.thumbnail}`" :alt="course.title"
-                                                class="h-full w-full object-cover" @error="handleImageError">
-                                            <div v-else class="flex h-full w-full items-center justify-center text-slate-400 dark:text-gray-500">
-                                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <p class="truncate text-sm font-medium text-slate-900 dark:text-gray-100">{{ course.title }}</p>
-                                            <p class="truncate text-xs text-slate-500 dark:text-gray-400">{{ course.slug }}</p>
+                                    <div class="min-w-0">
+                                        <input type="text" :value="course.title" :disabled="savingId === course.id" class="w-full min-w-0 rounded-lg border border-transparent bg-transparent -ml-2 px-2 py-1 text-sm font-semibold text-slate-900 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20" @change="saveCourseField(course, 'title', $event.target.value.trim())">
+                                        <div class="mt-0.5 flex flex-wrap items-center gap-1.5">
+                                            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-gray-800 dark:text-gray-300">
+                                                {{ course.track?.sub_category?.category?.name || $t('No Category') }}
+                                            </span>
+                                            <span class="text-slate-300 dark:text-gray-600">›</span>
+                                            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-gray-800 dark:text-gray-300">
+                                                {{ course.track?.sub_category?.name || $t('No Sub Category') }}
+                                            </span>
                                         </div>
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <span class="text-sm text-slate-600 dark:text-gray-300">{{ course.track?.sub_category?.category?.name || $t('N/A') }}</span>
+                                    <select :value="course.course_track_id" :disabled="savingId === course.id" class="w-full max-w-xs rounded-xl border border-transparent bg-transparent px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20" @change="saveCourseField(course, 'course_track_id', parseInt($event.target.value))">
+                                        <optgroup v-for="group in groupedTracks" :key="group.label" :label="group.label">
+                                            <option v-for="t in group.tracks" :key="t.id" :value="t.id">{{ t.name }}</option>
+                                        </optgroup>
+                                    </select>
                                 </TableCell>
                                 <TableCell>
-                                    <span class="text-sm text-slate-600 dark:text-gray-300">{{ course.track?.sub_category?.name || $t('N/A') }}</span>
-                                </TableCell>
-                                <TableCell>
-                                    <span class="text-sm text-slate-600 dark:text-gray-300">{{ course.track?.name || $t('N/A') }}</span>
-                                </TableCell>
-                                <TableCell>
-                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="course.status === 'active' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'">
-                                        {{ course.status === 'active' ? $t('Active') : $t('Inactive') }}
-                                    </span>
+                                    <select :value="course.status" :disabled="savingId === course.id" :class="[
+                                        'w-full max-w-[120px] rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-medium transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20',
+                                        course.status === 'active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-gray-400'
+                                    ]" @change="saveCourseField(course, 'status', $event.target.value)">
+                                        <option value="active">{{ $t('Active') }}</option>
+                                        <option value="inactive">{{ $t('Inactive') }}</option>
+                                    </select>
                                 </TableCell>
                                 <TableCell class="text-right">
                                     <div class="flex justify-end gap-2">
                                         <Link
                                             :href="`/dashboard/course/courses/${course.id}/edit`"
-                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
-                                            :title="$t('Edit')"
-                                            :aria-label="$t('Edit course')"
+                                            class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
                                         >
-                                            <Pencil class="h-4 w-4" />
+                                            {{ $t('Edit') }}
                                         </Link>
-
                                         <button
                                             type="button"
-                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
-                                            :title="$t('Delete')"
-                                            :aria-label="$t('Delete course')"
+                                            class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
                                             @click="confirmDelete(course)"
                                         >
-                                            <Trash2 class="h-4 w-4" />
+                                            {{ $t('Delete') }}
                                         </button>
                                     </div>
                                 </TableCell>
                             </TableRow>
 
-                            <!-- Empty state: no courses exist at all -->
-                            <TableRow v-if="paginatedCourses.length === 0 && courses.length === 0">
-                                <TableCell colspan="7" class="px-4 py-16 text-center">
-                                    <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s4.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                    </svg>
-                                    <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No courses yet') }}</p>
-                                    <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ $t('Create your first course to get started') }}</p>
-                                    <Link href="/dashboard/course/courses/create"
-                                        class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                                        + {{ $t('Course') }}
-                                    </Link>
-                                </TableCell>
-                            </TableRow>
-
-                            <!-- Empty state: filters found nothing -->
-                            <TableRow v-else-if="paginatedCourses.length === 0">
-                                <TableCell colspan="7" class="px-4 py-16 text-center">
-                                    <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                    <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No courses match your filters') }}</p>
-                                    <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ $t('Try adjusting or clearing your filters') }}</p>
-                                    <button @click="resetFilters"
-                                        class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                                        {{ $t('Reset Filters') }}
-                                    </button>
+                            <TableRow v-if="paginatedCourses.length === 0">
+                                <TableCell colspan="5" class="py-16 text-center">
+                                    {{ $t('No courses found.') }}
                                 </TableCell>
                             </TableRow>
                         </TableBody>
@@ -204,10 +155,10 @@
                 </div>
 
                 <!-- Pagination -->
-                <div v-if="filteredCourses.length > 0"
+                <div
                     class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
                     <p class="text-sm text-slate-500 dark:text-gray-400">
-                        {{ $t('Showing :from to :to of :total courses', { from: rangeStart, to: rangeEnd, total: filteredCourses.length }) }}
+                        {{ $t('Showing :from-:to of :total courses', { from: rangeStart, to: rangeEnd, total: filteredCourses.length }) }}
                     </p>
 
                     <Pagination
@@ -254,15 +205,27 @@
 </template>
 
 <script setup>
+import axios from 'axios';
 import { ref, computed, watch } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
-import { Pencil, Search, Trash2 } from '@lucide/vue';
+import { Pencil, Trash2 } from '@lucide/vue';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Card } from '@/components/ui/card';
 import { PageHero } from '@/components/ui/page-hero';
 import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Pagination } from '@/components/ui/pagination';
 import { SelectSearch } from '@/components/ui/select-search';
+import { useI18n } from '@/i18n';
+import { useToast } from 'vue-toastification';
+
+const { t } = useI18n();
+const toast = useToast();
+
+const breadcrumbItems = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Courses', current: true },
+];
 
 const props = defineProps({
     courses: {
@@ -290,6 +253,7 @@ const filters = ref({
     sub_category_id: '',
     track_id: ''
 });
+const savingId = ref(null);
 
 // Check if any filters are active
 const hasActiveFilters = computed(() => {
@@ -390,6 +354,18 @@ const trackOptions = computed(() => [
     ...filteredTracks.value.map(track => ({ label: track.name, value: String(track.id) }))
 ]);
 
+// Group tracks by Category > SubCategory for the select dropdown
+const groupedTracks = computed(() => {
+    return props.allSubCategories.map(sub => {
+        const cat = props.allCategories.find(c => c.id === sub.category_id);
+        const tracks = props.allTracks.filter(t => t.sub_category_id === sub.id);
+        return {
+            label: `${cat?.name || 'Unknown'} — ${sub.name}`,
+            tracks
+        };
+    }).filter(group => group.tracks.length > 0);
+});
+
 // Apply filters
 const applyFilters = () => {
     let filtered = [...props.courses];
@@ -454,6 +430,30 @@ const resetFilters = () => {
         track_id: ''
     };
 };
+
+async function saveCourseField(course, field, value) {
+    const previous = course[field];
+    if (value === previous || savingId.value !== null) return;
+    savingId.value = course.id;
+    try {
+        const response = await axios.put(`/dashboard/course/courses/${course.id}`, {
+            course_track_id: field === 'course_track_id' ? value : course.course_track_id,
+            title: field === 'title' ? value : course.title,
+            level: course.level,
+            price: course.price ?? 0,
+            status: field === 'status' ? value : course.status,
+        });
+        Object.assign(course, response.data.data ?? { [field]: value });
+        course.temp_category_id = null;
+        course.temp_sub_category_id = null;
+        toast.success(t('Course updated.'));
+    } catch (error) {
+        course[field] = previous;
+        toast.error(t(error.response?.data?.message ?? 'Failed to update course. Please try again.'));
+    } finally {
+        savingId.value = null;
+    }
+}
 
 const showDeleteModal = ref(false);
 const deleteItem = ref(null);

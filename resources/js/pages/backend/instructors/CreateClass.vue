@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -9,22 +9,25 @@ import { SelectSearch } from '@/components/ui/select-search';
 const props = defineProps({
   courses: Array,
   lessons: Array,
-  terms: Array,
-  times: Array,
   rooms: Array,
-  classTypes: Array,
+  // Class Type -> Term -> Time, already narrowed to the slots this instructor
+  // is free for (see InstructorClassService::formOptions).
+  scheduleGroups: { type: Array, default: () => [] },
 });
 
 const form = useForm({
   title: '',
   course_id: '',
   lesson_id: '',
+  class_type_id: '',
   term_id: '',
   time_id: '',
   room_id: '',
-  class_type_id: '',
   capacity: 20,
   status: 'upcoming',
+  attendance_latitude: '',
+  attendance_longitude: '',
+  attendance_radius_meters: '',
 });
 
 const breadcrumbItems = [
@@ -32,19 +35,59 @@ const breadcrumbItems = [
   { label: 'Create Class', current: true },
 ];
 
-const optionLabel = (item) => {
-  return item?.name || item?.title || item?.term_name || item?.time_name || item?.room_number || item?.type_name || 'Unknown';
-};
+const optionLabel = (item) =>
+  item?.name || item?.title || item?.room_number || 'Unknown';
 
 const toOptions = (items, valueKey = 'id') =>
   (items || []).map((item) => ({ label: optionLabel(item), value: String(item[valueKey]) }));
 
 const courseOptions = computed(() => toOptions(props.courses));
 const lessonOptions = computed(() => toOptions(props.lessons));
-const termOptions = computed(() => toOptions(props.terms));
-const timeOptions = computed(() => toOptions(props.times));
 const roomOptions = computed(() => toOptions(props.rooms));
-const classTypeOptions = computed(() => toOptions(props.classTypes, 'class_type_id'));
+
+// --- Class Type -> Term -> Time cascade, sourced from scheduleGroups ---
+const classTypeOptions = computed(() =>
+  props.scheduleGroups.map((group) => ({
+    label: group.class_type_name,
+    value: String(group.class_type_id),
+  })),
+);
+
+const selectedGroup = computed(() =>
+  props.scheduleGroups.find((group) => String(group.class_type_id) === String(form.class_type_id)),
+);
+
+const termOptions = computed(() =>
+  (selectedGroup.value?.schedules ?? []).map((schedule) => ({
+    label: schedule.term_name,
+    value: String(schedule.term_id),
+  })),
+);
+
+const selectedSchedule = computed(() =>
+  (selectedGroup.value?.schedules ?? []).find(
+    (schedule) => String(schedule.term_id) === String(form.term_id),
+  ),
+);
+
+const timeOptions = computed(() =>
+  (selectedSchedule.value?.times ?? []).map((time) => ({
+    label: time.time_name,
+    value: String(time.id),
+  })),
+);
+
+const noSlots = computed(() => props.scheduleGroups.length === 0);
+
+// Changing a parent clears its children — the child's valid options come from
+// the newly selected parent.
+watch(() => form.class_type_id, () => {
+  form.term_id = '';
+  form.time_id = '';
+});
+watch(() => form.term_id, () => {
+  form.time_id = '';
+});
 
 const statusOptions = [
   { label: 'Upcoming', value: 'upcoming' },
@@ -73,6 +116,13 @@ const submit = () => {
       />
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
+        <p
+          v-if="noSlots"
+          class="mb-6 rounded-xl border border-dashed border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300"
+        >
+          {{ $t('You have no available schedule slots. Set your working hours under Busy Time, or ask an admin to update your availability.') }}
+        </p>
+
         <form @submit.prevent="submit" class="grid gap-6 lg:grid-cols-2">
           <label class="block lg:col-span-2">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Title') }}</span>
@@ -107,11 +157,23 @@ const submit = () => {
           </label>
 
           <label class="block">
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Class Type') }}</span>
+            <SelectSearch
+              v-model="form.class_type_id"
+              :options="classTypeOptions"
+              :placeholder="$t('Select class type')"
+              :button-class="selectClass"
+            />
+            <span v-if="form.errors.class_type_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.class_type_id }}</span>
+          </label>
+
+          <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Term') }}</span>
             <SelectSearch
               v-model="form.term_id"
               :options="termOptions"
-              :placeholder="$t('Select term')"
+              :disabled="!form.class_type_id"
+              :placeholder="form.class_type_id ? $t('Select term') : $t('Select class type first')"
               :button-class="selectClass"
             />
             <span v-if="form.errors.term_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.term_id }}</span>
@@ -122,7 +184,8 @@ const submit = () => {
             <SelectSearch
               v-model="form.time_id"
               :options="timeOptions"
-              :placeholder="$t('Select time')"
+              :disabled="!form.term_id"
+              :placeholder="form.term_id ? $t('Select time') : $t('Select term first')"
               :button-class="selectClass"
             />
             <span v-if="form.errors.time_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.time_id }}</span>
@@ -140,21 +203,10 @@ const submit = () => {
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Class Type') }}</span>
-            <SelectSearch
-              v-model="form.class_type_id"
-              :options="classTypeOptions"
-              :placeholder="$t('Select class type')"
-              :button-class="selectClass"
-            />
-            <span v-if="form.errors.class_type_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.class_type_id }}</span>
-          </label>
-
-          <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Capacity') }}</span>
             <input
               type="number"
-              min="0"
+              min="1"
               v-model="form.capacity"
               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             />
@@ -181,7 +233,7 @@ const submit = () => {
             </Link>
             <button
               type="submit"
-              :disabled="form.processing"
+              :disabled="form.processing || noSlots"
               class="rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
               {{ form.processing ? $t('Saving...') : $t('Save Class') }}

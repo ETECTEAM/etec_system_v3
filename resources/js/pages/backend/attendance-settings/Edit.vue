@@ -26,6 +26,7 @@ const form = useForm({
   auto_record_default_status: props.settings.defaultStatus,
   auto_record_notify_instructor: props.settings.notifyInstructor,
   auto_record_allow_override: props.settings.allowOverride,
+  auto_record_allow_track_anytime: props.settings.allowTrackAnytime,
   auto_record_override_hours: props.settings.overrideHours,
 })
 
@@ -91,7 +92,6 @@ const breadcrumbItems = [
       <PageHero
         eyebrow="Attendance"
         :title="$t('Auto-Record Attendance')"
-        :description="$t('Configure whether attendance is recorded automatically when an instructor forgets to submit it.')"
       />
 
       <div class="grid gap-6 lg:grid-cols-3">
@@ -153,6 +153,25 @@ const breadcrumbItems = [
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form @submit.prevent="submit">
+          <div class="mb-8">
+            <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-rose-200 bg-rose-50/70 px-4 py-3.5 transition hover:border-rose-300 dark:border-rose-500/20 dark:bg-rose-500/10 dark:hover:border-rose-500/40">
+              <span class="flex items-center gap-3">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-rose-700 dark:bg-gray-950/50 dark:text-rose-400">
+                  <ShieldAlert class="h-4 w-4" />
+                </span>
+                <span>
+                  <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ $t('Allow tracking anytime') }}</span>
+                  <span class="block text-xs text-slate-500 dark:text-gray-400">{{ $t('Lets instructors track attendance outside the scheduled session window.') }}</span>
+                </span>
+              </span>
+              <span class="relative inline-flex items-center">
+                <input v-model="form.auto_record_allow_track_anytime" type="checkbox" class="peer sr-only">
+                <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-blue-900 dark:bg-gray-600 dark:peer-checked:bg-blue-600"></span>
+                <span class="absolute left-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5"></span>
+              </span>
+            </label>
+          </div>
+
           <div class="space-y-8 transition" :class="{ 'pointer-events-none opacity-40': !form.auto_record_enabled }">
             <div>
               <div class="flex items-center gap-3">

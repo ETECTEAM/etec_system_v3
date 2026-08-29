@@ -22,6 +22,7 @@ use App\Modules\Enroll\Actions\UpdatePublicRegistrationDetails;
 use App\Modules\Enroll\Actions\UpdateStudyClass;
 use App\Modules\Enroll\Queries\GetClassDetails;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
+use App\Modules\Enroll\Queries\GetCourseClassSchedules;
 use App\Modules\Enroll\Queries\GetClassList;
 use App\Modules\Enroll\Queries\GetPublicRegistrations;
 use App\Modules\Enroll\Requests\EnrollStudentRequest;
@@ -32,6 +33,7 @@ use App\Modules\Enroll\Requests\SaveStudyClassRequest;
 use App\Modules\Enroll\Requests\ShareClassInstructorRequest;
 use App\Modules\Enroll\Requests\StoreClassStudentRequest;
 use App\Modules\Enroll\Requests\UpdatePublicRegistrationRequest;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
 use Illuminate\Http\JsonResponse;
@@ -88,7 +90,7 @@ class EnrollmentClassController extends Controller
     public function create(GetClassFormOptions $options): Response
     {
         return Inertia::render('backend/students/CreateClass', [
-            'options' => $options->handle(),
+            'options' => $this->scopeScheduleOptionsToInstructor($options->handle()),
         ]);
     }
 
@@ -146,7 +148,7 @@ class EnrollmentClassController extends Controller
                 'id' => $studyClass->id,
                 ...$this->presentClassData($studyClass),
             ],
-            'options' => $options->handle($studyClass),
+            'options' => $this->scopeScheduleOptionsToInstructor($options->handle($studyClass), $studyClass->id),
         ]);
     }
 
@@ -168,7 +170,7 @@ class EnrollmentClassController extends Controller
 
         return Inertia::render('backend/students/CreateClass', [
             'classData' => $this->presentClassData($studyClass),
-            'options' => $options->handle($studyClass),
+            'options' => $this->scopeScheduleOptionsToInstructor($options->handle($studyClass)),
         ]);
     }
 
@@ -196,12 +198,87 @@ class EnrollmentClassController extends Controller
         ]);
     }
 
-    public function createRegisteredStudent(GetClassFormOptions $options): Response
+    public function createRegisteredStudent(GetCourseClassSchedules $courseSchedules): Response
     {
+        // Only courses with a Class Schedule slot turned ON in Enroll Config (see
+        // Course::scopeEnrollmentOpen).
+        $courses = Course::query()->enrollmentOpen()->select('id', 'title')->orderBy('title')->get();
+
+        $schedulesByCourse = $courseSchedules->handleMany($courses->pluck('id'));
+
+        // Course-wide pricing rows (the "Enrollment & Pricing" card on Enroll
+        // Config) keyed by course, so the form's Price / Document Price fields
+        // are filled from config rather than typed.
+        $pricing = CourseEnrollConfig::query()
+            ->whereIn('course_id', $courses->pluck('id'))
+            ->whereNull('schedule_id')
+            ->whereNull('time_id')
+            ->get()
+            ->keyBy('course_id');
+
         return Inertia::render('backend/students/RegisterStudent', [
-            'courses' => Course::query()->select('id', 'title')->orderBy('title')->get(),
-            'scheduleGroups' => $options->scheduleGroups(),
+            // Each course carries only its own enabled class-type / term / time
+            // slots, so the form's Class Type -> Term -> Time cascade offers
+            // exactly what's enrollable for the picked course.
+            'courses' => $courses->map(function (Course $course) use ($pricing, $schedulesByCourse): array {
+                $config = $pricing->get($course->id);
+
+                return [
+                    'id' => $course->id,
+                    'title' => $course->title,
+                    // Course Price is the charged fee; Unit Price rides along as a
+                    // reference figure for the receipt breakdown.
+                    'price' => (float) ($config?->resolvedPrice() ?? 0),
+                    'unit_price' => (float) ($config?->unit_price ?? 0),
+                    'course_price' => (float) ($config?->course_price ?? 0),
+                    'document_price' => (float) ($config?->document_price ?? 0),
+                    'class_schedules' => $this->enabledSchedulesOnly($schedulesByCourse[$course->id] ?? []),
+                ];
+            })->all(),
         ]);
+    }
+
+    /**
+     * Prunes GetCourseClassSchedules output to only what's toggled ON: class
+     * types with an open time, terms with an open time, and only those times.
+     *
+     * @param  array<int, array<string, mixed>>  $classSchedules
+     * @return array<int, array<string, mixed>>
+     */
+    private function enabledSchedulesOnly(array $classSchedules): array
+    {
+        return collect($classSchedules)
+            ->map(function (array $classType): array {
+                $terms = collect($classType['terms'] ?? [])
+                    ->map(function (array $term): array {
+                        $times = collect($term['times'] ?? [])
+                            ->filter(fn (array $time): bool => (bool) ($time['is_open'] ?? false))
+                            ->map(fn (array $time): array => [
+                                'time_id' => $time['time_id'],
+                                'time_name' => $time['time_name'],
+                            ])
+                            ->values()
+                            ->all();
+
+                        return [
+                            'term_id' => $term['term_id'],
+                            'term_name' => $term['term_name'],
+                            'times' => $times,
+                        ];
+                    })
+                    ->filter(fn (array $term): bool => $term['times'] !== [])
+                    ->values()
+                    ->all();
+
+                return [
+                    'class_type_id' => $classType['class_type_id'],
+                    'class_type_name' => $classType['class_type_name'],
+                    'terms' => $terms,
+                ];
+            })
+            ->filter(fn (array $classType): bool => $classType['terms'] !== [])
+            ->values()
+            ->all();
     }
 
     public function storeRegisteredStudent(
@@ -515,6 +592,9 @@ class EnrollmentClassController extends Controller
             'capacity' => $studyClass->capacity,
             'price' => $resolvedPrice,
             'document_price' => $resolvedDocumentPrice,
+            'attendance_latitude' => $studyClass->attendance_latitude !== null ? (float) $studyClass->attendance_latitude : null,
+            'attendance_longitude' => $studyClass->attendance_longitude !== null ? (float) $studyClass->attendance_longitude : null,
+            'attendance_radius_meters' => $studyClass->attendance_radius_meters !== null ? (int) $studyClass->attendance_radius_meters : null,
             'enrollment_start_date' => $studyClass->enrollment_start_date?->format('Y-m-d'),
             'start_date' => $studyClass->start_date?->format('Y-m-d'),
             'end_date' => $studyClass->end_date?->format('Y-m-d'),
@@ -523,15 +603,7 @@ class EnrollmentClassController extends Controller
 
     private function resolveEnrollConfig(StudyClass $studyClass): ?\App\Models\CourseEnrollConfig
     {
-        $query = \App\Models\CourseEnrollConfig::where('course_id', $studyClass->course_id);
-
-        if ($studyClass->time_id !== null) {
-            $query->where('time_id', $studyClass->time_id);
-        } else {
-            $query->whereNull('time_id');
-        }
-
-        return $query->first();
+        return \App\Models\CourseEnrollConfig::forCourseTime($studyClass->course_id, $studyClass->time_id);
     }
 
     private function approvePendingEnrollment(StudentEnrollment $enrollment, StudentRegistrationService $registrations): void
@@ -593,6 +665,33 @@ class EnrollmentClassController extends Controller
         return $user !== null
             && $user->hasRole('instructor')
             && ! $user->hasAnyRole(['admin', 'super_admin']);
+    }
+
+    /**
+     * When a self-managing instructor opens the class form, narrow its schedule
+     * picker (scheduleGroups) to only the term/time slots they can actually be
+     * assigned to — inside an availability window, not manually blocked, not
+     * overlapping a class they already teach. Admins keep the full list: they
+     * choose the teacher, and CreateStudyClass / SaveStudyClassRequest still
+     * validate the final pick. $exceptClassId skips the class being edited so
+     * its own current slot stays selectable.
+     *
+     * @param  array<string, mixed>  $optionsData
+     * @return array<string, mixed>
+     */
+    private function scopeScheduleOptionsToInstructor(array $optionsData, ?int $exceptClassId = null): array
+    {
+        if (! $this->isSelfManagingInstructor()) {
+            return $optionsData;
+        }
+
+        $optionsData['scheduleGroups'] = app(InstructorAssignmentAvailability::class)->filterScheduleGroups(
+            (int) auth()->id(),
+            $optionsData['scheduleGroups'] ?? [],
+            $exceptClassId,
+        );
+
+        return $optionsData;
     }
 
     /**

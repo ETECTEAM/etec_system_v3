@@ -25,6 +25,7 @@
     "km": "Khmer"
   },
   "navigation": {
+    "accessLocations": "Location Lock",
     "accountSecurity": "Account Security",
     "attendanceSettings": "Attendance Settings",
     "blockedAccounts": "Blocked Accounts",
@@ -37,6 +38,10 @@
     "courseManagement": "Course Management",
     "courses": "Courses",
     "dashboard": "Dashboard",
+    "certificate": "Certificate",
+    "certificateFree": "Free Certificate",
+    "certificateNormal": "Regular Certificate",
+    "certificateMeal": "Meal Certificate",
     "enrollConfig": "Enroll Config",
     "enrollManagement": "Enrollment Management",
     "floors": "Floors",

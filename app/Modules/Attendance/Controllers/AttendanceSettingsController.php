@@ -28,6 +28,7 @@ class AttendanceSettingsController extends Controller
                 'defaultStatus' => $this->stringValue($rows, 'default_status', 'present'),
                 'notifyInstructor' => $this->boolValue($rows, 'notify_instructor', true),
                 'allowOverride' => $this->boolValue($rows, 'allow_override', true),
+                'allowTrackAnytime' => $this->boolValue($rows, 'allow_track_anytime', false),
                 'overrideHours' => $this->numValue($rows, 'override_hours', 24),
             ],
             'shortestClassDurationMinutes' => $shortestDuration->handle(),
@@ -45,10 +46,16 @@ class AttendanceSettingsController extends Controller
         // $field is already "auto_record_..." (matches the request's own field names,
         // not the short suffix edit()'s read helpers use) - KEY_PREFIX doesn't apply here.
         foreach ($validated as $field => $value) {
-            GradingSetting::query()->where('key', 'attendance.'.$field)->first()?->update([
-                'value' => is_bool($value) ? ($value ? 'true' : 'false') : (string) $value,
-                'updated_by' => $request->user()->id,
-            ]);
+            GradingSetting::query()->updateOrCreate(
+                ['key' => 'attendance.'.$field],
+                [
+                    'value' => is_bool($value) ? ($value ? 'true' : 'false') : (string) $value,
+                    'type' => is_bool($value) ? 'boolean' : (is_int($value) ? 'number' : 'string'),
+                    'label' => str($field)->replace('auto_record_', '')->replace('_', ' ')->title()->toString(),
+                    'group' => 'attendance',
+                    'updated_by' => $request->user()->id,
+                ],
+            );
         }
 
         return redirect()->route('attendance-settings.edit')

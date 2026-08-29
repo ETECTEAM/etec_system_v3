@@ -85,6 +85,12 @@ class GetPublicRegistrations
             'class_id' => $enrollment->study_class_id,
             'class_title' => $enrollment->studyClass?->title ?? '-',
             'course_title' => $enrollment->studyClass?->course?->title ?? $enrollment->course?->title,
+            // The class's term name verbatim ("Mon & Thu"), shown as-is rather
+            // than the weekday range parseTermDays() expands it into - the
+            // receipt-only terms ("Mon & Thu", "Sat & Sun") otherwise print a
+            // whole span like "Mon & Tue & Wed & Thu" until an instructor
+            // narrows the term.
+            'term_name' => $enrollment->studyClass?->term?->term_name,
             // Only meaningful while there's no class yet - what the student
             // asked for at registration time (see the course_title fallback
             // above). A class's real schedule is shown via study_days/

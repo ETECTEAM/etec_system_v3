@@ -154,14 +154,18 @@
                     </div>
                 </div>
 
-                <div class="mt-8 flex items-center justify-end gap-3 border-t border-slate-200 pt-6 dark:border-gray-800">
+                <!-- Divider -->
+                <div class="my-6 border-t border-slate-200 dark:border-gray-800" />
+
+                <!-- Form Actions -->
+                <div class="flex items-center justify-end gap-3">
                     <Link href="/dashboard/course/courses"
-                        class="px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-xl transition border border-slate-200 dark:text-gray-300 dark:hover:bg-gray-800 dark:border-gray-700">
+                        class="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
                         {{ $t('Cancel') }}
                     </Link>
                     <button type="submit" :disabled="form.processing"
-                        class="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2 dark:bg-blue-600 dark:hover:bg-blue-500">
-                        {{ form.processing ? $t('Saving...') : $t('Save Course') }}
+                        class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500">
+                        {{ form.processing ? $t('Saving...') : (course ? $t('Update Course') : $t('Create Course')) }}
                     </button>
                 </div>
             </form>
