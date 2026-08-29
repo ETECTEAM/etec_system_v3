@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()
@@ -16,10 +16,6 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: 'Select...',
-  },
-  searchPlaceholder: {
-    type: String,
-    default: 'Search...',
   },
   emptyText: {
     type: String,
@@ -39,34 +35,15 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
-  // Off when the option list is short enough that a search box is just
-  // clutter (e.g. a 2-option toggle) - the dropdown/keyboard-nav behavior
-  // stays, only the search input itself is hidden.
-  searchable: {
-    type: Boolean,
-    default: true,
-  },
 })
 
 const emit = defineEmits(['update:modelValue'])
 
 const open = ref(false)
-const search = ref('')
 const root = ref(null)
 const panel = ref(null)
 const triggerButton = ref(null)
-const searchInput = ref(null)
 const panelStyle = ref({})
-
-const filteredOptions = computed(() => {
-  const keyword = search.value.trim().toLowerCase()
-
-  if (keyword === '') {
-    return props.options
-  }
-
-  return props.options.filter((option) => t(option.label).toLowerCase().includes(keyword))
-})
 
 const selectedLabel = computed(() => {
   const found = props.options.find((option) => option.value === props.modelValue)
@@ -91,11 +68,19 @@ function updatePanelPosition() {
     return
   }
 
+  const offset = 8
+  const panelHeight = panel.value?.offsetHeight ?? 240
+  const spaceBelow = window.innerHeight - rect.bottom - offset
+  const spaceAbove = rect.top - offset
+  const opensUpward = spaceBelow < panelHeight && spaceAbove > spaceBelow
+
   panelStyle.value = {
     position: 'fixed',
-    top: `${rect.bottom + 8}px`,
     left: `${rect.left}px`,
     width: `${rect.width}px`,
+    ...(opensUpward
+      ? { bottom: `${window.innerHeight - rect.top + offset}px` }
+      : { top: `${rect.bottom + offset}px` }),
   }
 }
 
@@ -107,15 +92,13 @@ async function toggleDropdown() {
   open.value = !open.value
 
   if (open.value) {
-    updatePanelPosition()
     await nextTick()
-    searchInput.value?.focus()
+    updatePanelPosition()
   }
 }
 
 function closeDropdown() {
   open.value = false
-  search.value = ''
 }
 
 function selectOption(option) {
@@ -156,13 +139,6 @@ function handleScroll(event) {
   }
 }
 
-watch(open, async (isOpen) => {
-  if (isOpen) {
-    await nextTick()
-    searchInput.value?.focus()
-  }
-})
-
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick)
   document.addEventListener('keydown', handleEscape)
@@ -200,16 +176,6 @@ onBeforeUnmount(() => {
         :style="panelStyle"
         class="z-[130] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
       >
-        <div v-if="searchable" class="border-b border-slate-200 p-2 dark:border-gray-700">
-          <input
-            ref="searchInput"
-            v-model="search"
-            type="text"
-            :placeholder="t(searchPlaceholder)"
-            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-          >
-        </div>
-
         <div class="max-h-48 overflow-y-auto py-1">
           <button
             v-if="clearable && modelValue !== ''"
@@ -221,7 +187,7 @@ onBeforeUnmount(() => {
           </button>
 
           <button
-            v-for="option in filteredOptions"
+            v-for="option in options"
             :key="option.value"
             type="button"
             class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
@@ -231,7 +197,7 @@ onBeforeUnmount(() => {
             <span v-if="option.value === modelValue" class="text-blue-600 dark:text-blue-400">✓</span>
           </button>
 
-          <div v-if="filteredOptions.length === 0" class="px-4 py-3 text-sm text-slate-400 dark:text-gray-500">
+          <div v-if="options.length === 0" class="px-4 py-3 text-sm text-slate-400 dark:text-gray-500">
             {{ t(emptyText) }}
           </div>
         </div>

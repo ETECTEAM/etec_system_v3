@@ -4,6 +4,7 @@ namespace App\Modules\Class\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassType;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
@@ -12,9 +13,23 @@ class ClassTypeController extends Controller
 {
     public function index()
     {
-        return Inertia::render('backend/classes/class-type/index', [
-            'classTypes' => ClassType::orderBy('type_name')->get(),
-        ]);
+        return Inertia::render('backend/classes/class-type/index');
+    }
+
+    public function paginatedIndex(Request $request): JsonResponse
+    {
+        $perPage = $request->input('per_page') === 'all'
+            ? max(1, ClassType::query()->count())
+            : max(1, min(1000, $request->integer('per_page', 10)));
+
+        $classTypes = ClassType::query()
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $query->where('type_name', 'like', '%'.$request->string('search')->toString().'%');
+            })
+            ->orderBy('type_name')
+            ->paginate($perPage);
+
+        return response()->json($classTypes);
     }
 
     public function create()
@@ -56,7 +71,7 @@ class ClassTypeController extends Controller
         ]);
     }
 
-    public function update(Request $request, int $id)
+    public function update(Request $request, int $id): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $classType = ClassType::findOrFail($id);
 
@@ -68,6 +83,13 @@ class ClassTypeController extends Controller
 
         $validated['is_active'] = $request->boolean('is_active');
         $classType->update($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Class type updated successfully.',
+                'data' => $classType->fresh(),
+            ]);
+        }
 
         return redirect()->route('class-types.index')
             ->with('success', 'Class type updated successfully.');

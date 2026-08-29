@@ -19,33 +19,25 @@
             />
 
             <Card padding="p-0">
-                <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
-                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div class="min-w-0 shrink-0">
-                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-gray-500">{{ $t('Sub Category Directory') }}</p>
-                            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t('Read, create, update, and delete sub category records') }}</p>
-                        </div>
+                <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800 flex justify-between items-center">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
+                        <input
+                            v-model="search"
+                            type="text"
+                            :placeholder="$t('Search by name...')"
+                            class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 lg:max-w-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+                            @input="resetPagination"
+                        >
+                    </div>
 
-                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
-                            <div class="relative">
-                                <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
-                                <input
-                                    v-model="search"
-                                    type="text"
-                                    :placeholder="$t('Search sub categories...')"
-                                    class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:w-56 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-                                    @input="resetPagination"
-                                >
-                            </div>
-
-                            <Link
-                                href="/dashboard/course/subcategories/create"
-                                class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
-                            >
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                                {{ $t('Sub Category') }}
-                            </Link>
-                        </div>
+                    <div>
+                        <Link
+                            href="/dashboard/course/subcategories/create"
+                            class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+                        >
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                            {{ $t('Create Sub Category') }}
+                        </Link>
                     </div>
                 </div>
 
@@ -67,38 +59,49 @@
                                     {{ (currentPage - 1) * perPage + index + 1 }}
                                 </TableCell>
                                 <TableCell>
-                                    <span class="text-sm font-medium text-slate-900 dark:text-gray-100">{{ subCategory.name }}</span>
+                                    <input
+                                        type="text"
+                                        :value="subCategory.name"
+                                        :disabled="savingId === subCategory.id"
+                                        class="w-full min-w-0 rounded-lg border border-transparent bg-transparent -ml-2 px-2 py-1 text-sm font-semibold text-slate-900 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20"
+                                        @change="saveSubCategoryField(subCategory, 'name', $event.target.value.trim())"
+                                    >
                                 </TableCell>
                                 <TableCell>
-                                    <span class="text-sm text-slate-600 dark:text-gray-300">{{ subCategory.category?.name }}</span>
+                                    <select
+                                        :value="subCategory.category_id"
+                                        :disabled="savingId === subCategory.id"
+                                        class="rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-medium text-slate-700 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20"
+                                        @change="saveSubCategoryField(subCategory, 'category_id', parseInt($event.target.value))"
+                                    >
+                                        <option v-for="cat in allCategories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                                    </select>
                                 </TableCell>
                                 <TableCell>
                                     <code class="text-xs bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 px-2 py-1 rounded-md">{{ subCategory.slug }}</code>
                                 </TableCell>
                                 <TableCell>
-                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="subCategory.status === 'active' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'">
-                                        {{ subCategory.status === 'active' ? $t('Active') : $t('Inactive') }}
-                                    </span>
+                                    <select
+                                        :value="subCategory.status"
+                                        :disabled="savingId === subCategory.id"
+                                        :class="[
+                                            'w-full max-w-[120px] rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-medium transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20',
+                                            subCategory.status === 'active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-gray-400'
+                                        ]"
+                                        @change="saveSubCategoryField(subCategory, 'status', $event.target.value)"
+                                    >
+                                        <option value="active">{{ $t('Active') }}</option>
+                                        <option value="inactive">{{ $t('Inactive') }}</option>
+                                    </select>
                                 </TableCell>
                                 <TableCell class="text-right">
                                     <div class="flex justify-end gap-2">
-                                        <Link
-                                            :href="`/dashboard/course/subcategories/${subCategory.id}/edit`"
-                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
-                                            :title="$t('Edit')"
-                                            :aria-label="$t('Edit sub category')"
-                                        >
-                                            <Pencil class="h-4 w-4" />
-                                        </Link>
-
                                         <button
                                             type="button"
-                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
-                                            :title="$t('Delete')"
-                                            :aria-label="$t('Delete sub category')"
+                                            class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
                                             @click="confirmDelete(subCategory)"
                                         >
-                                            <Trash2 class="h-4 w-4" />
+                                            {{ $t('Delete') }}
                                         </button>
                                     </div>
                                 </TableCell>
@@ -196,6 +199,7 @@
 </template>
 
 <script setup>
+import axios from 'axios';
 import { ref, computed, watch } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import { Pencil, Search, Trash2 } from '@lucide/vue';
@@ -204,9 +208,18 @@ import { Card } from '@/components/ui/card';
 import { PageHero } from '@/components/ui/page-hero';
 import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Pagination } from '@/components/ui/pagination';
+import { useI18n } from '@/i18n';
+import { useToast } from 'vue-toastification';
+
+const { t } = useI18n();
+const toast = useToast();
 
 const props = defineProps({
     subCategories: {
+        type: Array,
+        default: () => []
+    },
+    allCategories: {
         type: Array,
         default: () => []
     }
@@ -214,6 +227,7 @@ const props = defineProps({
 
 // Search
 const search = ref('');
+const savingId = ref(null);
 
 // Pagination
 const currentPage = ref(1);
@@ -269,6 +283,31 @@ const rangeEnd = computed(() => {
 watch(search, () => {
     resetPagination();
 });
+
+async function saveSubCategoryField(subCategory, field, value) {
+    const previous = subCategory[field];
+
+    if (value === previous || savingId.value !== null) return;
+
+    savingId.value = subCategory.id;
+
+    try {
+        const response = await axios.put(`/dashboard/course/subcategories/${subCategory.id}`, {
+            name: field === 'name' ? value : subCategory.name,
+            category_id: field === 'category_id' ? value : subCategory.category_id,
+            status: field === 'status' ? value : subCategory.status,
+        });
+
+        Object.assign(subCategory, response.data.data ?? { [field]: value });
+        toast.success(t('Sub category updated.'));
+    } catch (error) {
+        subCategory[field] = previous;
+        console.error('Failed to update sub category', error);
+        toast.error(t(error.response?.data?.message ?? 'Failed to update sub category. Please try again.'));
+    } finally {
+        savingId.value = null;
+    }
+}
 
 // Confirm delete
 const confirmDelete = (subCategory) => {

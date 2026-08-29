@@ -86,7 +86,7 @@ function isActive(item) {
   const pathOnly = currentPath.value.split("?")[0].replace(/\/+$/, "") || "/";
 
   if (typeof item.isActive === "function") {
-    return item.isActive(pathOnly);
+    return item.isActive(pathOnly, currentPath.value);
   }
 
   if (!Array.isArray(item.match)) {

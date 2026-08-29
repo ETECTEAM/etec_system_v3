@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { router, useForm } from "@inertiajs/vue3";
 import { ArrowLeft, Save, UserPlus } from "@lucide/vue";
 import { SelectSearch } from "@/components/ui/select-search";
@@ -10,11 +10,9 @@ import PageHero from "../../../components/ui/page-hero/PageHero.vue";
 import ReceiptPrint from "./components/ReceiptPrint.vue";
 
 const props = defineProps({
+  // Each course carries its own `class_schedules` (only the Enroll Config slots
+  // toggled ON) - see EnrollmentClassController::createRegisteredStudent.
   courses: {
-    type: Array,
-    default: () => [],
-  },
-  scheduleGroups: {
     type: Array,
     default: () => [],
   },
@@ -60,45 +58,48 @@ const selectedCourse = computed(() =>
 const totalFee = computed(() => Math.round((Number(form.price || 0) + Number(form.document_price || 0)) * 100) / 100);
 const nameLiveError = computed(() => latinNameError(form.name));
 
+// Class Type -> Term -> Time, all driven by the picked course's own enabled
+// Enroll Config slots.
+const courseSchedules = computed(() => selectedCourse.value?.class_schedules ?? []);
+
 const scheduleTypeOptions = computed(() =>
-  props.scheduleGroups.map((group) => ({
+  courseSchedules.value.map((group) => ({
     label: group.class_type_name,
     value: String(group.class_type_id),
   }))
 );
 
 const selectedScheduleGroup = computed(() =>
-  props.scheduleGroups.find((group) => String(group.class_type_id) === String(selectedScheduleType.value))
+  courseSchedules.value.find((group) => String(group.class_type_id) === String(selectedScheduleType.value))
 );
 
-// Basic class schedules mix the generic Mon & Thu / Sat & Sun receipt term with specific
-// day-splits (Mon & Tue, Wed & Thu, ...) the instructor picks later once the class actually
-// runs. Registration only needs the generic term, same rule as the Create Class form.
-const RECEIPT_ONLY_TERM_NAMES = ["Mon & Thu", "Sat & Sun"];
-
-const scheduleTermOptions = computed(() => {
-  const schedules = selectedScheduleGroup.value?.schedules ?? [];
-  const restrictToReceiptTerms = selectedScheduleGroup.value?.class_type_name === "Basic";
-  const visibleSchedules = restrictToReceiptTerms
-    ? schedules.filter((schedule) => RECEIPT_ONLY_TERM_NAMES.includes(schedule.term_name))
-    : schedules;
-
-  return visibleSchedules.map((schedule) => ({
-    label: schedule.term_name,
-    value: String(schedule.term_id),
-  }));
-});
+const scheduleTermOptions = computed(() =>
+  (selectedScheduleGroup.value?.terms ?? []).map((term) => ({
+    label: term.term_name,
+    value: String(term.term_id),
+  }))
+);
 
 const selectedSchedule = computed(() =>
-  selectedScheduleGroup.value?.schedules.find((schedule) => String(schedule.term_id) === String(selectedTerm.value))
+  (selectedScheduleGroup.value?.terms ?? []).find((term) => String(term.term_id) === String(selectedTerm.value))
 );
 
 const scheduleTimeOptions = computed(() =>
   (selectedSchedule.value?.times ?? []).map((time) => ({
     label: time.time_name,
-    value: String(time.id),
+    value: String(time.time_id),
   }))
 );
+
+// Changing the course invalidates the schedule cascade and refills the
+// config-driven price fields.
+watch(() => form.course_id, () => {
+  selectedScheduleType.value = "";
+  selectedTerm.value = "";
+  selectedTime.value = "";
+  form.price = selectedCourse.value ? String(selectedCourse.value.price ?? 0) : "";
+  form.document_price = selectedCourse.value ? String(selectedCourse.value.document_price ?? 0) : "";
+});
 
 function resetTermAndTime() {
   selectedTerm.value = "";
@@ -122,14 +123,15 @@ function submit() {
     onSuccess: async () => {
       receiptClassData.value = {
         course: selectedCourse.value?.title,
-        course_price: Number(form.price || 0),
+        // `price` is the charged fee (Course Price); unit_price rides along for
+        // the receipt's reference breakdown.
+        price: Number(form.price || 0),
+        unit_price: selectedCourse.value?.unit_price ?? null,
+        course_price: selectedCourse.value?.course_price ?? Number(form.price || 0),
         document_price: Number(form.document_price || 0),
         term: selectedSchedule.value?.term_name,
-        time: props.scheduleGroups
-          .flatMap((group) => group.schedules)
-          .flatMap((schedule) => schedule.times)
-          .find((time) => String(time.id) === String(selectedTime.value))?.time_name,
-        price: Number(form.price || 0),
+        time: (selectedSchedule.value?.times ?? [])
+          .find((time) => String(time.time_id) === String(selectedTime.value))?.time_name,
       };
       receiptStudent.value = {
         name: form.name,
@@ -252,7 +254,8 @@ function classList() {
             <SelectSearch
               v-model="selectedScheduleType"
               :options="scheduleTypeOptions"
-              :placeholder="$t('Select Class Type')"
+              :disabled="!form.course_id"
+              :placeholder="$t(form.course_id ? 'Select Class Type' : 'Select Course first')"
               :button-class="selectClass"
               @update:model-value="resetTermAndTime"
             />
@@ -294,14 +297,14 @@ function classList() {
           <div>
             <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">
               {{ $t('Price') }}
+              <span class="font-normal text-slate-400 dark:text-gray-500">· {{ $t('from Enroll Config') }}</span>
             </label>
             <input
-              v-model="form.price"
+              :value="form.price"
               type="number"
-              min="0"
-              step="0.01"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
-              :placeholder="$t('Enter price')"
+              readonly
+              class="w-full cursor-not-allowed rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm text-slate-600 outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-400"
+              :placeholder="$t('Select a course')"
             />
             <p v-if="form.errors.price" class="mt-1 text-xs text-red-600">
               {{ form.errors.price }}
@@ -311,14 +314,14 @@ function classList() {
           <div>
             <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">
               {{ $t('Document Price') }}
+              <span class="font-normal text-slate-400 dark:text-gray-500">· {{ $t('from Enroll Config') }}</span>
             </label>
             <input
-              v-model="form.document_price"
+              :value="form.document_price"
               type="number"
-              min="0"
-              step="0.01"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
-              :placeholder="$t('Enter document price')"
+              readonly
+              class="w-full cursor-not-allowed rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm text-slate-600 outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-400"
+              :placeholder="$t('Select a course')"
             />
             <p class="mt-1 text-xs text-slate-400 dark:text-gray-500">
               {{ $t('Total') }} = {{ totalFee.toFixed(2) }}$

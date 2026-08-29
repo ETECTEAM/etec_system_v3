@@ -242,6 +242,12 @@ function submit() {
     preserveScroll: true,
     onSuccess: () => {
       view.value = "success";
+      // Clear the form so a stale name/phone/schedule isn't left filled in
+      // behind the success screen.
+      form.reset();
+      form.clearErrors();
+      selectedSlot.value = null;
+      selectedCourseId.value = null;
     },
   });
 }

@@ -17,6 +17,8 @@ import {
   LayoutDashboard,
   SlidersHorizontal,
   Bot,
+  BadgeCheck,
+  MapPin,
   ClipboardCheck,
 } from "@lucide/vue";
 
@@ -39,6 +41,8 @@ export const menuIcons = {
   profile: UserCircle,
   "enroll-config": SlidersHorizontal,
   attendance_settings: Bot,
+  certificate: BadgeCheck,
+  access_locations: MapPin,
   pre_attendance: ClipboardCheck,
   student_management: Users,
 };

@@ -1,6 +1,7 @@
 <script setup>
 import { watch } from "vue";
 import { useForm } from "@inertiajs/vue3";
+import { X } from "@lucide/vue";
 
 const props = defineProps({
   show: {
@@ -48,7 +49,12 @@ function submit() {
 <template>
   <div v-if="show && enrollment" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4">
     <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
-      <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Record Deposit') }}</h3>
+      <div class="flex items-start justify-between gap-4">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Record Deposit') }}</h3>
+        <button type="button" :aria-label="$t('Close')" class="-mr-2 -mt-1 shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="close">
+          <X class="h-5 w-5" />
+        </button>
+      </div>
 
       <div class="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-700 dark:bg-gray-800 dark:text-gray-300">
         <p class="font-semibold">{{ enrollment.name }}</p>

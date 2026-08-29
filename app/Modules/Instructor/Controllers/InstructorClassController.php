@@ -4,17 +4,20 @@ namespace App\Modules\Instructor\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceSession;
+use App\Models\Course;
+use App\Models\StudyClass;
 use App\Modules\Attendance\Actions\OverrideAttendanceRecord;
 use App\Modules\Attendance\Queries\GetSessionBanner;
 use App\Modules\Attendance\Services\AttendanceQrService;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
-use App\Models\StudyClass;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Instructor\Services\InstructorClassService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,27 +30,48 @@ class InstructorClassController extends Controller
         private readonly AttendanceQrService $attendanceQr,
     ) {}
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('backend/instructors/CreateClass', $this->instructorClasses->formOptions());
+        return Inertia::render(
+            'backend/instructors/CreateClass',
+            $this->instructorClasses->formOptions((int) $request->user()->id),
+        );
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, InstructorAssignmentAvailability $availability): RedirectResponse
     {
         $validated = $request->validate([
-            'title'         => ['required', 'string', 'max:255'],
-            'course_id'     => ['required', 'exists:courses,id'],
-            'lesson_id'     => ['nullable', 'exists:course_lessons,id'],
-            'term_id'       => ['nullable', 'exists:terms,id'],
-            'time_id'       => ['nullable', 'exists:times,id'],
-            'room_id'       => ['nullable', 'exists:rooms,id'],
+            // Not asked for on the form - the class title is the course title.
+            'title' => ['nullable', 'string', 'max:255'],
+            'course_id' => ['required', 'exists:courses,id'],
+            'lesson_id' => ['nullable', 'exists:course_lessons,id'],
+            'term_id' => ['required', 'exists:terms,id'],
+            'time_id' => ['required', 'exists:times,id'],
+            'room_id' => ['nullable', 'exists:rooms,id'],
             'class_type_id' => ['nullable', 'exists:class_type,class_type_id'],
-            'capacity'      => ['nullable', 'integer', 'min:0'],
-            'status'        => ['nullable', 'string', Rule::in(GetClassFormOptions::STATUSES)],
+            'capacity' => ['nullable', 'integer', 'min:1'],
+            'status' => ['nullable', 'string', Rule::in(GetClassFormOptions::STATUSES)],
             'attendance_latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'attendance_longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'attendance_radius_meters' => ['nullable', 'integer', 'min:1', 'max:5000'],
         ]);
+
+        // The form only offers slots the instructor is free for; re-check here so a
+        // stale form or a direct POST can't book an overlapping / unavailable slot.
+        $reason = $availability->unavailableReason(
+            (int) $request->user()->id,
+            (int) $validated['term_id'],
+            (int) $validated['time_id'],
+        );
+
+        if ($reason !== null) {
+            throw ValidationException::withMessages(['time_id' => $reason]);
+        }
+
+        // Title always mirrors the course title (like SaveStudyClassRequest does
+        // for the admin class form).
+        $validated['title'] = Course::query()->whereKey($validated['course_id'])->value('title')
+            ?? ($validated['title'] ?: 'New Class');
 
         $this->instructorClasses->createClass($request->user(), $validated);
 

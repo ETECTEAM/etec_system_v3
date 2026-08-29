@@ -12,6 +12,12 @@ class StudyClass extends Model
 
     protected $table = 'study_classes';
 
+    /**
+     * Statuses where the class still occupies its time slot. An ended or
+     * cancelled class frees the slot (see Time::classSlotsRemaining()).
+     */
+    public const LIVE_STATUSES = ['upcoming', 'active', 'pre_end'];
+
     protected $fillable = [
         'title',
         'course_id',
