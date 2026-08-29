@@ -78,17 +78,35 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
+echo "==> Normalizing storage / bootstrap-cache permissions"
+# storage/ and bootstrap/cache are named volumes seeded once from the image;
+# missing shard dirs (e.g. storage/framework/cache/data/<xx>/<yy>) are never
+# back-filled, and anything below that runs `artisan` as root (this script's
+# own cache-warming did, historically) leaves root-owned files php-fpm's
+# www-data can't rewrite. Re-assert the structure and ownership every deploy
+# so the file cache / rate limiter / sessions stay writable at runtime.
+docker compose -f "${COMPOSE_FILE}" exec -T -u root app sh -c '
+  mkdir -p storage/framework/cache/data storage/framework/sessions \
+           storage/framework/views storage/app/public storage/logs bootstrap/cache
+  chown -R www-data:www-data storage bootstrap/cache
+  chmod -R ug+rwX storage bootstrap/cache
+'
+
 echo "==> Ensuring public/storage symlink exists"
 # The production image no longer bakes this in (it's fully shadowed by the
 # code bind mount anyway) - creating it here instead makes a first-ever
 # deploy to a fresh server self-sufficient. Guarded by -e (matching
 # storage:link's own existence check, not just -L) so this stays a no-op on
 # every deploy after the first instead of erroring on "link already exists".
+# Left as root: public/ is the host bind mount (owned by the deploy user), so
+# only root inside the container can create the symlink there on a fresh box.
 docker compose -f "${COMPOSE_FILE}" exec -T app sh -c \
   "[ -e public/storage ] || php artisan storage:link"
 
 echo "==> Warming caches"
-docker compose -f "${COMPOSE_FILE}" exec -T app sh -c \
+# Run as www-data (not the container's default root) so compiled views /
+# cached config land owned by the same user php-fpm serves as.
+docker compose -f "${COMPOSE_FILE}" exec -T -u www-data app sh -c \
   "php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan event:cache"
 
 echo "==> Reloading nginx"
