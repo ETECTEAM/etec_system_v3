@@ -70,11 +70,6 @@ const showPasswordConfirmation = ref(false)
     <template v-if="student">
       <div class="sm:col-span-2 border-t pt-4 text-base font-semibold text-slate-900">{{ $t('Student Profile') }}</div>
       <label class="block">
-        <span>{{ $t('Student Code') }}</span>
-        <input v-model="form.student_code" :placeholder="$t('e.g. STU-001')" class="input" />
-        <span v-if="form.errors.student_code" class="text-xs text-red-600">{{ form.errors.student_code }}</span>
-      </label>
-      <label class="block">
         <span>{{ $t('Full Name') }}</span>
         <input v-model="form.student_full_name" :placeholder="$t('Full name')" class="input" />
         <span v-if="form.errors.student_full_name" class="text-xs text-red-600">{{ form.errors.student_full_name }}</span>

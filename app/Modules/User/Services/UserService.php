@@ -93,7 +93,7 @@ class UserService
                     $builder
                         ->where('users.name', 'like', '%'.$search.'%')
                         ->orWhere('users.email', 'like', '%'.$search.'%')
-                        ->orWhereHas('student', fn (Builder $query) => $query->where('full_name', 'like', '%'.$search.'%')->orWhere('student_code', 'like', '%'.$search.'%')->orWhere('phone', 'like', '%'.$search.'%'))
+                        ->orWhereHas('student', fn (Builder $query) => $query->where('full_name', 'like', '%'.$search.'%')->orWhere('phone', 'like', '%'.$search.'%'))
                         ->orWhereHas('instructorData', fn (Builder $query) => $query->where('full_name', 'like', '%'.$search.'%')->orWhere('instructor_code', 'like', '%'.$search.'%')->orWhere('phone', 'like', '%'.$search.'%'));
                 });
             }

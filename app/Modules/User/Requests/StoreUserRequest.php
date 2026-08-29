@@ -48,7 +48,6 @@ class StoreUserRequest extends FormRequest
             'account_status' => ['required', 'string', Rule::in(['active', 'inactive'])],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             // student_* fields are nullable here since they only apply when role === 'student'.
-            'student_code' => ['nullable', 'string', 'max:255', Rule::unique('students', 'student_code')],
             'student_full_name' => ['nullable', 'string', 'max:255'],
             'student_first_name' => ['nullable', 'string', 'max:255'], 'student_last_name' => ['nullable', 'string', 'max:255'],
             'student_full_name_kh' => ['nullable', 'string', 'max:255'], 'student_gender' => ['nullable', 'string', 'max:20'],
@@ -122,8 +121,7 @@ class StoreUserRequest extends FormRequest
     protected function student(array $data): array 
     { 
         return [
-            'student_code' => $data['student_code'] ?? null, 
-            'first_name' => $data['student_first_name'] ?? null, 
+            'first_name' => $data['student_first_name'] ?? null,
             'last_name' => $data['student_last_name'] ?? null, 
             'full_name' => $data['student_full_name'] ?? null, 
             'full_name_kh' => $data['student_full_name_kh'] ?? null, 
