@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -34,6 +35,13 @@ class Student extends Model
         return $this->hasMany(StudentEnrollment::class);
     }
 
+    public function currentEnrollment(): HasOne
+    {
+        return $this->hasOne(StudentEnrollment::class)
+            ->where('enrollment_status', 'active')
+            ->latestOfMany('id');
+    }
+
     public function scores(): HasMany
     {
         return $this->hasMany(StudentScore::class);
@@ -42,6 +50,21 @@ class Student extends Model
     public function attendances(): HasMany
     {
         return $this->hasMany(StudentAttendance::class);
+    }
+
+    public function latestAttendance(): HasOne
+    {
+        return $this->hasOne(StudentAttendance::class)->latestOfMany('attendance_date');
+    }
+
+    public function attendanceBlocks(): HasMany
+    {
+        return $this->hasMany(StudentAttendanceBlock::class)->orderByDesc('blocked_at');
+    }
+
+    public function attendanceAdjustments(): HasMany
+    {
+        return $this->hasMany(AttendanceAdjustment::class)->orderByDesc('created_at');
     }
 
     public function course(): BelongsTo

@@ -1,7 +1,7 @@
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3'
 import { computed } from 'vue'
-import { BellRing, Bot, PencilLine, Save, ShieldAlert, Timer, UserCheck, Zap } from '@lucide/vue'
+import { BellRing, Bot, CalendarDays, Lock, PencilLine, Save, ShieldAlert, ShieldCheck, Timer, UserCheck, Zap } from '@lucide/vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
@@ -28,11 +28,26 @@ const form = useForm({
   auto_record_allow_override: props.settings.allowOverride,
   auto_record_allow_track_anytime: props.settings.allowTrackAnytime,
   auto_record_override_hours: props.settings.overrideHours,
+  lock_enabled: props.settings.lockEnabled,
+  hard_lock_enabled: props.settings.hardLockEnabled,
+  absence_soft_lock_threshold: props.settings.absenceSoftLockThreshold,
+  post_approval_absence_limit: props.settings.postApprovalAbsenceLimit,
+  permission_limit: props.settings.permissionLimit,
+  permission_period: props.settings.permissionPeriod,
+  cycle_start_date: props.settings.cycleStartDate,
+  official_permission_exempt: props.settings.officialPermissionExempt,
 })
 
 const statusOptions = [
   { value: 'present', label: 'Present' },
   { value: 'pending', label: 'Pending' },
+]
+
+const permissionPeriodOptions = [
+  { value: 'day', label: 'Day' },
+  { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
+  { value: 'term', label: 'Term' },
 ]
 
 // Matches this page's number-input styling so the searchable select sits in the same visual row.
@@ -286,6 +301,109 @@ const breadcrumbItems = [
             <div class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
               <ShieldAlert class="h-4 w-4 shrink-0" />
               {{ $t('A class already over is never auto-recorded after the fact - it is marked missed instead, for an admin to review.') }}
+            </div>
+
+            <div class="border-t border-slate-200 pt-8 dark:border-gray-800">
+              <div class="flex items-center gap-3">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                  <ShieldCheck class="h-4 w-4" />
+                </span>
+                <div>
+                  <h4 class="text-sm font-bold text-slate-900 dark:text-gray-100">{{ $t('Attendance Lock Rules') }}</h4>
+                  <p class="text-xs text-slate-400 dark:text-gray-500">{{ $t('These settings control when students become soft locked or hard locked.') }}</p>
+                </div>
+              </div>
+
+              <div class="mt-4 space-y-4 pl-0 sm:pl-12">
+                <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3.5 transition hover:border-slate-300 dark:border-gray-800 dark:bg-gray-950/40 dark:hover:border-gray-700">
+                  <span class="text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Enable Attendance Lock') }}</span>
+                  <span class="relative inline-flex items-center">
+                    <input v-model="form.lock_enabled" type="checkbox" class="peer sr-only">
+                    <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-blue-900 dark:bg-gray-600 dark:peer-checked:bg-blue-600"></span>
+                    <span class="absolute left-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5"></span>
+                  </span>
+                </label>
+
+                <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3.5 transition hover:border-slate-300 dark:border-gray-800 dark:bg-gray-950/40 dark:hover:border-gray-700">
+                  <span class="text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Enable Hard Lock') }}</span>
+                  <span class="relative inline-flex items-center">
+                    <input v-model="form.hard_lock_enabled" type="checkbox" class="peer sr-only">
+                    <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-blue-900 dark:bg-gray-600 dark:peer-checked:bg-blue-600"></span>
+                    <span class="absolute left-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5"></span>
+                  </span>
+                </label>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Absence Soft Lock Threshold') }}</label>
+                    <input
+                      v-model.number="form.absence_soft_lock_threshold"
+                      type="number"
+                      min="1"
+                      class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+                    >
+                  </div>
+
+                  <div>
+                    <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Post Approval Absence Limit') }}</label>
+                    <input
+                      v-model.number="form.post_approval_absence_limit"
+                      type="number"
+                      min="0"
+                      class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+                    >
+                  </div>
+
+                  <div>
+                    <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Permission Limit') }}</label>
+                    <input
+                      v-model.number="form.permission_limit"
+                      type="number"
+                      min="0"
+                      class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+                    >
+                  </div>
+
+                  <div>
+                    <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Permission Period') }}</label>
+                    <SelectSearch
+                      v-model="form.permission_period"
+                      :options="permissionPeriodOptions"
+                      :placeholder="$t('Select period')"
+                      :button-class="selectClass"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-gray-200">
+                      <CalendarDays class="h-4 w-4 text-violet-500" />
+                      {{ $t('Cycle Start Date') }}
+                    </label>
+                    <input
+                      v-model="form.cycle_start_date"
+                      type="date"
+                      class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+                    >
+                  </div>
+                </div>
+
+                <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3.5 transition hover:border-slate-300 dark:border-gray-800 dark:bg-gray-950/40 dark:hover:border-gray-700">
+                  <span class="flex items-center gap-3">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400">
+                      <Lock class="h-4 w-4" />
+                    </span>
+                    <span>
+                      <span class="block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Official Permission Exempt') }}</span>
+                      <span class="block text-xs text-slate-500 dark:text-gray-400">{{ $t('Approved official permission should not consume the manual permission quota when this is enabled.') }}</span>
+                    </span>
+                  </span>
+                  <span class="relative inline-flex items-center">
+                    <input v-model="form.official_permission_exempt" type="checkbox" class="peer sr-only">
+                    <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-blue-900 dark:bg-gray-600 dark:peer-checked:bg-blue-600"></span>
+                    <span class="absolute left-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5"></span>
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
 

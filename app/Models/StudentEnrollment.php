@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class StudentEnrollment extends Model
 {
@@ -57,6 +59,16 @@ class StudentEnrollment extends Model
     public function student()
     {
         return $this->belongsTo(Student::class, 'student_id');
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(StudentAttendance::class, 'student_enrollment_id');
+    }
+
+    public function latestAttendance(): HasOne
+    {
+        return $this->hasOne(StudentAttendance::class, 'student_enrollment_id')->latestOfMany('attendance_date');
     }
 
     // The course/term/time the student asked for at registration time -

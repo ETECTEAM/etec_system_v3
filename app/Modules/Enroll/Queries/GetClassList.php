@@ -95,6 +95,8 @@ class GetClassList
                 return [
                     'id' => $studyClass->id,
                     'title' => $studyClass->title,
+                    'course_id' => $studyClass->course_id,
+                    'status' => $studyClass->status,
                     'course' => $studyClass->course?->title ?? '-',
                     'term' => $studyClass->term?->term_name ?? '-',
                     'time' => $studyClass->time?->time_name ?? '-',

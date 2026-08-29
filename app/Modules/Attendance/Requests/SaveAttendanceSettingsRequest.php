@@ -24,6 +24,14 @@ class SaveAttendanceSettingsRequest extends FormRequest
             'auto_record_allow_override' => ['required', 'boolean'],
             'auto_record_allow_track_anytime' => ['required', 'boolean'],
             'auto_record_override_hours' => ['required', 'integer', 'min:1'],
+            'lock_enabled' => ['required', 'boolean'],
+            'hard_lock_enabled' => ['required', 'boolean'],
+            'absence_soft_lock_threshold' => ['required', 'integer', 'min:1'],
+            'post_approval_absence_limit' => ['required', 'integer', 'min:0'],
+            'permission_limit' => ['required', 'integer', 'min:0'],
+            'permission_period' => ['required', Rule::in(['day', 'week', 'month', 'term'])],
+            'cycle_start_date' => ['required', 'date'],
+            'official_permission_exempt' => ['required', 'boolean'],
         ];
     }
 

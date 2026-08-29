@@ -40,6 +40,7 @@ export const menuIcons = {
   "enroll-config": SlidersHorizontal,
   attendance_settings: Bot,
   pre_attendance: ClipboardCheck,
+  student_management: Users,
 };
 
 // Used when an item's `icon` key has no entry above.

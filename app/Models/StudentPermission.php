@@ -15,6 +15,7 @@ class StudentPermission extends Model
         'start_date',
         'end_date',
         'reason',
+        'note',
         'approved_by',
     ];
 

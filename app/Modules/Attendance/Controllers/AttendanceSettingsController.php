@@ -12,8 +12,6 @@ use Inertia\Response;
 
 class AttendanceSettingsController extends Controller
 {
-    private const KEY_PREFIX = 'attendance.auto_record_';
-
     public function edit(GetShortestClassDurationMinutes $shortestDuration): Response
     {
         $rows = GradingSetting::query()
@@ -23,13 +21,21 @@ class AttendanceSettingsController extends Controller
 
         return Inertia::render('backend/attendance-settings/Edit', [
             'settings' => [
-                'enabled' => $this->boolValue($rows, 'enabled', true),
-                'graceMinutes' => $this->numValue($rows, 'grace_minutes', 15),
-                'defaultStatus' => $this->stringValue($rows, 'default_status', 'present'),
-                'notifyInstructor' => $this->boolValue($rows, 'notify_instructor', true),
-                'allowOverride' => $this->boolValue($rows, 'allow_override', true),
-                'allowTrackAnytime' => $this->boolValue($rows, 'allow_track_anytime', false),
-                'overrideHours' => $this->numValue($rows, 'override_hours', 24),
+                'enabled' => $this->boolValue($rows, 'auto_record_enabled', true),
+                'graceMinutes' => $this->numValue($rows, 'auto_record_grace_minutes', 15),
+                'defaultStatus' => $this->stringValue($rows, 'auto_record_default_status', 'present'),
+                'notifyInstructor' => $this->boolValue($rows, 'auto_record_notify_instructor', true),
+                'allowOverride' => $this->boolValue($rows, 'auto_record_allow_override', true),
+                'allowTrackAnytime' => $this->boolValue($rows, 'auto_record_allow_track_anytime', false),
+                'overrideHours' => $this->numValue($rows, 'auto_record_override_hours', 24),
+                'lockEnabled' => $this->boolValue($rows, 'lock_enabled', true),
+                'hardLockEnabled' => $this->boolValue($rows, 'hard_lock_enabled', true),
+                'absenceSoftLockThreshold' => $this->numValue($rows, 'absence_soft_lock_threshold', 3),
+                'postApprovalAbsenceLimit' => $this->numValue($rows, 'post_approval_absence_limit', 2),
+                'permissionLimit' => $this->numValue($rows, 'permission_limit', 1),
+                'permissionPeriod' => $this->stringValue($rows, 'permission_period', 'week'),
+                'cycleStartDate' => $this->stringValue($rows, 'cycle_start_date', now()->toDateString()),
+                'officialPermissionExempt' => $this->boolValue($rows, 'official_permission_exempt', true),
             ],
             'shortestClassDurationMinutes' => $shortestDuration->handle(),
         ]);
@@ -51,7 +57,7 @@ class AttendanceSettingsController extends Controller
                 [
                     'value' => is_bool($value) ? ($value ? 'true' : 'false') : (string) $value,
                     'type' => is_bool($value) ? 'boolean' : (is_int($value) ? 'number' : 'string'),
-                    'label' => str($field)->replace('auto_record_', '')->replace('_', ' ')->title()->toString(),
+                    'label' => str($field)->replace(['auto_record_', 'lock_'], '')->replace('_', ' ')->title()->toString(),
                     'group' => 'attendance',
                     'updated_by' => $request->user()->id,
                 ],
@@ -64,21 +70,21 @@ class AttendanceSettingsController extends Controller
 
     private function boolValue($rows, string $key, bool $default): bool
     {
-        $row = $rows->get(self::KEY_PREFIX.$key);
+        $row = $rows->get('attendance.'.$key);
 
         return $row ? filter_var($row->value, FILTER_VALIDATE_BOOLEAN) : $default;
     }
 
     private function numValue($rows, string $key, int $default): int
     {
-        $row = $rows->get(self::KEY_PREFIX.$key);
+        $row = $rows->get('attendance.'.$key);
 
         return $row && is_numeric($row->value) ? (int) $row->value : $default;
     }
 
     private function stringValue($rows, string $key, string $default): string
     {
-        $row = $rows->get(self::KEY_PREFIX.$key);
+        $row = $rows->get('attendance.'.$key);
 
         return $row ? $row->value : $default;
     }
