@@ -276,7 +276,7 @@ class AuthController extends Controller
             return redirect('/code-verify')
                 ->with('success', 'Please verify your account before logging in.');
         }
-
+        //
         // Mint the role-based token/session expiry from this login's issued
         // time: instructor +1 month, admin / super_admin +1 year (see
         // config('auth.token_expiration.roles')). Roles with no configured
