@@ -8,8 +8,6 @@ use App\Models\InstructorData;
 use App\Models\User;
 use App\Modules\Auth\Events\PendingUserRegistered;
 use App\Modules\Auth\Notifications\PasswordChangedNotification;
-use App\Modules\Instructor\Services\InstructorService;
-use App\Modules\User\Services\UserService;
 use App\Modules\Auth\Requests\ForgotPasswordRequest;
 use App\Modules\Auth\Requests\LoginWebRequest;
 use App\Modules\Auth\Requests\RegisterWebRequest;
@@ -20,6 +18,8 @@ use App\Modules\Auth\Services\AuthAuditService;
 use App\Modules\Auth\Services\AuthService;
 use App\Modules\Auth\Services\LoginLockoutService;
 use App\Modules\Auth\Services\OtpService;
+use App\Modules\Auth\Services\TokenExpirationService;
+use App\Modules\Instructor\Services\InstructorService;
 use App\Modules\User\Services\UserApprovalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -32,10 +32,10 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
+use Throwable;
 
 /**
  * Coordinates web authentication, registration, OTP verification, and logout.
@@ -73,6 +73,8 @@ class AuthController extends Controller
                 'email' => $data->email,
                 'password' => $data->password,
                 'role' => 'instructor',
+                // Role-based access window is minted at the first login event
+                // (OTP-disabled login, OTP activation, or normal login), not here.
                 'status' => 'pending',
             ]);
 
@@ -98,6 +100,7 @@ class AuthController extends Controller
 
         if (! $otpVerificationEnabled) {
             $this->approvalService->approve($user, null, 'otp_disabled');
+            $this->applyAccessExpiration($user, $request->ip(), $data->email);
             Auth::login($user);
             $request->session()->regenerate();
 
@@ -182,6 +185,7 @@ class AuthController extends Controller
 
         $this->otpService->verify($user, $data->code);
         $this->approvalService->approve($user, null, 'otp');
+        $this->applyAccessExpiration($user, $request->ip());
 
         Auth::login($user);
         $request->session()->regenerate();
@@ -273,11 +277,17 @@ class AuthController extends Controller
                 ->with('success', 'Please verify your account before logging in.');
         }
 
-        RateLimiter::clear($limiterKey);
-        $this->lockoutService->clear($loginKey);
+        // Mint the role-based token/session expiry from this login's issued
+        // time: instructor +1 month, admin / super_admin +1 year (see
+        // config('auth.token_expiration.roles')). Roles with no configured
+        // lifetime (e.g. student) leave the access columns untouched and never
+        // expire. The window clock starts/freshly restarts at every successful
+        // login, so an expired account simply logs in again to renew.
+        $this->applyAccessExpiration($user, $request->ip(), $data->login);
 
         Auth::login($user, $data->remember);
         $user->forceFill(['last_login_at' => now()])->save();
+
         $request->session()->regenerate();
 
         return redirect($this->redirectPathFor($user))
@@ -374,6 +384,29 @@ class AuthController extends Controller
         }
 
         return '/login';
+    }
+
+    // Mints the role-based token/session expiry on every successful login
+    // event: normal login, OTP-activation login, and OTP-disabled registration
+    // login. The window always starts at the current login's issued time.
+    private function applyAccessExpiration(User $user, ?string $ipAddress = null, ?string $login = null): void
+    {
+        $expiresAt = app(TokenExpirationService::class)->expiresAt($user);
+
+        // Roles without a configured lifetime (e.g. student) keep the existing
+        // never-expire behavior - the access columns stay as they are.
+        if ($expiresAt === null) {
+            return;
+        }
+
+        $action = $user->access_expires_at === null ? 'login.window_started' : 'login.access_renewed';
+
+        $user->forceFill([
+            'access_renewed_at' => now(),
+            'access_expires_at' => $expiresAt,
+        ])->save();
+
+        $this->auditService->log($user, $action, $ipAddress, $login !== null ? ['login' => $login] : []);
     }
 
     // Shared by the upfront isBanned() check and the failure branch that just

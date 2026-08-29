@@ -12,6 +12,7 @@ use Database\Seeders\Core\PermissionSeeder;
 use Database\Seeders\Core\RoleSeeder;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
@@ -126,6 +127,249 @@ class AuthControllerTest extends TestCase
         ])->assertSessionHasErrors('login');
 
         $this->assertGuest();
+    }
+
+    // Access expiry (instructor first-login clock)
+
+    public function test_instructor_first_login_starts_the_access_clock(): void
+    {
+        $user = $this->activeUser('instructor');
+        $this->assertNull($user->fresh()->access_expires_at);
+        $this->assertNull($user->fresh()->access_renewed_at);
+
+        $this->post('/login', [
+            'login' => $user->email,
+            'password' => 'password123',
+        ])->assertRedirect('/dashboard');
+
+        $fresh = $user->fresh();
+        $this->assertNotNull($fresh->access_expires_at);
+        $this->assertTrue($fresh->access_expires_at->isSameDay(now()->addMonth()));
+        $this->assertNotNull($fresh->access_renewed_at);
+        $this->assertTrue($fresh->access_renewed_at->isToday());
+        $this->assertDatabaseHas('auth_audit_logs', ['user_id' => $user->id, 'action' => 'login.window_started']);
+    }
+
+    public function test_instructor_login_restarts_the_expiry_from_this_login(): void
+    {
+        $user = $this->activeUser('instructor');
+        $user->forceFill(['access_expires_at' => now()->addDays(20)])->save();
+
+        $this->post('/login', ['login' => $user->email, 'password' => 'password123'])
+            ->assertRedirect('/dashboard');
+
+        $fresh = $user->fresh();
+        $this->assertTrue($fresh->access_expires_at->isSameDay(now()->addMonth()));
+        $this->assertTrue($fresh->access_renewed_at->isToday());
+    }
+
+    public function test_instructor_can_login_before_expiry(): void
+    {
+        $user = $this->activeUser('instructor');
+        $user->forceFill(['access_expires_at' => now()->addDay()])->save();
+
+        $this->post('/login', ['login' => $user->email, 'password' => 'password123'])
+            ->assertRedirect('/dashboard');
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_expired_instructor_login_renews_access_and_preserves_data(): void
+    {
+        $user = $this->activeUser('instructor');
+        // Renewed over a month ago => derived expiry (renewed_at + 1 month) is in the past.
+        $user->forceFill([
+            'access_expires_at' => now()->subMonth(),
+            'access_renewed_at' => now()->subMonths(2),
+        ])->save();
+
+        $this->post('/login', ['login' => $user->email, 'password' => 'password123'])
+            ->assertRedirect('/dashboard');
+
+        $fresh = $user->fresh();
+        $this->assertAuthenticatedAs($user);
+        $this->assertTrue($fresh->access_renewed_at->isToday());
+        $this->assertTrue($fresh->access_renewed_at->copy()->addMonth()->isSameDay(now()->addMonth()));
+        $this->assertDatabaseHas('auth_audit_logs', ['user_id' => $user->id, 'action' => 'login.access_renewed']);
+    }
+
+    public function test_expired_instructor_login_renews_even_exactly_at_expiry(): void
+    {
+        $user = $this->activeUser('instructor');
+        $user->forceFill(['access_expires_at' => now()])->save();
+
+        $this->post('/login', ['login' => $user->email, 'password' => 'password123'])
+            ->assertRedirect('/dashboard');
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertTrue($user->fresh()->access_expires_at->isSameDay(now()->addMonth()));
+    }
+
+    public function test_admin_and_super_admin_login_gets_one_year_expiry(): void
+    {
+        foreach (['admin', 'super_admin'] as $role) {
+            $user = $this->activeUser($role);
+
+            $this->post('/login', ['login' => $user->email, 'password' => 'password123'])
+                ->assertRedirect('/dashboard');
+
+            $fresh = $user->fresh();
+            $this->assertNotNull($fresh->access_expires_at);
+            $this->assertTrue($fresh->access_expires_at->isSameDay(now()->addYear()));
+            $this->assertTrue($fresh->access_renewed_at->isToday());
+
+            $this->post('/logout');
+        }
+    }
+
+    public function test_expired_instructor_is_signed_out_and_sent_to_login_on_next_request(): void
+    {
+        $user = $this->activeUser('instructor');
+        $user->forceFill(['access_expires_at' => now()->subDay()])->save();
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertRedirect('/login');
+
+        $this->assertGuest();
+        $this->assertDatabaseHas('auth_audit_logs', ['user_id' => $user->id, 'action' => 'login.access_expired']);
+    }
+
+    public function test_instructor_with_inverted_window_is_signed_out_on_next_request(): void
+    {
+        $user = $this->activeUser('instructor');
+        // Deadline is NOT strictly ahead of the last renewal (deadline <= renewed_at).
+        $user->forceFill([
+            'access_renewed_at' => now(),
+            'access_expires_at' => now()->addDay()->subDay(), // same moment, <= renewed_at
+        ])->save();
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertRedirect('/login');
+
+        $this->assertGuest();
+    }
+
+    // Role-based token expiration
+
+    public function test_admin_login_gets_one_year_expiry(): void
+    {
+        $user = $this->activeUser('admin');
+
+        $this->post('/login', ['login' => $user->email, 'password' => 'password123'])
+            ->assertRedirect('/dashboard');
+
+        $fresh = $user->fresh();
+        $this->assertNotNull($fresh->access_expires_at);
+        $this->assertTrue($fresh->access_expires_at->isSameDay(now()->addYear()));
+        $this->assertTrue($fresh->access_renewed_at->isToday());
+    }
+
+    public function test_super_admin_login_gets_one_year_expiry(): void
+    {
+        $user = $this->activeUser('super_admin');
+
+        $this->post('/login', ['login' => $user->email, 'password' => 'password123'])
+            ->assertRedirect('/dashboard');
+
+        $fresh = $user->fresh();
+        $this->assertNotNull($fresh->access_expires_at);
+        $this->assertTrue($fresh->access_expires_at->isSameDay(now()->addYear()));
+        $this->assertTrue($fresh->access_renewed_at->isToday());
+    }
+
+    public function test_expired_admin_is_signed_out_and_json_requests_get_401(): void
+    {
+        $user = $this->activeUser('admin');
+        $user->forceFill(['access_expires_at' => now()->subDay()])->save();
+
+        $this->actingAs($user)
+            ->getJson('/dashboard')
+            ->assertStatus(401)
+            ->assertJsonPath('message', 'Your access has expired. Please log in again to renew your access.');
+
+        $this->assertGuest();
+        $this->assertDatabaseHas('auth_audit_logs', ['user_id' => $user->id, 'action' => 'login.access_expired']);
+    }
+
+    public function test_expiration_is_an_exact_offset_from_the_login_issued_time(): void
+    {
+        Carbon::setTestNow('2026-08-29 10:00:00');
+
+        $instructor = $this->activeUser('instructor');
+        $this->post('/login', ['login' => $instructor->email, 'password' => 'password123'])
+            ->assertRedirect('/dashboard');
+
+        $this->assertTrue($instructor->fresh()->access_expires_at->eq(Carbon::parse('2026-09-29 10:00:00')));
+
+        $this->post('/logout');
+
+        $admin = $this->activeUser('admin');
+        $this->post('/login', ['login' => $admin->email, 'password' => 'password123'])
+            ->assertRedirect('/dashboard');
+
+        $this->assertTrue($admin->fresh()->access_expires_at->eq(Carbon::parse('2027-08-29 10:00:00')));
+
+        Carbon::setTestNow();
+    }
+
+    public function test_expiration_role_comes_from_the_backend_not_the_request(): void
+    {
+        $admin = $this->activeUser('admin');
+
+        // A forged role field in the login payload must not shorten the token.
+        $this->post('/login', [
+            'login' => $admin->email,
+            'password' => 'password123',
+            'role' => 'instructor',
+        ])->assertRedirect('/dashboard');
+
+        $this->assertTrue($admin->fresh()->access_expires_at->isSameDay(now()->addYear()));
+    }
+
+    public function test_otp_activation_login_mints_the_role_expiry(): void
+    {
+        $user = User::factory()->create(['status' => UserStatus::Pending]);
+        $user->assignRole('instructor');
+        [, $plainCode] = app(OtpService::class)->createForUser($user);
+
+        $this->withSession(['pending_verification_user_id' => $user->id])
+            ->postJson('/api/code-verify', ['code' => $plainCode])
+            ->assertOk();
+
+        $fresh = $user->fresh();
+        $this->assertNotNull($fresh->access_expires_at);
+        $this->assertTrue($fresh->access_expires_at->isSameDay(now()->addMonth()));
+        $this->assertTrue($fresh->access_renewed_at->isToday());
+    }
+
+    public function test_otp_disabled_registration_login_mints_the_role_expiry(): void
+    {
+        config(['auth.otp.enabled' => false]);
+
+        $this->post('/instructor-register', [
+            'name' => 'OTP Disabled Instructor',
+            'email' => 'otp.off@etec.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertRedirect('/dashboard');
+
+        $user = User::where('email', 'otp.off@etec.com')->first();
+        $this->assertTrue($user->fresh()->access_expires_at->isSameDay(now()->addMonth()));
+        $this->assertTrue($user->fresh()->access_renewed_at->isToday());
+    }
+
+    public function test_other_roles_keep_the_existing_never_expire_behavior(): void
+    {
+        $user = $this->activeUser('student');
+
+        $this->post('/login', ['login' => $user->email, 'password' => 'password123'])
+            ->assertStatus(302);
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertNull($user->fresh()->access_expires_at);
+        $this->assertNull($user->fresh()->access_renewed_at);
     }
 
     // POST /logout

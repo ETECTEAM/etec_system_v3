@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\User;
+
 return [
 
     /*
@@ -39,6 +41,32 @@ return [
         'AUTH_DUMMY_PASSWORD_HASH',
         '$2y$12$tHtyWiLhB93IiFOwLuWrnuF2pjUt8EY14lb9rJnnATJGw/gUTBbMC'
     ),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Role-Based Token Expiration
+    |--------------------------------------------------------------------------
+    |
+    | How long an authenticated session/token stays valid after it is issued,
+    | keyed by the user's backend role. Durations are ISO-8601 intervals so
+    | the expiry is an exact offset from the login/issue time - 'P1M' lands on
+    | the same clock time one calendar month later, 'P1Y' one year later -
+    | rather than a calendar boundary. Letting an instructor log in on
+    | August 29, 2026 at 10:00 yields an expiry of September 29, 2026 at 10:00;
+    | an admin on the same date expires August 29, 2027 at 10:00.
+    |
+    | Roles without an entry here (e.g. student) keep the existing behavior:
+    | their access-window columns stay null and they never expire.
+    |
+    */
+
+    'token_expiration' => [
+        'roles' => [
+            'instructor' => env('INSTRUCTOR_TOKEN_EXPIRATION', 'P1M'),
+            'admin' => env('ADMIN_TOKEN_EXPIRATION', 'P1Y'),
+            'super_admin' => env('SUPER_ADMIN_TOKEN_EXPIRATION', 'P1Y'),
+        ],
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -89,7 +117,7 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => env('AUTH_MODEL', User::class),
         ],
 
         // 'users' => [

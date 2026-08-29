@@ -47,7 +47,7 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
     // lookups its form needs): admins, or the instructor the class is assigned to — ownership
     // enforced in EnrollmentClassController::ensureInstructorOwnsClass(). These back the class
     // action menu, which instructors get on their dashboard for their own classes.
-    Route::middleware(['auth', 'role:super_admin|admin|instructor'])->group(function (): void {
+    Route::middleware(['auth', 'active', 'role:super_admin|admin|instructor'])->group(function (): void {
         // An instructor only reaches this by copying one of their own classes, so the
         // controller pins the copy to them rather than letting them assign a teacher.
         Route::post('/', [EnrollmentClassController::class, 'store'])->name('enroll.store');
