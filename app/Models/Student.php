@@ -34,6 +34,11 @@ class Student extends Model
         return $this->hasMany(StudentEnrollment::class);
     }
 
+    public function certificates(): HasMany
+    {
+        return $this->hasMany(StudentCertificateNormal::class);
+    }
+
     public function scores(): HasMany
     {
         return $this->hasMany(StudentScore::class);
