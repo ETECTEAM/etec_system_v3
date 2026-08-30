@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Instructor\Controllers\InstructorClassController;
+use App\Modules\Instructor\Controllers\InstructorOnboardingController;
 use App\Modules\Instructor\Controllers\InstructorProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -9,6 +10,16 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
     Route::get('/profile', [InstructorProfileController::class, 'edit']);
     Route::put('/profile', [InstructorProfileController::class, 'update'])->middleware('throttle:10,1');
     Route::delete('/profile/attachments/{type}', [InstructorProfileController::class, 'destroyAttachment'])->middleware('throttle:10,1');
+
+    // Post-registration onboarding wizard. Stays outside the 'onboarding'
+    // group below so a still-gated instructor can actually reach it.
+    Route::prefix('/onboarding')->group(function () {
+        Route::get('/', [InstructorOnboardingController::class, 'show'])->name('instructor.onboarding');
+        Route::get('/status', [InstructorOnboardingController::class, 'status'])->name('instructor.onboarding.status');
+        Route::put('/teaching', [InstructorOnboardingController::class, 'saveTeaching'])->middleware('throttle:10,1')->name('instructor.onboarding.teaching');
+        Route::post('/recovery-email', [InstructorOnboardingController::class, 'saveRecoveryEmail'])->middleware('throttle:5,1')->name('instructor.onboarding.recovery-email');
+        Route::post('/recovery-email/resend', [InstructorOnboardingController::class, 'resendRecoveryEmail'])->middleware('throttle:5,1')->name('instructor.onboarding.recovery-email.resend');
+    });
 
     // Everything below this point requires onboarding to be complete first.
     Route::middleware('onboarding')->group(function () {

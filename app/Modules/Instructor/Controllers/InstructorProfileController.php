@@ -147,6 +147,14 @@ class InstructorProfileController extends Controller
         // instructor through the onboarding gate.
         $this->onboarding->markCompleteIfDone($user);
 
+        // If they saved a now-complete profile from this page but still owe a
+        // verified recovery email, hand them straight to that step of the
+        // guided setup instead of leaving them on the form.
+        if ($this->onboarding->isPending($user->fresh())) {
+            return redirect('/dashboard/instructor/onboarding')
+                ->with('success', 'Profile saved. One more step: verify a recovery email.');
+        }
+
         return redirect()->back()->with('success', 'Profile updated successfully.');
     }
 

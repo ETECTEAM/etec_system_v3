@@ -10,6 +10,7 @@ import * as profile from "./profile";
 import * as preAttendance from "./preAttendance";
 import * as user from "./user";
 import * as instructorScheduleBlocks from "./instructorScheduleBlocks";
+import * as instructorAvailability from "./instructorAvailability";
 import * as schedule from "./schedule";
 import * as loginSecurity from "./loginSecurity";
 import * as attendanceSettings from "./attendanceSettings";
@@ -29,6 +30,7 @@ export const menuDomains = [
   user,
   website,
   instructorScheduleBlocks,
+  instructorAvailability,
   schedule,
   loginSecurity,
   attendanceSettings,

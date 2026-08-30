@@ -202,13 +202,14 @@ class AuthController extends Controller
 
     /**
      * Where a freshly verified user lands. Newly self-registered instructors
-     * who still need to finish setup are sent to their profile page instead of
-     * straight to the dashboard; everyone else goes to the normal redirect.
+     * who still need to finish setup are sent into the onboarding wizard
+     * instead of straight to the dashboard; everyone else goes to the normal
+     * redirect.
      */
     private function postVerificationRedirect(User $user): string
     {
         if ($this->onboarding->isPending($user)) {
-            return '/dashboard/instructor/profile';
+            return '/dashboard/instructor/onboarding';
         }
 
         return $this->redirectPathFor($user);

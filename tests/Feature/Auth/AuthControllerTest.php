@@ -510,11 +510,12 @@ class AuthControllerTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_newly_verified_instructor_with_incomplete_setup_is_sent_to_profile(): void
+    public function test_newly_verified_instructor_with_incomplete_setup_is_sent_to_onboarding(): void
     {
         // A self-registered instructor (requires_onboarding) who has not yet
         // filled in employment type / work schedule / specialization or verified
-        // a recovery email is held out of the dashboard after OTP verification.
+        // a recovery email is held out of the dashboard after OTP verification
+        // and dropped into the onboarding wizard instead.
         $user = User::factory()->create([
             'status' => UserStatus::Pending,
             'requires_onboarding' => true,
@@ -528,7 +529,7 @@ class AuthControllerTest extends TestCase
             ->postJson('/api/code-verify', ['code' => $plainCode, 'user_id' => $user->id])
             ->assertOk()
             ->assertJsonPath('message', 'Account verified successfully.')
-            ->assertJsonPath('redirect', '/dashboard/instructor/profile');
+            ->assertJsonPath('redirect', '/dashboard/instructor/onboarding');
     }
 
     public function test_verification_fails_with_a_wrong_code(): void

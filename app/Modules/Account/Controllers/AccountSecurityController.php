@@ -4,19 +4,14 @@ namespace App\Modules\Account\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Modules\Account\Notifications\RecoveryEmailChangedNotification;
-use App\Modules\Account\Notifications\RecoveryEmailVerificationNotification;
 use App\Modules\Account\Requests\UpdateRecoveryEmailRequest;
+use App\Modules\Account\Services\RecoveryEmailService;
 use App\Modules\Instructor\Services\InstructorOnboardingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
-use Throwable;
 
 /**
  * Self-service recovery-email management, available to every logged-in
@@ -27,6 +22,7 @@ class AccountSecurityController extends Controller
 {
     public function __construct(
         private readonly InstructorOnboardingService $onboarding,
+        private readonly RecoveryEmailService $recoveryEmail,
     ) {}
 
     // Route to display the current recovery-email status for the logged-in user.
@@ -47,32 +43,12 @@ class AccountSecurityController extends Controller
         $data = $request->toData();
         $user = Auth::user();
 
-        // Overwrites any prior recovery email outright and drops verification -
-        // there is deliberately no staging column, so the account has zero
-        // verified recovery email until the new link below is clicked.
-        $user->forceFill([
-            'recovery_email' => $data->recoveryEmail,
-            'recovery_verified' => false,
-        ])->save();
-
         // The email is saved either way - mail delivery failing here shouldn't
         // crash the request or lose the save, since "Resend" already exists
         // to retry once delivery is working again.
-        if (! $this->sendVerificationLink($user)) {
+        if (! $this->recoveryEmail->updateAndSendVerification($user, $data->recoveryEmail)) {
             return redirect()->route('account-security.edit')
                 ->with('error', 'Recovery email saved, but the verification email could not be sent right now. Use "Resend" to try again later.');
-        }
-
-        // Alert the login inbox, not the (unverified) new recovery address,
-        // so a compromised recovery email alone can't silently take over the account.
-        try {
-            Notification::route('mail', $user->email)
-                ->notify(new RecoveryEmailChangedNotification($data->recoveryEmail));
-        } catch (Throwable $e) {
-            Log::warning('Failed to send recovery-email-changed alert', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
         }
 
         return redirect()->route('account-security.edit')
@@ -92,7 +68,7 @@ class AccountSecurityController extends Controller
             return redirect()->route('account-security.edit')->with('error', 'Your recovery email is already verified.');
         }
 
-        if (! $this->sendVerificationLink($user)) {
+        if (! $this->recoveryEmail->resendVerificationLink($user)) {
             return redirect()->route('account-security.edit')
                 ->with('error', 'Could not send the verification email right now. Please try again shortly.');
         }
@@ -106,36 +82,26 @@ class AccountSecurityController extends Controller
         $account = User::query()->findOrFail($user);
         $account->forceFill(['recovery_verified' => true])->save();
 
+        // Was this account still working through the guided setup before this
+        // click (which may itself complete it)?
+        $wasOnboarding = $account->requires_onboarding && $account->onboarding_completed_at === null;
+
         // Verifying the recovery email may be the final onboarding step.
         $this->onboarding->markCompleteIfDone($account);
 
         if (Auth::check()) {
+            // Someone finishing the onboarding wizard in the same session lands
+            // back on it - the wizard forwards to the dashboard once every step
+            // is done - rather than on the standalone Account Security page.
+            if ($wasOnboarding && Auth::id() === $account->id) {
+                return redirect('/dashboard/instructor/onboarding')
+                    ->with('success', 'Recovery email verified.')
+                    ->with('onboarding_just_completed', ! $this->onboarding->isPending($account));
+            }
+
             return redirect()->route('account-security.edit')->with('success', 'Recovery email verified.');
         }
 
         return redirect()->route('login')->with('success', 'Recovery email verified. You can now sign in.');
-    }
-
-    private function sendVerificationLink(User $user): bool
-    {
-        $url = URL::temporarySignedRoute(
-            'account-security.recovery-email.verify',
-            now()->addHours(24),
-            ['user' => $user->id]
-        );
-
-        try {
-            Notification::route('mail', $user->recovery_email)
-                ->notify(new RecoveryEmailVerificationNotification($url));
-
-            return true;
-        } catch (Throwable $e) {
-            Log::warning('Failed to send recovery-email verification link', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return false;
-        }
     }
 }

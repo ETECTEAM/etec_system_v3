@@ -241,16 +241,13 @@ function submit() {
       <PageHero eyebrow="Instructor" :title="$t('My Instructor Profile')" description="Complete or update your instructor profile information." />
 
       <div v-if="onboardingPending" class="rounded-2xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-500/30 dark:bg-blue-500/10">
-        <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-300">{{ $t('Welcome! Complete your setup to access the dashboard') }}</h3>
+        <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-300">{{ $t('Finish your setup to access the dashboard') }}</h3>
         <p class="mt-1 text-sm text-blue-800 dark:text-blue-200">
-          {{ $t('Before you can use the dashboard, please:') }}
+          {{ $t('The guided setup walks you through your teaching details and a verified recovery email.') }}
         </p>
-        <ul class="mt-2 list-inside list-disc space-y-1 text-sm text-blue-800 dark:text-blue-200">
-          <li>{{ $t('Select your employment type') }}</li>
-          <li>{{ $t('Pick a work schedule') }}</li>
-          <li>{{ $t('Choose at least one specialization') }}</li>
-          <li><Link href="/dashboard/account-security" class="font-semibold underline">{{ $t('Add and verify a recovery email') }}</Link></li>
-        </ul>
+        <Link href="/dashboard/instructor/onboarding" class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500">
+          {{ $t('Open guided setup') }}
+        </Link>
       </div>
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
@@ -472,6 +469,9 @@ function submit() {
             </div>
           </div>
 
+          <!-- Attachments and Change Password are deferred during onboarding -
+               the guided setup only needs the fields above. -->
+          <template v-if="!onboardingPending">
           <hr class="mb-8 border-slate-200 dark:border-gray-800">
 
           <!-- Attachments -->
@@ -585,6 +585,7 @@ function submit() {
               </label>
             </div>
           </div>
+          </template>
 
           <!-- Submit -->
           <div class="flex justify-end border-t border-slate-200 pt-6 dark:border-gray-800">
