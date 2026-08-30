@@ -4,6 +4,7 @@ namespace App\Modules\Instructor\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Instructor\Requests\InstructorProfileRequest;
+use App\Modules\Instructor\Services\InstructorOnboardingService;
 use App\Modules\Instructor\Services\InstructorProfileService;
 use App\Models\WorkSchedule;
 use App\Models\SubCategory;
@@ -17,6 +18,7 @@ class InstructorProfileController extends Controller
 {
     public function __construct(
         private readonly InstructorProfileService $profileService,
+        private readonly InstructorOnboardingService $onboarding,
     ) {}
 
     public function show(Request $request): Response
@@ -46,9 +48,14 @@ class InstructorProfileController extends Controller
             ->with(['profilePhoto', 'cvFile', 'attachments'])
             ->first();
 
+        $onboardingPending = $request->user()
+            ? $this->onboarding->isPending($request->user())
+            : false;
+
         return Inertia::render('backend/instructors/Profile', [
             'user' => $request->user(),
             'instructorData' => $instructorData,
+            'onboardingPending' => $onboardingPending,
             'profilePhoto' => $instructorData?->profilePhoto,
             'cvFile' => $instructorData?->cvFile,
             'otherAttachments' => $instructorData?->attachments
@@ -135,6 +142,10 @@ class InstructorProfileController extends Controller
         if (!empty($data['password'])) {
             $user->update(['password' => Hash::make($data['password'])]);
         }
+
+        // Once the profile carries the required fields, let this self-registered
+        // instructor through the onboarding gate.
+        $this->onboarding->markCompleteIfDone($user);
 
         return redirect()->back()->with('success', 'Profile updated successfully.');
     }

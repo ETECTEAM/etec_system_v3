@@ -266,6 +266,27 @@ class AuthControllerTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_newly_verified_instructor_with_incomplete_setup_is_sent_to_profile(): void
+    {
+        // A self-registered instructor (requires_onboarding) who has not yet
+        // filled in employment type / work schedule / specialization or verified
+        // a recovery email is held out of the dashboard after OTP verification.
+        $user = User::factory()->create([
+            'status' => UserStatus::Pending,
+            'requires_onboarding' => true,
+        ]);
+        $user->assignRole('instructor');
+        [, $plainCode] = app(OtpService::class)->createForUser($user);
+
+        // Include the user_id so this uses its own rate-limiter bucket rather
+        // than the shared one used by the other code-verify passing tests.
+        $this->withSession(['pending_verification_user_id' => $user->id])
+            ->postJson('/api/code-verify', ['code' => $plainCode, 'user_id' => $user->id])
+            ->assertOk()
+            ->assertJsonPath('message', 'Account verified successfully.')
+            ->assertJsonPath('redirect', '/dashboard/instructor/profile');
+    }
+
     public function test_verification_fails_with_a_wrong_code(): void
     {
         $user = User::factory()->create(['status' => UserStatus::Pending]);

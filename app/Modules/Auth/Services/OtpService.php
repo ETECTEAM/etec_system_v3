@@ -121,20 +121,11 @@ class OtpService
             'verified_at' => now(),
         ])->save();
 
+        // Successful verification is recorded in the audit log only - no Telegram
+        // notification (the GENERATED / FAILED / BLOCKED logs still fire).
         $this->auditService->log($user, 'otp.verified', request()->ip(), [
             'otp_id' => $otp->id,
         ]);
-
-        $this->telegramService->sendOtpLog($this->formatOtpLogMessage(
-            title: 'OTP VERIFIED',
-            user: $user,
-            action: 'Registration',
-            status: 'Success',
-            details: [
-                'Username: '.$this->displayUsername($user),
-                'OTP ID: '.$otp->id,
-            ],
-        ));
 
         return $otp;
     }

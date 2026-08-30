@@ -34,6 +34,8 @@ class User extends Authenticatable
         'password',
         'role',
         'status',
+        'requires_onboarding',
+        'onboarding_completed_at',
         'last_login_at',
         'created_by',
     ];
@@ -60,6 +62,8 @@ class User extends Authenticatable
             'status' => UserStatus::class,
             'verified_at' => 'datetime',
             'password' => 'hashed',
+            'requires_onboarding' => 'boolean',
+            'onboarding_completed_at' => 'datetime',
         ];
     }
 

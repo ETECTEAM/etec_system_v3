@@ -10,7 +10,7 @@ use App\Modules\Enroll\Actions\ActivateUpcomingClasses;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'active', 'permission:dashboard.view'])->group(function () {
+Route::middleware(['auth', 'active', 'onboarding', 'permission:dashboard.view'])->group(function () {
     Route::get('/dashboard', function (InstructorClassService $instructorClasses, ActivateUpcomingClasses $activate) {
         $user = request()->user();
 

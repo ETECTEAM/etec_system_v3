@@ -20,6 +20,7 @@ use App\Modules\Auth\Services\AuthAuditService;
 use App\Modules\Auth\Services\AuthService;
 use App\Modules\Auth\Services\LoginLockoutService;
 use App\Modules\Auth\Services\OtpService;
+use App\Modules\Instructor\Services\InstructorOnboardingService;
 use App\Modules\User\Services\UserApprovalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -48,6 +49,7 @@ class AuthController extends Controller
         private readonly UserApprovalService $approvalService,
         private readonly AuthAuditService $auditService,
         private readonly LoginLockoutService $lockoutService,
+        private readonly InstructorOnboardingService $onboarding,
     ) {}
 
     public function showLogin(): Response
@@ -74,6 +76,10 @@ class AuthController extends Controller
                 'password' => $data->password,
                 'role' => 'instructor',
                 'status' => 'pending',
+                // Self-registered instructors must complete setup (profile
+                // details, work schedule, specialization, verified recovery
+                // email) before they can use the dashboard.
+                'requires_onboarding' => true,
             ]);
 
             Role::findOrCreate('instructor', 'web');
@@ -107,7 +113,7 @@ class AuthController extends Controller
         $request->session()->put('pending_verification_user_id', $user->id);
 
         try {
-            PendingUserRegistered::dispatch($user, $otp, $plainCode);
+            PendingUserRegistered::dispatch($user, $otp, $plainCode, $request->ip());
         } catch (Throwable $e) {
             // Registration must still succeed even if a notification listener or
             // Telegram delivery path fails.
@@ -187,7 +193,21 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $request->session()->forget('pending_verification_user_id');
 
-        return VerificationResponse::verified($this->redirectPathFor($user));
+        return VerificationResponse::verified($this->postVerificationRedirect($user));
+    }
+
+    /**
+     * Where a freshly verified user lands. Newly self-registered instructors
+     * who still need to finish setup are sent to their profile page instead of
+     * straight to the dashboard; everyone else goes to the normal redirect.
+     */
+    private function postVerificationRedirect(User $user): string
+    {
+        if ($this->onboarding->isPending($user)) {
+            return '/dashboard/instructor/profile';
+        }
+
+        return $this->redirectPathFor($user);
     }
 
     public function loginWeb(LoginWebRequest $request): RedirectResponse|JsonResponse

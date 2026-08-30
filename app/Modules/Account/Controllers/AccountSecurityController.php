@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Account\Notifications\RecoveryEmailChangedNotification;
 use App\Modules\Account\Notifications\RecoveryEmailVerificationNotification;
 use App\Modules\Account\Requests\UpdateRecoveryEmailRequest;
+use App\Modules\Instructor\Services\InstructorOnboardingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,6 +25,10 @@ use Throwable;
  */
 class AccountSecurityController extends Controller
 {
+    public function __construct(
+        private readonly InstructorOnboardingService $onboarding,
+    ) {}
+
     // Route to display the current recovery-email status for the logged-in user.
     public function edit(): Response
     {
@@ -100,6 +105,9 @@ class AccountSecurityController extends Controller
     {
         $account = User::query()->findOrFail($user);
         $account->forceFill(['recovery_verified' => true])->save();
+
+        // Verifying the recovery email may be the final onboarding step.
+        $this->onboarding->markCompleteIfDone($account);
 
         if (Auth::check()) {
             return redirect()->route('account-security.edit')->with('success', 'Recovery email verified.');
