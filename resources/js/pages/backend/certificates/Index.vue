@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import {
@@ -8,6 +8,7 @@ import {
     BookOpen,
     CheckCircle2,
     ChevronLeft,
+    CalendarDays,
     Loader2,
     Printer,
     Save,
@@ -18,6 +19,7 @@ import {
 } from '@lucide/vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import RealCertificatePreview from './CertificatePreview.vue'
+import FreeCertificatePreview from './FreeCertificatePreview.vue'
 
 const props = defineProps({
     type: { type: String, default: 'free' },
@@ -142,6 +144,97 @@ watch(selectedCategory, () => {
 
 onMounted(() => {
     if (isClassCertificate.value) loadClasses()
+})
+
+let freePrintStyleElement = null
+
+watchEffect(() => {
+    if (typeof document === 'undefined') return
+
+    document.body.classList.toggle('free-certificate-print', isFree.value)
+
+    if (isFree.value && !freePrintStyleElement) {
+        freePrintStyleElement = document.createElement('style')
+        freePrintStyleElement.dataset.freeCertificatePrint = 'true'
+        freePrintStyleElement.textContent = `
+            @media print {
+                @page { size: A4 landscape; margin: 0; }
+                html, body {
+                    width: 297mm !important;
+                    height: 210mm !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: hidden !important;
+                    background: #fff !important;
+                }
+                body.free-certificate-print > *:not(#class-free-cert-print) { display: none !important; }
+                body.free-certificate-print #app { display: none !important; }
+                body.free-certificate-print #class-free-cert-print,
+                body.free-certificate-print #class-free-cert-print * { visibility: visible !important; }
+                body.free-certificate-print #class-free-cert-print {
+                    position: fixed !important;
+                    inset: 0 !important;
+                    z-index: 999999 !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    width: 297mm !important;
+                    height: 210mm !important;
+                    min-height: 210mm !important;
+                    margin: 0 !important;
+                    border-radius: 0 !important;
+                    background: #fff !important;
+                    padding: 0 !important;
+                    box-shadow: none !important;
+                    overflow: hidden !important;
+                }
+                body.free-certificate-print #class-free-cert-print .certificate-free-wrap {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    width: 297mm !important;
+                    height: 210mm !important;
+                }
+                body.free-certificate-print #class-free-cert-print .certificate-free {
+                    box-sizing: border-box !important;
+                    width: 297mm !important;
+                    height: 210mm !important;
+                    min-height: 210mm !important;
+                    padding: 5mm !important;
+                }
+                body.free-certificate-print #class-free-cert-print .cert-free-logo-box {
+                    width: 110px !important;
+                    height: 110px !important;
+                }
+                body.free-certificate-print #class-free-cert-print .cert-free-motto { margin-top: 4px !important; font-size: 19px !important; }
+                body.free-certificate-print #class-free-cert-print .cert-free-kingdom { font-size: 19px !important; line-height: 1.5 !important; }
+                body.free-certificate-print #class-free-cert-print .cert-free-kingdom img { max-width: 150px !important; margin-top: 4px !important; }
+                body.free-certificate-print #class-free-cert-print .cert-free-title { margin-top: 18px !important; font-size: 56px !important; line-height: 1 !important; }
+                body.free-certificate-print #class-free-cert-print .cert-free-certify { margin-top: 20px !important; font-size: 29px !important; }
+                body.free-certificate-print #class-free-cert-print .cert-free-student-name { margin: 18px 0 16px !important; font-size: 34px !important; -webkit-text-stroke: 1px #000 !important; }
+                body.free-certificate-print #class-free-cert-print .cert-free-desc { font-size: 24px !important; line-height: 1.45 !important; }
+                body.free-certificate-print #class-free-cert-print .cert-free-course { width: 500px !important; min-height: 40px !important; margin: 10px auto !important; font-size: 24px !important; }
+                body.free-certificate-print #class-free-cert-print .cert-free-granted { margin-bottom: 20px !important; font-size: 18px !important; }
+                body.free-certificate-print #class-free-cert-print .cert-free-bottom { margin-top: 5px !important; }
+                body.free-certificate-print #class-free-cert-print .cert-free-id-bottom { font-size: 16px !important; }
+                body.free-certificate-print #class-free-cert-print .cert-free-sig-line { width: 200px !important; }
+                body.free-certificate-print #class-free-cert-print .cert-free-sig-name,
+                body.free-certificate-print #class-free-cert-print .cert-free-sig-role { font-size: 18px !important; }
+            }
+        `
+        document.head.appendChild(freePrintStyleElement)
+    }
+
+    if (!isFree.value && freePrintStyleElement) {
+        freePrintStyleElement.remove()
+        freePrintStyleElement = null
+    }
+})
+
+onUnmounted(() => {
+    document.body.classList.remove('free-certificate-print')
+    freePrintStyleElement?.remove()
+    freePrintStyleElement = null
 })
 
 function remainingStudents(item) {
@@ -421,9 +514,28 @@ function buildCertificateIds(firstId, count) {
     })
 }
 
+function clearFreeError(field) {
+    if (!freeErrors.value[field]) return
+
+    freeErrors.value = {
+        ...freeErrors.value,
+        [field]: '',
+    }
+}
+
+function updateFreeStudentName(value) {
+    freeForm.student_name = value.toUpperCase()
+    clearFreeError('student_name')
+}
+
+function updateFreeCourse(value) {
+    freeForm.course = value.toUpperCase()
+    clearFreeError('course')
+}
+
 function saveFreeAfterPrint() {
     freeErrors.value = {}
-    if (!freeForm.student_name.trim()) freeErrors.value.student_name = 'Full name is required.'
+    if (!freeForm.student_name.trim()) freeErrors.value.student_name = 'Full Name is required!'
     if (!freeForm.course.trim()) freeErrors.value.course = 'Course is required.'
     if (!freeForm.end_date) freeErrors.value.end_date = 'End date is required.'
     if (Object.keys(freeErrors.value).length) return
@@ -839,26 +951,87 @@ function saveFreeAfterPrint() {
         </section>
 
         <section v-else class="legacy-certificate-page">
-            <header class="legacy-header">
-                <h1>{{ pageTitle }}</h1>
-            </header>
+            <form v-if="isFree" class="free-form free-form-card" @submit.prevent="saveFreeAfterPrint">
+                <div class="free-form-grid">
+                    <label class="free-field" :class="{ 'has-error': freeErrors.student_name }">
+                        <span><User class="h-4 w-4" /> ឈ្មោះសិស្សជាភាសាអង់គ្លេស <b>*</b></span>
+                        <span class="free-input-wrap">
+                            <User class="free-input-icon h-5 w-5" />
+                            <input
+                                v-model="freeForm.student_name"
+                                placeholder="Ex. PHEAROM RATHA"
+                                @input="updateFreeStudentName($event.target.value)"
+                            >
+                        </span>
+                        <small v-if="freeErrors.student_name" class="free-error-text">
+                            <span>!</span>
+                            {{ freeErrors.student_name }}
+                        </small>
+                    </label>
 
-            <form v-if="isFree" class="free-form" @submit.prevent="saveFreeAfterPrint">
-                <label>ឈ្មោះសិស្ស<input v-model="freeForm.student_name" @input="freeForm.student_name = freeForm.student_name.toUpperCase()" /></label>
-                <label>មុខវិជ្ជា<input v-model="freeForm.course" /></label>
-                <label>ថ្ងៃបញ្ចប់<input v-model="freeForm.end_date" type="date" /></label>
-                <button class="purple-action" type="submit" :disabled="freeSaving">
-                    <Printer class="h-5 w-5" />
-                    បោះពុម្ព
-                </button>
+                    <label class="free-field" :class="{ 'has-error': freeErrors.course }">
+                        <span><BookOpen class="h-4 w-4" /> វគ្គសិក្សា <b>*</b></span>
+                        <span class="free-input-wrap">
+                            <BookOpen class="free-input-icon h-5 w-5" />
+                            <input
+                                v-model="freeForm.course"
+                                placeholder="Ex. PHP/Laravel"
+                                @input="updateFreeCourse($event.target.value)"
+                            >
+                        </span>
+                        <small v-if="freeErrors.course" class="free-error-text">
+                            <span>!</span>
+                            {{ freeErrors.course }}
+                        </small>
+                    </label>
+
+                    <label class="free-field">
+                        <span><Bookmark class="h-4 w-4" /> ជ្រើសរើសវគ្គសិក្សា</span>
+                        <span class="free-input-wrap">
+                            <Bookmark class="free-input-icon h-5 w-5" />
+                            <select
+                                v-model="freeForm.course"
+                                @change="clearFreeError('course')"
+                            >
+                                <option value="">-- ជ្រើសរើសវគ្គសិក្សា --</option>
+                                <option v-for="course in freeCourses" :key="course.course_name" :value="course.course_name">
+                                    {{ course.course_name }}
+                                </option>
+                            </select>
+                        </span>
+                    </label>
+
+                    <label class="free-field" :class="{ 'has-error': freeErrors.end_date }">
+                        <span><CalendarDays class="h-4 w-4" /> ថ្ងៃបញ្ចប់វគ្គសិក្សា <b>*</b></span>
+                        <span class="free-input-wrap">
+                            <CalendarDays class="free-input-icon h-5 w-5" />
+                            <input
+                                v-model="freeForm.end_date"
+                                type="date"
+                                @input="clearFreeError('end_date')"
+                            >
+                        </span>
+                        <small v-if="freeErrors.end_date" class="free-error-text">
+                            <span>!</span>
+                            {{ freeErrors.end_date }}
+                        </small>
+                    </label>
+
+                    <div class="free-print-cell">
+                        <button class="btn-cert-free-print" type="submit" :disabled="freeSaving">
+                            <Printer class="h-5 w-5" />
+                            បោះពុម្ព
+                        </button>
+                    </div>
+                </div>
             </form>
 
-            <RealCertificatePreview
+            <FreeCertificatePreview
                 v-if="isFree"
                 :certificate="{
                     student_name: freeForm.student_name || 'STUDENT NAME',
-                    course: freeForm.course || 'COURSE NAME',
-                    granted_date: certificateDateFromEndDate(freeForm.end_date),
+                    course: (freeForm.course || 'COURSE NAME').toUpperCase(),
+                    granted_date: formatReadableDate(freeForm.end_date),
                     certificate_id: freeCertificateId || '0000000 ETEC',
                     director: 'Mr. HENG PHEAKNA',
                 }"
@@ -957,8 +1130,8 @@ const LegacyCertificatePreview = {
 .normal-toolbar h1 {
     margin: 0;
     font-family: "Khmer OS Muol Light", "Noto Serif Khmer", serif;
-    font-size: clamp(30px, 3vw, 44px);
-    font-weight: 900;
+    font-size: clamp(24px, 2.2vw, 32px);
+    font-weight: 800;
     color: #050505;
 }
 
@@ -1947,7 +2120,8 @@ table {
 }
 
 .legacy-certificate-page {
-    padding: 28px;
+    min-height: 100vh;
+    padding: 12px 30px 56px;
     background: #f5f6fa;
 }
 
@@ -1958,26 +2132,157 @@ table {
 }
 
 .free-form {
-    display: grid;
-    gap: 14px;
-    max-width: 420px;
-    margin-bottom: 24px;
-    border: 1px solid #dfe4f0;
-    border-radius: 10px;
+    margin: 0 auto 40px;
+}
+
+.free-form-card {
+    overflow: hidden;
+    width: 100%;
+    border: 1px solid #e5e7f2;
+    border-radius: 18px;
     background: #fff;
-    padding: 20px;
+    padding: 30px 50px 36px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
 }
 
-.free-form label {
+.free-form-grid {
     display: grid;
-    gap: 7px;
-    font-weight: 800;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 34px 40px;
+    align-items: end;
 }
 
-.free-form input {
-    border: 1px solid #d7ddea;
-    border-radius: 7px;
-    padding: 10px 12px;
+.free-field {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+}
+
+.free-field > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #2d2e81;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.free-field b {
+    color: #dc3545;
+    font-weight: 700;
+}
+
+.free-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.free-input-icon {
+    position: absolute;
+    left: 18px;
+    z-index: 1;
+    color: #7b82a3;
+    pointer-events: none;
+}
+
+.free-field input,
+.free-field select {
+    width: 100%;
+    min-height: 62px;
+    border: 1.5px solid #e0e5f2;
+    border-radius: 12px;
+    background: #f9f9fb;
+    color: #111827;
+    padding: 0 18px 0 58px;
+    font-family: inherit;
+    font-size: 18px;
+    outline: none;
+    transition: border-color .25s ease, box-shadow .25s ease, background .25s ease, transform .25s ease;
+}
+
+.free-field input:focus,
+.free-field select:focus {
+    border-color: #2d2e81;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(45, 46, 129, .1);
+    transform: translateY(-1px);
+}
+
+.free-field input::placeholder {
+    color: #aeb5c8;
+    font-weight: 600;
+}
+
+.free-field.has-error input,
+.free-field.has-error select {
+    border-color: #f05265;
+    background: #fff8f9;
+    box-shadow: 0 0 0 3px rgba(240, 82, 101, .06);
+}
+
+.free-field.has-error .free-input-icon {
+    color: #7c839f;
+}
+
+.free-error-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #ef4056;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.free-error-text span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 13px;
+    height: 13px;
+    border-radius: 999px;
+    background: #ef4056;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.free-print-cell {
+    display: flex;
+    align-items: end;
+    justify-content: flex-start;
+}
+
+.btn-cert-free-print {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-width: 152px;
+    min-height: 64px;
+    border: 0;
+    border-radius: 12px;
+    background: #16a34a;
+    color: #fff;
+    padding: 0 28px;
+    font-size: 18px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 12px 22px rgba(22, 163, 74, .24);
+    transition: background .25s ease, box-shadow .25s ease, transform .25s ease;
+}
+
+.btn-cert-free-print:hover {
+    background: #15803d;
+    box-shadow: 0 16px 28px rgba(22, 163, 74, .32);
+    transform: translateY(-2px);
+}
+
+.btn-cert-free-print:disabled {
+    cursor: not-allowed;
+    opacity: .65;
 }
 
 @media (max-width: 1200px) {
@@ -2001,6 +2306,18 @@ table {
         border-right: 0;
         border-bottom: 1px solid #dbe1ef;
     }
+
+    .free-form-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .free-print-cell {
+        grid-column: 1 / -1;
+    }
+
+    .btn-cert-free-print {
+        width: 100%;
+    }
 }
 
 @media (max-width: 768px) {
@@ -2019,6 +2336,18 @@ table {
     .modal-footer {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .legacy-certificate-page {
+        padding: 12px 14px 40px;
+    }
+
+    .free-form-card {
+        padding: 22px;
+    }
+
+    .free-form-grid {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -2063,6 +2392,10 @@ table {
         padding: 8mm !important;
         print-color-adjust: exact !important;
         -webkit-print-color-adjust: exact !important;
+    }
+
+    .certificate-free-wrapper {
+        visibility: visible !important;
     }
 
     * {
