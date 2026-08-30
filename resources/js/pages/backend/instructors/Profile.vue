@@ -1,6 +1,6 @@
 <script setup>
 import { computed, watch, ref } from 'vue'
-import { Head, router, useForm, usePage } from '@inertiajs/vue3'
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { SelectSearch } from '../../../components/ui/select-search'
@@ -10,6 +10,7 @@ import { useConfirm } from '../../../composables/useConfirm'
 const page = usePage()
 const user = page.props.user ?? {}
 const instructorData = page.props.instructorData ?? null
+const onboardingPending = page.props.onboardingPending ?? false
 const workSchedules = computed(() => page.props.workSchedules ?? [])
 const subCategories = computed(() => page.props.subCategories ?? [])
 const profilePhotoProp = computed(() => page.props.profilePhoto ?? null)
@@ -238,6 +239,19 @@ function submit() {
     <section class="space-y-6">
       <Breadcrumbs :breadcrumbItems="breadcrumbItems" />
       <PageHero eyebrow="Instructor" :title="$t('My Instructor Profile')" description="Complete or update your instructor profile information." />
+
+      <div v-if="onboardingPending" class="rounded-2xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-500/30 dark:bg-blue-500/10">
+        <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-300">{{ $t('Welcome! Complete your setup to access the dashboard') }}</h3>
+        <p class="mt-1 text-sm text-blue-800 dark:text-blue-200">
+          {{ $t('Before you can use the dashboard, please:') }}
+        </p>
+        <ul class="mt-2 list-inside list-disc space-y-1 text-sm text-blue-800 dark:text-blue-200">
+          <li>{{ $t('Select your employment type') }}</li>
+          <li>{{ $t('Pick a work schedule') }}</li>
+          <li>{{ $t('Choose at least one specialization') }}</li>
+          <li><Link href="/dashboard/account-security" class="font-semibold underline">{{ $t('Add and verify a recovery email') }}</Link></li>
+        </ul>
+      </div>
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form @submit.prevent="submit">

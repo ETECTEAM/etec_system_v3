@@ -19,5 +19,6 @@ class PendingUserRegistered
         public readonly User $user,
         public readonly OtpVerification $otp,
         public readonly string $plainCode,
+        public readonly ?string $ipAddress = null,
     ) {}
 }
