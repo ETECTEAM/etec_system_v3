@@ -6,6 +6,8 @@ use App\Models\AttendanceAuditLog;
 use App\Models\ClassSession;
 use App\Models\StudentAttendance;
 use App\Models\User;
+use App\Modules\AbsenceBlock\Actions\AutoBlockStudent;
+use App\Modules\AbsenceBlock\Services\AbsenceBlockEvaluator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -53,6 +55,9 @@ class OverrideAttendanceRecord
                 ->get()
                 ->keyBy('student_enrollment_id');
 
+            $lockEvaluator = app(AbsenceBlockEvaluator::class);
+            $settledAbsent = [];
+
             foreach ($records as $record) {
                 $row = $existingRows->get((int) $record['enrollment_id']);
 
@@ -66,9 +71,16 @@ class OverrideAttendanceRecord
                 $fromStatus = $row->status;
                 $fromSource = $row->source;
 
+                // A locked student can't be overridden to present.
+                $lock = $lockEvaluator->evaluate((int) $row->student_id, $studyClassId, $sessionDate);
+                $status = $lock->locked ? 'absent' : $record['status'];
+
                 $row->update([
-                    'status' => $record['status'],
-                    'note' => $record['note'] ?? null,
+                    'status' => $status,
+                    'locked' => $lock->locked,
+                    'lock_reason' => $lock->locked ? $lock->reason : null,
+                    'locked_block_id' => $lock->blockId,
+                    'note' => $lock->locked ? $lock->reason : ($record['note'] ?? null),
                     'tracked_by' => $instructor->id,
                     'source' => StudentAttendance::SOURCE_MANUAL,
                 ]);
@@ -77,10 +89,19 @@ class OverrideAttendanceRecord
                     'student_attendance_id' => $row->id,
                     'changed_by' => $instructor->id,
                     'from_status' => $fromStatus,
-                    'to_status' => $record['status'],
+                    'to_status' => $status,
                     'from_source' => $fromSource,
                     'to_source' => StudentAttendance::SOURCE_MANUAL,
                 ]);
+
+                if ($status === 'absent') {
+                    $settledAbsent[] = (int) $row->student_id;
+                }
+            }
+
+            $autoBlock = app(AutoBlockStudent::class);
+            foreach (array_unique($settledAbsent) as $absentStudentId) {
+                $autoBlock->handle($absentStudentId, $studyClassId, $sessionDate, $instructor);
             }
 
             // recorded_at is left as the original auto-record instant — the banner (part

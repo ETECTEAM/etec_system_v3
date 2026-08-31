@@ -209,10 +209,16 @@ const normalizeAttendanceStatus = (status, fallback = "absent") => statusValues.
 
 const toast = useToast();
 
+// An absence-blocked student is pinned to "absent" - the office must clear the
+// block before the instructor can change it.
+const isStudentLocked = (student) => Boolean(student?.attendance?.is_locked);
+
 const attendance = reactive(
   Object.fromEntries(props.students.map((student) => [
     student.id,
-    normalizeAttendanceStatus(student.attendance?.current_status, isPreAttendance.value && !student.attendance?.is_tracked ? null : "absent"),
+    isStudentLocked(student)
+      ? "absent"
+      : normalizeAttendanceStatus(student.attendance?.current_status, isPreAttendance.value && !student.attendance?.is_tracked ? null : "absent"),
   ])),
 );
 
@@ -252,6 +258,11 @@ const form = useForm({
 const studentVerification = (student) => liveVerification[student.id] ?? student.attendance ?? {};
 
 function setAttendanceStatus(studentId, status) {
+  const student = props.students.find((s) => s.id === studentId);
+  if (isStudentLocked(student)) {
+    return;
+  }
+
   attendance[studentId] = status;
   attendanceTouched[studentId] = true;
 
@@ -399,6 +410,12 @@ const submit = (options = {}) => {
 
     return;
   }
+  form.records = props.students.map((student) => ({
+    student_id: student.id,
+    enrollment_id: student.enrollment_id,
+    status: isStudentLocked(student) ? "absent" : (attendance[student.id] ?? "absent"),
+    note: permissionNotes[student.id] || null,
+  }));
 
   const url = `/dashboard/instructor/classes/${props.classData.id}/attendance`;
   const visitOptions = {
@@ -561,6 +578,12 @@ watch(
                     >
                       Suspicious
                     </p>
+                    <p
+                      v-if="isStudentLocked(student)"
+                      class="mt-1 flex max-w-xs items-start gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-bold text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300"
+                    >
+                      🔒 {{ student.attendance?.lock_reason || 'Attendance locked - see the school office.' }}
+                    </p>
                   </td>
                   <td class="border-b border-slate-100 px-4 py-3 dark:border-gray-800">
                     <div class="flex flex-wrap justify-center gap-2">
@@ -568,7 +591,7 @@ watch(
                         v-for="status in statuses"
                         :key="status.value"
                         type="button"
-                        :disabled="attendance[student.id] === status.value || locked"
+                        :disabled="attendance[student.id] === status.value || locked || isStudentLocked(student)"
                         :class="[
                           'h-9 rounded-lg border px-3 text-xs font-black transition disabled:cursor-not-allowed',
                           attendance[student.id] === status.value
@@ -585,7 +608,7 @@ watch(
                     <input
                       v-model="permissionNotes[student.id]"
                       type="text"
-                      :disabled="locked || attendance[student.id] !== 'permission'"
+                      :disabled="locked || isStudentLocked(student) || attendance[student.id] !== 'permission'"
                       placeholder="Enter note..."
                       class="h-9 w-40 max-w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:disabled:bg-gray-800 dark:disabled:text-gray-500 dark:focus:ring-blue-500/10"
                     />

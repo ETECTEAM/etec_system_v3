@@ -136,7 +136,8 @@ class PageController extends Controller
             $heroImage = $page->hero?->background_image;
             $page->hero?->delete();
             $page->delete();
-            $this->website->deletePublicFile($heroImage);
+            // FILE: disabled - not using file uploads
+            // $this->website->deletePublicFile($heroImage);
         });
 
         return redirect('/dashboard/website/pages')->with('success', 'Page deleted successfully.');
@@ -172,18 +173,19 @@ class PageController extends Controller
         return $slug;
     }
 
-    public function removeHeroImage(Request $request, Page $page): RedirectResponse
-    {
-        abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
-
-        $hero = $page->hero;
-        $oldImage = $hero?->background_image;
-
-        $hero?->update(['background_image' => null]);
-        $this->website->deletePublicFile($oldImage);
-
-        return back()->with('success', 'Hero image removed successfully.');
-    }
+    // FILE: disabled - not using file uploads
+    // public function removeHeroImage(Request $request, Page $page): RedirectResponse
+    // {
+    //     abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
+    //
+    //     $hero = $page->hero;
+    //     $oldImage = $hero?->background_image;
+    //
+    //     $hero?->update(['background_image' => null]);
+    //     $this->website->deletePublicFile($oldImage);
+    //
+    //     return back()->with('success', 'Hero image removed successfully.');
+    // }
 
     public function preview(Request $request, Page $page): Response
     {
@@ -205,9 +207,10 @@ class PageController extends Controller
             $backgroundImage = null;
         }
 
-        if ($request->hasFile('hero_background_image')) {
-            $backgroundImage = $this->website->uniqueUploadPath($request->file('hero_background_image'), 'uploads/pages/heroes');
-        }
+        // FILE: disabled - not using file uploads
+        // if ($request->hasFile('hero_background_image')) {
+        //     $backgroundImage = $this->website->uniqueUploadPath($request->file('hero_background_image'), 'uploads/pages/heroes');
+        // }
 
         $hero->fill([
             'title' => $request->validated('hero_title'),
@@ -225,9 +228,10 @@ class PageController extends Controller
 
         $page->hero()->save($hero);
 
-        if (($request->hasFile('hero_background_image') || $request->boolean('remove_hero_image')) && $oldImage !== $backgroundImage) {
-            $this->website->deletePublicFile($oldImage);
-        }
+        // FILE: disabled - not using file uploads
+        // if (($request->hasFile('hero_background_image') || $request->boolean('remove_hero_image')) && $oldImage !== $backgroundImage) {
+        //     $this->website->deletePublicFile($oldImage);
+        // }
 
         $this->saveHeroSliderImages($request, $hero);
     }
@@ -242,7 +246,8 @@ class PageController extends Controller
             $images = $hero->images()->whereIn('id', $removeIds)->get();
 
             foreach ($images as $image) {
-                $this->website->deletePublicFile($image->image);
+                // FILE: disabled - not using file uploads
+                // $this->website->deletePublicFile($image->image);
                 $image->delete();
             }
         }
@@ -253,14 +258,15 @@ class PageController extends Controller
                 ->update(['is_active' => (bool) $isActive]);
         }
 
-        $nextPosition = ((int) $hero->images()->max('position')) + 1;
-
-        foreach ($request->file('hero_slider_images', []) as $file) {
-            $hero->images()->create([
-                'image' => $this->website->uniqueUploadPath($file, 'uploads/pages/heroes/slides'),
-                'position' => $nextPosition++,
-                'is_active' => true,
-            ]);
-        }
+        // FILE: disabled - not using file uploads
+        // $nextPosition = ((int) $hero->images()->max('position')) + 1;
+        //
+        // foreach ($request->file('hero_slider_images', []) as $file) {
+        //     $hero->images()->create([
+        //         'image' => $this->website->uniqueUploadPath($file, 'uploads/pages/heroes/slides'),
+        //         'position' => $nextPosition++,
+        //         'is_active' => true,
+        //     ]);
+        // }
     }
 }

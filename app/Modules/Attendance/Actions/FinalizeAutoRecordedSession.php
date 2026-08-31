@@ -5,6 +5,7 @@ namespace App\Modules\Attendance\Actions;
 use App\Models\ClassSession;
 use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
+use App\Modules\AbsenceBlock\Actions\AutoBlockStudent;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -51,6 +52,12 @@ class FinalizeAutoRecordedSession
                 ->whereIn('student_enrollment_id', $enrollments->pluck('id'))
                 ->get(['student_enrollment_id', 'status', 'source'])
                 ->keyBy('student_enrollment_id');
+            $justAbsent = StudentAttendance::query()
+                ->where('study_class_id', $session->study_class_id)
+                ->whereDate('attendance_date', $session->session_date)
+                ->where('source', StudentAttendance::SOURCE_AUTO)
+                ->where('status', 'pending')
+                ->pluck('student_id');
 
             StudentAttendance::query()
                 ->where('study_class_id', $session->study_class_id)
@@ -86,6 +93,12 @@ class FinalizeAutoRecordedSession
             }
 
             $session->update(['status' => ClassSession::STATUS_AUTO_RECORDED]);
+            // Raise / escalate absence blocks for the students the system just
+            // finalized as absent (no instructor involved).
+            $autoBlock = app(AutoBlockStudent::class);
+            foreach ($justAbsent->unique() as $studentId) {
+                $autoBlock->handle((int) $studentId, (int) $session->study_class_id, (string) $session->session_date);
+            }
         });
     }
 }

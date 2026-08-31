@@ -31,32 +31,35 @@ class SchoolSettingController extends Controller
         $oldLogo = $settings->school_logo;
         $logoPath = $oldLogo;
 
-        if ($request->hasFile('school_logo')) {
-            $logoPath = $this->website->uniqueUploadPath($request->file('school_logo'), 'uploads/settings');
-        }
+        // FILE: disabled - not using file uploads
+        // if ($request->hasFile('school_logo')) {
+        //     $logoPath = $this->website->uniqueUploadPath($request->file('school_logo'), 'uploads/settings');
+        // }
 
         $settings->update([
             'school_name' => $request->validated('school_name'),
             'school_logo' => $logoPath,
         ]);
 
-        if ($request->hasFile('school_logo') && $oldLogo !== $logoPath) {
-            $this->website->deletePublicFile($oldLogo);
-        }
+        // FILE: disabled - not using file uploads
+        // if ($request->hasFile('school_logo') && $oldLogo !== $logoPath) {
+        //     $this->website->deletePublicFile($oldLogo);
+        // }
 
         return back()->with('success', 'School settings updated successfully.');
     }
 
-    public function removeLogo(Request $request): RedirectResponse
-    {
-        abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
-
-        $settings = $this->website->settings();
-        $oldLogo = $settings->school_logo;
-
-        $settings->update(['school_logo' => null]);
-        $this->website->deletePublicFile($oldLogo);
-
-        return back()->with('success', 'School logo removed successfully.');
-    }
+    // FILE: disabled - not using file uploads
+    // public function removeLogo(Request $request): RedirectResponse
+    // {
+    //     abort_unless($request->user()?->hasAnyRole(['super_admin', 'admin']), 403);
+    //
+    //     $settings = $this->website->settings();
+    //     $oldLogo = $settings->school_logo;
+    //
+    //     $settings->update(['school_logo' => null]);
+    //     $this->website->deletePublicFile($oldLogo);
+    //
+    //     return back()->with('success', 'School logo removed successfully.');
+    // }
 }
