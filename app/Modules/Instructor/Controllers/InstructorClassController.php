@@ -23,8 +23,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use stdClass;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class InstructorClassController extends Controller
 {
@@ -242,7 +242,7 @@ class InstructorClassController extends Controller
         $pdfPath = $this->classResultPdfGenerator->generate($classData, $students);
 
         return response()
-            ->download($pdfPath, Str::slug($classData['title'] ?? 'class-result') . '.pdf', [
+            ->download($pdfPath, Str::slug($classData['title'] ?? 'class-result').'.pdf', [
                 'Content-Type' => 'application/pdf',
             ])
             ->deleteFileAfterSend(true);

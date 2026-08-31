@@ -3,11 +3,11 @@
 namespace App\Modules\Instructor\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\SubCategory;
+use App\Models\WorkSchedule;
 use App\Modules\Instructor\Requests\InstructorProfileRequest;
 use App\Modules\Instructor\Services\InstructorOnboardingService;
 use App\Modules\Instructor\Services\InstructorProfileService;
-use App\Models\WorkSchedule;
-use App\Models\SubCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -82,7 +82,7 @@ class InstructorProfileController extends Controller
         $instructorData = $user->instructorData;
 
         $hasChanges = $data['email'] !== $user->email
-            || !$instructorData
+            || ! $instructorData
             || $data['full_name'] !== $instructorData->full_name
             || $data['phone'] !== $instructorData->phone
             || ($data['specialization'] ?? []) != ($instructorData->specialization ?? [])
@@ -97,9 +97,9 @@ class InstructorProfileController extends Controller
             || $data['linkedin'] !== $instructorData->linkedin
             || $data['github'] !== $instructorData->github
             || $data['portfolio_url'] !== $instructorData->portfolio_url
-            || !empty($data['password']);
+            || ! empty($data['password']);
 
-        if (!$hasChanges) {
+        if (! $hasChanges) {
             return redirect()->back()->with('info', 'No changes to save.');
         }
 
@@ -137,7 +137,7 @@ class InstructorProfileController extends Controller
         //     }
         // }
 
-        if (!empty($data['password'])) {
+        if (! empty($data['password'])) {
             $user->update(['password' => Hash::make($data['password'])]);
         }
 

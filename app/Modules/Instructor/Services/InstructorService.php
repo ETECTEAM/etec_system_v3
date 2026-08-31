@@ -22,6 +22,7 @@ class InstructorService
         if ($role === 'student') {
             $user->instructorData()->delete();
             $user->student()->updateOrCreate(['user_id' => $user->id], $student);
+
             return;
         }
         if ($role === 'instructor') {
@@ -30,6 +31,7 @@ class InstructorService
                 $instructorData['instructor_code'] = self::generateInstructorCode();
             }
             $user->instructorData()->updateOrCreate(['user_id' => $user->id], $instructorData);
+
             return;
         }
         $user->student()->delete();

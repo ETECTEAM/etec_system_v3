@@ -518,6 +518,8 @@ export const backendFinalTranslations = {
     "Total Busy Slots": "ចំនួនពេលវេលារវល់សរុប",
     "No instructors found": "រកមិនឃើញគ្រូបង្រៀន",
     "There are no active instructors to display availability for.": "មិនមានគ្រូសកម្មដើម្បីបង្ហាញពេលវេលាទំនេរទេ។",
+    "Search instructors...": "ស្វែងរកគ្រូបង្រៀន...",
+    "No instructors match your search.": "រកមិនឃើញគ្រូដែលត្រូវនឹងការស្វែងរករបស់អ្នកទេ។",
     "Search a student, generate their QR, and review the request the moment it arrives.": "ស្វែងរកសិស្ស បង្កើត QR ហើយពិនិត្យសំណើភ្លាមៗពេលទទួលបាន។",
     "Student search": "ស្វែងរកសិស្ស",
     "Full name or student ID...": "ឈ្មោះពេញ ឬលេខសម្គាល់សិស្ស...",

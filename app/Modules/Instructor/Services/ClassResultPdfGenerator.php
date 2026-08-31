@@ -6,18 +6,25 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use RuntimeException;
-use stdClass;
 
 class ClassResultPdfGenerator
 {
     private const PAGE_WIDTH = 1754;
+
     private const PAGE_HEIGHT = 1240;
+
     private const MARGIN_X = 90;
+
     private const HEADER_TOP = 52;
+
     private const TABLE_TOP = 230;
+
     private const TABLE_HEIGHT = 840;
+
     private const ROW_HEIGHT = 46;
+
     private const HEADER_ROW_HEIGHT = 64;
+
     private const ROWS_PER_PAGE = 17;
 
     /**
@@ -27,8 +34,8 @@ class ClassResultPdfGenerator
     {
         $sortedStudents = $this->sortStudents($students);
 
-        $tempDir = sys_get_temp_dir() . '/class-result-' . Str::uuid();
-        $pdfPath = sys_get_temp_dir() . '/class-result-' . Str::uuid() . '.pdf';
+        $tempDir = sys_get_temp_dir().'/class-result-'.Str::uuid();
+        $pdfPath = sys_get_temp_dir().'/class-result-'.Str::uuid().'.pdf';
 
         File::makeDirectory($tempDir, 0755, true);
 
@@ -161,7 +168,7 @@ class ClassResultPdfGenerator
 
         $this->drawFooter($image, $classData, $black, $pageNumber, $pageCount);
 
-        $pagePath = $tempDir . '/page-' . $pageNumber . '.jpg';
+        $pagePath = $tempDir.'/page-'.$pageNumber.'.jpg';
         imagejpeg($image, $pagePath, 92);
         imagedestroy($image);
 
@@ -189,7 +196,7 @@ class ClassResultPdfGenerator
         $infoY = 112;
         $this->drawCenteredText(
             $image,
-            'វគ្គសិក្សា៖ ' . ($classData['course'] ?? '-') . '    ម៉ោងសិក្សា៖ ' . ($classData['time'] ?? '-') . '    ថ្ងៃទី៖ ' . now()->timezone('Asia/Phnom_Penh')->format('d-m-Y'),
+            'វគ្គសិក្សា៖ '.($classData['course'] ?? '-').'    ម៉ោងសិក្សា៖ '.($classData['time'] ?? '-').'    ថ្ងៃទី៖ '.now()->timezone('Asia/Phnom_Penh')->format('d-m-Y'),
             $this->fontRegular(),
             16,
             260,
@@ -201,7 +208,7 @@ class ClassResultPdfGenerator
 
         $this->drawCenteredText(
             $image,
-            'គ្រូបង្រៀន៖ ' . ($classData['teacher'] ?? '-'),
+            'គ្រូបង្រៀន៖ '.($classData['teacher'] ?? '-'),
             $this->fontRegular(),
             16,
             260,
@@ -214,7 +221,7 @@ class ClassResultPdfGenerator
         imagesetthickness($image, 2);
         $this->drawRectangle($image, $tableX, self::TABLE_TOP, $tableW, self::TABLE_HEIGHT, $border);
 
-        $pageText = 'Page ' . $pageNumber . ' / ' . $pageCount;
+        $pageText = 'Page '.$pageNumber.' / '.$pageCount;
         $this->drawRightText($image, $pageText, $this->latinRegular(), 12, self::PAGE_WIDTH - 120, 32, 90, 18, $muted);
     }
 
@@ -272,8 +279,8 @@ class ClassResultPdfGenerator
         $this->drawCenteredText($image, 'បានឃើញ និង ឯកភាព', $this->fontRegular(), 16, 180, 1128, 260, 24, $black);
         $this->drawCenteredText($image, 'នាយកមជ្ឈមណ្ឌល', $this->fontRegular(), 15, 180, 1156, 260, 24, $black);
 
-        $this->drawRightText($image, 'ធ្វើនៅភ្នំពេញ, ថ្ងៃទី ' . now()->timezone('Asia/Phnom_Penh')->format('d-m-Y'), $this->fontRegular(), 16, self::PAGE_WIDTH - 210, 1128, 160, 24, $black);
-        $this->drawRightText($image, 'គ្រូបង្រៀន៖ ' . ($classData['teacher'] ?? '-'), $this->fontBold(), 16, self::PAGE_WIDTH - 210, 1160, 160, 24, $black);
+        $this->drawRightText($image, 'ធ្វើនៅភ្នំពេញ, ថ្ងៃទី '.now()->timezone('Asia/Phnom_Penh')->format('d-m-Y'), $this->fontRegular(), 16, self::PAGE_WIDTH - 210, 1128, 160, 24, $black);
+        $this->drawRightText($image, 'គ្រូបង្រៀន៖ '.($classData['teacher'] ?? '-'), $this->fontBold(), 16, self::PAGE_WIDTH - 210, 1160, 160, 24, $black);
     }
 
     private function drawFilledRect($image, int $x, int $y, int $w, int $h, int $color): void
@@ -337,11 +344,11 @@ class ClassResultPdfGenerator
         $ellipsis = '...';
         $candidate = $text;
 
-        while ($candidate !== '' && $this->textWidth($candidate . $ellipsis, $font, $fontSize) > $maxWidth) {
+        while ($candidate !== '' && $this->textWidth($candidate.$ellipsis, $font, $fontSize) > $maxWidth) {
             $candidate = mb_substr($candidate, 0, mb_strlen($candidate) - 1);
         }
 
-        return rtrim($candidate) . $ellipsis;
+        return rtrim($candidate).$ellipsis;
     }
 
     private function textWidth(string $text, string $font, int $fontSize): int
@@ -371,9 +378,9 @@ class ClassResultPdfGenerator
         $kids = [];
         for ($page = 1; $page <= $pageCount; $page++) {
             $pageObject = 2 + (($page - 1) * 3) + 1;
-            $kids[] = $pageObject . ' 0 R';
+            $kids[] = $pageObject.' 0 R';
         }
-        $objects[2] = '<< /Type /Pages /Kids [' . implode(' ', $kids) . '] /Count ' . $pageCount . ' >>';
+        $objects[2] = '<< /Type /Pages /Kids ['.implode(' ', $kids).'] /Count '.$pageCount.' >>';
 
         foreach ($pageImages as $index => $pageImage) {
             $pageNumber = $index + 1;
@@ -392,9 +399,9 @@ class ClassResultPdfGenerator
             }
 
             $contentStream = "q\n{$pageWidth} 0 0 {$pageHeight} 0 0 cm\n/Im{$pageNumber} Do\nQ\n";
-            $objects[$contentObject] = '<< /Length ' . strlen($contentStream) . " >>\nstream\n" . $contentStream . "endstream";
-            $objects[$imageObject] = '<< /Type /XObject /Subtype /Image /Width ' . $width . ' /Height ' . $height . ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' . strlen($jpegData) . " >>\nstream\n" . $jpegData . "\nendstream";
-            $objects[$pageObject] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' . $pageWidth . ' ' . $pageHeight . '] /Contents ' . $contentObject . ' 0 R /Resources << /XObject << /Im' . $pageNumber . ' ' . $imageObject . ' 0 R >> /ProcSet [/PDF /ImageC] >> >>';
+            $objects[$contentObject] = '<< /Length '.strlen($contentStream)." >>\nstream\n".$contentStream.'endstream';
+            $objects[$imageObject] = '<< /Type /XObject /Subtype /Image /Width '.$width.' /Height '.$height.' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '.strlen($jpegData)." >>\nstream\n".$jpegData."\nendstream";
+            $objects[$pageObject] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '.$pageWidth.' '.$pageHeight.'] /Contents '.$contentObject.' 0 R /Resources << /XObject << /Im'.$pageNumber.' '.$imageObject.' 0 R >> /ProcSet [/PDF /ImageC] >> >>';
         }
 
         $handle = fopen($pdfPath, 'wb');
@@ -409,14 +416,14 @@ class ClassResultPdfGenerator
 
         foreach ($objects as $objectNumber => $body) {
             $offsets[$objectNumber] = ftell($handle);
-            fwrite($handle, $objectNumber . " 0 obj\n");
-            fwrite($handle, $body . "\n");
+            fwrite($handle, $objectNumber." 0 obj\n");
+            fwrite($handle, $body."\n");
             fwrite($handle, "endobj\n");
         }
 
         $xrefPosition = ftell($handle);
         $maxObject = max(array_keys($objects));
-        fwrite($handle, "xref\n0 " . ($maxObject + 1) . "\n");
+        fwrite($handle, "xref\n0 ".($maxObject + 1)."\n");
         fwrite($handle, sprintf("%010d 65535 f \n", 0));
 
         for ($objectNumber = 1; $objectNumber <= $maxObject; $objectNumber++) {
@@ -424,7 +431,7 @@ class ClassResultPdfGenerator
             fwrite($handle, sprintf("%010d 00000 n \n", $offset));
         }
 
-        fwrite($handle, "trailer\n<< /Size " . ($maxObject + 1) . " /Root 1 0 R >>\nstartxref\n" . $xrefPosition . "\n%%EOF");
+        fwrite($handle, "trailer\n<< /Size ".($maxObject + 1)." /Root 1 0 R >>\nstartxref\n".$xrefPosition."\n%%EOF");
         fclose($handle);
     }
 
@@ -497,7 +504,7 @@ class ClassResultPdfGenerator
             return null;
         }
 
-        $command = 'fc-match -f "%{file}\\n" ' . escapeshellarg($family) . ' 2>/dev/null';
+        $command = 'fc-match -f "%{file}\\n" '.escapeshellarg($family).' 2>/dev/null';
         $output = trim((string) shell_exec($command));
 
         return $output !== '' && is_file($output) ? $output : null;

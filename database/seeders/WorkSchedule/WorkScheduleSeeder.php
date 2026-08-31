@@ -78,11 +78,11 @@ class WorkScheduleSeeder extends Seeder
                 ...$this->windows(self::WEEKEND, [['08:00 am', '01:30 pm']]),
             ]),
             $this->schedule('full_time_morning_evening_weekend_morning', 'Morning + Evening + Weekend Morning', 'full-time instructor: weekday morning/evening and weekend morning', [
-                ...$this->windows(self::WEEKDAYS, [['09:00 am', '12:15 pm'], ['05:00 pm', '08:30 pm']]),
+                ...$this->windows(self::WEEKDAYS, [['09:00 am', '12:15 pm'], ['12:30 pm', '01:45 pm'], ['05:00 pm', '08:30 pm']]),
                 ...$this->windows(self::WEEKEND, [['08:00 am', '01:30 pm']]),
             ]),
             $this->schedule('full_time_morning_evening_weekend_afternoon', 'Morning + Evening + Weekend Afternoon', 'full-time instructor: weekday morning/evening and weekend afternoon', [
-                ...$this->windows(self::WEEKDAYS, [['09:00 am', '12:15 pm'], ['05:00 pm', '08:30 pm']]),
+                ...$this->windows(self::WEEKDAYS, [['09:00 am', '12:15 pm'], ['12:30 pm', '01:45 pm'], ['05:00 pm', '08:30 pm']]),
                 ...$this->windows(self::WEEKEND, [['02:00 pm', '05:00 pm']]),
             ]),
             $this->schedule('full_time_afternoon_evening_weekend_morning', 'Afternoon + Evening + Weekend Morning', 'full-time instructor: weekday afternoon and weekend morning', [

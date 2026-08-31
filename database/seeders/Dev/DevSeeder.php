@@ -30,6 +30,10 @@ class DevSeeder extends Seeder
             // work schedule, so every shift shape is covered.
             InstructorWorkScheduleSeeder::class,
 
+            // Every course open for enrollment on Physical Class slots only,
+            // flat $100 unit / $89 course price, no start date.
+            CourseEnrollConfigSeeder::class,
+
             // Add more demo-data seeders here (students, classes, enrollments...)
         ]);
     }

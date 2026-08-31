@@ -23,19 +23,24 @@ use stdClass;
 class InstructorClassService
 {
     public const ATTENDANCE_STATUSES = ['absent', 'present', 'permission'];
+
     public const ATTENDANCE_WINDOW_REASON_NO_SESSION = 'no_session';
+
     public const ATTENDANCE_WINDOW_REASON_BEFORE_START = 'before_start';
+
     public const ATTENDANCE_WINDOW_REASON_AFTER_DEADLINE = 'after_deadline';
+
     public const ATTENDANCE_WINDOW_REASON_ALREADY_SUBMITTED = 'already_submitted';
+
     private const VISIBLE_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
 
     private ?array $termLabels = null;
 
     /**
      * @param  int|null  $instructorUserId  when set, the schedule picker is narrowed to
-     *                                       only the term/time slots this instructor is
-     *                                       actually free for (availability window, no
-     *                                       manual block, no overlapping class).
+     *                                      only the term/time slots this instructor is
+     *                                      actually free for (availability window, no
+     *                                      manual block, no overlapping class).
      */
     public function formOptions(?int $instructorUserId = null): array
     {

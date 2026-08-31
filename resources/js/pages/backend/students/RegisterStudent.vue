@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, ref, watch } from "vue";
 import { router, useForm } from "@inertiajs/vue3";
-import { ArrowLeft, Save, UserPlus } from "@lucide/vue";
+import { ArrowLeft, Save } from "@lucide/vue";
 import { SelectSearch } from "@/components/ui/select-search";
 import { latinNameError } from "@/composables/useLatinNameValidation";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
@@ -166,35 +166,24 @@ function classList() {
 <template>
   <DashboardLayout>
   <div class="w-full">
-    <div class="space-y-4 sm:space-y-5">
+    <div class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero :title="$t('Register Student')" />
 
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex items-center gap-4">
-          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 dark:bg-indigo-500/10">
-            <UserPlus class="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-          </div>
-          <div>
-            <h1 class="text-xl font-bold text-slate-900 dark:text-gray-100">
-              {{ $t('Register New Student') }}
-            </h1>
-            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">
-              {{ $t('No class assigned yet — enroll them into a class later.') }}
-            </p>
-          </div>
-        </div>
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHero
+          eyebrow="Class Management"
+          :title="$t('Register Student')"
+          :description="$t('No class assigned yet — enroll them into a class later.')"
+        />
 
-        <div class="flex flex-wrap gap-3">
-          <button
-            type="button"
-            @click="classList"
-            class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            <ArrowLeft class="h-4 w-4" />
-            {{ $t('Class List') }}
-          </button>
-        </div>
+        <button
+          type="button"
+          @click="classList"
+          class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          <ArrowLeft class="h-4 w-4" />
+          {{ $t('Class List') }}
+        </button>
       </div>
 
       <form

@@ -6,6 +6,7 @@ use App\Models\InstructorData;
 use App\Models\InstructorScheduleBlock;
 use App\Models\StudyClass;
 use App\Models\Time;
+use App\Models\WorkScheduleTime;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use Illuminate\Support\Collection;
 
@@ -17,6 +18,13 @@ use Illuminate\Support\Collection;
  * busy when it overlaps an assigned open class or one of the instructor's own
  * manual schedule blocks (same half-open interval rule the class-assignment
  * guards use), so the admin sees both the free and the busy times at a glance.
+ *
+ * Each slot also carries what an admin needs to act on it from the grid:
+ *  - `block_id` / `blocked_by` — the manual block covering it, and whether the
+ *    instructor set it themselves ('instructor') or an admin did ('admin').
+ *  - `availability_id` / `availability_source` — the availability window it
+ *    falls in, and whether that window came from the work schedule ('schedule')
+ *    or was opened by an admin ('admin').
  */
 class InstructorAvailabilityOverviewService
 {
@@ -25,38 +33,62 @@ class InstructorAvailabilityOverviewService
         5 => 'Fri', 6 => 'Sat', 7 => 'Sun',
     ];
 
-    public function __construct(private InstructorAssignmentAvailability $instructorAvailability)
-    {
-    }
+    public function __construct(private InstructorAssignmentAvailability $instructorAvailability) {}
 
     /**
-     * The time-slot columns shared by every instructor row. Ordered by start
-     * time so the grid reads chronologically, matching the class-form picker.
+     * The time-slot rows for each day of the week, sourced from the work
+     * schedules themselves (work_schedule_times) so weekdays and weekends get
+     * their own granularity - weekends run wide blocks ("08:00 am - 11:00 am",
+     * "11:00 am - 01:30 pm", "02:00 pm - 05:00 pm") while weekdays run the
+     * 90-minute class slots. A day with no work schedule (Friday here) gets
+     * an empty list.
      *
-     * @return array<int, array{id: int, time_name: string, start: ?string, end: ?string}>
+     * Within a day the `times` table still has overlapping records because
+     * different class types slice it differently ("09:00 am - 10:30 am" vs
+     * "09:00 am - 11:00 am", plus the odd malformed duplicate), so collapse
+     * to one row per start time keeping the shortest range - it still fits
+     * inside a working window, and class / block busy-state is decided by
+     * range overlap (not an exact time_id) so a longer booking at the same
+     * start still marks the row busy.
+     *
+     * @return array<int, list<array{id: int, time_name: string, start: string, end: string}>>
      */
-    public function timeSlots(): array
+    public function timeSlotsByDay(): array
     {
-        return Time::query()
-            ->orderBy('time_name')
+        $times = Time::query()
             ->get(['id', 'time_name'])
-            ->map(fn (Time $time): array => [
+            ->mapWithKeys(fn (Time $time): array => [$time->id => [
                 'id' => $time->id,
                 'time_name' => $time->time_name,
                 'start' => StudyClass::parseTimeRange($time->time_name)['start'] ?? null,
                 'end' => StudyClass::parseTimeRange($time->time_name)['end'] ?? null,
+            ]]);
+
+        $timeIdsByDay = WorkScheduleTime::query()
+            ->select('day_of_week', 'time_id')
+            ->distinct()
+            ->get()
+            ->groupBy('day_of_week');
+
+        return collect(range(1, 7))
+            ->mapWithKeys(fn (int $day): array => [$day => $timeIdsByDay->get($day, collect())
+                ->map(fn (WorkScheduleTime $row): ?array => $times->get($row->time_id))
+                ->filter(fn (?array $slot): bool => $slot !== null && $slot['start'] !== null && $slot['end'] !== null)
+                ->sortBy([['start', 'asc'], ['end', 'asc']])
+                ->groupBy('start')
+                ->map(fn (Collection $group): array => $group->first())
+                ->values()
+                ->all(),
             ])
-            ->filter(fn (array $slot): bool => $slot['start'] !== null && $slot['end'] !== null)
-            ->values()
             ->all();
     }
 
     /**
-     * @return array{slots: array<int, array<string, mixed>>, instructors: array<int, array<string, mixed>>}
+     * @return array{instructors: array<int, array<string, mixed>>}
      */
     public function overview(): array
     {
-        $slots = $this->timeSlots();
+        $slotsByDay = $this->timeSlotsByDay();
 
         $instructors = InstructorData::query()
             ->where('status', true)
@@ -64,47 +96,46 @@ class InstructorAvailabilityOverviewService
             ->with(['user:id,name,email'])
             ->orderBy('full_name')
             ->get()
-            ->map(fn (InstructorData $instructor): array => $this->presentInstructor($instructor, $slots))
+            ->map(fn (InstructorData $instructor): array => $this->presentInstructor($instructor, $slotsByDay))
             ->values()
             ->all();
 
         return [
-            'slots' => $slots,
             'instructors' => $instructors,
         ];
     }
 
     /**
-     * @param  array<int, array{id: int, time_name: string, start: ?string, end: ?string}>  $slots
+     * @param  array<int, list<array{id: int, time_name: string, start: string, end: string}>>  $slotsByDay
      * @return array<string, mixed>
      */
-    private function presentInstructor(InstructorData $instructor, array $slots): array
+    private function presentInstructor(InstructorData $instructor, array $slotsByDay): array
     {
         $occupied = $this->instructorAvailability->occupiedSlots($instructor->user_id);
 
         $blocks = InstructorScheduleBlock::query()
             ->where('instructor_id', $instructor->id)
             ->where('status', InstructorScheduleBlock::STATUS_ACTIVE)
-            ->with('time:id,time_name')
+            ->with(['time:id,time_name', 'creator:id,name'])
             ->get();
 
-        // Active working windows derived from the instructor's work schedule.
+        // Active working windows: schedule-derived + any an admin opened manually.
         $availabilityWindows = $instructor->availabilities()
             ->where('is_active', true)
-            ->get(['day_of_week', 'start_time', 'end_time'])
+            ->get(['id', 'day_of_week', 'start_time', 'end_time', 'source'])
             ->groupBy('day_of_week');
 
         $occupiedByDay = $occupied->groupBy('day_of_week');
         $blocksByDay = $blocks->groupBy('day_of_week');
 
-        $days = collect(range(1, 7))->map(function (int $day) use ($slots, $occupiedByDay, $blocksByDay, $availabilityWindows): array {
+        $days = collect(range(1, 7))->map(function (int $day) use ($slotsByDay, $occupiedByDay, $blocksByDay, $availabilityWindows): array {
             $dayOccupied = $occupiedByDay->get($day, collect());
             $dayBlocks = $blocksByDay->get($day, collect());
             $dayWindows = $availabilityWindows->get($day, collect());
 
             $daySlots = [];
 
-            foreach ($slots as $slot) {
+            foreach ($slotsByDay[$day] ?? [] as $slot) {
                 $start = $slot['start'];
                 $end = $slot['end'];
 
@@ -123,16 +154,17 @@ class InstructorAvailabilityOverviewService
                     })
                     : null;
 
-                $inWindow = $class === null && $block === null
-                    && $dayWindows->contains(
-                        fn ($window): bool => substr((string) $window->start_time, 0, 5) <= $start
-                            && substr((string) $window->end_time, 0, 5) >= $end
-                    );
+                $window = $class === null && $block === null
+                    ? $dayWindows->first(
+                        fn ($w): bool => substr((string) $w->start_time, 0, 5) <= $start
+                            && substr((string) $w->end_time, 0, 5) >= $end
+                    )
+                    : null;
 
                 $status = match (true) {
                     $class !== null => 'class',
                     $block !== null => 'block',
-                    $inWindow => 'available',
+                    $window !== null => 'available',
                     default => 'not_working',
                 };
 
@@ -145,6 +177,12 @@ class InstructorAvailabilityOverviewService
                         : ($block?->reason),
                     'class_id' => $class['class_id'] ?? null,
                     'block_id' => $block?->id,
+                    'blocked_by' => $block === null
+                        ? null
+                        : ($block->created_by ? 'admin' : 'instructor'),
+                    'blocked_by_name' => $block?->creator?->name,
+                    'availability_id' => $window?->id,
+                    'availability_source' => $window?->source,
                 ];
             }
 
