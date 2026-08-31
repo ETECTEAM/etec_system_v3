@@ -200,6 +200,17 @@ class InstructorClassService
         return $class;
     }
 
+    public function findResultForInstructor(User $instructor, int $studyClassId): stdClass
+    {
+        $class = $this->classesQuery($instructor, ['ended', 'completed'])
+            ->where('study_classes.id', $studyClassId)
+            ->first();
+
+        abort_unless($class, 403);
+
+        return $class;
+    }
+
     public function students(int $studyClassId): Collection
     {
         $attendanceStats = $this->attendanceStats($studyClassId);
@@ -713,7 +724,7 @@ class InstructorClassService
      * shared with them ("Collapse Class"). A shared class shows that instructor their own
      * term/time — their half of the week — rather than the class-wide schedule.
      */
-    private function classesQuery(User $instructor)
+    private function classesQuery(User $instructor, ?array $statuses = null)
     {
         $activeStudentCounts = DB::table('student_enrollments')
             ->select('study_class_id', DB::raw('count(*) as current_students'))
@@ -746,7 +757,7 @@ class InstructorClassService
                 $query->where('study_classes.teacher_id', $instructor->id)
                     ->orWhereNotNull('my_slot.id');
             })
-            ->whereIn('study_classes.status', self::VISIBLE_CLASS_STATUSES)
+            ->whereIn('study_classes.status', $statuses ?? self::VISIBLE_CLASS_STATUSES)
             ->leftJoin('courses', 'courses.id', '=', 'study_classes.course_id')
             ->leftJoin('course_lessons', 'course_lessons.id', '=', 'study_classes.lesson_id')
             ->leftJoin('users as teachers', 'teachers.id', '=', 'study_classes.teacher_id')

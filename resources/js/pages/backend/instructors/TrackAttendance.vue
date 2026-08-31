@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { Head, Link, router, useForm } from "@inertiajs/vue3";
 import { QrcodeCanvas } from "qrcode.vue";
 import { ArrowLeft, Bot, Clock, QrCode, Save } from "@lucide/vue";
@@ -56,9 +56,11 @@ const isOverridable = computed(() => false);
 const isPreAttendance = computed(() => props.todaySession?.is_pre_attendance === true);
 const now = ref(Date.now());
 let nowTimer = null;
+let autoSaveTimer = null;
 let stopBeforeLeaveListener = null;
 const pendingNavigationUrl = ref("");
 const isBypassingLeaveGuard = ref(false);
+const autoSaveTriggered = ref(false);
 const { confirm } = useConfirm();
 
 function parseDeadline(value) {
@@ -184,6 +186,11 @@ const liveAttendanceSummary = reactive({
 const liveVerification = reactive(
   Object.fromEntries(liveAttendanceSummary.records.map((record) => [record.student_id, record])),
 );
+const displayedStudents = computed(() => (
+  isPreAttendance.value
+    ? props.students.filter((student) => !student.attendance?.is_tracked)
+    : props.students
+));
 const statuses = [
   {
     value: "absent",
@@ -242,9 +249,7 @@ const savedPermissionNotes = reactive(
 );
 
 const hasUnsavedChanges = computed(() => !locked.value && props.students.some((student) =>
-  attendanceTouched[student.id]
-    || attendance[student.id] !== savedAttendance[student.id]
-    || (permissionNotes[student.id] ?? "") !== (savedPermissionNotes[student.id] ?? "")
+  isStudentDirty(student.id)
 ));
 
 let attendanceChannel = null;
@@ -269,6 +274,8 @@ function setAttendanceStatus(studentId, status) {
   if (status !== "permission") {
     permissionNotes[studentId] = "";
   }
+
+  queueAutoSave();
 }
 
 function markSavedStateForStudent(studentId) {
@@ -278,9 +285,13 @@ function markSavedStateForStudent(studentId) {
 }
 
 function markAllSavedState() {
+  autoSaveTriggered.value = false;
+
   for (const student of props.students) {
     markSavedStateForStudent(student.id);
   }
+
+  queueAutoSave();
 }
 
 function handleQrSubmitted(event) {
@@ -356,6 +367,8 @@ onMounted(() => {
   attendanceChannel = getEcho()
     ?.private(`attendance.class.${props.classData.id}`)
     .listen(".attendance.qr-submitted", handleQrSubmitted);
+
+  queueAutoSave();
 });
 
 onBeforeUnmount(() => {
@@ -363,14 +376,68 @@ onBeforeUnmount(() => {
     window.clearInterval(nowTimer);
   }
 
+  clearAutoSaveTimer();
   stopBeforeLeaveListener?.();
   window.removeEventListener("beforeunload", handleBeforeUnload);
   attendanceChannel?.stopListening(".attendance.qr-submitted", handleQrSubmitted);
 });
 
+function isStudentDirty(studentId) {
+  return attendanceTouched[studentId]
+    || attendance[studentId] !== savedAttendance[studentId]
+    || (permissionNotes[studentId] ?? "") !== (savedPermissionNotes[studentId] ?? "");
+}
+
+function clearAutoSaveTimer() {
+  if (autoSaveTimer !== null) {
+    window.clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+}
+
+function queueAutoSave() {
+  clearAutoSaveTimer();
+
+  if (autoSaveTriggered.value || locked.value || props.allowTrackAnytime || isPreAttendance.value || !graceDeadline.value) {
+    return;
+  }
+
+  if (!hasUnsavedChanges.value) {
+    return;
+  }
+
+  // Save a little before the grace deadline so the backend still accepts the
+  // request, but only once and only for rows the instructor actually changed.
+  const safetyWindowMs = 10_000;
+  const delayMs = Math.max(graceDeadline.value.getTime() - Date.now() - safetyWindowMs, 0);
+
+  autoSaveTimer = window.setTimeout(() => {
+    autoSaveTimer = null;
+
+    if (autoSaveTriggered.value || locked.value || props.allowTrackAnytime || isPreAttendance.value || form.processing) {
+      return;
+    }
+
+    if (!hasUnsavedChanges.value) {
+      return;
+    }
+
+    const touchedStudents = props.students.some((student) => isStudentDirty(student.id));
+    if (!touchedStudents) {
+      return;
+    }
+
+    autoSaveTriggered.value = true;
+    submit({
+      includeUntouched: false,
+      allowLocked: true,
+    });
+  }, delayMs);
+}
+
 function buildRecords(includeUntouched = true) {
   return props.students
-    .filter((student) => includeUntouched || attendanceTouched[student.id])
+    .filter((student) => includeUntouched || isStudentDirty(student.id))
     .map((student) => ({
       student_id: student.id,
       enrollment_id: student.enrollment_id,
@@ -382,18 +449,13 @@ function buildRecords(includeUntouched = true) {
 const submit = (options = {}) => {
   const {
     stopSessionAfterSave = false,
-    includeUntouched = true,
+    includeUntouched = !isPreAttendance.value,
     refreshAfterSave = true,
     allowLocked = false,
   } = typeof options === "boolean" ? { stopSessionAfterSave: options } : options;
 
   if (locked.value && !allowLocked) {
     toast.warning(windowMessage.value ?? "Attendance has already been submitted for this class today.");
-    return;
-  }
-
-  if (includeUntouched && isPreAttendance.value && props.students.some((student) => !attendance[student.id])) {
-    toast.warning("Please complete attendance for every unresolved student.");
     return;
   }
 
@@ -410,12 +472,6 @@ const submit = (options = {}) => {
 
     return;
   }
-  form.records = props.students.map((student) => ({
-    student_id: student.id,
-    enrollment_id: student.enrollment_id,
-    status: isStudentLocked(student) ? "absent" : (attendance[student.id] ?? "absent"),
-    note: permissionNotes[student.id] || null,
-  }));
 
   const url = `/dashboard/instructor/classes/${props.classData.id}/attendance`;
   const visitOptions = {
@@ -449,25 +505,16 @@ const submit = (options = {}) => {
     },
   };
 
+  // This is an intentional save action, not a "leave the page" navigation.
+  // Skip the unsaved-changes confirm so the submit can go through directly.
+  isBypassingLeaveGuard.value = true;
+
   if (isOverridable.value) {
     form.put(url, visitOptions);
   } else {
     form.post(url, visitOptions);
   }
 };
-
-watch(
-  isGraceWindowClosed,
-  (closed) => {
-    if (closed && hasUnsavedChanges.value && !form.processing) {
-      submit({
-        includeUntouched: false,
-        allowLocked: true,
-      });
-    }
-  },
-  { immediate: true },
-);
 </script>
 
 <template>
@@ -491,7 +538,7 @@ watch(
 
         <button
           type="button"
-          :disabled="form.processing || !students.length || locked"
+          :disabled="form.processing || !displayedStudents.length || locked"
           class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
           @click="submit()"
         >
@@ -554,7 +601,7 @@ watch(
 
               <tbody>
                 <tr
-                  v-for="student in students"
+                  v-for="student in displayedStudents"
                   :key="student.enrollment_id"
                   class="align-middle transition hover:bg-slate-50/80 dark:hover:bg-gray-800/50"
                 >
@@ -610,14 +657,16 @@ watch(
                       type="text"
                       :disabled="locked || isStudentLocked(student) || attendance[student.id] !== 'permission'"
                       placeholder="Enter note..."
+                      @input="queueAutoSave"
                       class="h-9 w-40 max-w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:disabled:bg-gray-800 dark:disabled:text-gray-500 dark:focus:ring-blue-500/10"
                     />
                   </td>
                 </tr>
 
-                <tr v-if="!students.length">
+                <tr v-if="!displayedStudents.length">
                   <td colspan="5" class="px-4 py-12 text-center text-sm font-semibold text-slate-500 dark:text-gray-400">
-                    No students are enrolled in this class yet.
+                    <span v-if="isPreAttendance">No unresolved students remain.</span>
+                    <span v-else>No students are enrolled in this class yet.</span>
                   </td>
                 </tr>
               </tbody>

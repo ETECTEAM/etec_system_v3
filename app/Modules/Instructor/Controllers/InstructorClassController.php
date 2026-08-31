@@ -16,10 +16,16 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use stdClass;
 
 class InstructorClassController extends Controller
 {
@@ -107,6 +113,22 @@ class InstructorClassController extends Controller
     {
         return Inertia::render('backend/instructors/PreAttendance', [
             'classes' => $this->instructorClasses->preAttendanceClasses($request->user()),
+        ]);
+    }
+
+    public function result(Request $request, string $studyClass): Response|BinaryFileResponse
+    {
+        $class = $this->instructorClasses->findResultForInstructor($request->user(), (int) $studyClass);
+        $students = $this->instructorClasses->students($class->id);
+
+        if ($request->boolean('download', false)) {
+            return $this->downloadResultPdf($class, $students);
+        }
+
+        return Inertia::render('backend/instructors/ClassResult', [
+            'classData' => $this->instructorClasses->presentClass($class),
+            'students' => $students,
+            'autoDownload' => $request->boolean('download', false),
         ]);
     }
 
@@ -212,6 +234,72 @@ class InstructorClassController extends Controller
             'students' => $this->instructorClasses->students($class->id),
             'savedTeams' => $this->instructorClasses->teamsForClass($class->id),
         ]);
+    }
+
+    private function downloadResultPdf(stdClass $class, Collection $students): BinaryFileResponse
+    {
+        $classData = $this->instructorClasses->presentClass($class);
+        $sortedStudents = $students
+            ->sort(function (array $left, array $right): int {
+                $bucketDifference = $this->resultSortBucket($left) <=> $this->resultSortBucket($right);
+
+                if ($bucketDifference !== 0) {
+                    return $bucketDifference;
+                }
+
+                return $this->resultTotalScore($right) <=> $this->resultTotalScore($left);
+            })
+            ->values();
+
+        $pdfPath = sys_get_temp_dir() . '/class-result-' . Str::uuid() . '.pdf';
+        $htmlPath = sys_get_temp_dir() . '/class-result-' . Str::uuid() . '.html';
+
+        File::put($htmlPath, view('backend.instructors.class-result-pdf', [
+            'classData' => $classData,
+            'students' => $sortedStudents,
+        ])->render());
+
+        $process = Process::timeout(120)->run([
+            '/usr/bin/google-chrome',
+            '--headless',
+            '--disable-gpu',
+            '--no-sandbox',
+            '--no-pdf-header-footer',
+            '--hide-scrollbars',
+            '--run-all-compositor-stages-before-draw',
+            '--virtual-time-budget=2000',
+            '--print-to-pdf=' . $pdfPath,
+            '--print-to-pdf-no-header',
+            'file://' . $htmlPath,
+        ]);
+
+        File::delete($htmlPath);
+
+        if (! $process->successful() || ! File::exists($pdfPath)) {
+            if (File::exists($pdfPath)) {
+                File::delete($pdfPath);
+            }
+
+            abort(500, 'Unable to generate the class result PDF.');
+        }
+
+        return response()
+            ->download($pdfPath, Str::slug($classData['title'] ?? 'class-result') . '.pdf', [
+                'Content-Type' => 'application/pdf',
+            ])
+            ->deleteFileAfterSend(true);
+    }
+
+    private function resultSortBucket(array $student): int
+    {
+        return $this->resultTotalScore($student) < 50 ? 1 : 0;
+    }
+
+    private function resultTotalScore(array $student): float
+    {
+        return (float) ($student['scores']['attendance'] ?? 0)
+            + (float) ($student['scores']['activity'] ?? 0)
+            + (float) ($student['scores']['exam'] ?? 0);
     }
 
     public function saveScores(Request $request, string $studyClass): JsonResponse|RedirectResponse

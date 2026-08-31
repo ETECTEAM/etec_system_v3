@@ -84,9 +84,12 @@ onUnmounted(() => {
   document.removeEventListener("keydown", handleKeydown);
 });
 
-function updateStatus(status) {
+function updateStatus(status, onSuccess = null) {
   router.post(`/dashboard/enroll/${props.classData.id}/status`, { status }, {
     preserveScroll: true,
+    onSuccess: () => {
+      onSuccess?.();
+    },
     onFinish: () => {
       open.value = false;
     },
@@ -156,7 +159,11 @@ const actions = computed(() => [
       danger: true,
     });
     if (!ok) return;
-    updateStatus("completed");
+    updateStatus("completed", () => {
+      if (isInstructor.value) {
+        window.location.href = `/dashboard/instructor/classes/${props.classData.id}/result?download=1`;
+      }
+    });
   }},
 ].filter((item) => {
   if (props.hiddenItems.includes(item.label)) {
