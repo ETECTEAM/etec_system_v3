@@ -20,11 +20,6 @@ class ClassResultPdfGenerator
     private const HEADER_ROW_HEIGHT = 64;
     private const ROWS_PER_PAGE = 17;
 
-    private const FONT_REGULAR = '/usr/share/fonts/truetype/noto/NotoSansKhmer-Regular.ttf';
-    private const FONT_BOLD = '/usr/share/fonts/truetype/noto/NotoSansKhmer-Bold.ttf';
-    private const LATIN_REGULAR = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
-    private const LATIN_BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf';
-
     /**
      * Generate a downloadable PDF for the class result sheet.
      */
@@ -435,21 +430,76 @@ class ClassResultPdfGenerator
 
     private function fontRegular(): string
     {
-        return self::FONT_REGULAR;
+        return $this->resolveFont([
+            '/usr/share/fonts/truetype/noto/NotoSansKhmer-Regular.ttf',
+            '/usr/local/share/fonts/NotoSansKhmer-Regular.ttf',
+            '/usr/share/fonts/NotoSansKhmer-Regular.ttf',
+            'Noto Sans Khmer',
+        ], 'Noto Sans Khmer regular');
     }
 
     private function fontBold(): string
     {
-        return self::FONT_BOLD;
+        return $this->resolveFont([
+            '/usr/share/fonts/truetype/noto/NotoSansKhmer-Bold.ttf',
+            '/usr/local/share/fonts/NotoSansKhmer-Bold.ttf',
+            '/usr/share/fonts/NotoSansKhmer-Bold.ttf',
+            'Noto Sans Khmer Bold',
+        ], 'Noto Sans Khmer bold');
     }
 
     private function latinRegular(): string
     {
-        return self::LATIN_REGULAR;
+        return $this->resolveFont([
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+            '/usr/local/share/fonts/DejaVuSans.ttf',
+            'DejaVu Sans',
+        ], 'DejaVu Sans');
     }
 
     private function latinBold(): string
     {
-        return self::LATIN_BOLD;
+        return $this->resolveFont([
+            '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf',
+            '/usr/local/share/fonts/DejaVuSerif-Bold.ttf',
+            'DejaVu Serif Bold',
+        ], 'DejaVu Serif Bold');
+    }
+
+    /**
+     * Resolve a font path from direct filesystem candidates or fontconfig.
+     */
+    private function resolveFont(array $candidates, string $label): string
+    {
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && $candidate !== '' && is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            if (! is_string($candidate) || $candidate === '' || str_starts_with($candidate, '/')) {
+                continue;
+            }
+
+            $resolved = $this->resolveViaFontConfig($candidate);
+            if ($resolved !== null) {
+                return $resolved;
+            }
+        }
+
+        throw new RuntimeException("Unable to locate a usable font for {$label}.");
+    }
+
+    private function resolveViaFontConfig(string $family): ?string
+    {
+        if (! function_exists('shell_exec')) {
+            return null;
+        }
+
+        $command = 'fc-match -f "%{file}\\n" ' . escapeshellarg($family) . ' 2>/dev/null';
+        $output = trim((string) shell_exec($command));
+
+        return $output !== '' && is_file($output) ? $output : null;
     }
 }
