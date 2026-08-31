@@ -82,13 +82,14 @@ class WebsiteVideoController extends Controller
 
         $video->update($this->validatedPayload($request, $video));
 
-        if ($request->hasFile('video') && $oldVideo !== $video->video_path) {
-            $this->website->deletePublicFile($oldVideo);
-        }
+        // FILE: disabled - not using file uploads
+        // if ($request->hasFile('video') && $oldVideo !== $video->video_path) {
+        //     $this->website->deletePublicFile($oldVideo);
+        // }
 
-        if (($request->hasFile('thumbnail') || $request->boolean('remove_thumbnail')) && $oldThumbnail !== $video->thumbnail_path) {
-            $this->website->deletePublicFile($oldThumbnail);
-        }
+        // if (($request->hasFile('thumbnail') || $request->boolean('remove_thumbnail')) && $oldThumbnail !== $video->thumbnail_path) {
+        //     $this->website->deletePublicFile($oldThumbnail);
+        // }
 
         return back()->with('success', 'Video updated successfully.');
     }
@@ -101,8 +102,9 @@ class WebsiteVideoController extends Controller
         $thumbnailPath = $video->thumbnail_path;
 
         $video->delete();
-        $this->website->deletePublicFile($videoPath);
-        $this->website->deletePublicFile($thumbnailPath);
+        // FILE: disabled - not using file uploads
+        // $this->website->deletePublicFile($videoPath);
+        // $this->website->deletePublicFile($thumbnailPath);
 
         return redirect('/dashboard/website/videos')->with('success', 'Video deleted successfully.');
     }
@@ -128,17 +130,18 @@ class WebsiteVideoController extends Controller
         $videoPath = $video?->video_path;
         $thumbnailPath = $video?->thumbnail_path;
 
-        if ($request->hasFile('video')) {
-            $videoPath = $this->website->uniqueUploadPath($request->file('video'), 'uploads/videos');
-        }
+        // FILE: disabled - not using file uploads
+        // if ($request->hasFile('video')) {
+        //     $videoPath = $this->website->uniqueUploadPath($request->file('video'), 'uploads/videos');
+        // }
 
         if ($request->boolean('remove_thumbnail')) {
             $thumbnailPath = null;
         }
 
-        if ($request->hasFile('thumbnail')) {
-            $thumbnailPath = $this->website->uniqueUploadPath($request->file('thumbnail'), 'uploads/videos/thumbnails');
-        }
+        // if ($request->hasFile('thumbnail')) {
+        //     $thumbnailPath = $this->website->uniqueUploadPath($request->file('thumbnail'), 'uploads/videos/thumbnails');
+        // }
 
         return [
             'title' => $request->validated('title'),

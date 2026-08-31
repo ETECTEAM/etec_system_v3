@@ -81,10 +81,7 @@ class InstructorProfileController extends Controller
         $user = $request->user();
         $instructorData = $user->instructorData;
 
-        $hasFile = $request->hasFile('profile_photo') || $request->hasFile('cv_file') || $request->hasFile('attachments');
-
-        $hasChanges = $hasFile
-            || $data['email'] !== $user->email
+        $hasChanges = $data['email'] !== $user->email
             || !$instructorData
             || $data['full_name'] !== $instructorData->full_name
             || $data['phone'] !== $instructorData->phone
@@ -110,34 +107,35 @@ class InstructorProfileController extends Controller
 
         $instructor = $this->profileService->saveProfile($user->id, $data);
 
-        if ($request->hasFile('profile_photo')) {
-            $this->profileService->replaceAttachment(
-                $instructor->id,
-                $request->file('profile_photo'),
-                'profile_photo',
-                'Profile Photo',
-            );
-        }
+        // FILE: disabled - not using file uploads
+        // if ($request->hasFile('profile_photo')) {
+        //     $this->profileService->replaceAttachment(
+        //         $instructor->id,
+        //         $request->file('profile_photo'),
+        //         'profile_photo',
+        //         'Profile Photo',
+        //     );
+        // }
 
-        if ($request->hasFile('cv_file')) {
-            $this->profileService->replaceAttachment(
-                $instructor->id,
-                $request->file('cv_file'),
-                'cv',
-                'CV',
-            );
-        }
+        // if ($request->hasFile('cv_file')) {
+        //     $this->profileService->replaceAttachment(
+        //         $instructor->id,
+        //         $request->file('cv_file'),
+        //         'cv',
+        //         'CV',
+        //     );
+        // }
 
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $file) {
-                $this->profileService->saveAttachment(
-                    $instructor->id,
-                    $file,
-                    'other',
-                    $file->getClientOriginalName(),
-                );
-            }
-        }
+        // if ($request->hasFile('attachments')) {
+        //     foreach ($request->file('attachments') as $file) {
+        //         $this->profileService->saveAttachment(
+        //             $instructor->id,
+        //             $file,
+        //             'other',
+        //             $file->getClientOriginalName(),
+        //         );
+        //     }
+        // }
 
         if (!empty($data['password'])) {
             $user->update(['password' => Hash::make($data['password'])]);
@@ -158,35 +156,36 @@ class InstructorProfileController extends Controller
         return redirect()->back()->with('success', 'Profile updated successfully.');
     }
 
-    public function destroyAttachment(Request $request, string $type): RedirectResponse
-    {
-        abort_unless($request->user()?->can('instructor_profile.update'), 403);
-
-        $attachmentType = match ($type) {
-            'profile-photo' => 'profile_photo',
-            'cv' => 'cv',
-            default => null,
-        };
-
-        if (! $attachmentType) {
-            abort(404);
-        }
-
-        $instructorData = $request->user()->instructorData;
-
-        if (! $instructorData) {
-            abort(404);
-        }
-
-        $deleted = $this->profileService->deleteAttachment(
-            $instructorData->id,
-            $attachmentType,
-        );
-
-        if (! $deleted) {
-            return redirect()->back()->with('info', 'No file found to delete.');
-        }
-
-        return redirect()->back()->with('success', 'File deleted successfully.');
-    }
+    // FILE: disabled - not using file uploads
+    // public function destroyAttachment(Request $request, string $type): RedirectResponse
+    // {
+    //     abort_unless($request->user()?->can('instructor_profile.update'), 403);
+    //
+    //     $attachmentType = match ($type) {
+    //         'profile-photo' => 'profile_photo',
+    //         'cv' => 'cv',
+    //         default => null,
+    //     };
+    //
+    //     if (! $attachmentType) {
+    //         abort(404);
+    //     }
+    //
+    //     $instructorData = $request->user()->instructorData;
+    //
+    //     if (! $instructorData) {
+    //         abort(404);
+    //     }
+    //
+    //     $deleted = $this->profileService->deleteAttachment(
+    //         $instructorData->id,
+    //         $attachmentType,
+    //     );
+    //
+    //     if (! $deleted) {
+    //         return redirect()->back()->with('info', 'No file found to delete.');
+    //     }
+    //
+    //     return redirect()->back()->with('success', 'File deleted successfully.');
+    // }
 }

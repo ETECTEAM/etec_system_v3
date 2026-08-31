@@ -106,9 +106,10 @@ class NewsController extends Controller
             $news->delete();
         });
 
-        foreach ($images as $image) {
-            $this->website->deletePublicFile($image);
-        }
+        // FILE: disabled - not using file uploads
+        // foreach ($images as $image) {
+        //     $this->website->deletePublicFile($image);
+        // }
 
         return redirect('/dashboard/website/news')->with('success', 'News deleted successfully.');
     }
@@ -156,7 +157,8 @@ class NewsController extends Controller
             $images = $news->images()->whereIn('id', $removeIds)->get();
 
             foreach ($images as $image) {
-                $this->website->deletePublicFile($image->image);
+                // FILE: disabled - not using file uploads
+                // $this->website->deletePublicFile($image->image);
                 $image->delete();
             }
         }
@@ -167,15 +169,16 @@ class NewsController extends Controller
                 ->update(['is_active' => (bool) $isActive]);
         }
 
-        $nextPosition = ((int) $news->images()->max('position')) + 1;
-
-        foreach ($request->file('images', []) as $file) {
-            $news->images()->create([
-                'image' => $this->website->uniqueUploadPath($file, 'uploads/news'),
-                'position' => $nextPosition++,
-                'is_active' => true,
-            ]);
-        }
+        // FILE: disabled - not using file uploads
+        // $nextPosition = ((int) $news->images()->max('position')) + 1;
+        //
+        // foreach ($request->file('images', []) as $file) {
+        //     $news->images()->create([
+        //         'image' => $this->website->uniqueUploadPath($file, 'uploads/news'),
+        //         'position' => $nextPosition++,
+        //         'is_active' => true,
+        //     ]);
+        // }
     }
 
     private function uniqueSlug(string $title, ?News $news = null): string
