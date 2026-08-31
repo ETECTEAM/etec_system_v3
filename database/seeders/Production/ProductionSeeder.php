@@ -8,6 +8,8 @@ use Database\Seeders\Course\CategorySeeder;
 use Database\Seeders\Course\CourseSeeder;
 use Database\Seeders\Course\CourseTrackSeeder;
 use Database\Seeders\Course\SubCategorySeeder;
+use Database\Seeders\Dev\CourseEnrollConfigSeeder;
+use Database\Seeders\Dev\InstructorWorkScheduleSeeder;
 use Database\Seeders\GradingSettingSeeder;
 use Database\Seeders\LoginLockoutSeeder;
 use Database\Seeders\Permission\AssignPermissionSeeder;
