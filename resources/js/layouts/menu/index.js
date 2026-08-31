@@ -15,6 +15,7 @@ import * as schedule from "./schedule";
 import * as loginSecurity from "./loginSecurity";
 import * as attendanceSettings from "./attendanceSettings";
 import * as officialLeave from "./officialLeave";
+import * as absenceBlock from "./absenceBlock";
 import * as website from "./website";
 
 export const menuDomains = [
@@ -35,5 +36,6 @@ export const menuDomains = [
   loginSecurity,
   attendanceSettings,
   officialLeave,
+  absenceBlock,
   accessLocation,
 ];

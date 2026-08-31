@@ -216,6 +216,17 @@ class AttendanceQrService
         }
 
         $date = Carbon::parse($sessionData['attendance_date'])->toDateString();
+
+        // An absence-blocked student can't self-check-in via QR.
+        $lock = app(\App\Modules\AbsenceBlock\Services\AbsenceBlockEvaluator::class)
+            ->evaluate($studentId, (int) $sessionData['study_class_id'], $date);
+
+        if ($lock->locked) {
+            throw ValidationException::withMessages([
+                'student_id' => 'Your attendance is locked. Please see the school office.',
+            ]);
+        }
+
         $ipAddress = $request->ip();
         $location = $this->validateLocation($sessionData, $payload);
         $device = $this->presentDevice($payload['user_agent'] ?? null);
