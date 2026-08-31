@@ -98,6 +98,10 @@ defineProps({
     overflow: auto;
 }
 
+:global(.dark) .certificate-preview {
+    background: transparent;
+}
+
 .certificate-wrap {
     display: flex;
     justify-content: center;
@@ -105,10 +109,19 @@ defineProps({
     padding: 5px;
 }
 
+:global(.dark) .certificate-wrap {
+    background: #e0e0e0;
+}
+
 .certificate {
     width: 520px;
     background: #fff;
     padding: 10px;
+}
+
+:global(.dark) .certificate,
+:global(.dark) .cert-inner-border {
+    background: #fff;
 }
 
 .cert-outer-border {
@@ -334,6 +347,7 @@ defineProps({
         align-items: center !important;
         justify-content: center !important;
         width: 210mm !important;
+        height: 297mm !important;
         min-height: 297mm !important;
         overflow: hidden !important;
         background: #fff !important;
@@ -345,6 +359,7 @@ defineProps({
         justify-content: center !important;
         width: 100% !important;
         height: 100% !important;
+        min-height: 297mm !important;
         background: none !important;
         padding: 0 !important;
     }
@@ -353,10 +368,10 @@ defineProps({
         display: flex !important;
         flex-direction: column !important;
         box-sizing: border-box !important;
-        width: 205mm !important;
-        height: 292mm !important;
+        width: 210mm !important;
+        height: 297mm !important;
         margin: 0 !important;
-        padding: 18px !important;
+        padding: 5mm !important;
         background: #fff !important;
         box-shadow: none !important;
     }
