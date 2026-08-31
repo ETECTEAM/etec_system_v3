@@ -13,6 +13,7 @@ use Database\Seeders\Dev\InstructorWorkScheduleSeeder;
 use Database\Seeders\GradingSettingSeeder;
 use Database\Seeders\LoginLockoutSeeder;
 use Database\Seeders\Permission\AssignPermissionSeeder;
+use Database\Seeders\Permission\DashboardPermissionSeeder;
 use Database\Seeders\Permission\PermissionSeeder;
 use Database\Seeders\Permission\RoleSeeder;
 use Database\Seeders\Schedule\ScheduleSeeder;
@@ -41,6 +42,9 @@ class ProductionSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             AssignPermissionSeeder::class,
+            // dashboard.view + instructor_profile / work_schedule perms - without
+            // this every instructor 403s on /dashboard.
+            DashboardPermissionSeeder::class,
 
             // 2. The one real login (idempotent, never truncates users)
             SuperAdminSeeder::class,

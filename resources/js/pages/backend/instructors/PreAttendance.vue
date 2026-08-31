@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from "vue";
 import { Head, Link } from "@inertiajs/vue3";
 import { ArrowRight, ClipboardCheck, Clock3, Users } from "@lucide/vue";
 
@@ -10,6 +11,15 @@ const props = defineProps({
     default: () => [],
   },
 });
+
+// Sum of still-untracked students across every listed class — powers the
+// "N unresolved" badge in the table header.
+const totalUnresolvedStudents = computed(() =>
+  props.classes.reduce(
+    (sum, classData) => sum + Math.max(0, (classData.students ?? 0) - (classData.tracked_count ?? 0)),
+    0,
+  ),
+);
 </script>
 
 <template>

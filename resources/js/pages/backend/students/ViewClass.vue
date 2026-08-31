@@ -35,7 +35,7 @@ const props = defineProps({
 
 const page = usePage();
 const isInstructor = computed(() => (page.props.auth?.roles ?? []).includes("instructor"));
-const classListUrl = computed(() => "/dashboard");
+const classListUrl = computed(() => "/dashboard/enroll");
 const normalizedClassStatus = computed(() => {
   const status = String(props.classData?.class_status ?? "").toLowerCase();
 
