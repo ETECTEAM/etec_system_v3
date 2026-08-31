@@ -39,6 +39,7 @@ const form = useForm({
   term_id: "",
   time_id: "",
   price: "",
+  unit_price: "",
   document_price: "",
 });
 
@@ -103,6 +104,7 @@ watch(() => form.course_id, () => {
   selectedTerm.value = "";
   selectedTime.value = "";
   form.price = selectedCourse.value ? String(selectedCourse.value.price ?? 0) : "";
+  form.unit_price = selectedCourse.value ? String(selectedCourse.value.unit_price ?? selectedCourse.value.price ?? 0) : "";
   form.document_price = selectedCourse.value ? String(selectedCourse.value.document_price ?? 0) : "";
 });
 
@@ -144,6 +146,7 @@ function submit() {
         payment_date: today,
         amount_paid: 0,
         fee_amount: Number(form.price || 0),
+        unit_price: Number(form.unit_price || 0),
         document_fee_amount: Number(form.document_price || 0),
       };
 
@@ -306,7 +309,21 @@ function classList() {
 
           <div>
             <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">
-              {{ $t('Price') }}
+              {{ $t('Unit Price') }}
+              <span class="font-normal text-slate-400 dark:text-gray-500">· {{ $t('from Enroll Config') }}</span>
+            </label>
+            <input
+              :value="form.unit_price"
+              type="number"
+              readonly
+              class="w-full cursor-not-allowed rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm text-slate-600 outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-400"
+              :placeholder="$t('Select a course')"
+            />
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">
+              {{ $t('Course Price') }}
               <span class="font-normal text-slate-400 dark:text-gray-500">· {{ $t('from Enroll Config') }}</span>
             </label>
             <input

@@ -214,6 +214,7 @@ async function printReceipt(row) {
   receiptClassData.value = {
     course: row.course_title ?? row.class_title,
     price: row.fee_amount,
+    unit_price: row.unit_price ?? null,
     document_price: row.document_fee_amount,
     term: studyDaysLabel(row),
     time: row.start_time && row.end_time ? `${row.start_time} - ${row.end_time}` : "-",

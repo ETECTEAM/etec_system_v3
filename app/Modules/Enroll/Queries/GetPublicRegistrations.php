@@ -112,6 +112,7 @@ class GetPublicRegistrations
             'start_time' => $this->formatTime($enrollment->studyClass?->scheduleStartTime()),
             'end_time' => $this->formatTime($enrollment->studyClass?->scheduleEndTime()),
             'fee_amount' => (float) $enrollment->fee_amount,
+            'unit_price' => $enrollment->unit_price !== null ? (float) $enrollment->unit_price : null,
             'document_fee_amount' => (float) $enrollment->document_fee_amount,
             'amount_paid' => (float) $enrollment->amount_paid,
             'payment_status' => ucfirst($enrollment->payment_status),

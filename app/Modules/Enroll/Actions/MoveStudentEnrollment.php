@@ -88,6 +88,7 @@ class MoveStudentEnrollment
             'study_class_id' => $class->id,
             'enrollment_status' => 'active',
             'fee_amount' => $resolved['price'],
+            'unit_price' => $resolved['unit_price'],
             'document_fee_amount' => $resolved['document_price'],
             'payment_status' => $this->paymentStatus($amountPaid, $totalDue),
             'no_room_and_instructor' => false,
@@ -102,8 +103,11 @@ class MoveStudentEnrollment
     {
         $config = CourseEnrollConfig::forCourseTime($class->course_id, $class->time_id);
 
+        $price = $config?->resolvedPrice() ?? (float) $class->price;
+
         return [
-            'price' => $config?->resolvedPrice() ?? (float) $class->price,
+            'price' => $price,
+            'unit_price' => $config && (float) $config->unit_price > 0 ? (float) $config->unit_price : $price,
             'document_price' => $config !== null ? (float) $config->document_price : (float) $class->document_price,
         ];
     }

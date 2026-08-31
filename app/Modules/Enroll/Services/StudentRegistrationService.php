@@ -26,6 +26,9 @@ class StudentRegistrationService
             'fee_amount' => isset($extra['fee_amount'])
                 ? round((float) $extra['fee_amount'], 2)
                 : (isset($data['price']) ? round((float) $data['price'], 2) : null),
+            'unit_price' => isset($extra['unit_price'])
+                ? round((float) $extra['unit_price'], 2)
+                : (isset($data['unit_price']) ? round((float) $data['unit_price'], 2) : null),
             'document_fee_amount' => isset($extra['document_fee_amount'])
                 ? round((float) $extra['document_fee_amount'], 2)
                 : (isset($data['document_price']) ? round((float) $data['document_price'], 2) : null),
@@ -57,6 +60,7 @@ class StudentRegistrationService
             'payment_status' => $data['payment_status'] ?? 'unpaid',
             'source' => $data['source'] ?? null,
             'fee_amount' => $data['fee_amount'] ?? 0,
+            'unit_price' => $data['unit_price'] ?? null,
             'document_fee_amount' => $data['document_fee_amount'] ?? 0,
             'amount_paid' => $data['amount_paid'] ?? 0,
             'enrolled_at' => $data['enrolled_at'] ?? $now,

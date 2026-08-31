@@ -73,29 +73,25 @@ function totalAmount() {
   return courseFeeAmount() + documentFeeAmount();
 }
 
+// The charged Course Price (may be a discount off the unit price).
 function courseFeeAmount() {
   return Number(props.classData?.resolved_price ?? props.classData?.price ?? props.student?.fee_amount ?? props.classData?.course_price ?? 0);
 }
 
-function documentFeeAmount() {
-  return Number(props.classData?.document_price ?? props.student?.document_fee_amount ?? 0);
+// The Enroll Config list / unit price. Snapshotted onto the student/enrollment
+// at registration; falls back to the charged fee when no snapshot exists
+// (receipts printed before this was tracked).
+function unitPriceAmount() {
+  const unit = Number(props.classData?.unit_price ?? props.student?.unit_price ?? 0);
+  return unit > 0 ? unit : courseFeeAmount();
 }
 
-// Shows both Enroll Config prices side by side (Course Price is the charged
-// fee, Unit Price is a reference). Falls back to the single resolved fee when
-// no breakdown was passed (e.g. the Class List / View Class receipt paths).
-function feeBreakdown() {
-  const unit = props.classData?.unit_price;
-  const course = props.classData?.course_price;
+function discountAmount() {
+  return Math.max(unitPriceAmount() - courseFeeAmount(), 0);
+}
 
-  if (unit == null && course == null) {
-    return money(courseFeeAmount());
-  }
-
-  const parts = [];
-  if (unit != null) parts.push(`Unit ${money(unit)}`);
-  if (course != null) parts.push(`Course ${money(course)}`);
-  return parts.join("  |  ");
+function documentFeeAmount() {
+  return Number(props.classData?.document_price ?? props.student?.document_fee_amount ?? 0);
 }
 
 function paidAmount() {
@@ -185,10 +181,18 @@ function timeWithTerm() {
           <strong class="line time-term">{{ timeWithTerm() }}</strong>
         </div>
         <div class="receipt-row">
-          <span class="label">តម្លៃ / Fee</span>
-          <strong class="line fee-breakdown">{{ feeBreakdown() }}</strong>
+          <span class="label">តម្លៃឯកតា / Unit Price</span>
+          <strong class="line time-term">{{ money(unitPriceAmount()) }}</strong>
           <span class="label tiny">កាលបរិច្ឆេទចូលរៀន</span>
           <strong class="line time-term">{{ valueOrDash(classData?.enroll_start_date) }}</strong>
+        </div>
+        <div class="receipt-row">
+          <span class="label">តម្លៃវគ្គ / Course Price</span>
+          <strong class="line time-term">{{ money(courseFeeAmount()) }}</strong>
+          <template v-if="discountAmount() > 0">
+            <span class="label tiny">បញ្ចុះតម្លៃ / Discount</span>
+            <strong class="line time-term">- {{ money(discountAmount()) }}</strong>
+          </template>
         </div>
         <div class="receipt-row">
           <span class="label">ប្រាក់ត្រូវបង់</span>
@@ -520,11 +524,11 @@ function timeWithTerm() {
 
   .note {
     display: flex;
-    min-height: 22mm;
+    min-height: 20mm;
     align-items: start;
     justify-content: space-between;
     gap: 6mm;
-    margin-top: 5mm;
+    margin-top: 3mm;
     padding-top: 1mm;
     border-top: 0.50mm solid #3d4048;
     padding-bottom: 2mm;
