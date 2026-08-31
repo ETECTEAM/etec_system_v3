@@ -11,14 +11,13 @@ use App\Modules\Attendance\Queries\GetSessionBanner;
 use App\Modules\Attendance\Services\AttendanceQrService;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Modules\Instructor\Services\ClassResultPdfGenerator;
 use App\Modules\Instructor\Services\InstructorClassService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -34,6 +33,7 @@ class InstructorClassController extends Controller
         private readonly OverrideAttendanceRecord $overrideAttendance,
         private readonly GetSessionBanner $sessionBanner,
         private readonly AttendanceQrService $attendanceQr,
+        private readonly ClassResultPdfGenerator $classResultPdfGenerator,
     ) {}
 
     public function create(Request $request): Response
@@ -239,67 +239,13 @@ class InstructorClassController extends Controller
     private function downloadResultPdf(stdClass $class, Collection $students): BinaryFileResponse
     {
         $classData = $this->instructorClasses->presentClass($class);
-        $sortedStudents = $students
-            ->sort(function (array $left, array $right): int {
-                $bucketDifference = $this->resultSortBucket($left) <=> $this->resultSortBucket($right);
-
-                if ($bucketDifference !== 0) {
-                    return $bucketDifference;
-                }
-
-                return $this->resultTotalScore($right) <=> $this->resultTotalScore($left);
-            })
-            ->values();
-
-        $pdfPath = sys_get_temp_dir() . '/class-result-' . Str::uuid() . '.pdf';
-        $htmlPath = sys_get_temp_dir() . '/class-result-' . Str::uuid() . '.html';
-
-        File::put($htmlPath, view('backend.instructors.class-result-pdf', [
-            'classData' => $classData,
-            'students' => $sortedStudents,
-        ])->render());
-
-        $process = Process::timeout(120)->run([
-            '/usr/bin/google-chrome',
-            '--headless',
-            '--disable-gpu',
-            '--no-sandbox',
-            '--no-pdf-header-footer',
-            '--hide-scrollbars',
-            '--run-all-compositor-stages-before-draw',
-            '--virtual-time-budget=2000',
-            '--print-to-pdf=' . $pdfPath,
-            '--print-to-pdf-no-header',
-            'file://' . $htmlPath,
-        ]);
-
-        File::delete($htmlPath);
-
-        if (! $process->successful() || ! File::exists($pdfPath)) {
-            if (File::exists($pdfPath)) {
-                File::delete($pdfPath);
-            }
-
-            abort(500, 'Unable to generate the class result PDF.');
-        }
+        $pdfPath = $this->classResultPdfGenerator->generate($classData, $students);
 
         return response()
             ->download($pdfPath, Str::slug($classData['title'] ?? 'class-result') . '.pdf', [
                 'Content-Type' => 'application/pdf',
             ])
             ->deleteFileAfterSend(true);
-    }
-
-    private function resultSortBucket(array $student): int
-    {
-        return $this->resultTotalScore($student) < 50 ? 1 : 0;
-    }
-
-    private function resultTotalScore(array $student): float
-    {
-        return (float) ($student['scores']['attendance'] ?? 0)
-            + (float) ($student['scores']['activity'] ?? 0)
-            + (float) ($student['scores']['exam'] ?? 0);
     }
 
     public function saveScores(Request $request, string $studyClass): JsonResponse|RedirectResponse
