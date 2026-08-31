@@ -2,29 +2,23 @@
 
 namespace Database\Seeders\Production;
 
-use Illuminate\Database\Seeder;
-
-// Permission / role data
+use Database\Seeders\Building\BuildingSeeder;
+use Database\Seeders\Class\ClassTypeSeeder;
+use Database\Seeders\Course\CategorySeeder;
+use Database\Seeders\Course\CourseSeeder;
+use Database\Seeders\Course\CourseTrackSeeder;
+use Database\Seeders\Course\SubCategorySeeder;
+use Database\Seeders\GradingSettingSeeder;
+use Database\Seeders\LoginLockoutSeeder;
+use Database\Seeders\Permission\AssignPermissionSeeder;
 use Database\Seeders\Permission\PermissionSeeder;
 use Database\Seeders\Permission\RoleSeeder;
-use Database\Seeders\Permission\AssignPermissionSeeder;
-
-// Settings
-use Database\Seeders\LoginLockoutSeeder;
-use Database\Seeders\GradingSettingSeeder;
-
-// Reference / lookup data
-use Database\Seeders\Course\CategorySeeder;
-use Database\Seeders\Course\SubCategorySeeder;
-use Database\Seeders\Class\ClassTypeSeeder;
+use Database\Seeders\Schedule\ScheduleSeeder;
 use Database\Seeders\Term\TermSeeder;
 use Database\Seeders\Time\TimeSeeder;
-use Database\Seeders\WorkSchedule\WorkScheduleSeeder;
-use Database\Seeders\Building\BuildingSeeder;
-use Database\Seeders\Course\CourseTrackSeeder;
-use Database\Seeders\Course\CourseSeeder;
-use Database\Seeders\Schedule\ScheduleSeeder;
 use Database\Seeders\Website\WebsiteMenuSeeder;
+use Database\Seeders\WorkSchedule\WorkScheduleSeeder;
+use Illuminate\Database\Seeder;
 
 /**
  * Seeders that are safe to run on a real production database.

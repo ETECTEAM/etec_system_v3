@@ -4,20 +4,13 @@ namespace Database\Seeders\Dev;
 
 use Illuminate\Database\Seeder;
 
-// Fake users (admins + a batch of instructors with shifts / availabilities)
-use Database\Seeders\Core\UserSeeder as FakeUserSeeder;
-
 /**
  * Demo / throwaway data for local + development environments, so a new
  * feature can be clicked through without hand-building users and classes.
  *
  * NOT run in production (see DatabaseSeeder). Runs AFTER ProductionSeeder,
  * so all reference data (roles, work schedules, times, courses...) already
- * exists.
- *
- * Note: Core\UserSeeder truncates `users` / `instructor_data` and recreates
- * superadmin@etec.com + admin@etec.com + 10 instructors. In dev that is
- * fine; it just means the super-admin password is reset to "password".
+ * exists. The super-admin login comes from ProductionSeeder\SuperAdminSeeder.
  *
  * The one-off scenario seeders under database/seeders/Feature/* are
  * deliberately NOT called here - several are mutually exclusive (e.g.
@@ -30,7 +23,12 @@ class DevSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            FakeUserSeeder::class,
+            // Plain admin login (role: admin).
+            DevAdminSeeder::class,
+
+            // instructor1@etec.com .. instructorN@etec.com - one per active
+            // work schedule, so every shift shape is covered.
+            InstructorWorkScheduleSeeder::class,
 
             // Add more demo-data seeders here (students, classes, enrollments...)
         ]);

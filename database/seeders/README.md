@@ -5,7 +5,7 @@ Seeders are split into two groups:
 | Folder | Class | Contains | Runs in production? |
 | --- | --- | --- | --- |
 | `Production/` | `Production\ProductionSeeder` | Reference / lookup data (permissions, roles, settings, categories, class types, terms, times, work schedules, buildings, courses, schedule grid, website menu) + **one real super-admin login**. Every seeder here is idempotent. | **Yes** |
-| `Dev/` | `Dev\DevSeeder` | Fake users (admins + 10 instructors with shifts) and any other demo data for trying out a new feature locally. | **No** |
+| `Dev/` | `Dev\DevSeeder` | `Dev\DevAdminSeeder` (`admin@etec.com`) + `Dev\InstructorWorkScheduleSeeder` (`instructor1@etec.com` … `instructorN@etec.com`, one per work schedule) + any other demo data for trying out a new feature locally. | **No** |
 
 The per-domain folders (`Permission/`, `Course/`, `Class/`, `Feature/`, ...) still
 hold the individual seeders — `ProductionSeeder` / `DevSeeder` just call them in
@@ -31,6 +31,9 @@ composer seed-prod
 # fake users / demo data only (needs ProductionSeeder to have run first)
 php artisan db:seed --class="Database\Seeders\Dev\DevSeeder"
 composer seed-dev
+
+# just refresh instructor1..instructorN (one per work schedule; idempotent, no truncate)
+php artisan db:seed --class="Database\Seeders\Dev\InstructorWorkScheduleSeeder"
 ```
 
 ## Production super-admin credentials
