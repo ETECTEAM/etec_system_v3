@@ -20,7 +20,11 @@ class AutoRecordSession
             // which takes this same lock) in the gap between that query and this call.
             $session = ClassSession::query()->lockForUpdate()->find($sessionId);
 
-            if (! $session || $session->status !== ClassSession::STATUS_PENDING) {
+            if (! $session || ! in_array($session->status, [
+                ClassSession::STATUS_PENDING,
+                ClassSession::STATUS_PRE_ATTENDANCE,
+                ClassSession::STATUS_PARTIAL,
+            ], true)) {
                 return;
             }
 

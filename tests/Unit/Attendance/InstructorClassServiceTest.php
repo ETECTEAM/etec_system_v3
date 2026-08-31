@@ -300,35 +300,45 @@ class InstructorClassServiceTest extends TestCase
         ]);
     }
 
-    public function test_auto_recorded_pending_rows_finalize_to_absent_after_override_window(): void
+    public function test_finalize_auto_recorded_session_marks_only_missing_students_absent_after_override_window(): void
     {
         $now = Carbon::parse('2026-08-21 10:00:00', 'Asia/Phnom_Penh');
         Carbon::setTestNow($now);
 
         $class = $this->makeStudyClass();
-        $student = $this->makeStudent();
-        $enrollment = $this->enroll($class, $student);
+        $tracked = $this->makeStudent();
+        $missing = $this->makeStudent();
+        $trackedEnrollment = $this->enroll($class, $tracked);
+        $missingEnrollment = $this->enroll($class, $missing);
         $session = $this->sessionFor(Carbon::parse('2026-08-21 09:00:00', 'Asia/Phnom_Penh'), 20, ['class' => $class]);
         $session->update([
-            'status' => ClassSession::STATUS_AUTO_RECORDED,
+            'status' => ClassSession::STATUS_PARTIAL,
             'recorded_at' => Carbon::parse('2026-08-20 08:00:00', 'Asia/Phnom_Penh'),
         ]);
 
         StudentAttendance::create([
             'study_class_id' => $class->id,
-            'student_enrollment_id' => $enrollment->id,
-            'student_id' => $student->id,
-            'tracked_by' => null,
+            'student_enrollment_id' => $trackedEnrollment->id,
+            'student_id' => $tracked->id,
+            'tracked_by' => $class->teacher_id,
             'attendance_date' => '2026-08-21',
-            'status' => 'pending',
-            'source' => StudentAttendance::SOURCE_AUTO,
+            'status' => 'present',
+            'source' => StudentAttendance::SOURCE_MANUAL,
         ]);
 
         app(FinalizeAutoRecordedSession::class)->handle($session->id);
 
+        $this->assertSame(ClassSession::STATUS_AUTO_RECORDED, $session->fresh()->status);
+        $this->assertDatabaseHas('student_attendances', [
+            'student_enrollment_id' => $trackedEnrollment->id,
+            'student_id' => $tracked->id,
+            'status' => 'present',
+            'source' => StudentAttendance::SOURCE_MANUAL,
+        ]);
         $this->assertDatabaseHas('student_attendances', [
             'study_class_id' => $class->id,
-            'student_enrollment_id' => $enrollment->id,
+            'student_enrollment_id' => $missingEnrollment->id,
+            'student_id' => $missing->id,
             'status' => 'absent',
             'source' => StudentAttendance::SOURCE_AUTO,
         ]);

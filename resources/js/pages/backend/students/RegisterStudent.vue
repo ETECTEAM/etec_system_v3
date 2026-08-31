@@ -58,6 +58,11 @@ const selectedCourse = computed(() =>
 const totalFee = computed(() => Math.round((Number(form.price || 0) + Number(form.document_price || 0)) * 100) / 100);
 const nameLiveError = computed(() => latinNameError(form.name));
 
+function normalizePhoneInput(event) {
+  const value = event.target.value ?? "";
+  form.phone = String(value).replace(/\D+/g, "").slice(0, 12);
+}
+
 // Class Type -> Term -> Time, all driven by the picked course's own enabled
 // Enroll Config slots.
 const courseSchedules = computed(() => selectedCourse.value?.class_schedules ?? []);
@@ -223,15 +228,20 @@ function classList() {
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">
-              Phone
-            </label>
-            <input
-              v-model="form.phone"
-              type="text"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
-              :placeholder="$t('Enter phone number')"
-            />
+              <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">
+                Phone
+              </label>
+              <input
+                v-model="form.phone"
+                type="text"
+                inputmode="numeric"
+                autocomplete="tel"
+                pattern="[0-9]*"
+                maxlength="12"
+                @input="normalizePhoneInput"
+                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
+                :placeholder="$t('Enter phone number')"
+              />
             <p v-if="form.errors.phone" class="mt-1 text-xs text-red-600">
               {{ form.errors.phone }}
             </p>

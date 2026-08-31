@@ -90,6 +90,20 @@ class AttendanceQrService
         return $session;
     }
 
+    public function allowsTrackAnytime(): bool
+    {
+        return filter_var(setting('attendance.auto_record_allow_track_anytime', false), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function allowsQrAttendance(StudyClass $studyClass): bool
+    {
+        if (filter_var(setting('attendance.auto_record_allow_qr_attendance', false), FILTER_VALIDATE_BOOLEAN)) {
+            return true;
+        }
+
+        return str_contains(strtolower((string) $studyClass->classType?->type_name), 'internship');
+    }
+
     public function stopSession(AttendanceSession $session, User $user): AttendanceSession
     {
         $token = $session->qr_token;

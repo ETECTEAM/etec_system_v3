@@ -1,12 +1,13 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive } from "vue";
-import { Head, Link, useForm } from "@inertiajs/vue3";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { Head, Link, router, useForm } from "@inertiajs/vue3";
 import { QrcodeCanvas } from "qrcode.vue";
 import { ArrowLeft, Bot, Clock, QrCode, Save } from "@lucide/vue";
 import { useToast } from "vue-toastification";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import { getEcho } from "../../../echo";
+import { useConfirm } from "../../../composables/useConfirm";
 
 const props = defineProps({
   classData: {
@@ -39,13 +40,67 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  qrAttendanceAvailable: {
+    type: Boolean,
+    default: false,
+  },
+  allowTrackAnytime: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const classLifecycleStatus = computed(() => String(props.classData?.class_status ?? "").toLowerCase());
 // The system recorded today's class and the instructor still has time to correct it -
 const isOverridable = computed(() => false);
 const isPreAttendance = computed(() => props.todaySession?.is_pre_attendance === true);
-const locked = computed(() => classLifecycleStatus.value !== "active" || (props.attendanceLocked && !isOverridable.value));
+const now = ref(Date.now());
+let nowTimer = null;
+let stopBeforeLeaveListener = null;
+const pendingNavigationUrl = ref("");
+const isBypassingLeaveGuard = ref(false);
+const { confirm } = useConfirm();
+
+function parseDeadline(value) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(String(value).replace(" ", "T"));
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+const graceDeadline = computed(() => parseDeadline(props.attendanceWindow?.ends_at));
+const attendanceStartTime = computed(() => props.attendanceWindow?.starts_at ?? null);
+const timingHint = computed(() => {
+  if (!attendanceStartTime.value || !graceDeadline.value) {
+    return null;
+  }
+
+  const parts = [];
+
+  if (props.classData?.created_date) {
+    parts.push(`Created at ${props.classData.created_date}`);
+  }
+
+  parts.push(`Starts at ${attendanceStartTime.value}`);
+  parts.push(`Auto-records at ${props.attendanceWindow.ends_at}`);
+
+  return parts.join(" · ");
+});
+const isGraceWindowClosed = computed(() => {
+  if (props.allowTrackAnytime || isPreAttendance.value) {
+    return false;
+  }
+
+  const deadline = graceDeadline.value;
+
+  return deadline ? now.value >= deadline.getTime() : false;
+});
+const locked = computed(() => classLifecycleStatus.value !== "active"
+  || (props.attendanceLocked && !isOverridable.value)
+  || (isGraceWindowClosed.value && !isPreAttendance.value));
 const windowMessage = computed(() => {
   if (classLifecycleStatus.value === "pre_end") {
     return "This class has been pre-ended. Attendance tracking is closed.";
@@ -61,6 +116,14 @@ const windowMessage = computed(() => {
 
   if (props.attendanceWindow.reason === "no_session") {
     return "This class does not have a session today.";
+  }
+
+  if (props.attendanceWindow.reason === "before_start") {
+    return "This class has not started yet.";
+  }
+
+  if (!props.allowTrackAnytime && (props.attendanceWindow.reason === "after_deadline" || isGraceWindowClosed.value)) {
+    return "The grace period has ended. Attendance is now locked for auto-record.";
   }
 
   return null;
@@ -86,6 +149,10 @@ const submitLabel = computed(() => {
     return "Complete Pre-Attendance";
   }
 
+  if (!props.allowTrackAnytime && isGraceWindowClosed.value) {
+    return "Window Closed";
+  }
+
   if (!locked.value) {
     return "Save Attendance";
   }
@@ -108,6 +175,7 @@ const submitLabel = computed(() => {
 const sessionState = computed(() => String(props.attendanceSession?.status ?? "inactive"));
 const canCorrectQrAttendance = computed(() => sessionState.value === "active");
 const qrUrl = computed(() => props.attendanceSession?.qr_url ?? "");
+const showQrPanel = computed(() => props.qrAttendanceAvailable);
 const liveAttendanceSummary = reactive({
   present: props.attendanceSummary?.present ?? 0,
   total: props.attendanceSummary?.total ?? props.students.length,
@@ -148,9 +216,30 @@ const attendance = reactive(
   ])),
 );
 
+const attendanceTouched = reactive(
+  Object.fromEntries(props.students.map((student) => [student.id, false])),
+);
+
 const permissionNotes = reactive(
   Object.fromEntries(props.students.map((student) => [student.id, student.attendance?.note ?? ""])),
 );
+
+const savedAttendance = reactive(
+  Object.fromEntries(props.students.map((student) => [
+    student.id,
+    normalizeAttendanceStatus(student.attendance?.current_status, isPreAttendance.value && !student.attendance?.is_tracked ? null : "absent"),
+  ])),
+);
+
+const savedPermissionNotes = reactive(
+  Object.fromEntries(props.students.map((student) => [student.id, student.attendance?.note ?? ""])),
+);
+
+const hasUnsavedChanges = computed(() => !locked.value && props.students.some((student) =>
+  attendanceTouched[student.id]
+    || attendance[student.id] !== savedAttendance[student.id]
+    || (permissionNotes[student.id] ?? "") !== (savedPermissionNotes[student.id] ?? "")
+));
 
 let attendanceChannel = null;
 
@@ -164,9 +253,22 @@ const studentVerification = (student) => liveVerification[student.id] ?? student
 
 function setAttendanceStatus(studentId, status) {
   attendance[studentId] = status;
+  attendanceTouched[studentId] = true;
 
   if (status !== "permission") {
     permissionNotes[studentId] = "";
+  }
+}
+
+function markSavedStateForStudent(studentId) {
+  savedAttendance[studentId] = attendance[studentId];
+  savedPermissionNotes[studentId] = permissionNotes[studentId] ?? "";
+  attendanceTouched[studentId] = false;
+}
+
+function markAllSavedState() {
+  for (const student of props.students) {
+    markSavedStateForStudent(student.id);
   }
 }
 
@@ -178,8 +280,10 @@ function handleQrSubmitted(event) {
   }
 
   attendance[record.student_id] = normalizeAttendanceStatus(record.status ?? "present");
+  attendanceTouched[record.student_id] = true;
   permissionNotes[record.student_id] = "";
   liveVerification[record.student_id] = record;
+  markSavedStateForStudent(record.student_id);
 
   if (event.summary) {
     liveAttendanceSummary.present = event.summary.present ?? liveAttendanceSummary.present;
@@ -196,47 +300,157 @@ function handleQrSubmitted(event) {
   toast.success(`Student #${record.student_id} submitted attendance.`);
 }
 
+function handleBeforeUnload(event) {
+  if (!hasUnsavedChanges.value) {
+    return;
+  }
+
+  event.preventDefault();
+  event.returnValue = "";
+}
+
 onMounted(() => {
+  nowTimer = window.setInterval(() => {
+    now.value = Date.now();
+  }, 10000);
+
+  stopBeforeLeaveListener = router.on("before", async (event) => {
+    if (isBypassingLeaveGuard.value || !hasUnsavedChanges.value) {
+      return;
+    }
+
+    const visitUrl = `${event.detail.visit.url.pathname}${event.detail.visit.url.search}${event.detail.visit.url.hash}`;
+    event.preventDefault();
+
+    const ok = await confirm({
+      title: "Leave this page?",
+      message: "If you leave now, your current attendance selections will be saved first.",
+      confirmText: "Save and Leave",
+      cancelText: "Stay Here",
+    });
+
+    if (!ok) {
+      return;
+    }
+
+    pendingNavigationUrl.value = visitUrl;
+    submit({
+      includeUntouched: false,
+      allowLocked: true,
+    });
+  });
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
   attendanceChannel = getEcho()
     ?.private(`attendance.class.${props.classData.id}`)
     .listen(".attendance.qr-submitted", handleQrSubmitted);
 });
 
 onBeforeUnmount(() => {
+  if (nowTimer !== null) {
+    window.clearInterval(nowTimer);
+  }
+
+  stopBeforeLeaveListener?.();
+  window.removeEventListener("beforeunload", handleBeforeUnload);
   attendanceChannel?.stopListening(".attendance.qr-submitted", handleQrSubmitted);
 });
 
-const submit = (stopSessionAfterSave = false) => {
-  if (locked.value) {
+function buildRecords(includeUntouched = true) {
+  return props.students
+    .filter((student) => includeUntouched || attendanceTouched[student.id])
+    .map((student) => ({
+      student_id: student.id,
+      enrollment_id: student.enrollment_id,
+      status: attendance[student.id] ?? "absent",
+      note: permissionNotes[student.id] || null,
+    }));
+}
+
+const submit = (options = {}) => {
+  const {
+    stopSessionAfterSave = false,
+    includeUntouched = true,
+    refreshAfterSave = true,
+    allowLocked = false,
+  } = typeof options === "boolean" ? { stopSessionAfterSave: options } : options;
+
+  if (locked.value && !allowLocked) {
     toast.warning(windowMessage.value ?? "Attendance has already been submitted for this class today.");
     return;
   }
 
-  if (isPreAttendance.value && props.students.some((student) => !attendance[student.id])) {
+  if (includeUntouched && isPreAttendance.value && props.students.some((student) => !attendance[student.id])) {
     toast.warning("Please complete attendance for every unresolved student.");
     return;
   }
 
   form.stop_session = stopSessionAfterSave === true;
-  form.records = props.students.map((student) => ({
-    student_id: student.id,
-    enrollment_id: student.enrollment_id,
-    status: attendance[student.id] ?? "absent",
-    note: permissionNotes[student.id] || null,
-  }));
+  form.records = buildRecords(includeUntouched);
+
+  if (!form.records.length) {
+    if (!includeUntouched) {
+      toast.info("No attendance changes to save yet.");
+    }
+
+    pendingNavigationUrl.value = "";
+    isBypassingLeaveGuard.value = false;
+
+    return;
+  }
 
   const url = `/dashboard/instructor/classes/${props.classData.id}/attendance`;
-  const options = {
+  const visitOptions = {
     preserveScroll: true,
-    onError: () => toast.error(isOverridable.value ? "Failed to save correction." : "Failed to save attendance."),
+    onError: () => {
+      pendingNavigationUrl.value = "";
+      isBypassingLeaveGuard.value = false;
+      toast.error(isOverridable.value ? "Failed to save correction." : "Failed to save attendance.");
+    },
+    onSuccess: () => {
+      markAllSavedState();
+
+      if (pendingNavigationUrl.value) {
+        const nextUrl = pendingNavigationUrl.value;
+        pendingNavigationUrl.value = "";
+        isBypassingLeaveGuard.value = true;
+        router.visit(nextUrl, {
+          preserveScroll: true,
+        });
+      } else if (refreshAfterSave) {
+        router.reload({
+          preserveScroll: true,
+          preserveState: true,
+        });
+      }
+    },
+    onFinish: () => {
+      if (!pendingNavigationUrl.value) {
+        isBypassingLeaveGuard.value = false;
+      }
+    },
   };
 
   if (isOverridable.value) {
-    form.put(url, options);
+    form.put(url, visitOptions);
   } else {
-    form.post(url, options);
+    form.post(url, visitOptions);
   }
 };
+
+watch(
+  isGraceWindowClosed,
+  (closed) => {
+    if (closed && hasUnsavedChanges.value && !form.processing) {
+      submit({
+        includeUntouched: false,
+        allowLocked: true,
+      });
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -251,6 +465,9 @@ const submit = (stopSessionAfterSave = false) => {
             <p class="mt-1 flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-gray-400">
               <Clock class="h-4 w-4" />
               {{ classData.term }} · {{ classData.time }}
+            </p>
+            <p v-if="timingHint" class="mt-2 text-xs font-semibold text-slate-500 dark:text-gray-400">
+              {{ timingHint }}
             </p>
           </div>
         </div>
@@ -297,7 +514,10 @@ const submit = (stopSessionAfterSave = false) => {
         Attendance has already been submitted for this class today. You can view the saved result, but cannot track again today.
       </div>
 
-      <div class="grid items-start gap-4 xl:grid-cols-[minmax(0,65fr)_minmax(300px,35fr)]">
+      <div
+        class="grid items-start gap-4"
+        :class="showQrPanel ? 'xl:grid-cols-[minmax(0,65fr)_minmax(300px,35fr)]' : 'xl:grid-cols-1'"
+      >
         <div class="h-fit overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div class="border-b border-slate-200 px-4 py-3 dark:border-gray-800">
             <p class="text-xs font-black uppercase tracking-[0.16em] text-blue-600 dark:text-blue-400">Manual Attendance</p>
@@ -382,19 +602,20 @@ const submit = (stopSessionAfterSave = false) => {
           </div>
         </div>
 
-        <div class="h-fit rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div v-if="showQrPanel" class="h-fit rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div class="flex items-center gap-2">
             <QrCode class="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <p class="text-xs font-black uppercase tracking-[0.16em] text-blue-600 dark:text-blue-400">QR Code</p>
           </div>
-          <div class="mt-4 flex justify-center">
-            <div v-if="qrUrl" class="w-fit rounded-xl border border-slate-200 bg-white p-3 dark:border-gray-800">
-              <QrcodeCanvas :value="qrUrl" :size="340" level="H" class="block h-auto max-w-full" />
+
+            <div class="mt-4 flex justify-center">
+              <div v-if="qrUrl" class="w-fit rounded-xl border border-slate-200 bg-white p-3 dark:border-gray-800">
+                <QrcodeCanvas :value="qrUrl" :size="340" level="H" class="block h-auto max-w-full" />
+              </div>
+              <div v-else class="grid h-[300px] w-full max-w-[340px] place-items-center rounded-lg border border-dashed border-slate-300 px-4 text-center text-sm font-semibold text-slate-500 dark:border-gray-700 dark:text-gray-400">
+                QR code is not available.
+              </div>
             </div>
-            <div v-else class="grid h-[300px] w-full max-w-[340px] place-items-center rounded-lg border border-dashed border-slate-300 px-4 text-center text-sm font-semibold text-slate-500 dark:border-gray-700 dark:text-gray-400">
-              QR code is not available.
-            </div>
-          </div>
         </div>
       </div>
     </section>

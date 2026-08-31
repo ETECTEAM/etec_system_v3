@@ -114,6 +114,8 @@ class InstructorClassController extends Controller
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
         $studyClassModel = StudyClass::query()->findOrFail($class->id);
+        $qrAttendanceAvailable = $this->attendanceQr->allowsQrAttendance($studyClassModel);
+        $allowTrackAnytime = $this->attendanceQr->allowsTrackAnytime();
 
         if (($class->class_status ?? null) !== 'active') {
             return redirect()
@@ -126,10 +128,9 @@ class InstructorClassController extends Controller
         $todaySession = $this->sessionBanner->handle($class->id);
         $hasAttendance = $this->instructorClasses->hasAttendanceForDate($class->id, Carbon::today('Asia/Phnom_Penh'));
         $canCompletePreAttendance = (bool) ($todaySession['is_pre_attendance'] ?? false);
-        $allowTrackAnytime = $this->instructorClasses->allowTrackAnytime();
         $isAutoRecorded = ($todaySession['status'] ?? null) === 'auto_recorded';
         $canOpenAttendance = ! $isAutoRecorded && ($allowTrackAnytime || $canCompletePreAttendance || (bool) ($attendanceWindow['can_submit'] ?? false));
-        $attendanceSession = $canOpenAttendance
+        $attendanceSession = $qrAttendanceAvailable && $canOpenAttendance
             ? $this->attendanceQr->getOrCreateTodaySession($studyClassModel, $request->user())
             : AttendanceSession::query()
                 ->where('study_class_id', $class->id)
@@ -147,7 +148,6 @@ class InstructorClassController extends Controller
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
             'attendanceLocked' => $isAutoRecorded || (! $canCorrectQrAttendance
-                && ! $allowTrackAnytime
                 && ! $canCompletePreAttendance
                 && ($hasAttendance
                     || ! ($attendanceWindow['can_submit'] ?? false)
@@ -156,6 +156,8 @@ class InstructorClassController extends Controller
             'todaySession' => $todaySession,
             'attendanceSession' => $presentedAttendanceSession,
             'attendanceSummary' => $attendanceSummary,
+            'qrAttendanceAvailable' => $qrAttendanceAvailable,
+            'allowTrackAnytime' => $allowTrackAnytime,
         ]);
     }
 
@@ -177,7 +179,14 @@ class InstructorClassController extends Controller
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
         $studyClassModel = StudyClass::query()->findOrFail($class->id);
-        $session = $this->attendanceQr->getOrCreateTodaySession($studyClassModel, $request->user());
+        $session = AttendanceSession::query()
+            ->where('study_class_id', $studyClassModel->id)
+            ->whereDate('attendance_date', Carbon::today('Asia/Phnom_Penh'))
+            ->first();
+
+        if (! $session) {
+            return back()->with('warning', 'No attendance session is available to stop.');
+        }
 
         $this->attendanceQr->stopSession($session, $request->user());
 

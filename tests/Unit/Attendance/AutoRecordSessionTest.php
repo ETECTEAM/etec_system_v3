@@ -155,10 +155,8 @@ class AutoRecordSessionTest extends TestCase
 
         $session = $this->makeSession(Carbon::now('Asia/Phnom_Penh'), -30, ['class' => $class]);
 
-        // One student's row already exists (e.g. written outside the normal locked
-        // path) - the unique index (study_class_id, student_enrollment_id,
-        // attendance_date) must reject the duplicate insert without blowing up the
-        // rest of the batch.
+        // One student's row already exists. The auto-record pass must leave it
+        // alone and only create the missing student row.
         StudentAttendance::create([
             'study_class_id' => $class->id,
             'student_enrollment_id' => $enrollment->id,

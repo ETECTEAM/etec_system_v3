@@ -260,12 +260,14 @@ class InstructorClassService
     public function ensureTodayAttendanceSession(stdClass $class, User $instructor): void
     {
         $today = Carbon::today('Asia/Phnom_Penh');
+        $termName = $class->term_name ?? $class->term ?? null;
+        $timeName = $class->time_name ?? $class->time ?? null;
 
-        if (! $this->allowTrackAnytime() && ! in_array($today->format('l'), StudyClass::parseTermDays($class->term ?? null), true)) {
+        if (! $this->allowTrackAnytime() && ! in_array($today->format('l'), StudyClass::parseTermDays($termName), true)) {
             return;
         }
 
-        $timeRange = StudyClass::parseTimeRange($class->time ?? null);
+        $timeRange = StudyClass::parseTimeRange($timeName);
 
         if (! $timeRange['start'] || ! $timeRange['end']) {
             return;
@@ -347,14 +349,13 @@ class InstructorClassService
                 ClassSession::STATUS_PRE_ATTENDANCE,
                 ClassSession::STATUS_PARTIAL,
             ], true);
+            $allowTrackAnytime = $this->allowTrackAnytime();
 
             if ($session && $session->status === ClassSession::STATUS_AUTO_RECORDED) {
                 throw ValidationException::withMessages([
                     'records' => 'The system already auto-recorded this class.',
                 ]);
             }
-
-            $allowTrackAnytime = $this->allowTrackAnytime();
 
             if ((! $session || ($session->status !== ClassSession::STATUS_PENDING && ! $canCompletePreAttendance)) && ! $activeQrSession && ! $allowTrackAnytime) {
                 throw ValidationException::withMessages([
@@ -366,13 +367,6 @@ class InstructorClassService
                 $this->assertAttendanceWindowOpen($session);
             }
 
-            $existingPreAttendanceRows = $canCompletePreAttendance
-                ? DB::table('student_attendances')
-                    ->where('study_class_id', $studyClassId)
-                    ->whereDate('attendance_date', $attendanceDate)
-                    ->pluck('id', 'student_enrollment_id')
-                : collect();
-
             foreach ($data['records'] as $record) {
                 $enrollmentId = (int) $record['enrollment_id'];
                 $studentId = (int) $record['student_id'];
@@ -382,10 +376,6 @@ class InstructorClassService
                     throw ValidationException::withMessages([
                         'records' => 'Attendance can only be saved for active students in this class.',
                     ]);
-                }
-
-                if ($existingPreAttendanceRows->has($enrollmentId)) {
-                    continue;
                 }
 
                 DB::table('student_attendances')->updateOrInsert(
@@ -411,7 +401,15 @@ class InstructorClassService
                 ClassSession::STATUS_PRE_ATTENDANCE,
                 ClassSession::STATUS_PARTIAL,
             ], true)) {
-                $session->update(['status' => ClassSession::STATUS_RECORDED, 'recorded_at' => now()]);
+                $savedCount = count($data['records']);
+                $totalEnrollments = $enrollments->count();
+
+                $session->update([
+                    'status' => $savedCount >= $totalEnrollments
+                        ? ClassSession::STATUS_RECORDED
+                        : ClassSession::STATUS_PARTIAL,
+                    'recorded_at' => now(),
+                ]);
             }
 
             if ($activeQrSession && ($data['stop_session'] ?? false)) {
@@ -444,12 +442,11 @@ class InstructorClassService
         }
 
         $window = $this->windowForSession($session);
-        $allowTrackAnytime = $this->allowTrackAnytime();
-
         $isPreAttendance = in_array($session->status, [
             ClassSession::STATUS_PRE_ATTENDANCE,
             ClassSession::STATUS_PARTIAL,
         ], true);
+        $allowTrackAnytime = $this->allowTrackAnytime();
         $hasAttendance = ! $isPreAttendance && $this->hasAttendanceForDate($studyClassId, $date);
 
         return [
@@ -523,11 +520,6 @@ class InstructorClassService
         };
     }
 
-    public function allowTrackAnytime(): bool
-    {
-        return (bool) setting('attendance.auto_record_allow_track_anytime', false);
-    }
-
     private function assertAttendanceWindowOpen(ClassSession $session): void
     {
         $window = $this->windowForSession($session);
@@ -550,6 +542,11 @@ class InstructorClassService
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
         ];
+    }
+
+    public function allowTrackAnytime(): bool
+    {
+        return filter_var(setting('attendance.auto_record_allow_track_anytime', false), FILTER_VALIDATE_BOOLEAN);
     }
 
     public function hasAttendanceForDate(int $studyClassId, Carbon|string $attendanceDate): bool

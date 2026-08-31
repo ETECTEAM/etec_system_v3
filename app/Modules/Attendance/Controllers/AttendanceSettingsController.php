@@ -29,6 +29,7 @@ class AttendanceSettingsController extends Controller
                 'notifyInstructor' => $this->boolValue($rows, 'notify_instructor', true),
                 'allowOverride' => $this->boolValue($rows, 'allow_override', true),
                 'allowTrackAnytime' => $this->boolValue($rows, 'allow_track_anytime', false),
+                'allowQrAttendance' => $this->boolValue($rows, 'allow_qr_attendance', false),
                 'overrideHours' => $this->numValue($rows, 'override_hours', 24),
             ],
             'shortestClassDurationMinutes' => $shortestDuration->handle(),

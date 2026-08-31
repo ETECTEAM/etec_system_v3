@@ -20,7 +20,6 @@ class StoreClassStudentRequest extends FormRequest
             'name' => ['required', 'string', 'max:255', new LatinName],
             'gender' => ['required', 'string', Rule::in(['male', 'female'])],
             'phone' => ['required', 'string', 'max:20'],
-            'attendance_pin' => ['nullable', 'string', 'min:4', 'max:32'],
         ];
     }
 }

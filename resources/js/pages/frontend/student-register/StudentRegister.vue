@@ -79,7 +79,6 @@ const form = useForm({
   name: "",
   gender: "",
   phone: "",
-  attendance_pin: "",
   category_id: "",
   course_id: "",
   class_type_id: "",
@@ -493,16 +492,6 @@ function normalizePhoneInput(event) {
                   <span v-if="form.errors.phone" class="text-xs font-semibold text-red-600 sm:text-sm">{{ form.errors.phone }}</span>
                 </label>
 
-                <label class="grid gap-1.5 text-[11px] font-bold sm:gap-2 sm:text-sm">
-                  Attendance PIN
-                  <input
-                    v-model="form.attendance_pin"
-                    type="password"
-                    autocomplete="off"
-                    class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold outline-none transition placeholder:text-slate-400 focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:rounded-xl sm:px-4 sm:py-3 sm:text-base dark:border-gray-700 dark:bg-gray-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-gray-800"
-                    placeholder="Optional PIN"
-                  />
-                </label>
               </div>
             </section>
 

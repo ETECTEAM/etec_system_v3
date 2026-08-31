@@ -19,7 +19,6 @@ class RegisterStudentRequest extends FormRequest
             'name' => ['required', 'string', 'max:255', new LatinName],
             'gender' => ['required', 'string', Rule::in(['male', 'female'])],
             'phone' => ['required', 'string', 'max:20'],
-            'attendance_pin' => ['nullable', 'string', 'min:4', 'max:32'],
             'course_id' => ['required', 'integer', 'exists:courses,id'],
             'term_id' => ['required', 'integer', 'exists:terms,id'],
             'time_id' => ['required', 'integer', 'exists:times,id'],
