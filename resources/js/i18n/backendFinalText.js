@@ -507,6 +507,7 @@ export const backendFinalTranslations = {
     "Weekly availability grid: which time slots every instructor is free or busy teaching.": "ក្រឡាចត្រង្គពេលវេលាប្រចាំសប្តាហ៍៖ ពេលណាដែលគ្រូនីមួយៗទំនេរ ឬរវល់បង្រៀន។",
     "Teaching (class)": "កំពុងបង្រៀន (ថ្នាក់)",
     "Available": "ទំនេរ",
+    "Not Working": "មិនធ្វើការ",
     "Free": "ទំនេរ",
     "Instructor": "គ្រូបង្រៀន",
     "Active Instructors": "គ្រូសកម្ម",

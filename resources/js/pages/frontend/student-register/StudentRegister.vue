@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
 import { useForm, usePage } from "@inertiajs/vue3";
 import {
   BookOpen,
@@ -15,11 +15,14 @@ import {
   GraduationCap,
   Laptop,
   MessageCircle,
+  Moon,
   Palette,
   Phone,
   Search,
   Sparkles,
   Stethoscope,
+  Sun,
+  SunMoon,
   UserRound,
 } from "@lucide/vue";
 import { useTheme } from "@/composables/useTheme";
@@ -47,11 +50,20 @@ const props = defineProps({
 const page = usePage();
 const flashSuccess = computed(() => page.props.flash?.success);
 
-// This page has no dark-mode styling of its own; it's public and shouldn't
-// inherit a dashboard visitor's stored theme preference from app.blade.php's
-// FOUC-prevention script, which sets `.dark` on <html> before Vue mounts.
-const { resolvedTheme } = useTheme();
-onMounted(() => document.documentElement.classList.remove("dark"));
+// Public page with its own light/dark toggle. Unlike the old forced-light
+// version, we keep whatever theme the visitor picked (stored in localStorage
+// and pre-applied by app.blade.php's FOUC script), and offer a Sun/Moon toggle
+// to switch it. On unmount we restore the resolved theme so the dashboard's
+// stored preference is respected on navigation back.
+const { theme, resolvedTheme, cycleTheme } = useTheme();
+
+const themeIcon = computed(() => {
+  if (theme.value === 'dark') return Moon
+  if (theme.value === 'light') return Sun
+  return SunMoon
+})
+const themeLabel = computed(() => theme.value)
+
 onBeforeUnmount(() => document.documentElement.classList.toggle("dark", resolvedTheme.value === "dark"));
 
 // ---- flow state -----------------------------------------------------
@@ -267,7 +279,17 @@ function normalizePhoneInput(event) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#F5F8FC] px-3 py-4 font-sans text-slate-900 selection:bg-[#1A66FF]/20 selection:text-[#1A66FF] sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+  <div class="min-h-screen bg-[#F5F8FC] px-3 py-4 font-sans text-slate-900 selection:bg-[#1A66FF]/20 selection:text-[#1A66FF] dark:bg-slate-950 dark:text-slate-100 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+    <button
+      type="button"
+      class="fixed right-4 top-4 z-50 grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+      :title="themeLabel === 'system' ? 'System theme' : (themeLabel === 'dark' ? 'Dark mode' : 'Light mode')"
+      :aria-label="themeLabel === 'system' ? 'System theme' : (themeLabel === 'dark' ? 'Dark mode' : 'Light mode')"
+      @click="cycleTheme"
+    >
+      <component :is="themeIcon" class="h-5 w-5" />
+    </button>
+
     <main class="mx-auto max-w-5xl">
 
       <!-- ============ DISCOVER ============ -->
@@ -289,7 +311,7 @@ function normalizePhoneInput(event) {
               v-model="searchQuery"
               type="text"
               placeholder="Search course or topic..."
-              class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm font-semibold outline-none transition focus:border-[#1A66FF] focus:ring-4 focus:ring-[#1A66FF]/10 sm:py-3"
+              class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm font-semibold outline-none transition focus:border-[#1A66FF] focus:ring-4 focus:ring-[#1A66FF]/10 sm:py-3 dark:border-gray-700 dark:bg-gray-900 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </span>
         </div>
@@ -300,7 +322,7 @@ function normalizePhoneInput(event) {
             class="shrink-0 whitespace-nowrap rounded-full border-2 px-3.5 py-2 text-[11px] font-bold transition sm:text-xs"
             :class="categoryFilter === 'all'
               ? 'border-[#1A66FF] bg-[#1A66FF]/10 text-[#1A66FF]'
-              : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
+              : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-900 dark:text-slate-400 dark:hover:border-gray-600'"
             @click="categoryFilter = 'all'"
           >
             All courses
@@ -312,7 +334,7 @@ function normalizePhoneInput(event) {
             class="shrink-0 whitespace-nowrap rounded-full border-2 px-3.5 py-2 text-[11px] font-bold transition sm:text-xs"
             :class="categoryFilter === String(category.id)
               ? 'border-[#1A66FF] bg-[#1A66FF]/10 text-[#1A66FF]'
-              : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
+              : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-900 dark:text-slate-400 dark:hover:border-gray-600'"
             @click="categoryFilter = String(category.id)"
           >
             {{ category.name }}
@@ -324,7 +346,7 @@ function normalizePhoneInput(event) {
             v-for="course in filteredCourses"
             :key="course.id"
             type="button"
-            class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 text-left shadow-sm transition hover:border-[#1A66FF]/40 hover:shadow-md sm:p-5"
+            class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 text-left shadow-sm transition hover:border-[#1A66FF]/40 hover:shadow-md sm:p-5 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-[#1A66FF]/40"
             @click="openCourse(course)"
           >
             <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#1A66FF]/10 sm:h-13 sm:w-13">
@@ -334,25 +356,25 @@ function normalizePhoneInput(event) {
             <span class="min-w-0 flex-1">
               <span class="flex flex-wrap items-center gap-1.5">
                 <span class="text-[9px] font-extrabold uppercase tracking-wide text-[#1A66FF] sm:text-[10px]">{{ course.sub_category_name }}</span>
-                <span v-if="course.level" class="h-0.5 w-0.5 rounded-full bg-slate-300"></span>
+                <span v-if="course.level" class="h-0.5 w-0.5 rounded-full bg-slate-300 dark:bg-gray-600"></span>
                 <span v-if="course.level" class="text-[9px] font-extrabold uppercase tracking-wide text-slate-400 sm:text-[10px]">{{ course.level }}</span>
               </span>
-              <span class="mt-0.5 block text-sm font-black leading-snug text-slate-900 sm:text-base">{{ course.title }}</span>
+              <span class="mt-0.5 block text-sm font-black leading-snug text-slate-900 sm:text-base dark:text-slate-100">{{ course.title }}</span>
 
               <span class="mt-2 flex flex-wrap gap-1.5">
-                <span class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-[#F5F8FC] px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                <span class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-[#F5F8FC] px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-slate-300">
                   <Calendar class="h-2.5 w-2.5 text-slate-400" /> {{ course.slots[0].term_name }}
                 </span>
-                <span class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-[#F5F8FC] px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                <span class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-[#F5F8FC] px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-slate-300">
                   <Clock class="h-2.5 w-2.5 text-slate-400" /> {{ course.slots[0].time_name }}
                 </span>
-                <span v-if="course.slots.length > 1" class="inline-flex items-center rounded-full border border-slate-200 bg-[#F5F8FC] px-2 py-0.5 text-[10px] font-bold text-slate-400">
+                <span v-if="course.slots.length > 1" class="inline-flex items-center rounded-full border border-slate-200 bg-[#F5F8FC] px-2 py-0.5 text-[10px] font-bold text-slate-400 dark:border-gray-700 dark:bg-gray-800 dark:text-slate-500">
                   +{{ course.slots.length - 1 }} more
                 </span>
               </span>
             </span>
 
-            <ChevronRight class="mt-1 h-4 w-4 shrink-0 text-slate-300" />
+            <ChevronRight class="mt-1 h-4 w-4 shrink-0 text-slate-300 dark:text-gray-600" />
           </button>
 
           <div v-if="filteredCourses.length === 0" class="col-span-full py-12 text-center">
@@ -373,7 +395,7 @@ function normalizePhoneInput(event) {
         <div class="flex items-center gap-2.5 sm:gap-3">
           <button
             type="button"
-            class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white sm:h-9 sm:w-9 sm:rounded-xl"
+            class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white sm:h-9 sm:w-9 sm:rounded-xl dark:border-gray-700 dark:bg-gray-900"
             @click="goBack"
           >
             <ChevronLeft class="h-4 w-4" />
@@ -398,7 +420,7 @@ function normalizePhoneInput(event) {
 
         <form class="mt-3.5 grid gap-3.5 sm:mt-6 sm:gap-6 lg:grid-cols-5 lg:items-start" @submit.prevent="submit">
           <div class="space-y-3.5 lg:col-span-3 lg:space-y-6">
-            <section class="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm sm:rounded-2xl sm:p-7">
+            <section class="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm sm:rounded-2xl sm:p-7 dark:border-gray-700 dark:bg-gray-900">
               <div class="flex items-center gap-2.5 sm:gap-3">
                 <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#1A66FF]/10 font-mono text-[11px] font-black text-[#1A66FF] sm:h-9 sm:w-9 sm:rounded-xl sm:text-sm">01</span>
                 <div>
@@ -416,8 +438,8 @@ function normalizePhoneInput(event) {
                       v-model="form.name"
                       type="text"
                       :class="[
-                        'w-full rounded-lg border bg-slate-50 py-2.5 pl-9 pr-3 text-sm font-semibold outline-none transition focus:bg-white focus:ring-4 sm:rounded-xl sm:py-3 sm:pl-12 sm:pr-4 sm:text-base',
-                        nameLiveError || form.errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200 focus:border-[#1A66FF] focus:ring-[#1A66FF]/10',
+                        'w-full rounded-lg border bg-slate-50 py-2.5 pl-9 pr-3 text-sm font-semibold outline-none transition focus:bg-white focus:ring-4 sm:rounded-xl sm:py-3 sm:pl-12 sm:pr-4 sm:text-base dark:bg-gray-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-gray-800',
+                        nameLiveError || form.errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-100 dark:border-red-500/60 dark:focus:border-red-500 dark:focus:ring-red-900/40' : 'border-slate-200 focus:border-[#1A66FF] focus:ring-[#1A66FF]/10 dark:border-gray-700',
                       ]"
                       placeholder="Your full name"
                     />
@@ -433,7 +455,7 @@ function normalizePhoneInput(event) {
                       class="rounded-lg border-2 px-3 py-2.5 text-[11px] font-bold transition sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm"
                       :class="form.gender === 'male'
                         ? 'border-[#1A66FF] bg-[#1A66FF]/10 text-[#1A66FF]'
-                        : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'"
+                        : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-800 dark:text-slate-400 dark:hover:border-gray-600'"
                       @click="form.gender = 'male'"
                     >
                       Male
@@ -443,7 +465,7 @@ function normalizePhoneInput(event) {
                       class="rounded-lg border-2 px-3 py-2.5 text-[11px] font-bold transition sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm"
                       :class="form.gender === 'female'
                         ? 'border-[#1A66FF] bg-[#1A66FF]/10 text-[#1A66FF]'
-                        : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'"
+                        : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-800 dark:text-slate-400 dark:hover:border-gray-600'"
                       @click="form.gender = 'female'"
                     >
                       Female
@@ -464,7 +486,7 @@ function normalizePhoneInput(event) {
                       pattern="[0-9]*"
                       maxlength="12"
                       @input="normalizePhoneInput"
-                      class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:rounded-xl sm:py-3 sm:pl-12 sm:pr-4 sm:text-base"
+                      class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm font-semibold outline-none transition focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:rounded-xl sm:py-3 sm:pl-12 sm:pr-4 sm:text-base dark:border-gray-700 dark:bg-gray-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-gray-800"
                       placeholder="012 345 678"
                     />
                   </span>
@@ -477,14 +499,14 @@ function normalizePhoneInput(event) {
                     v-model="form.attendance_pin"
                     type="password"
                     autocomplete="off"
-                    class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold outline-none transition placeholder:text-slate-400 focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:rounded-xl sm:px-4 sm:py-3 sm:text-base"
+                    class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold outline-none transition placeholder:text-slate-400 focus:border-[#1A66FF] focus:bg-white focus:ring-4 focus:ring-[#1A66FF]/10 sm:rounded-xl sm:px-4 sm:py-3 sm:text-base dark:border-gray-700 dark:bg-gray-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-gray-800"
                     placeholder="Optional PIN"
                   />
                 </label>
               </div>
             </section>
 
-            <section class="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm sm:rounded-2xl sm:p-7">
+            <section class="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm sm:rounded-2xl sm:p-7 dark:border-gray-700 dark:bg-gray-900">
               <div class="flex items-center gap-2.5 sm:gap-3">
                 <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#FFB800]/20 font-mono text-[11px] font-black text-slate-900 sm:h-9 sm:w-9 sm:rounded-xl sm:text-sm">02</span>
                 <div>
@@ -495,7 +517,7 @@ function normalizePhoneInput(event) {
 
               <div class="mt-3.5 space-y-4 sm:mt-5 sm:space-y-5">
                 <div v-for="classTypeGroup in groupedSlots" :key="classTypeGroup.class_type_id">
-                  <p class="mb-2 text-xs font-black text-slate-800 sm:text-sm">{{ classTypeGroup.class_type_name }}</p>
+                  <p class="mb-2 text-xs font-black text-slate-800 sm:text-sm dark:text-slate-200">{{ classTypeGroup.class_type_name }}</p>
                   <div class="grid grid-cols-2 gap-3 sm:gap-5">
                     <div v-for="group in classTypeGroup.terms" :key="group.term_id" class="min-w-0">
                       <p class="mb-1.5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wide text-slate-500 sm:mb-2 sm:text-[11px]">
@@ -509,10 +531,10 @@ function normalizePhoneInput(event) {
                           class="flex items-center justify-between gap-1.5 rounded-lg border-2 px-2.5 py-2 text-left transition sm:rounded-xl sm:px-3 sm:py-2.5"
                           :class="isSlotSelected(slot)
                             ? 'border-[#1A66FF] bg-[#1A66FF]/5'
-                            : 'border-slate-200 bg-slate-50 hover:border-slate-300'"
+                            : 'border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600'"
                           @click="pickSlot(slot)"
                         >
-                          <span class="truncate text-[10px] font-bold text-slate-700 sm:text-xs">{{ slot.time_name }}</span>
+                          <span class="truncate text-[10px] font-bold text-slate-700 sm:text-xs dark:text-slate-300">{{ slot.time_name }}</span>
                           <Check v-if="isSlotSelected(slot)" class="h-3.5 w-3.5 shrink-0 text-[#1A66FF]" />
                         </button>
                       </div>
@@ -533,14 +555,14 @@ function normalizePhoneInput(event) {
           </div>
 
           <aside class="hidden lg:sticky lg:top-8 lg:col-span-2 lg:block">
-            <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
               <div class="bg-slate-950 p-6 text-white">
                 <p class="text-[10px] font-black uppercase tracking-[0.22em] text-blue-200">Enrollment summary</p>
                 <p class="mt-2 text-base font-black leading-snug">{{ selectedCourse.title }}</p>
               </div>
 
               <div class="space-y-4 p-6">
-                <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-4 dark:bg-gray-800">
                   <UserRound class="mt-0.5 h-5 w-5 shrink-0 text-[#1A66FF]" />
                   <div class="min-w-0">
                     <p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Student</p>
@@ -549,7 +571,7 @@ function normalizePhoneInput(event) {
                   </div>
                 </div>
 
-                <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-4 dark:bg-gray-800">
                   <Calendar class="mt-0.5 h-5 w-5 shrink-0 text-[#1A66FF]" />
                   <div class="min-w-0">
                     <p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Schedule</p>
@@ -557,7 +579,7 @@ function normalizePhoneInput(event) {
                   </div>
                 </div>
 
-                <div class="rounded-xl border border-dashed border-slate-200 p-4 text-xs font-semibold leading-5 text-slate-500">
+                <div class="rounded-xl border border-dashed border-slate-200 p-4 text-xs font-semibold leading-5 text-slate-500 dark:border-gray-700 dark:text-slate-400">
                   This updates as you fill the form. Staff confirm your seat right after you submit.
                 </div>
               </div>

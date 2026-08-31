@@ -35,7 +35,25 @@ const totalBusySlots = computed(() =>
 
 const dayLabel = (day) => DAY_LABELS[day] ?? day
 
-const slotTone = (slot) => (slot.status === 'block' ? 'block' : 'class')
+// A day that has no busy slots AND no available window reads as "Not Working".
+const isNotWorking = (day) => day.slots.length > 0 && day.slots.every((s) => s.status === 'not_working')
+// A day with at least one available slot (and nothing busy) reads as "Free".
+const isFreeDay = (day) => day.slots.some((s) => s.status === 'available') && !day.slots.some((s) => s.status === 'class' || s.status === 'block')
+
+const slotClasses = (status) => {
+  switch (status) {
+    case 'class':
+      return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    case 'block':
+      return 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300'
+    case 'available':
+      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+    default:
+      return 'bg-slate-100 text-slate-400 dark:bg-gray-800 dark:text-gray-500'
+  }
+}
+
+const slotText = (slot) => slot.time_name.split(' - ')[0] ?? slot.time_name
 </script>
 
 <template>
@@ -72,7 +90,11 @@ const slotTone = (slot) => (slot.status === 'block' ? 'block' : 'class')
         </div>
         <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-gray-400">
           <span class="inline-block h-3 w-3 rounded-sm bg-emerald-500/30"></span>
-          {{ $t('Free') }}
+          {{ $t('Available') }}
+        </div>
+        <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-gray-400">
+          <span class="inline-block h-3 w-3 rounded-sm bg-slate-300 dark:bg-gray-700"></span>
+          {{ $t('Not Working') }}
         </div>
       </div>
 
@@ -108,24 +130,24 @@ const slotTone = (slot) => (slot.status === 'block' ? 'block' : 'class')
                     :key="day.day_of_week"
                     class="border-l border-slate-100 px-1.5 py-2 align-top dark:border-gray-800"
                 >
-                  <div
-                      v-if="day.is_free"
-                      class="flex min-h-[2rem] items-center justify-center rounded-lg bg-emerald-50 text-xs font-medium text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
-                  >
+                  <div v-if="isNotWorking(day)"
+                      class="flex min-h-[2rem] items-center justify-center rounded-lg bg-slate-100 text-xs font-medium text-slate-400 dark:bg-gray-800 dark:text-gray-500">
+                    — 
+                  </div>
+                  <div v-else-if="isFreeDay(day)"
+                      class="flex min-h-[2rem] items-center justify-center rounded-lg bg-emerald-50 text-xs font-medium text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
                     {{ $t('Free') }}
                   </div>
                   <div v-else class="flex flex-col gap-1">
                     <span
                         v-for="(slot, index) in day.slots"
                         :key="index"
-                        :class="slotTone(slot) === 'block'
-                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300'
-                          : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'"
+                        :class="slotClasses(slot.status)"
                         class="rounded-md px-1.5 py-1 text-[11px] leading-tight"
-                        :title="slot.title"
+                        :title="slot.status === 'not_working' ? $t('Not Working') : (slot.title || slot.time_name)"
                     >
-                      <span class="font-semibold">{{ slot.time_name }}</span>
-                      <span v-if="slot.title" class="ml-0.5 opacity-80">{{ slot.title }}</span>
+                      <span :class="{ 'font-semibold': slot.status !== 'not_working' }">{{ slotText(slot) }}</span>
+                      <span v-if="(slot.status === 'class' || slot.status === 'block') && slot.title" class="ml-0.5 opacity-80">{{ slot.title }}</span>
                     </span>
                   </div>
                 </td>

@@ -88,15 +88,21 @@ class InstructorAvailabilityOverviewService
             ->with('time:id,time_name')
             ->get();
 
+        // Active working windows derived from the instructor's work schedule.
+        $availabilityWindows = $instructor->availabilities()
+            ->where('is_active', true)
+            ->get(['day_of_week', 'start_time', 'end_time'])
+            ->groupBy('day_of_week');
+
         $occupiedByDay = $occupied->groupBy('day_of_week');
         $blocksByDay = $blocks->groupBy('day_of_week');
 
-        $days = collect(range(1, 7))->map(function (int $day) use ($slots, $occupiedByDay, $blocksByDay): array {
+        $days = collect(range(1, 7))->map(function (int $day) use ($slots, $occupiedByDay, $blocksByDay, $availabilityWindows): array {
             $dayOccupied = $occupiedByDay->get($day, collect());
             $dayBlocks = $blocksByDay->get($day, collect());
+            $dayWindows = $availabilityWindows->get($day, collect());
 
             $daySlots = [];
-            $isFree = true;
 
             foreach ($slots as $slot) {
                 $start = $slot['start'];
@@ -117,15 +123,18 @@ class InstructorAvailabilityOverviewService
                     })
                     : null;
 
+                $inWindow = $class === null && $block === null
+                    && $dayWindows->contains(
+                        fn ($window): bool => substr((string) $window->start_time, 0, 5) <= $start
+                            && substr((string) $window->end_time, 0, 5) >= $end
+                    );
+
                 $status = match (true) {
                     $class !== null => 'class',
                     $block !== null => 'block',
-                    default => 'free',
+                    $inWindow => 'available',
+                    default => 'not_working',
                 };
-
-                if ($status !== 'free') {
-                    $isFree = false;
-                }
 
                 $daySlots[] = [
                     'time_id' => $slot['id'],
@@ -142,7 +151,6 @@ class InstructorAvailabilityOverviewService
             return [
                 'day_of_week' => $day,
                 'day_label' => self::DAY_LABELS[$day] ?? (string) $day,
-                'is_free' => $isFree,
                 'slots' => $daySlots,
             ];
         })->values();
