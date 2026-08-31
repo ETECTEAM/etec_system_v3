@@ -64,6 +64,8 @@ class ProductionSeeder extends Seeder
             CourseSeeder::class,
             ScheduleSeeder::class,
 
+            CourseEnrollConfigSeeder::class,
+            InstructorWorkScheduleSeeder::class,
             // 7. Public website defaults
             // WebsiteMenuSeeder::class,
         ]);
