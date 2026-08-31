@@ -16,7 +16,7 @@ use App\Modules\Enroll\Queries\GetCourseClassSchedules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+// use Illuminate\Support\Facades\Storage; // FILE: disabled - not using file uploads
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -63,14 +63,15 @@ class CourseController extends Controller
             'level' => 'nullable|in:beginner,intermediate,advanced',
             'price' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:active,inactive',
-            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            // FILE: disabled - not using file uploads
+            // 'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        // Handle file upload
-        $thumbnailPath = null;
-        if ($request->hasFile('thumbnail')) {
-            $thumbnailPath = $request->file('thumbnail')->store('courses/thumbnails', 'public');
-        }
+        // FILE: disabled - not using file uploads
+        // $thumbnailPath = null;
+        // if ($request->hasFile('thumbnail')) {
+        //     $thumbnailPath = $request->file('thumbnail')->store('courses/thumbnails', 'public');
+        // }
 
         $course = Course::create([
             'course_track_id' => $validated['course_track_id'],
@@ -78,7 +79,7 @@ class CourseController extends Controller
             'slug' => Str::slug($validated['title']),
             'level' => $validated['level'] ?? 'beginner',
             'status' => $validated['status'] ?? 'active',
-            'thumbnail' => $thumbnailPath,
+            // 'thumbnail' => $thumbnailPath, // FILE: disabled
         ]);
 
         // Price lives on CourseEnrollConfig, not the courses table (see the
@@ -251,19 +252,20 @@ class CourseController extends Controller
             'level' => 'nullable|in:beginner,intermediate,advanced',
             'price' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:active,inactive',
-            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            // FILE: disabled - not using file uploads
+            // 'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        // Handle thumbnail upload
-        if ($request->hasFile('thumbnail')) {
-            // Delete old thumbnail
-            if ($course->thumbnail && Storage::disk('public')->exists($course->thumbnail)) {
-                Storage::disk('public')->delete($course->thumbnail);
-            }
-            // Store new thumbnail
-            $thumbnailPath = $request->file('thumbnail')->store('courses/thumbnails', 'public');
-            $validated['thumbnail'] = $thumbnailPath;
-        }
+        // FILE: disabled - not using file uploads
+        // if ($request->hasFile('thumbnail')) {
+        //     // Delete old thumbnail
+        //     if ($course->thumbnail && Storage::disk('public')->exists($course->thumbnail)) {
+        //         Storage::disk('public')->delete($course->thumbnail);
+        //     }
+        //     // Store new thumbnail
+        //     $thumbnailPath = $request->file('thumbnail')->store('courses/thumbnails', 'public');
+        //     $validated['thumbnail'] = $thumbnailPath;
+        // }
 
         // Remove thumbnail from validated if not uploaded (to keep existing)
         if (! isset($validated['thumbnail'])) {
@@ -293,10 +295,10 @@ class CourseController extends Controller
 
     public function destroy(Course $course)
     {
-        // Delete thumbnail
-        if ($course->thumbnail && Storage::disk('public')->exists($course->thumbnail)) {
-            Storage::disk('public')->delete($course->thumbnail);
-        }
+        // FILE: disabled - not using file uploads
+        // if ($course->thumbnail && Storage::disk('public')->exists($course->thumbnail)) {
+        //     Storage::disk('public')->delete($course->thumbnail);
+        // }
 
         $course->delete();
 
