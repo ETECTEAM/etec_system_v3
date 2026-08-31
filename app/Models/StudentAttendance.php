@@ -35,6 +35,9 @@ class StudentAttendance extends Model
         'device_type',
         'device_identifier',
         'status',
+        'locked',
+        'lock_reason',
+        'locked_block_id',
         'verification_status',
         'verification_reason',
         'source',
@@ -54,6 +57,8 @@ class StudentAttendance extends Model
             'longitude' => 'decimal:7',
             'location_accuracy' => 'decimal:2',
             'distance_from_class' => 'decimal:2',
+            'locked' => 'boolean',
+            'locked_block_id' => 'integer',
         ];
     }
 
@@ -80,5 +85,10 @@ class StudentAttendance extends Model
     public function tracker()
     {
         return $this->belongsTo(User::class, 'tracked_by');
+    }
+
+    public function lockedBlock()
+    {
+        return $this->belongsTo(StudentAttendanceBlock::class, 'locked_block_id');
     }
 }

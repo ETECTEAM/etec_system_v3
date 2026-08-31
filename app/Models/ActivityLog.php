@@ -11,6 +11,8 @@ class ActivityLog extends Model
         'user_id',
         'action',
         'leave_id',
+        'rule_id',
+        'block_id',
         'before',
         'after',
         'ip_address',
@@ -32,5 +34,15 @@ class ActivityLog extends Model
     public function leave(): BelongsTo
     {
         return $this->belongsTo(OfficialLeave::class, 'leave_id');
+    }
+
+    public function rule(): BelongsTo
+    {
+        return $this->belongsTo(AttendanceRule::class, 'rule_id');
+    }
+
+    public function block(): BelongsTo
+    {
+        return $this->belongsTo(StudentAttendanceBlock::class, 'block_id');
     }
 }

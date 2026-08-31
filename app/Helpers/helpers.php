@@ -78,3 +78,40 @@ if(!function_exists('official_leave_setting')) {
         };
     }
 }
+
+if (! function_exists('attendance_rule_setting')) {
+    /**
+     * Read an attendance-rules / absence-block setting, falling back to
+     * config/attendance-rules.php when the table has no row (or isn't migrated).
+     */
+    function attendance_rule_setting(string $key): mixed
+    {
+        $default = config("attendance-rules.{$key}");
+
+        try {
+            $rows = \Illuminate\Support\Facades\Cache::remember(
+                \App\Models\AttendanceRuleSetting::CACHE_KEY,
+                3600,
+                fn () => \App\Models\AttendanceRuleSetting::query()
+                    ->get(['key', 'value', 'type'])
+                    ->keyBy('key'),
+            );
+        } catch (\Throwable) {
+            return $default;
+        }
+
+        $row = $rows->get($key);
+
+        if (! $row || $row->value === null) {
+            return $default;
+        }
+
+        return match ($row->type) {
+            'boolean' => filter_var($row->value, FILTER_VALIDATE_BOOLEAN),
+            'number' => is_numeric($row->value)
+                ? (str_contains($row->value, '.') ? (float) $row->value : (int) $row->value)
+                : $row->value,
+            default => $row->value,
+        };
+    }
+}
