@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, ref } from "vue";
-import { useForm, usePage } from "@inertiajs/vue3";
+import { useForm } from "@inertiajs/vue3";
 import {
   BookOpen,
   Calendar,
@@ -45,10 +45,15 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  // Confirmation copy for the success screen, flashed on its own key (not
+  // flash.success) so the global toast host stays silent on this flow.
+  registrationStatus: {
+    type: String,
+    default: "",
+  },
 });
 
-const page = usePage();
-const flashSuccess = computed(() => page.props.flash?.success);
+const flashSuccess = computed(() => props.registrationStatus);
 
 // Public page with its own light/dark toggle. Unlike the old forced-light
 // version, we keep whatever theme the visitor picked (stored in localStorage

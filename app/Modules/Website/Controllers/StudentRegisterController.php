@@ -13,19 +13,23 @@ use App\Modules\Enroll\Queries\GetCourseClassSchedules;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
 use App\Modules\Website\Requests\StudentRegisterRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class StudentRegisterController extends Controller
 {
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
         return Inertia::render('frontend/student-register/StudentRegister', [
             'categories' => $this->categories(),
             'courses' => $this->courses(),
             'terms' => $this->terms(),
             'times' => Time::query()->select('id', 'time_name')->orderBy('time_name')->get(),
+            // Success-screen copy from store(), flashed on its own key so the
+            // global toast host doesn't also pop it after the redirect.
+            'registrationStatus' => $request->session()->get('registration_status'),
         ]);
     }
 
@@ -39,9 +43,11 @@ class StudentRegisterController extends Controller
             default => "You're already registered for that class.",
         };
 
+        // Flashed on a private key (not 'success') so StudentRegister.vue shows
+        // it on its own confirmation screen without the global toast firing too.
         return redirect()
             ->route('frontend.student-register.create')
-            ->with('success', $message);
+            ->with('registration_status', $message);
     }
 
     private function categories(): array

@@ -4,7 +4,6 @@ namespace App\Modules\Enroll\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Building;
-use App\Models\Course;
 use App\Models\CourseEnrollConfig;
 use App\Models\Floor;
 use App\Models\Student;
@@ -22,7 +21,6 @@ use App\Modules\Enroll\Actions\UpdatePublicRegistrationDetails;
 use App\Modules\Enroll\Actions\UpdateStudyClass;
 use App\Modules\Enroll\Queries\GetClassDetails;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
-use App\Modules\Enroll\Queries\GetCourseClassSchedules;
 use App\Modules\Enroll\Queries\GetClassList;
 use App\Modules\Enroll\Queries\GetPublicRegistrations;
 use App\Modules\Enroll\Requests\EnrollStudentRequest;
@@ -195,87 +193,52 @@ class EnrollmentClassController extends Controller
         ]);
     }
 
-    public function createRegisteredStudent(GetCourseClassSchedules $courseSchedules): Response
+    public function createRegisteredStudent(GetClassList $classList): Response
     {
-        // Only courses with a Class Schedule slot turned ON in Enroll Config (see
-        // Course::scopeEnrollmentOpen).
-        $courses = Course::query()->enrollmentOpen()->select('id', 'title')->orderBy('title')->get();
-
-        $schedulesByCourse = $courseSchedules->handleMany($courses->pluck('id'));
-
-        // Course-wide pricing rows (the "Enrollment & Pricing" card on Enroll
-        // Config) keyed by course, so the form's Price / Document Price fields
-        // are filled from config rather than typed.
-        $pricing = CourseEnrollConfig::query()
-            ->whereIn('course_id', $courses->pluck('id'))
-            ->whereNull('schedule_id')
-            ->whereNull('time_id')
-            ->get()
-            ->keyBy('course_id');
+        // The Register Student page now lists classes that just started as cards —
+        // each card's 3-dot menu opens "Register New Student" to hand-register a
+        // student straight into that class. Classes are ordered by most recently
+        // started first (see GetClassList).
+        $classes = StudyClass::query()
+            ->select([
+                'id',
+                'title',
+                'course_id',
+                'lesson_id',
+                'teacher_id',
+                'room_id',
+                'class_type_id',
+                'term_id',
+                'time_id',
+                'status',
+                'capacity',
+                'price',
+                'document_price',
+                'start_date',
+                'end_date',
+            ])
+            ->with([
+                'course:id,title',
+                'lesson:id,course_id,title',
+                'teacher:id,name',
+                'room:id,floor_id,room_number',
+                'room.floor:id,building_id,name,level',
+                'room.floor.building:id,name',
+                'classType:class_type_id,type_name',
+                'term:id,term_name',
+                'time:id,time_name',
+            ])
+            ->withCount([
+                'enrollments as current_students' => fn ($query) => $query->where('enrollment_status', 'active'),
+            ])
+            ->whereIn('status', ['upcoming', 'active'])
+            ->orderByDesc('start_date')
+            ->orderByDesc('id')
+            ->get();
 
         return Inertia::render('backend/students/RegisterStudent', [
-            // Each course carries only its own enabled class-type / term / time
-            // slots, so the form's Class Type -> Term -> Time cascade offers
-            // exactly what's enrollable for the picked course.
-            'courses' => $courses->map(function (Course $course) use ($pricing, $schedulesByCourse): array {
-                $config = $pricing->get($course->id);
-
-                return [
-                    'id' => $course->id,
-                    'title' => $course->title,
-                    // Course Price is the charged fee; Unit Price rides along as a
-                    // reference figure for the receipt breakdown.
-                    'price' => (float) ($config?->resolvedPrice() ?? 0),
-                    'unit_price' => (float) ($config?->unit_price ?? 0),
-                    'course_price' => (float) ($config?->course_price ?? 0),
-                    'document_price' => (float) ($config?->document_price ?? 0),
-                    'class_schedules' => $this->enabledSchedulesOnly($schedulesByCourse[$course->id] ?? []),
-                ];
-            })->all(),
+            'classes' => $classes->map(fn (StudyClass $studyClass) => $classList->presentClass($studyClass))->all(),
         ]);
-    }
-
-    /**
-     * Prunes GetCourseClassSchedules output to only what's toggled ON: class
-     * types with an open time, terms with an open time, and only those times.
-     *
-     * @param  array<int, array<string, mixed>>  $classSchedules
-     * @return array<int, array<string, mixed>>
-     */
-    private function enabledSchedulesOnly(array $classSchedules): array
-    {
-        return collect($classSchedules)
-            ->map(function (array $classType): array {
-                $terms = collect($classType['terms'] ?? [])
-                    ->map(function (array $term): array {
-                        $times = collect($term['times'] ?? [])
-                            ->filter(fn (array $time): bool => (bool) ($time['is_open'] ?? false))
-                            ->map(fn (array $time): array => [
-                                'time_id' => $time['time_id'],
-                                'time_name' => $time['time_name'],
-                            ])
-                            ->values()
-                            ->all();
-
-                        return [
-                            'term_id' => $term['term_id'],
-                            'term_name' => $term['term_name'],
-                            'times' => $times,
-                        ];
-                    })
-                    ->filter(fn (array $term): bool => $term['times'] !== [])
-                    ->values()
-                    ->all();
-
-                return [
-                    'class_type_id' => $classType['class_type_id'],
-                    'class_type_name' => $classType['class_type_name'],
-                    'terms' => $terms,
-                ];
-            })
-            ->filter(fn (array $classType): bool => $classType['terms'] !== [])
-            ->values()
-            ->all();
     }
 
     public function storeRegisteredStudent(

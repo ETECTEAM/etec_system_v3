@@ -182,7 +182,9 @@ class ScheduleSeeder extends Seeder
                     '12:30 pm - 01:45 pm',
                     '02:00 pm - 03:15 pm',
                     '03:30 pm - 05:00 pm',
+                    '05:00 pm - 06:15 pm',
                     '06:00 pm - 07:15 pm',
+                    '07:15 pm - 08:30 pm',
                 ],
             ],
             // Microsoft Office - Sat & Sun
