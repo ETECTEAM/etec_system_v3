@@ -3,6 +3,7 @@
 namespace App\Modules\Certificate\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClassCertificateRequest;
 use App\Models\Course;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
@@ -29,6 +30,7 @@ class CertificateController extends Controller
             'freeCertificates' => fn () => $this->freeCertificates($request),
             'freeCourses' => fn () => $this->customCourses('course_custom'),
             'normalCourses' => fn () => $this->customCourses('course_custom_normal'),
+            'certificateRequests' => fn () => $this->classCertificateRequests($type),
             'generatedIds' => [
                 'free' => $this->generateFreeId(),
                 'normal' => $this->generateNormalId(),
@@ -233,6 +235,46 @@ class CertificateController extends Controller
     private function customCourses(string $table): array
     {
         return DB::table($table)->select('course_name')->orderBy('course_name')->get()->all();
+    }
+
+    private function classCertificateRequests(string $type): array
+    {
+        if ($type === 'free') {
+            return [];
+        }
+
+        return ClassCertificateRequest::query()
+            ->with([
+                'studyClass:id,title,teacher_id,course_id,term_id,time_id,class_type_id,status',
+                'studyClass.course:id,title,course_track_id',
+                'studyClass.course.track:id,name,category_id',
+                'studyClass.course.track.category:id,name',
+                'studyClass.teacher:id,name',
+                'requestedBy:id,name',
+            ])
+            ->where('certificate_type', $type)
+            ->latest('requested_at')
+            ->get()
+            ->map(function (ClassCertificateRequest $request): array {
+                $studyClass = $request->studyClass;
+
+                return [
+                    'id' => $request->id,
+                    'study_class_id' => $request->study_class_id,
+                    'class_title' => $studyClass?->title ?? 'Unknown class',
+                    'course' => $studyClass?->course?->title ?? $studyClass?->title ?? '-',
+                    'teacher_name' => $studyClass?->teacher?->name ?? '-',
+                    'student_count' => (int) $request->student_count,
+                    'status' => $request->status,
+                    'status_label' => ucfirst(str_replace('_', ' ', $request->status)),
+                    'certificate_type' => $request->certificate_type,
+                    'requested_by' => $request->requestedBy?->name ?? '-',
+                    'requested_at' => $request->requested_at?->format('Y-m-d h:i A'),
+                    'note' => $request->note,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function generateFreeId(): string

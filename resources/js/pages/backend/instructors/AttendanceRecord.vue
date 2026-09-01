@@ -20,6 +20,7 @@ import {
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
+import { useConfirm } from "../../../composables/useConfirm";
 
 const toast = useToast();
 
@@ -53,6 +54,10 @@ const props = defineProps({
     type: String,
     default: "Track Attendance",
   },
+  certificateRequest: {
+    type: Object,
+    default: null,
+  },
 });
 
 const rosterStudents = ref([]);
@@ -83,6 +88,7 @@ const allPendingSelected = computed(() =>
 );
 const hasSelectedPending = computed(() => selectedPendingCount.value > 0);
 const pendingRequestsListener = () => openPendingModal();
+const { confirm } = useConfirm();
 
 const activeStudent = ref(null);
 const editModalOpen = ref(false);
@@ -298,6 +304,21 @@ function openPendingModal() {
   pendingModalOpen.value = true;
 }
 
+async function openCertificateRequestPage() {
+  const accepted = await confirm({
+    title: "Request Certificate?",
+    message: "This will open the certificate request page for this class.",
+    confirmText: "Request",
+    cancelText: "Cancel",
+  });
+
+  if (!accepted) {
+    return;
+  }
+
+  router.get(`/dashboard/instructor/classes/${props.classData.id}/certificate-request`);
+}
+
 function closePendingModal() {
   pendingModalOpen.value = false;
   selectedPendingIds.value = [];
@@ -396,10 +417,20 @@ async function approveAllPendingRegistrations() {
             <Users class="h-4 w-4" />
             Group
           </Link>
-          <button class="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-500 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-amber-600 hover:shadow-md" type="button">
+          <button
+            class="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-500 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-amber-600 hover:shadow-md"
+            type="button"
+            @click="openCertificateRequestPage"
+          >
             <FileText class="h-4 w-4" />
-            Request Certificate
+            {{ certificateRequest?.status === 'pending' ? 'Certificate Requested' : 'Request Certificate' }}
           </button>
+          <span
+            v-if="certificateRequest"
+            class="inline-flex h-10 items-center rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-black uppercase tracking-[0.12em] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+          >
+            {{ certificateRequest.status_label }}
+          </span>
           <button class="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70" type="button" :disabled="scoreSaving || !rosterStudents.length" @click="submitScores">
             <Save class="h-4 w-4" />
             {{ scoreSaving ? "Saving..." : "Save Score" }}

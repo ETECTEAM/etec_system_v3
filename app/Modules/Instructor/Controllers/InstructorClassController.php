@@ -3,6 +3,7 @@
 namespace App\Modules\Instructor\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClassCertificateRequest;
 use App\Models\AttendanceSession;
 use App\Models\Course;
 use App\Models\StudyClass;
@@ -20,6 +21,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use stdClass;
 
 class InstructorClassController extends Controller
 {
@@ -91,11 +93,13 @@ class InstructorClassController extends Controller
         $this->instructorClasses->ensureTodayAttendanceSession($class, $request->user());
         $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
         $todaySession = $this->sessionBanner->handle($class->id);
+        $certificateRequest = $this->certificateRequestData($class->id);
 
         return Inertia::render('backend/instructors/AttendanceRecord', [
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
             'pendingRegistrations' => $this->instructorClasses->pendingRegistrations($class->id),
+            'certificateRequest' => $certificateRequest,
             'attendanceWindow' => $attendanceWindow,
             'todaySession' => $todaySession,
             'canTrackAttendance' => $this->instructorClasses->canTrackAttendance($class, $attendanceWindow, $todaySession),
@@ -157,6 +161,56 @@ class InstructorClassController extends Controller
             'attendanceSession' => $presentedAttendanceSession,
             'attendanceSummary' => $attendanceSummary,
         ]);
+    }
+
+    public function certificateRequest(Request $request, string $studyClass): Response
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $students = $this->instructorClasses->students($class->id);
+        $certificateType = $this->certificateTypeForClass($class);
+
+        return Inertia::render('backend/instructors/CertificateRequest', [
+            'classData' => $this->instructorClasses->presentClass($class),
+            'students' => $students,
+            'studentCount' => $students->count(),
+            'certificateType' => $certificateType,
+            'certificateTypeLabel' => ucfirst($certificateType),
+            'certificateRequest' => $this->certificateRequestData($class->id),
+        ]);
+    }
+
+    public function storeCertificateRequest(Request $request, string $studyClass): RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $students = $this->instructorClasses->students($class->id);
+        $certificateType = $this->certificateTypeForClass($class);
+
+        $validated = $request->validate([
+            'confirm_request' => ['accepted'],
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        if ($students->isEmpty()) {
+            return back()->with('warning', 'This class does not have any active students to request a certificate for.');
+        }
+
+        ClassCertificateRequest::query()->updateOrCreate(
+            ['study_class_id' => $class->id],
+            [
+                'requested_by' => $request->user()->id,
+                'certificate_type' => $certificateType,
+                'status' => 'pending',
+                'student_count' => $students->count(),
+                'note' => $validated['note'] ?? null,
+                'requested_at' => now(),
+                'reviewed_by' => null,
+                'reviewed_at' => null,
+            ]
+        );
+
+        return redirect()
+            ->route('instructor.classes.attendance', $class->id)
+            ->with('success', 'Certificate request submitted successfully.');
     }
 
     public function startAttendanceSession(Request $request, string $studyClass): RedirectResponse
@@ -377,5 +431,43 @@ class InstructorClassController extends Controller
         return redirect()
             ->route('instructor.classes.attendance', $class->id)
             ->with('success', 'Attendance correction saved successfully.');
+    }
+
+    private function certificateTypeForClass(stdClass $class): string
+    {
+        $typeName = strtolower((string) ($class->class_type_name ?? ''));
+
+        if (str_contains($typeName, 'scholar')) {
+            return 'scholarship';
+        }
+
+        if (str_contains($typeName, 'meal')) {
+            return 'meal';
+        }
+
+        return 'normal';
+    }
+
+    private function certificateRequestData(int $studyClassId): ?array
+    {
+        $request = ClassCertificateRequest::query()
+            ->with(['requestedBy:id,name'])
+            ->where('study_class_id', $studyClassId)
+            ->first();
+
+        if (! $request) {
+            return null;
+        }
+
+        return [
+            'id' => $request->id,
+            'certificate_type' => $request->certificate_type,
+            'status' => $request->status,
+            'status_label' => ucfirst(str_replace('_', ' ', $request->status)),
+            'student_count' => (int) $request->student_count,
+            'note' => $request->note,
+            'requested_at' => $request->requested_at?->format('Y-m-d h:i A'),
+            'requested_by' => $request->requestedBy?->name,
+        ];
     }
 }

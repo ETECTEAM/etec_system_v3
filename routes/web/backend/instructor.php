@@ -18,6 +18,10 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
         Route::get('/classes/{studyClass}', [InstructorClassController::class, 'show'])->name('instructor.classes.show');
         Route::get('/classes/{studyClass}/attendance', [InstructorClassController::class, 'attendance'])->name('instructor.classes.attendance');
         Route::get('/classes/{studyClass}/groups', [InstructorClassController::class, 'groups'])->name('instructor.classes.groups');
+        // Route to open the dedicated certificate request page for this class.
+        Route::get('/classes/{studyClass}/certificate-request', [InstructorClassController::class, 'certificateRequest'])->name('instructor.classes.certificate-request');
+        // Route to submit a class certificate request for super admin review.
+        Route::post('/classes/{studyClass}/certificate-request', [InstructorClassController::class, 'storeCertificateRequest'])->middleware('throttle:10,1')->name('instructor.classes.certificate-request.store');
         Route::put('/classes/{studyClass}/groups', [InstructorClassController::class, 'saveTeams'])->name('instructor.classes.groups.save');
         Route::get('/classes/{studyClass}/attendance/track', [InstructorClassController::class, 'trackAttendance'])->name('instructor.classes.attendance.track');
         // Route to start or refresh the QR attendance session for today.
