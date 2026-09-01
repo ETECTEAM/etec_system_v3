@@ -30,37 +30,42 @@ class EnrollmentClassControllerTest extends TestCase
 
     private function createCourse(string $title = 'Networking Fundamentals'): Course
     {
-        return Course::create([
-            'title' => $title,
-            'slug' => str($title)->slug()->toString(),
-            'status' => 'active',
-        ]);
+        // firstOrCreate on the unique slug: createStudyClass() always calls this
+        // for its default course, so a test building several classes would
+        // otherwise trip courses_slug_unique.
+        return Course::firstOrCreate(
+            ['slug' => str($title)->slug()->toString()],
+            ['title' => $title, 'status' => 'active'],
+        );
     }
 
     private function createPhysicalClassType(): ClassType
     {
-        return ClassType::create(['type_name' => 'Network', 'is_active' => true]);
+        // firstOrCreate so a test that builds more than one study class (e.g. the
+        // search-filter test) doesn't trip the type_name unique constraint.
+        return ClassType::firstOrCreate(['type_name' => 'Network'], ['is_active' => true]);
     }
 
     private function createOnlineClassType(): ClassType
     {
-        return ClassType::create(['type_name' => 'Online Live', 'is_active' => true]);
+        return ClassType::firstOrCreate(['type_name' => 'Online Live'], ['is_active' => true]);
     }
 
     /**
      * Builds the schedule grid (term + time + schedule + pivot) that
-     * SaveStudyClassRequest validates term_id/time_id against.
+     * SaveStudyClassRequest validates term_id/time_id against. Idempotent so it
+     * can back several study classes in one test.
      */
     private function createScheduleGrid(ClassType $classType): array
     {
-        $term = Term::create(['term_name' => 'Mon & Tue']);
-        $time = Time::create(['time_name' => '08:00 AM - 10:00 AM']);
+        $term = Term::firstOrCreate(['term_name' => 'Mon & Tue']);
+        $time = Time::firstOrCreate(['time_name' => '08:00 AM - 10:00 AM']);
 
-        $schedule = Schedule::create([
+        $schedule = Schedule::firstOrCreate([
             'class_type_id' => $classType->class_type_id,
             'term_id' => $term->id,
         ]);
-        $schedule->times()->sync([$time->id]);
+        $schedule->times()->syncWithoutDetaching([$time->id]);
 
         return compact('term', 'time', 'schedule');
     }
@@ -194,12 +199,63 @@ class EnrollmentClassControllerTest extends TestCase
             ->assertOk();
     }
 
-    public function test_guest_is_redirected_to_the_public_qr_join_page_from_the_dashboard_add_student_route(): void
+    public function test_guest_cannot_reach_the_dashboard_add_student_route(): void
     {
         $studyClass = $this->createStudyClass();
 
+        // The dashboard route is staff-only now; the public entrypoint is
+        // /join-class/{id} (covered by test_public_qr_join_page_is_available_to_guests).
         $this->get("/dashboard/enroll/{$studyClass->id}/students/create")
-            ->assertRedirect("/join-class/{$studyClass->id}");
+            ->assertRedirect('/login');
+    }
+
+    public function test_guest_cannot_register_a_student_into_a_class(): void
+    {
+        $studyClass = $this->createStudyClass();
+
+        $this->post("/dashboard/enroll/{$studyClass->id}/students", [
+            'name' => 'Walk In',
+            'gender' => 'male',
+            'phone' => '012345678',
+        ])->assertRedirect('/login');
+
+        $this->assertDatabaseCount('students', 0);
+        $this->assertDatabaseCount('student_enrollments', 0);
+    }
+
+    public function test_admin_registers_a_student_straight_into_a_class(): void
+    {
+        $studyClass = $this->createStudyClass(['status' => 'active']);
+
+        $this->actingAs($this->admin())
+            ->post("/dashboard/enroll/{$studyClass->id}/students", [
+                'name' => 'Walk In',
+                'gender' => 'female',
+                'phone' => '012345678',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('students', ['full_name' => 'Walk In', 'phone' => '012345678']);
+        $this->assertDatabaseHas('student_enrollments', [
+            'study_class_id' => $studyClass->id,
+            'enrollment_status' => 'active',
+        ]);
+    }
+
+    public function test_instructor_cannot_register_a_student_into_another_instructors_class(): void
+    {
+        $owner = $this->instructor();
+        $studyClass = $this->createStudyClass(['status' => 'active', 'teacher_id' => $owner->id]);
+
+        $this->actingAs($this->instructor())
+            ->post("/dashboard/enroll/{$studyClass->id}/students", [
+                'name' => 'Walk In',
+                'gender' => 'male',
+                'phone' => '012345678',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('students', 0);
     }
 
     public function test_public_qr_join_page_is_available_to_guests(): void
@@ -238,6 +294,7 @@ class EnrollmentClassControllerTest extends TestCase
         $secondClass = $this->createStudyClass(['title' => 'Class Two']);
 
         $lockedResponse = $this->withSession(['qr_joined_class_ids' => [$firstClass->id]])
+            ->from("/join-class/{$firstClass->id}")
             ->post("/join-class/{$firstClass->id}", [
                 'name' => 'Repeat Student',
                 'gender' => 'male',
@@ -248,6 +305,7 @@ class EnrollmentClassControllerTest extends TestCase
         $lockedResponse->assertSessionHas('error', 'You have already requested this class from this device.');
 
         $allowedResponse = $this->withSession(['qr_joined_class_ids' => [$firstClass->id]])
+            ->from("/join-class/{$secondClass->id}")
             ->post("/join-class/{$secondClass->id}", [
                 'name' => 'Repeat Student',
                 'gender' => 'male',

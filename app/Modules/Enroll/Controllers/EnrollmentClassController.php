@@ -176,10 +176,7 @@ class EnrollmentClassController extends Controller
 
     public function createStudent(StudyClass $studyClass, GetClassList $classList): Response|RedirectResponse
     {
-        if (auth()->guest()) {
-            return redirect()->route('frontend.class-join.create', $studyClass);
-        }
-
+        $this->ensureInstructorCanManageClassStudents($studyClass);
         $this->ensureClassAcceptsMutations($studyClass);
 
         $studyClass->load([
@@ -467,13 +464,14 @@ class EnrollmentClassController extends Controller
         StudyClass $studyClass,
         CreateClassStudent $createClassStudent
     ): RedirectResponse {
+        $this->ensureInstructorCanManageClassStudents($studyClass);
         $this->ensureClassAcceptsMutations($studyClass);
 
         $createClassStudent->handle($studyClass, $request->validated());
 
-        return redirect()
-            ->route('enroll.class-students.create', $studyClass)
-            ->with('success', 'Student added to class successfully.');
+        // back() so the class list's inline register modal returns to the list
+        // with the flash message and refreshed seat counts.
+        return back()->with('success', 'Student added to class successfully.');
     }
 
     public function approveEnrollment(Request $request, StudentEnrollment $enrollment, StudentRegistrationService $registrations): RedirectResponse
@@ -652,6 +650,27 @@ class EnrollmentClassController extends Controller
         if ($this->isSelfManagingInstructor()) {
             abort_unless($studyClass->teacher_id === auth()->id(), 403, 'You can only manage classes assigned to you.');
         }
+    }
+
+    /**
+     * Adding students is a class-level action, so unlike ensureInstructorOwnsClass()
+     * a co-instructor on a collapsed/shared class is allowed too (matches the
+     * instructor dashboard, which keeps "Add Student" for both instructors).
+     */
+    private function ensureInstructorCanManageClassStudents(StudyClass $studyClass): void
+    {
+        if (! $this->isSelfManagingInstructor()) {
+            return;
+        }
+
+        $userId = auth()->id();
+
+        abort_unless(
+            $studyClass->teacher_id === $userId
+                || $studyClass->instructors()->whereKey($userId)->exists(),
+            403,
+            'You can only manage classes assigned to you.',
+        );
     }
 
     /**

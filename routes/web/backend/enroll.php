@@ -74,11 +74,14 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         // on the class-management screens, not only super admins.
         Route::post('/enrollments/{enrollment}/approve', [EnrollmentClassController::class, 'approveEnrollment'])->name('enroll.enrollments.approve');
         Route::post('/enrollments/approve', [EnrollmentClassController::class, 'approveEnrollments'])->name('enroll.enrollments.approve-bulk');
-    });
 
-    // Self-registration via the "Generate QR" link an instructor shares with a prospective
-    // student: no ETEC account or login required — the student fills this in themselves,
-    // whenever they choose, and CreateClassStudent creates their student row + enrollment.
-    Route::get('/{studyClass}/students/create', [EnrollmentClassController::class, 'createStudent'])->name('enroll.class-students.create');
-    Route::post('/{studyClass}/students', [EnrollmentClassController::class, 'storeStudent'])->name('enroll.class-students.store');
+        // Hand-register a walk-in student straight into a class (name/gender/phone
+        // only) from the class list's action menu. Admins are unrestricted;
+        // instructors are limited to their own classes in the controller. The
+        // public QR self-registration flow is a separate path (frontend.class-join.*).
+        Route::get('/{studyClass}/students/create', [EnrollmentClassController::class, 'createStudent'])->name('enroll.class-students.create');
+        Route::post('/{studyClass}/students', [EnrollmentClassController::class, 'storeStudent'])
+            ->middleware('throttle:20,1')
+            ->name('enroll.class-students.store');
+    });
 });

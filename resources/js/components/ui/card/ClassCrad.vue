@@ -9,6 +9,7 @@ import NotificationBadge from "../notification-badge/NotificationBadge.vue";
 import ClassActionMenu from "./ClassActionMenu.vue";
 import CollapseClassModal from "./CollapseClassModal.vue";
 import BarClass from "../../../pages/backend/students/components/BarClass.vue";
+import RegisterStudentModal from "../../../pages/backend/students/components/RegisterStudentModal.vue";
 import { useConfirm } from "@/composables/useConfirm";
 import { useI18n } from "@/i18n";
 
@@ -139,6 +140,7 @@ const cardToneClasses = computed(() => {
 const showBarDialog = ref(false);
 const showQrDialog = ref(false);
 const showCollapseDialog = ref(false);
+const showRegisterModal = ref(false);
 const { confirm } = useConfirm();
 
 // Inline capacity editing
@@ -186,7 +188,7 @@ function showCopyClass() {
 }
 
 function showAddStudent() {
-    router.get(`/dashboard/enroll/${props.classData.id}/students/create`);
+    showRegisterModal.value = true;
 }
 
 function showQr() {
@@ -330,6 +332,7 @@ async function saveCapacity() {
                 :extraItems="menuItems"
                 :hiddenItems="hiddenItems"
                 @open-bar="showBarDialog = true"
+                @register-student="showRegisterModal = true"
             />
         </div>
 
@@ -519,6 +522,14 @@ async function saveCapacity() {
     :show="showCollapseDialog"
     :classData="classData"
     @close="showCollapseDialog = false"
+/>
+
+<RegisterStudentModal
+    :show="showRegisterModal"
+    :class-id="classData.id"
+    :class-title="classData.title"
+    :seats-left="Math.max(0, (capacity ?? 0) - (classData.students ?? 0))"
+    @close="showRegisterModal = false"
 />
 
 <BarClass

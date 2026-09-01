@@ -35,6 +35,8 @@ const props = defineProps({
   },
 });
 
+const emit = defineEmits(["register-student"]);
+
 const open = ref(false);
 const showQr = ref(false);
 const dropdownRef = ref(null);
@@ -121,9 +123,9 @@ const menus = computed(() => [
     action: () => router.get(`/dashboard/enroll/copy/${props.classData.id}`),
   },
   {
-    label: "Add Student",
+    label: "Register Student",
     icon: UserPlus,
-    action: () => router.get(`/dashboard/enroll/${props.classData.id}/students/create`),
+    action: () => { emit("register-student"); open.value = false; },
     disabled: lockedStudentActions.value,
   },
   {
@@ -135,7 +137,7 @@ const menus = computed(() => [
   { label: "Switch Teacher", icon: UserCog, action: () => window.alert("Switch teacher is not available yet.") },
 ]
   .filter((item) => !props.hiddenItems.includes(item.label))
-  .filter((item) => !isAdminUser.value || !["Add Student", "Generate QR"].includes(item.label))
+  .filter((item) => !isAdminUser.value || item.label !== "Generate QR")
   .concat(props.extraItems.filter((item) => !isAdminUser.value || item.label !== "Collapse Class")));
 
 const actions = computed(() => [

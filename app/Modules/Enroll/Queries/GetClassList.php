@@ -55,7 +55,10 @@ class GetClassList
             ])
             ->where('status', '!=', 'cancelled')
             ->when($search !== '', fn (Builder $query) => $this->applySearch($query, $search))
-            ->latest('id')
+            // Most recently started classes first; classes with no start_date yet
+            // sort last (MySQL puts NULL last under DESC). id keeps the order stable.
+            ->orderByDesc('start_date')
+            ->orderByDesc('id')
             ->paginate(12)
             ->withQueryString();
 
