@@ -144,12 +144,71 @@ class CourseSeeder extends Seeder
                 'level' => 'advanced',
                 'status' => 'active'
             ],
+
+            // Microsoft Office Course
+            [
+                'track' => 'Microsoft Office',
+                'title' => 'Microsoft Office',
+                'level' => 'beginner',
+                'status' => 'active',
+                'price' => 35,
+            ],
+            [
+                'track' => 'Microsoft Office',
+                'title' => 'Advance Microsoft Office',
+                'level' => 'advanced',
+                'status' => 'active',
+                'price' => 59,
+            ],
+            [
+                'track' => 'Microsoft Office',
+                'title' => 'Microsoft Word',
+                'level' => 'beginner',
+                'status' => 'active',
+                'price' => 15,
+            ],
+            [
+                'track' => 'Microsoft Office',
+                'title' => 'Microsoft Excel',
+                'level' => 'beginner',
+                'status' => 'active',
+                'price' => 15,
+            ],
+            [
+                'track' => 'Microsoft Office',
+                'title' => 'Advance Excel',
+                'level' => 'advanced',
+                'status' => 'active',
+                'price' => 35,
+            ],
+            [
+                'track' => 'Microsoft Office',
+                'title' => 'Power Point',
+                'level' => 'beginner',
+                'status' => 'active',
+                'price' => 15,
+            ],
+
+            // Internship Course
+            [
+                'track' => 'Internship',
+                'title' => 'Frontend Internship',
+                'level' => 'intermediate',
+                'status' => 'active',
+            ],
+            [
+                'track' => 'Internship',
+                'title' => 'Backend Internship',
+                'level' => 'intermediate',
+                'status' => 'active',
+            ],
         ];
 
         $usedSlugs = [];
 
         foreach ($courses as $course) {
             $slug = Str::slug($course['title']);
+            $price = $course['price'] ?? 100;
 
             // Make slug unique if duplicate
             $counter = 1;
@@ -179,7 +238,7 @@ class CourseSeeder extends Seeder
             // page afterward; this is just a non-zero starting point.
             CourseEnrollConfig::updateOrCreate(
                 ['course_id' => $createdCourse->id, 'time_id' => null],
-                ['unit_price' => 100, 'course_price' => 100, 'status' => 'open']
+                ['unit_price' => $price, 'course_price' => $price, 'status' => 'open']
             );
         }
     }
