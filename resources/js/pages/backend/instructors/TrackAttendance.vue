@@ -255,7 +255,9 @@ const hasUnsavedChanges = computed(() => !locked.value && props.students.some((s
 let attendanceChannel = null;
 
 const form = useForm({
-  attendance_date: new Date().toISOString().slice(0, 10),
+  // Local date (YYYY-MM-DD), not UTC - toISOString() rolls to the previous
+  // day for UTC+ timezones near midnight, which then misses today's session.
+  attendance_date: new Date().toLocaleDateString("en-CA"),
   records: [],
   stop_session: false,
 });
