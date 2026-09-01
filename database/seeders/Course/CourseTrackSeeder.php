@@ -63,7 +63,7 @@ class CourseTrackSeeder extends Seeder
                 'name' => 'Backend Course'
             ],
             [
-                'sub_category_id' => $this->getSubCategoryId('Microsoft Office'),
+                'sub_category_id' => $this->getSubCategoryId('Office Skills'),
                 'name' => 'Microsoft Office'
             ],
             [

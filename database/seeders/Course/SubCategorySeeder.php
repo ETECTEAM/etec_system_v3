@@ -57,7 +57,7 @@ class SubCategorySeeder extends Seeder
             // Computer Basic Category
             [
                 'category_id' => $this->getCategoryId('Computer Basic'),
-                'name' => 'Microsoft Office'
+                'name' => 'Office Skills'
             ],
             // Internship Category
             [
