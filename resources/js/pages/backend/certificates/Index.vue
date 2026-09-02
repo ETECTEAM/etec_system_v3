@@ -19,6 +19,7 @@ import {
 } from '@lucide/vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import { useTheme } from '../../../composables/useTheme'
+import { useI18n } from '@/i18n'
 import RealCertificatePreview from './CertificatePreview.vue'
 import FreeCertificatePreview from './FreeCertificatePreview.vue'
 
@@ -39,14 +40,16 @@ const isNormal = computed(() => certificateType.value === 'normal')
 const isFree = computed(() => certificateType.value === 'free')
 const isClassCertificate = computed(() => !isFree.value)
 const { resolvedTheme } = useTheme()
+const { t } = useI18n()
 const isDarkTheme = computed(() => resolvedTheme.value === 'dark')
 
 const pageTitle = computed(() => ({
-    free: 'សញ្ញាបត្រថ្នាក់ Free',
-    normal: 'តារាង សញ្ញាបត្រធម្មតា',
-    scholarship: 'សញ្ញាបត្រអាហាររូបករណ៍',
-    internship: 'សញ្ញាបត្រ Internship',
-}[certificateType.value] ?? 'សញ្ញាបត្រ'))
+    free: t('certificatePage.titles.free'),
+    normal: t('certificatePage.titles.normal'),
+    scholarship: t('certificatePage.titles.scholarship'),
+    internship: t('certificatePage.titles.internship'),
+    meal: t('certificatePage.titles.meal'),
+}[certificateType.value] ?? t('navigation.certificate')))
 
 const classRows = ref([])
 const classLoading = ref(false)
@@ -715,9 +718,9 @@ function updateFreeCourse(value) {
 
 function saveFreeAfterPrint() {
     freeErrors.value = {}
-    if (!freeForm.student_name.trim()) freeErrors.value.student_name = 'Full Name is required!'
-    if (!freeForm.course.trim()) freeErrors.value.course = 'Course is required.'
-    if (!freeForm.end_date) freeErrors.value.end_date = 'End date is required.'
+    if (!freeForm.student_name.trim()) freeErrors.value.student_name = t('certificatePage.validation.fullNameRequired')
+    if (!freeForm.course.trim()) freeErrors.value.course = t('certificatePage.validation.courseRequired')
+    if (!freeForm.end_date) freeErrors.value.end_date = t('certificatePage.validation.endDateRequired')
     if (Object.keys(freeErrors.value).length) return
 
     document.body.classList.add('free-certificate-print')
@@ -812,19 +815,19 @@ function saveFreeAfterPrint() {
                     <div class="normal-actions">
                         <select v-model="selectedCategory" class="filter-select">
                             <option v-for="category in categories" :key="category" :value="category">
-                                {{ category === 'all' ? 'ទាំងអស់' : category }}
+                                {{ category === 'all' ? t('certificatePage.filters.all') : category }}
                             </option>
                         </select>
 
                         <select v-model="selectedCourse" class="filter-select">
                             <option v-for="course in courseOptions" :key="course" :value="course">
-                                {{ course === 'all' ? 'ជ្រើសរើស' : course }}
+                                {{ course === 'all' ? t('certificatePage.filters.select') : course }}
                             </option>
                         </select>
 
                         <button class="blue-action" type="button" @click="openFirstClassForCreate">
                             <Award class="h-5 w-5" />
-                            បង្កើតវិញ្ញាបនបត្រ
+                            {{ t('certificatePage.actions.createCertificate') }}
                         </button>
                     </div>
                 </header>
@@ -890,21 +893,21 @@ function saveFreeAfterPrint() {
                     <article>
                         <span><Users class="h-5 w-5" /></span>
                         <div>
-                            <p>Total Student Request Certificate</p>
+                            <p>{{ t('certificatePage.stats.totalRequested') }}</p>
                             <strong>{{ totalRequested }}</strong>
                         </div>
                     </article>
                     <article>
                         <span><BookOpen class="h-5 w-5" /></span>
                         <div>
-                            <p>Total Course Finish</p>
+                            <p>{{ t('certificatePage.stats.totalCourseFinish') }}</p>
                             <strong>{{ totalFinishedCourses }}</strong>
                         </div>
                     </article>
                     <article>
                         <span><Award class="h-5 w-5" /></span>
                         <div>
-                            <p>Total Certificate Done</p>
+                            <p>{{ t('certificatePage.stats.totalDone') }}</p>
                             <strong>{{ totalPrinted }}</strong>
                         </div>
                     </article>
@@ -912,27 +915,27 @@ function saveFreeAfterPrint() {
 
                 <div v-if="classLoading" class="loading-card no-print">
                     <Loader2 class="h-6 w-6 animate-spin" />
-                    កំពុងទាញយកទិន្នន័យ...
+                    {{ t('certificatePage.states.loadingData') }}
                 </div>
 
                 <div v-else-if="!filteredClasses.length" class="loading-card no-print">
-                    មិនមានវគ្គសិក្សាសម្រាប់សញ្ញាបត្រធម្មតាទេ
+                    {{ t('certificatePage.states.noClasses') }}
                 </div>
 
                 <div v-else class="category-stack no-print">
                     <article v-for="(group, category) in pagedGroups" :key="category" class="category-card">
-                        <h2>ប្រភេទវគ្គសិក្សា {{ category }}</h2>
+                        <h2>{{ t('certificatePage.sections.courseType', { category }) }}</h2>
 
                         <div class="table-wrap">
                             <table class="class-table">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>គ្រូបង្រៀន</th>
-                                        <th>មុខវិជ្ជា</th>
-                                        <th>ម៉ោង</th>
-                                        <th>ចំនួនសិស្សដែលនៅសល់</th>
-                                        <th>សិស្ស</th>
+                                        <th>{{ t('certificatePage.table.teacher') }}</th>
+                                        <th>{{ t('certificatePage.table.course') }}</th>
+                                        <th>{{ t('certificatePage.table.time') }}</th>
+                                        <th>{{ t('certificatePage.table.remainingStudents') }}</th>
+                                        <th>{{ t('certificatePage.table.students') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -951,11 +954,11 @@ function saveFreeAfterPrint() {
                                             <div class="row-actions">
                                                 <button class="view-students" type="button" @click="openStudents(item)">
                                                     <Users class="h-4 w-4" />
-                                                    មើលសិស្ស
+                                                    {{ t('certificatePage.actions.viewStudents') }}
                                                 </button>
                                                 <button class="view-students make-cert" type="button" @click="openClassCertificateModal(item)">
                                                     <Award class="h-4 w-4" />
-                                                    បង្កើត
+                                                    {{ t('certificatePage.actions.create') }}
                                                 </button>
                                                 <span v-if="remainingStudents(item) === 0" class="complete-mark">
                                                     <CheckCircle2 class="h-4 w-4" />
@@ -983,7 +986,7 @@ function saveFreeAfterPrint() {
                                 :disabled="group.page >= group.lastPage"
                                 @click="categoryPages[category] = group.page + 1"
                             >
-                                បន្ទាប់
+                                {{ t('certificatePage.actions.next') }}
                             </button>
                         </div>
                     </article>
@@ -994,17 +997,17 @@ function saveFreeAfterPrint() {
                 <div class="detail-toolbar no-print">
                     <button class="back-button" type="button" @click="backToClasses">
                         <ChevronLeft class="h-5 w-5" />
-                        ត្រឡប់ក្រោយ
+                        {{ t('certificatePage.actions.back') }}
                     </button>
 
                     <div class="detail-buttons">
                         <button class="green-action" type="button" :disabled="studentsLoading || !students.length" @click="openPrintModal(students[0], true)">
                             <Printer class="h-5 w-5" />
-                            បោះពុម្ពទាំងអស់
+                            {{ t('certificatePage.actions.printAll') }}
                         </button>
                         <button class="purple-action" type="button" :disabled="studentsLoading || !students.length" @click="openPrintModal(students[0], true)">
                             <Award class="h-5 w-5" />
-                            បង្កើតសញ្ញាបត្រ
+                            {{ t('certificatePage.actions.createCertificate') }}
                         </button>
                     </div>
                 </div>
@@ -1013,21 +1016,21 @@ function saveFreeAfterPrint() {
                     <header>
                         <span><BookOpen class="h-7 w-7" /></span>
                         <div>
-                            <h2>ព័ត៌មានវគ្គសិក្សា</h2>
-                            <p>Class Information</p>
+                            <h2>{{ t('certificatePage.sections.classInfoKh') }}</h2>
+                            <p>{{ t('certificatePage.sections.classInfo') }}</p>
                         </div>
                     </header>
                     <div class="info-grid">
                         <div>
-                            <p>មុខវិជ្ជា</p>
+                            <p>{{ t('certificatePage.table.course') }}</p>
                             <strong>{{ selectedClass.course }}</strong>
                         </div>
                         <div>
-                            <p>គ្រូបង្រៀន</p>
+                            <p>{{ t('certificatePage.table.teacher') }}</p>
                             <strong>{{ selectedClass.teacher_name }}</strong>
                         </div>
                         <div>
-                            <p>ម៉ោងរៀន</p>
+                            <p>{{ t('certificatePage.table.time') }}</p>
                             <strong>{{ selectedClass.time }}</strong>
                         </div>
                     </div>
@@ -1038,28 +1041,28 @@ function saveFreeAfterPrint() {
                         <div class="section-title">
                             <span><Users class="h-7 w-7" /></span>
                             <div>
-                                <h2>បញ្ជីឈ្មោះសិស្ស</h2>
-                                <p>Student List</p>
+                                <h2>{{ t('certificatePage.sections.studentListKh') }}</h2>
+                                <p>{{ t('certificatePage.sections.studentList') }}</p>
                             </div>
                         </div>
-                        <strong>{{ students.length }} នាក់</strong>
+                        <strong>{{ t('certificatePage.studentsCount', { count: students.length }) }}</strong>
                     </header>
 
                     <div v-if="studentsLoading" class="loading-card">
                         <Loader2 class="h-6 w-6 animate-spin" />
-                        កំពុងទាញយកសិស្ស...
+                        {{ t('certificatePage.states.loadingStudents') }}
                     </div>
 
                     <div v-else class="table-wrap">
                         <table class="student-table">
                             <thead>
                                 <tr>
-                                    <th>ល.រ</th>
-                                    <th>ឈ្មោះសិស្ស</th>
-                                    <th>ភេទ</th>
-                                    <th>លេខទូរស័ព្ទ</th>
-                                    <th>មុខវិជ្ជា</th>
-                                    <th>សកម្មភាព</th>
+                                    <th>{{ t('certificatePage.table.no') }}</th>
+                                    <th>{{ t('certificatePage.table.studentName') }}</th>
+                                    <th>{{ t('certificatePage.table.gender') }}</th>
+                                    <th>{{ t('certificatePage.table.phone') }}</th>
+                                    <th>{{ t('certificatePage.table.course') }}</th>
+                                    <th>{{ t('certificatePage.table.actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1090,25 +1093,25 @@ function saveFreeAfterPrint() {
             <div v-if="modalMode === 'create'" class="modal-shell no-print">
                 <div class="certificate-modal create-modal">
                     <header class="modal-header">
-                        <h2><Printer class="h-6 w-6" /> បោះពុម្ពសញ្ញាបត្រ</h2>
+                        <h2><Printer class="h-6 w-6" /> {{ t('certificatePage.modal.printCertificate') }}</h2>
                         <button type="button" @click="closeModal"><X class="h-7 w-7" /></button>
                     </header>
 
                     <div class="modal-body create-grid">
                         <aside class="modal-editor">
-                            <h3><Bookmark class="h-5 w-5" /> កែប្រែព័ត៌មាន</h3>
+                            <h3><Bookmark class="h-5 w-5" /> {{ t('certificatePage.modal.editInfo') }}</h3>
                             <label>
-                                មុខវិជ្ជា / COURSE
+                                {{ t('certificatePage.form.course') }}
                                 <textarea v-model="printForm.course" rows="4" />
                             </label>
                             <label>
                                 <span class="saved-course-title">
-                                    COURSE រក្សាទុក
+                                    {{ t('certificatePage.form.savedCourses') }}
                                     <span class="saved-course-count">{{ savedCourses.length }}</span>
                                 </span>
                                 <div class="saved-course-row">
                                     <select :value="printForm.course" @change="applySavedCourse($event.target.value)">
-                                        <option value="">-- ជ្រើសរើស Course --</option>
+                                        <option value="">-- {{ t('certificatePage.form.selectCourse') }} --</option>
                                         <option v-for="course in savedCourses" :key="course.course_name" :value="course.course_name">
                                             {{ course.course_name }}
                                         </option>
@@ -1117,20 +1120,20 @@ function saveFreeAfterPrint() {
                                 </div>
                             </label>
                             <label>
-                                ថ្ងៃខែឆ្នាំ / GRANTED DATE
+                                {{ t('certificatePage.form.grantedDate') }}
                                 <input v-model="printForm.granted_date" type="date" />
                             </label>
                         </aside>
 
                         <section class="draft-table-wrap">
-                            <p class="draft-title"><Users class="h-5 w-5" /> សិស្សទាំងអស់ដែលត្រូវបោះពុម្ពសញ្ញាបត្រ</p>
+                            <p class="draft-title"><Users class="h-5 w-5" /> {{ t('certificatePage.modal.studentsReady') }}</p>
                             <table class="draft-table">
                                 <thead>
                                     <tr>
-                                        <th>លេខរៀង</th>
-                                        <th>ឈ្មោះសិស្ស</th>
-                                        <th>ភេទ</th>
-                                        <th>សកម្មភាព</th>
+                                        <th>{{ t('certificatePage.table.no') }}</th>
+                                        <th>{{ t('certificatePage.table.studentName') }}</th>
+                                        <th>{{ t('certificatePage.table.gender') }}</th>
+                                        <th>{{ t('certificatePage.table.actions') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1162,12 +1165,12 @@ function saveFreeAfterPrint() {
                     </div>
 
                     <footer class="modal-footer">
-                        <button class="light-action" type="button" @click="closeModal"><X class="h-4 w-4" /> បិទ</button>
-                        <button class="outline-action" type="button" @click="saveCourse"><Bookmark class="h-5 w-5" /> រក្សាទុក Course</button>
+                        <button class="light-action" type="button" @click="closeModal"><X class="h-4 w-4" /> {{ t('certificatePage.actions.close') }}</button>
+                        <button class="outline-action" type="button" @click="saveCourse"><Bookmark class="h-5 w-5" /> {{ t('certificatePage.actions.saveCourse') }}</button>
                         <button class="green-action" type="button" :disabled="printSaving" @click="printAllDrafts">
                             <Loader2 v-if="printSaving" class="h-5 w-5 animate-spin" />
                             <Printer v-else class="h-5 w-5" />
-                            បោះពុម្ពទាំងអស់
+                            {{ t('certificatePage.actions.printAll') }}
                         </button>
                     </footer>
                 </div>
@@ -1176,7 +1179,7 @@ function saveFreeAfterPrint() {
             <div v-if="modalMode === 'print'" class="modal-shell">
                 <div class="certificate-modal print-modal certificate-studio">
                     <header class="modal-header no-print">
-                        <h2><Printer class="h-6 w-6" /> បោះពុម្ពសញ្ញាបត្រ</h2>
+                        <h2><Printer class="h-6 w-6" /> {{ t('certificatePage.modal.printCertificate') }}</h2>
                         <button type="button" @click="closeModal"><X class="h-7 w-7" /></button>
                     </header>
 
@@ -1185,20 +1188,20 @@ function saveFreeAfterPrint() {
                             <div class="editor-heading">
                                 <span><Award class="h-6 w-6" /></span>
                                 <div>
-                                    <h3>កែប្រែព័ត៌មាន</h3>
-                                    <p>Change only name, course and granted date.</p>
+                                    <h3>{{ t('certificatePage.modal.editInfo') }}</h3>
+                                    <p>{{ t('certificatePage.modal.editHint') }}</p>
                                 </div>
                             </div>
-                            <label>ឈ្មោះសិស្ស / STUDENT NAME<input v-model="printForm.student_name" /></label>
-                            <label>មុខវិជ្ជា / COURSE<textarea v-model="printForm.course" rows="4" /></label>
+                            <label>{{ t('certificatePage.form.studentName') }}<input v-model="printForm.student_name" /></label>
+                            <label>{{ t('certificatePage.form.course') }}<textarea v-model="printForm.course" rows="4" /></label>
                             <label>
                                 <span class="saved-course-title">
-                                    COURSE រក្សាទុក
+                                    {{ t('certificatePage.form.savedCourses') }}
                                     <span class="saved-course-count">{{ savedCourses.length }}</span>
                                 </span>
                                 <div class="saved-course-row">
                                     <select :value="printForm.course" @change="applySavedCourse($event.target.value)">
-                                        <option value="">-- ជ្រើសរើស Course --</option>
+                                        <option value="">-- {{ t('certificatePage.form.selectCourse') }} --</option>
                                         <option v-for="course in savedCourses" :key="course.course_name" :value="course.course_name">
                                             {{ course.course_name }}
                                         </option>
@@ -1206,13 +1209,13 @@ function saveFreeAfterPrint() {
                                     <button type="button" @click="deleteSavedCourse"><Trash2 class="h-5 w-5" /></button>
                                 </div>
                             </label>
-                            <label>ថ្ងៃខែឆ្នាំ / GRANTED DATE<input v-model="printForm.granted_date" type="date" /></label>
+                            <label>{{ t('certificatePage.form.grantedDate') }}<input v-model="printForm.granted_date" type="date" /></label>
                         </aside>
 
                         <section class="preview-zone">
                             <div class="preview-head no-print">
-                                <span>PREVIEW</span>
-                                <strong>{{ isPrintAllMode ? `${studentDrafts.length || 1} certificates ready` : 'Single certificate' }}</strong>
+                                <span>{{ t('certificatePage.modal.preview') }}</span>
+                                <strong>{{ isPrintAllMode ? t('certificatePage.modal.certificatesReady', { count: studentDrafts.length || 1 }) : t('certificatePage.modal.singleCertificate') }}</strong>
                             </div>
                             <RealCertificatePreview :certificate="currentCertificate" :class="{ 'screen-preview-only': isPrintAllMode }" />
                         </section>
@@ -1233,16 +1236,16 @@ function saveFreeAfterPrint() {
                     </div>
 
                     <footer class="modal-footer no-print">
-                        <button class="light-action" type="button" @click="closeModal"><X class="h-4 w-4" /> បិទ</button>
+                        <button class="light-action" type="button" @click="closeModal"><X class="h-4 w-4" /> {{ t('certificatePage.actions.close') }}</button>
                         <button class="green-action" type="button" :disabled="printSaving" @click="isPrintAllMode ? printAllDrafts() : printSingle()">
                             <Loader2 v-if="printSaving" class="h-5 w-5 animate-spin" />
                             <Printer v-else class="h-5 w-5" />
-                            {{ isPrintAllMode ? 'Start Print All' : 'Start Print' }}
+                            {{ isPrintAllMode ? t('certificatePage.actions.startPrintAll') : t('certificatePage.actions.startPrint') }}
                         </button>
-                        <button class="outline-action" type="button" @click="saveCourse"><Save class="h-5 w-5" /> រក្សាទុក Course</button>
+                        <button class="outline-action" type="button" @click="saveCourse"><Save class="h-5 w-5" /> {{ t('certificatePage.actions.saveCourse') }}</button>
                         <button class="purple-action" type="button" :disabled="printSaving" @click="isPrintAllMode ? printAllDrafts() : printSingle()">
                             <Printer class="h-5 w-5" />
-                            បោះពុម្ព
+                            {{ t('certificatePage.actions.print') }}
                         </button>
                     </footer>
                 </div>
@@ -1257,7 +1260,7 @@ function saveFreeAfterPrint() {
             <form v-if="isFree" class="free-form free-form-card" @submit.prevent="saveFreeAfterPrint">
                 <div class="free-form-grid">
                     <label class="free-field" :class="{ 'has-error': freeErrors.student_name }">
-                        <span><User class="h-4 w-4" /> ឈ្មោះសិស្សជាភាសាអង់គ្លេស <b>*</b></span>
+                        <span><User class="h-4 w-4" /> {{ t('certificatePage.free.studentNameEnglish') }} <b>*</b></span>
                         <span class="free-input-wrap">
                             <User class="free-input-icon h-5 w-5" />
                             <input
@@ -1273,7 +1276,7 @@ function saveFreeAfterPrint() {
                     </label>
 
                     <label class="free-field" :class="{ 'has-error': freeErrors.course }">
-                        <span><BookOpen class="h-4 w-4" /> វគ្គសិក្សា <b>*</b></span>
+                        <span><BookOpen class="h-4 w-4" /> {{ t('certificatePage.free.course') }} <b>*</b></span>
                         <span class="free-input-wrap">
                             <BookOpen class="free-input-icon h-5 w-5" />
                             <input
@@ -1289,14 +1292,14 @@ function saveFreeAfterPrint() {
                     </label>
 
                     <label class="free-field">
-                        <span><Bookmark class="h-4 w-4" /> ជ្រើសរើសវគ្គសិក្សា</span>
+                        <span><Bookmark class="h-4 w-4" /> {{ t('certificatePage.free.selectCourse') }}</span>
                         <span class="free-input-wrap">
                             <Bookmark class="free-input-icon h-5 w-5" />
                             <select
                                 v-model="freeForm.course"
                                 @change="clearFreeError('course')"
                             >
-                                <option value="">-- ជ្រើសរើសវគ្គសិក្សា --</option>
+                                <option value="">-- {{ t('certificatePage.free.selectCourse') }} --</option>
                                 <option v-for="course in freeCourses" :key="course.course_name" :value="course.course_name">
                                     {{ course.course_name }}
                                 </option>
@@ -1305,7 +1308,7 @@ function saveFreeAfterPrint() {
                     </label>
 
                     <label class="free-field" :class="{ 'has-error': freeErrors.end_date }">
-                        <span><CalendarDays class="h-4 w-4" /> ថ្ងៃបញ្ចប់វគ្គសិក្សា <b>*</b></span>
+                        <span><CalendarDays class="h-4 w-4" /> {{ t('certificatePage.free.endDate') }} <b>*</b></span>
                         <span class="free-input-wrap">
                             <CalendarDays class="free-input-icon h-5 w-5" />
                             <input
@@ -1323,7 +1326,7 @@ function saveFreeAfterPrint() {
                     <div class="free-print-cell">
                         <button class="btn-cert-free-print" type="submit" :disabled="freeSaving">
                             <Printer class="h-5 w-5" />
-                            បោះពុម្ព
+                            {{ t('certificatePage.actions.print') }}
                         </button>
                     </div>
                 </div>
@@ -1341,7 +1344,7 @@ function saveFreeAfterPrint() {
             />
 
             <div v-if="!isFree" class="loading-card">
-                Please open សញ្ញាបត្រថ្នាក់ធម្មតា for the completed dynamic page.
+                {{ t('certificatePage.states.openRegularPage') }}
             </div>
         </section>
 
@@ -1469,7 +1472,7 @@ const LegacyCertificatePreview = {
 
 .normal-toolbar h1 {
     margin: 0;
-    font-family: "Khmer OS Muol Light", "Noto Serif Khmer", serif;
+    font-family: var(--font-khmer), "Khmer OS Muol Light", "Noto Serif Khmer", "Poppins", "Segoe UI", Arial, sans-serif;
     font-size: clamp(24px, 2.2vw, 32px);
     font-weight: 800;
     color: #050505;
