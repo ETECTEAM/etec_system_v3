@@ -53,7 +53,7 @@ export function build(ctx) {
         match: ["/dashboard/certificates"],
         exact: false,
         isActive: isType("internship"),
-      }
+      },
     ],
   };
 }

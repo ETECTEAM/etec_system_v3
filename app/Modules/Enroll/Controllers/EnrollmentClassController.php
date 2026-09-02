@@ -4,6 +4,7 @@ namespace App\Modules\Enroll\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Building;
+use App\Models\Course;
 use App\Models\CourseEnrollConfig;
 use App\Models\Floor;
 use App\Models\Student;

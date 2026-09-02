@@ -85,6 +85,105 @@
     "websiteManagement": "គ្រប់គ្រងគេហទំព័រ",
     "workSchedules": "កាលវិភាគការងារ"
   },
+  "certificatePage": {
+    "actions": {
+      "back": "ត្រឡប់ក្រោយ",
+      "close": "បិទ",
+      "create": "បង្កើត",
+      "createCertificate": "បង្កើតវិញ្ញាបនបត្រ",
+      "next": "បន្ទាប់",
+      "print": "បោះពុម្ព",
+      "printAll": "បោះពុម្ពទាំងអស់",
+      "saveCourse": "រក្សាទុក Course",
+      "startPrint": "ចាប់ផ្តើមបោះពុម្ព",
+      "startPrintAll": "ចាប់ផ្តើមបោះពុម្ពទាំងអស់",
+      "viewStudents": "មើលសិស្ស"
+    },
+    "filters": {
+      "all": "ទាំងអស់",
+      "allMonth": "គ្រប់ខែ",
+      "select": "ជ្រើសរើស"
+    },
+    "months": {
+      "1": "មករា",
+      "2": "កុម្ភៈ",
+      "3": "មីនា",
+      "4": "មេសា",
+      "5": "ឧសភា",
+      "6": "មិថុនា",
+      "7": "កក្កដា",
+      "8": "សីហា",
+      "9": "កញ្ញា",
+      "10": "តុលា",
+      "11": "វិច្ឆិកា",
+      "12": "ធ្នូ"
+    },
+    "form": {
+      "course": "មុខវិជ្ជា / COURSE",
+      "grantedDate": "ថ្ងៃខែឆ្នាំ / GRANTED DATE",
+      "savedCourses": "COURSE រក្សាទុក",
+      "selectCourse": "ជ្រើសរើស Course",
+      "studentName": "ឈ្មោះសិស្ស / STUDENT NAME"
+    },
+    "free": {
+      "course": "វគ្គសិក្សា",
+      "endDate": "ថ្ងៃបញ្ចប់វគ្គសិក្សា",
+      "selectCourse": "ជ្រើសរើសវគ្គសិក្សា",
+      "studentNameEnglish": "ឈ្មោះសិស្សជាភាសាអង់គ្លេស"
+    },
+    "modal": {
+      "certificatesReady": "មានវិញ្ញាបនបត្រ :count សម្រាប់បោះពុម្ព",
+      "editHint": "កែតែឈ្មោះ វគ្គសិក្សា និងថ្ងៃខែឆ្នាំប៉ុណ្ណោះ។",
+      "editInfo": "កែប្រែព័ត៌មាន",
+      "preview": "មើលជាមុន",
+      "printCertificate": "បោះពុម្ពសញ្ញាបត្រ",
+      "singleCertificate": "វិញ្ញាបនបត្រតែមួយ",
+      "studentsReady": "សិស្សទាំងអស់ដែលត្រូវបោះពុម្ពសញ្ញាបត្រ"
+    },
+    "sections": {
+      "classInfo": "ព័ត៌មានវគ្គសិក្សា",
+      "classInfoKh": "ព័ត៌មានវគ្គសិក្សា",
+      "courseType": ":category",
+      "studentList": "បញ្ជីឈ្មោះសិស្ស",
+      "studentListKh": "បញ្ជីឈ្មោះសិស្ស"
+    },
+    "states": {
+      "loadingData": "កំពុងទាញយកទិន្នន័យ...",
+      "loadingStudents": "កំពុងទាញយកសិស្ស...",
+      "noClasses": "មិនមានវគ្គសិក្សាសម្រាប់ប្រភេទសញ្ញាបត្រនេះទេ",
+      "openRegularPage": "សូមបើកសញ្ញាបត្រថ្នាក់ធម្មតាសម្រាប់ទំព័រដែលបានបញ្ចប់។"
+    },
+    "stats": {
+      "totalCourseFinish": "ចំនួនវគ្គសិក្សាបញ្ចប់",
+      "totalDone": "ចំនួនសញ្ញាបត្ររួចរាល់",
+      "totalRequested": "ចំនួនសិស្សស្នើសុំសញ្ញាបត្រ"
+    },
+    "studentsCount": ":count នាក់",
+    "table": {
+      "actions": "សកម្មភាព",
+      "course": "មុខវិជ្ជា",
+      "gender": "ភេទ",
+      "no": "ល.រ",
+      "phone": "លេខទូរស័ព្ទ",
+      "remainingStudents": "សិស្សដែលនៅសល់",
+      "studentName": "ឈ្មោះសិស្ស",
+      "students": "សិស្ស",
+      "teacher": "គ្រូបង្រៀន",
+      "time": "ម៉ោង"
+    },
+    "titles": {
+      "free": "សញ្ញាបត្រថ្នាក់ Free",
+      "internship": "សញ្ញាបត្រថ្នាក់ Internship",
+      "meal": "សញ្ញាបត្រអាហាររូបករណ៍",
+      "normal": "តារាង សញ្ញាបត្រធម្មតា",
+      "scholarship": "សញ្ញាបត្រអាហាររូបករណ៍"
+    },
+    "validation": {
+      "courseRequired": "ត្រូវការវគ្គសិក្សា!",
+      "endDateRequired": "ត្រូវការថ្ងៃបញ្ចប់!",
+      "fullNameRequired": "ត្រូវការឈ្មោះពេញ!"
+    }
+  },
   "notifications": {
     "empty": "មិនទាន់មានការជូនដំណឹង។",
     "title": "ការជូនដំណឹង"

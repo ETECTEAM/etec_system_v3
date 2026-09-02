@@ -30,7 +30,6 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
         Route::get('/classes/{studyClass}', [InstructorClassController::class, 'show'])->name('instructor.classes.show');
         Route::get('/classes/{studyClass}/attendance', [InstructorClassController::class, 'attendance'])->name('instructor.classes.attendance');
         Route::get('/classes/{studyClass}/result', [InstructorClassController::class, 'result'])->name('instructor.classes.result');
-        Route::post('/classes/{studyClass}/certificate-request', [InstructorClassController::class, 'requestCertificate'])->middleware('throttle:10,1')->name('instructor.classes.certificate-request');
         Route::get('/classes/{studyClass}/groups', [InstructorClassController::class, 'groups'])->name('instructor.classes.groups');
         // Route to open the dedicated certificate request page for this class.
         Route::get('/classes/{studyClass}/certificate-request', [InstructorClassController::class, 'certificateRequest'])->name('instructor.classes.certificate-request');

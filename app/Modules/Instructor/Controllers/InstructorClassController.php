@@ -549,17 +549,22 @@ class InstructorClassController extends Controller
 
     private function certificateTypeForClass(stdClass $class): string
     {
-        $typeName = strtolower((string) ($class->class_type_name ?? ''));
+        $text = strtolower(collect([
+            $class->class_type_name ?? null,
+            $class->course_title ?? null,
+            $class->lesson_title ?? null,
+            $class->title ?? null,
+        ])->filter()->implode(' '));
 
-        if (str_contains($typeName, 'free')) {
+        if (str_contains($text, 'free')) {
             return 'free';
         }
 
-        if (str_contains($typeName, 'scholar')) {
+        if (str_contains($text, 'scholar')) {
             return 'scholarship';
         }
 
-        if (str_contains($typeName, 'internship')) {
+        if (str_contains($text, 'internship') || str_contains($text, 'intership')) {
             return 'internship';
         }
 

@@ -406,7 +406,7 @@ defineProps({
         visibility: visible !important;
     }
 
-    #class-free-cert {
+    :global(body.free-certificate-print) #class-free-cert {
         display: none !important;
     }
 
