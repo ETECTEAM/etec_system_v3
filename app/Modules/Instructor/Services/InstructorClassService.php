@@ -205,6 +205,30 @@ class InstructorClassService
         return $class;
     }
 
+    public function requestCertificates(stdClass $class, User $instructor): array
+    {
+        $types = $this->certificateRequestTypesForClass($class);
+        $now = now();
+
+        foreach ($types as $type) {
+            DB::table('certificate_class_requests')->updateOrInsert(
+                [
+                    'study_class_id' => $class->id,
+                    'certificate_type' => $type,
+                ],
+                [
+                    'requested_by' => $instructor->id,
+                    'status' => 'pending',
+                    'requested_at' => $now,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+            );
+        }
+
+        return $types;
+    }
+
     public function findResultForInstructor(User $instructor, int $studyClassId): stdClass
     {
         $class = $this->classesQuery($instructor, ['ended', 'completed'])
@@ -718,6 +742,8 @@ class InstructorClassService
             'is_owner' => (bool) ($class->is_owner ?? true),
             'is_shared' => ! empty($class->co_instructor_names),
             'shared_with' => $class->co_instructor_names ?? null,
+            'certificate_request_types' => $this->certificateRequestTypesFromCsv($class->certificate_request_types ?? null),
+            'has_certificate_request' => ! empty($class->certificate_request_types),
             'capacity' => (int) $class->capacity,
             'students' => (int) $class->current_students,
             'created_date' => $class->created_at ? Carbon::parse($class->created_at)->format('Y-m-d H:i:s') : null,
@@ -748,9 +774,20 @@ class InstructorClassService
                 DB::raw("group_concat(users.name separator ', ') as co_instructor_names"),
             ]);
 
+        $certificateRequests = DB::table('certificate_class_requests')
+            ->where('status', 'pending')
+            ->groupBy('study_class_id')
+            ->select([
+                'study_class_id',
+                DB::raw("group_concat(certificate_type separator ',') as certificate_request_types"),
+            ]);
+
         return DB::table('study_classes')
             ->leftJoinSub($coInstructors, 'co_instructors', function ($join) {
                 $join->on('co_instructors.study_class_id', '=', 'study_classes.id');
+            })
+            ->leftJoinSub($certificateRequests, 'certificate_requests', function ($join) {
+                $join->on('certificate_requests.study_class_id', '=', 'study_classes.id');
             })
             ->leftJoin('study_class_instructors as my_slot', function ($join) use ($instructor) {
                 $join->on('my_slot.study_class_id', '=', 'study_classes.id')
@@ -794,12 +831,46 @@ class InstructorClassService
                 DB::raw('coalesce(my_times.time_name, times.time_name) as time_name'),
                 'my_slot.subject as my_subject',
                 'co_instructors.co_instructor_names',
+                'certificate_requests.certificate_request_types',
                 DB::raw('coalesce(active_student_counts.current_students, 0) as current_students'),
             ])
             // Appended after select(), which would otherwise reset the column list. Shared
             // instructors teach the class but don't own it, so the card can hide the actions
             // (edit, end, share) the backend would reject for them anyway.
             ->selectRaw('(study_classes.teacher_id = ?) as is_owner', [$instructor->id]);
+    }
+
+    private function certificateRequestTypesForClass(stdClass $class): array
+    {
+        return $this->isInternshipClass($class) ? ['meal', 'internship'] : ['normal'];
+    }
+
+    private function certificateRequestTypesFromCsv(?string $types): array
+    {
+        if (! $types) {
+            return [];
+        }
+
+        return collect(explode(',', $types))
+            ->map(fn (string $type): string => trim($type))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function isInternshipClass(stdClass $class): bool
+    {
+        return collect([
+            $class->class_type_name ?? null,
+            $class->course_title ?? null,
+            $class->lesson_title ?? null,
+            $class->title ?? null,
+        ])->contains(function ($value): bool {
+            $name = strtolower((string) $value);
+
+            return str_contains($name, 'internship') || str_contains($name, 'intership');
+        });
     }
 
     private function attendanceStats(int $studyClassId): Collection

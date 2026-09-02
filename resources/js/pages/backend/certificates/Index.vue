@@ -45,7 +45,12 @@ const pageTitle = computed(() => ({
     free: 'សញ្ញាបត្រថ្នាក់ Free',
     normal: 'តារាង សញ្ញាបត្រធម្មតា',
     scholarship: 'សញ្ញាបត្រអាហាររូបករណ៍',
+<<<<<<< HEAD
     internship: 'សញ្ញាបត្រ Internship',
+=======
+    meal: 'សញ្ញាបត្រអាហាររូបករណ៍',
+    internship: 'សញ្ញាបត្រថ្នាក់ Internship',
+>>>>>>> 32208d4 (update_cirtificate)
 }[certificateType.value] ?? 'សញ្ញាបត្រ'))
 
 const classRows = ref([])

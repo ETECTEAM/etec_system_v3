@@ -102,6 +102,11 @@ class StudyClass extends Model
         return $this->hasMany(StudentEnrollment::class);
     }
 
+    public function certificateRequests()
+    {
+        return $this->hasMany(CertificateClassRequest::class);
+    }
+
     /**
      * Instructors sharing this class, each with their own term/time — see the
      * study_class_instructors migration. Empty until the class is shared, in which

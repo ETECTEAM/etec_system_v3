@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 import {
+  Award,
   BookOpen,
   GraduationCap,
   Mars,
@@ -125,6 +126,34 @@ function attendanceItem(classData) {
     },
   ];
 }
+
+function requestCertificate(classData) {
+  router.post(`/dashboard/instructor/classes/${classData.id}/certificate-request`, {}, {
+    preserveScroll: true,
+    onSuccess: () => router.reload({ only: ["classes"], preserveScroll: true }),
+  });
+}
+
+function certificateItem(classData) {
+  const requestedTypes = classData.certificate_request_types ?? [];
+  const hasRequest = requestedTypes.length > 0;
+
+  return [
+    {
+      label: hasRequest ? "Certificate Requested" : "Request Certificate",
+      icon: Award,
+      disabled: hasRequest,
+      action: () => requestCertificate(classData),
+    },
+  ];
+}
+
+function actionItems(classData) {
+  return [
+    ...attendanceItem(classData),
+    ...certificateItem(classData),
+  ];
+}
 </script>
 
 <template>
@@ -225,7 +254,7 @@ function attendanceItem(classData) {
             :key="classData.id"
             :classData="classData"
             :viewUrl="viewUrl(classData)"
-            :extraItems="attendanceItem(classData)"
+            :extraItems="actionItems(classData)"
             :showInstructor="false"
             :hiddenItems="hiddenItems(classData)"
           />

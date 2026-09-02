@@ -135,6 +135,17 @@ class InstructorClassController extends Controller
         ]);
     }
 
+    public function requestCertificate(Request $request, string $studyClass): RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $types = $this->instructorClasses->requestCertificates($class, $request->user());
+        $label = in_array('internship', $types, true)
+            ? 'Internship and meal certificate request sent successfully.'
+            : 'Regular certificate request sent successfully.';
+
+        return back()->with('success', $label);
+    }
+
     public function trackAttendance(Request $request, string $studyClass): Response|RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);

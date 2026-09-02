@@ -19,7 +19,11 @@ use Inertia\Response;
 
 class CertificateController extends Controller
 {
+<<<<<<< HEAD
     private const TYPES = ['free', 'normal', 'scholarship', 'internship'];
+=======
+    private const TYPES = ['free', 'normal', 'scholarship', 'meal', 'internship'];
+>>>>>>> 32208d4 (update_cirtificate)
 
     public function index(Request $request): Response
     {
@@ -56,7 +60,13 @@ class CertificateController extends Controller
                 'enrollments as total_students' => fn (Builder $query) => $query->where('enrollment_status', 'active'),
             ])
             ->whereIn('status', ['pre_end', 'ended', 'completed', 'active'])
+<<<<<<< HEAD
             ->where(fn (Builder $query) => $this->applyCertificateClassTypeFilter($query, $type))
+=======
+            ->when($type !== 'free', fn (Builder $query) => $this->whereRequestedCertificateClass($query, $type))
+            ->when($type === 'normal', fn (Builder $query) => $this->whereRegularCertificateClass($query))
+            ->when($type !== 'normal', fn (Builder $query) => $this->whereTypedCertificateClass($query, $type))
+>>>>>>> 32208d4 (update_cirtificate)
             ->latest('id')
             ->get();
 
@@ -154,7 +164,11 @@ class CertificateController extends Controller
         $validated = $request->validate([
             'student_id' => ['required', 'integer', 'exists:students,id'],
             'study_class_id' => ['required', 'integer', 'exists:study_classes,id'],
+<<<<<<< HEAD
             'certificate_type' => ['required', Rule::in(['normal', 'scholarship', 'internship'])],
+=======
+            'certificate_type' => ['required', Rule::in(['normal', 'scholarship', 'meal', 'internship'])],
+>>>>>>> 32208d4 (update_cirtificate)
             'student_name' => ['required', 'string', 'max:100'],
             'course' => ['required', 'string', 'max:100'],
             'granted_date' => ['required', 'string', 'max:50'],
@@ -322,6 +336,59 @@ class CertificateController extends Controller
         }
 
         return $prefix.str_pad((string) $sequence, 3, '0', STR_PAD_LEFT).' ETEC';
+    }
+
+    private function whereRegularCertificateClass(Builder $query): Builder
+    {
+        return $query
+            ->whereDoesntHave('classType', fn (Builder $classType) => $classType
+                ->where('type_name', 'like', '%internship%')
+                ->orWhere('type_name', 'like', '%intership%')
+            )
+            ->whereDoesntHave('course.track.category', fn (Builder $category) => $category
+                ->where('name', 'like', '%internship%')
+                ->orWhere('name', 'like', '%intership%')
+            )
+            ->whereDoesntHave('course.track', fn (Builder $track) => $track
+                ->where('name', 'like', '%internship%')
+                ->orWhere('name', 'like', '%intership%')
+            );
+    }
+
+    private function whereTypedCertificateClass(Builder $query, string $type): Builder
+    {
+        if ($type === 'free') {
+            return $query;
+        }
+
+        $keywords = match ($type) {
+            'meal', 'internship' => ['internship', 'intership'],
+            'scholarship' => ['scholar'],
+            default => [$type],
+        };
+
+        return $query->where(function (Builder $query) use ($keywords): void {
+            foreach ($keywords as $keyword) {
+                $query
+                    ->orWhereHas('classType', fn (Builder $classType) => $classType
+                        ->where('type_name', 'like', "%{$keyword}%")
+                    )
+                    ->orWhereHas('course.track.category', fn (Builder $category) => $category
+                        ->where('name', 'like', "%{$keyword}%")
+                    )
+                    ->orWhereHas('course.track', fn (Builder $track) => $track
+                        ->where('name', 'like', "%{$keyword}%")
+                    );
+            }
+        });
+    }
+
+    private function whereRequestedCertificateClass(Builder $query, string $type): Builder
+    {
+        return $query->whereHas('certificateRequests', fn (Builder $request) => $request
+            ->where('certificate_type', $type)
+            ->where('status', 'pending')
+        );
     }
 
     private function normaliseType(string $type): string
