@@ -54,7 +54,8 @@ class TelegramService
             $this->sendLongMessage(
                 $botToken,
                 $errorChatId,
-                $message
+                $message,
+                'HTML'
             );
         }
 
@@ -70,7 +71,8 @@ class TelegramService
             $this->sendLongMessage(
                 $botToken,
                 $personalChatId,
-                $message
+                $message,
+                'HTML'
             );
         }
     }
@@ -90,20 +92,20 @@ class TelegramService
 
             '',
             '📱 APPLICATION',
-            '• Name: ' . config('app.name'),
-            '• Environment: ' . config('app.env'),
+            '• Name: ' . $this->telegramEscape((string) config('app.name')),
+            '• Environment: ' . $this->telegramEscape((string) config('app.env')),
             '• Time: ' . now()->format('Y-m-d H:i:s'),
 
             '',
-            '❌ ERROR',
-            '• Type: ' . $e::class,
-            '• Message:',
-            $this->fullExceptionMessage($e),
-
-            '',
-            '📍 LOCATION',
-            '• File: ' . $e->getFile(),
-            '• Line: ' . $e->getLine(),
+            $this->telegramCodeBlock(
+                "❌ ERROR\n" .
+                'Type: ' . $e::class . "\n" .
+                'Message:' . "\n" .
+                $this->fullExceptionMessage($e) . "\n\n" .
+                "📍 LOCATION\n" .
+                'File: ' . $e->getFile() . "\n" .
+                'Line: ' . $e->getLine()
+            ),
         ];
 
         /*
@@ -116,13 +118,13 @@ class TelegramService
             $lines[] = '🌐 REQUEST';
 
             $lines[] = '• Method: ' .
-                strtoupper($request->method());
+                $this->telegramEscape(strtoupper($request->method()));
 
             $lines[] = '• Path: ' .
-                $request->path();
+                $this->telegramEscape($request->path());
 
             $lines[] = '• URL: ' .
-                $request->fullUrl();
+                $this->telegramEscape($request->fullUrl());
 
             /*
             |--------------------------------------------------------------------------
@@ -135,14 +137,14 @@ class TelegramService
                 $lines[] = '👤 USER';
 
                 $lines[] = '• ID: ' .
-                    $request->user()->getAuthIdentifier();
+                    $this->telegramEscape((string) $request->user()->getAuthIdentifier());
 
                 if (
                     isset($request->user()->name) &&
                     $request->user()->name !== ''
                 ) {
                     $lines[] = '• Name: ' .
-                        $request->user()->name;
+                        $this->telegramEscape((string) $request->user()->name);
                 }
 
                 if (
@@ -150,7 +152,7 @@ class TelegramService
                     $request->user()->email !== ''
                 ) {
                     $lines[] = '• Email: ' .
-                        $request->user()->email;
+                        $this->telegramEscape((string) $request->user()->email);
                 }
             }
         }
@@ -165,7 +167,7 @@ class TelegramService
 
             $lines[] = '💻 COMMAND';
 
-            $lines[] = '• ' . $command;
+            $lines[] = '• ' . $this->telegramEscape($command);
         }
 
         /*
@@ -188,7 +190,8 @@ class TelegramService
     public function sendMessage(
         string $botToken,
         string $chatId,
-        string $message
+        string $message,
+        ?string $parseMode = null
     ): void {
         $chatId = trim($chatId);
         $botToken = trim($botToken);
@@ -204,6 +207,10 @@ class TelegramService
             'chat_id' => $chatId,
             'text' => $message,
         ];
+
+        if ($parseMode !== null) {
+            $payload['parse_mode'] = $parseMode;
+        }
 
         try {
             $response = Http::asForm()
@@ -245,7 +252,8 @@ class TelegramService
     private function sendLongMessage(
         string $botToken,
         string $chatId,
-        string $message
+        string $message,
+        ?string $parseMode = null
     ): void {
         $message = trim($message);
 
@@ -356,7 +364,8 @@ class TelegramService
             $this->sendMessage(
                 $botToken,
                 $chatId,
-                $chunk
+                $chunk,
+                $total === 1 ? $parseMode : null
             );
         }
     }
@@ -377,6 +386,34 @@ class TelegramService
         return $prefix === ''
             ? 'unknown'
             : $prefix . '***';
+    }
+
+    /**
+     * Escape dynamic text before sending Telegram HTML messages.
+     */
+    private function telegramEscape(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    /**
+     * Make exact error details easier to copy in Telegram.
+     */
+    private function telegramCodeBlock(string $value): string
+    {
+        return '<pre><code>' . $this->telegramEscape(
+            $this->wrapTelegramCodeText($value)
+        ) . '</code></pre>';
+    }
+
+    /**
+     * Keep Telegram code blocks readable on desktop and mobile.
+     */
+    private function wrapTelegramCodeText(string $value): string
+    {
+        return collect(explode("\n", $value))
+            ->map(fn (string $line): string => wordwrap($line, 88, "\n", true))
+            ->implode("\n");
     }
 
     /**
