@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 class WebsiteVideo extends Model
@@ -54,11 +55,12 @@ class WebsiteVideo extends Model
         return '/storage/'.ltrim($this->thumbnail_path, '/').'?v='.$version;
     }
 
-    public static function uniqueSlug(string $title, ?int $ignoreId = null): string
+    public static function uniqueSlug(string $title, ?int $ignoreId = null, mixed $timestamp = null): string
     {
-        $baseSlug = Str::slug($title) ?: 'video';
+        $dateTime = $timestamp ? Carbon::parse($timestamp) : now();
+        $baseSlug = (Str::slug($title) ?: 'video').'-'.$dateTime->format('YmdHis');
         $slug = $baseSlug;
-        $suffix = 2;
+        $suffix = 1;
 
         while (static::query()
             ->where('slug', $slug)
