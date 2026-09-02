@@ -36,3 +36,11 @@ createInertiaApp({
             .mount(el)
     },
 })
+
+// Register the PWA service worker once the app is interactive. Only runs in
+// the browser (this entry is never SSR'd), guarded for older browsers.
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {})
+    })
+}
