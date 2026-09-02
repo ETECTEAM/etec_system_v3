@@ -449,22 +449,12 @@ function requestCertificate() {
             Group
           </Link>
           <button
-<<<<<<< HEAD
             class="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-500 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-amber-600 hover:shadow-md"
             type="button"
             @click="openCertificateRequestPage"
           >
             <FileText class="h-4 w-4" />
             {{ certificateRequest?.status === 'pending' ? 'Certificate Requested' : 'Request Certificate' }}
-=======
-            class="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-500 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-amber-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:opacity-80 dark:disabled:bg-gray-800 dark:disabled:text-gray-400"
-            type="button"
-            :disabled="hasCertificateRequest || certificateRequesting"
-            @click="requestCertificate"
-          >
-            <FileText class="h-4 w-4" />
-            {{ certificateRequestLabel }}
->>>>>>> 32208d4 (update_cirtificate)
           </button>
           <span
             v-if="certificateRequest"

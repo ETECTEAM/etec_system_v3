@@ -1,9 +1,11 @@
 <script setup>
-import { computed } from "vue";
-import { Head, Link } from "@inertiajs/vue3";
-import { ArrowRight, ClipboardCheck, Clock3, Users } from "@lucide/vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { Head, Link, router } from "@inertiajs/vue3";
+import { ArrowRight, ClipboardCheck, Clock3, Send, Users } from "@lucide/vue";
+import { useToast } from "vue-toastification";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
+import { getEcho } from "../../../echo";
 
 const props = defineProps({
   classes: {
@@ -12,14 +14,97 @@ const props = defineProps({
   },
 });
 
+const requestTarget = ref(null);
+const requestReason = ref("");
+const requestError = ref("");
+const classRows = ref(props.classes.map((classData) => ({ ...classData })));
+const toast = useToast();
+let attendanceChannels = [];
+
+watch(
+  () => props.classes,
+  (classes) => {
+    classRows.value = classes.map((classData) => ({ ...classData }));
+  },
+);
+
 // Sum of still-untracked students across every listed class — powers the
 // "N unresolved" badge in the table header.
 const totalUnresolvedStudents = computed(() =>
-  props.classes.reduce(
+  classRows.value.reduce(
     (sum, classData) => sum + Math.max(0, (classData.students ?? 0) - (classData.tracked_count ?? 0)),
     0,
   ),
 );
+
+function handleRequestUpdated(payload) {
+  if (payload?.status !== "approved") {
+    return;
+  }
+
+  classRows.value = classRows.value.map((classData) => {
+    if (Number(classData.id) !== Number(payload.study_class_id)) {
+      return classData;
+    }
+
+    return {
+      ...classData,
+      request_status: payload.status,
+      request_status_label: payload.status_label ?? "Approved",
+      can_request_retrack: false,
+      can_retrack: true,
+    };
+  });
+
+  toast.success("Pre-attendance approved. You can re-track now.");
+}
+
+function openRequest(classData) {
+  requestTarget.value = classData;
+  requestReason.value = "";
+  requestError.value = "";
+}
+
+function closeRequest() {
+  requestTarget.value = null;
+  requestReason.value = "";
+  requestError.value = "";
+}
+
+function submitRequest() {
+  const reason = requestReason.value.trim();
+
+  if (reason.length < 3) {
+    requestError.value = "Please input reason why.";
+    return;
+  }
+
+  router.post(`/dashboard/instructor/pre-attendance/classes/${requestTarget.value.id}/request`, { note: reason }, {
+    preserveScroll: true,
+    onSuccess: closeRequest,
+  });
+}
+
+onMounted(() => {
+  const echo = getEcho();
+
+  if (!echo) {
+    return;
+  }
+
+  attendanceChannels = classRows.value.map((classData) =>
+    echo
+      .private(`attendance.class.${classData.id}`)
+      .listen(".pre-attendance.request-updated", handleRequestUpdated),
+  );
+});
+
+onBeforeUnmount(() => {
+  attendanceChannels.forEach((channel) => {
+    channel?.stopListening(".pre-attendance.request-updated", handleRequestUpdated);
+  });
+  attendanceChannels = [];
+});
 </script>
 
 <template>
@@ -42,7 +127,7 @@ const totalUnresolvedStudents = computed(() =>
 
       </div>
 
-      <div v-if="classes.length" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div v-if="classRows.length" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="border-b border-slate-200 px-5 py-4 dark:border-gray-800">
           <div class="flex items-center justify-between gap-3">
             <div>
@@ -72,7 +157,7 @@ const totalUnresolvedStudents = computed(() =>
 
             <tbody>
               <tr
-                v-for="(classData, index) in classes"
+                v-for="(classData, index) in classRows"
                 :key="classData.id"
                 class="align-top transition hover:bg-slate-50/80 dark:hover:bg-gray-800/50"
               >
@@ -109,11 +194,20 @@ const totalUnresolvedStudents = computed(() =>
                       {{ $t("Re-Track") }}
                       <ArrowRight class="h-4 w-4" />
                     </Link>
+                    <button
+                      v-else-if="classData.can_request_retrack"
+                      type="button"
+                      class="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-600 px-4 text-sm font-bold text-white transition hover:bg-amber-500"
+                      @click="openRequest(classData)"
+                    >
+                      {{ $t("Request Admin") }}
+                      <Send class="h-4 w-4" />
+                    </button>
                     <span
                       v-else
                       class="inline-flex h-10 items-center rounded-lg bg-slate-100 px-4 text-sm font-bold text-slate-500 dark:bg-gray-800 dark:text-gray-400"
                     >
-                      {{ $t("Closed") }}
+                      {{ $t(classData.request_status_label ?? "Closed") }}
                     </span>
                   </div>
                 </td>
@@ -131,6 +225,32 @@ const totalUnresolvedStudents = computed(() =>
         <p class="mt-2 text-sm font-medium text-slate-500 dark:text-gray-400">
           {{ $t("Classes with unresolved pre-attendance students will appear here after the grace period ends.") }}
         </p>
+      </div>
+
+      <div v-if="requestTarget" class="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 px-4">
+        <div class="w-full max-w-lg rounded-lg border border-slate-200 bg-white p-5 shadow-xl dark:border-gray-800 dark:bg-gray-900">
+          <h2 class="text-lg font-black text-slate-950 dark:text-gray-100">{{ $t("Request pre-att approval") }}</h2>
+          <p class="mt-1 text-sm font-semibold text-slate-500 dark:text-gray-400">{{ requestTarget.title }}</p>
+
+          <label class="mt-5 block text-xs font-black uppercase tracking-[0.12em] text-slate-500 dark:text-gray-400">{{ $t("Reason") }}</label>
+          <textarea
+            v-model="requestReason"
+            rows="4"
+            class="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:focus:ring-amber-500/20"
+            :placeholder="$t('Input reason why you need to re-track')"
+          />
+          <p v-if="requestError" class="mt-2 text-xs font-bold text-rose-600 dark:text-rose-300">{{ $t(requestError) }}</p>
+
+          <div class="mt-5 flex justify-end gap-2">
+            <button type="button" class="h-10 rounded-lg border border-slate-200 px-4 text-sm font-bold text-slate-600 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800" @click="closeRequest">
+              {{ $t("Cancel") }}
+            </button>
+            <button type="button" class="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-600 px-4 text-sm font-bold text-white hover:bg-amber-500" @click="submitRequest">
+              {{ $t("Submit Request") }}
+              <Send class="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   </DashboardLayout>

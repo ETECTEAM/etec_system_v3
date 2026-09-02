@@ -60,13 +60,9 @@ class CertificateController extends Controller
                 'enrollments as total_students' => fn (Builder $query) => $query->where('enrollment_status', 'active'),
             ])
             ->whereIn('status', ['pre_end', 'ended', 'completed', 'active'])
-<<<<<<< HEAD
-            ->where(fn (Builder $query) => $this->applyCertificateClassTypeFilter($query, $type))
-=======
             ->when($type !== 'free', fn (Builder $query) => $this->whereRequestedCertificateClass($query, $type))
             ->when($type === 'normal', fn (Builder $query) => $this->whereRegularCertificateClass($query))
             ->when($type !== 'normal', fn (Builder $query) => $this->whereTypedCertificateClass($query, $type))
->>>>>>> 32208d4 (update_cirtificate)
             ->latest('id')
             ->get();
 

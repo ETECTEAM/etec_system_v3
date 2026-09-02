@@ -5,6 +5,7 @@ namespace App\Modules\Instructor\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\ClassCertificateRequest;
 use App\Models\AttendanceSession;
+use App\Models\ClassSession;
 use App\Models\Course;
 use App\Models\StudyClass;
 use App\Modules\Attendance\Actions\OverrideAttendanceRecord;
@@ -99,6 +100,8 @@ class InstructorClassController extends Controller
         $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
         $todaySession = $this->sessionBanner->handle($class->id);
         $certificateRequest = $this->certificateRequestData($class->id);
+        $requiresPreAttendanceApproval = (bool) ($todaySession['is_pre_attendance'] ?? false)
+            && ! $this->instructorClasses->canUsePreAttendanceApproval($request->user(), $class->id);
 
         return Inertia::render('backend/instructors/AttendanceRecord', [
             'classData' => $this->instructorClasses->presentClass($class),
@@ -107,8 +110,11 @@ class InstructorClassController extends Controller
             'certificateRequest' => $certificateRequest,
             'attendanceWindow' => $attendanceWindow,
             'todaySession' => $todaySession,
-            'canTrackAttendance' => $this->instructorClasses->canTrackAttendance($class, $attendanceWindow, $todaySession),
-            'trackAttendanceLabel' => $this->instructorClasses->trackAttendanceLabel($class, $attendanceWindow, $todaySession),
+            'canTrackAttendance' => ! $requiresPreAttendanceApproval
+                && $this->instructorClasses->canTrackAttendance($class, $attendanceWindow, $todaySession),
+            'trackAttendanceLabel' => $requiresPreAttendanceApproval
+                ? 'Request Admin'
+                : $this->instructorClasses->trackAttendanceLabel($class, $attendanceWindow, $todaySession),
         ]);
     }
 
@@ -117,6 +123,23 @@ class InstructorClassController extends Controller
         return Inertia::render('backend/instructors/PreAttendance', [
             'classes' => $this->instructorClasses->preAttendanceClasses($request->user()),
         ]);
+    }
+
+    public function requestPreAttendance(Request $request, string $studyClass): RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return back()->with('warning', 'Pre-attendance recovery can only be requested while the class is active.');
+        }
+
+        $validated = $request->validate([
+            'note' => ['required', 'string', 'min:3', 'max:1000'],
+        ]);
+
+        $this->instructorClasses->requestPreAttendance($request->user(), $class->id, $validated['note'] ?? null);
+
+        return back()->with('success', 'Pre-attendance request sent to admin.');
     }
 
     public function result(Request $request, string $studyClass): Response|BinaryFileResponse
@@ -164,6 +187,15 @@ class InstructorClassController extends Controller
         $todaySession = $this->sessionBanner->handle($class->id);
         $hasAttendance = $this->instructorClasses->hasAttendanceForDate($class->id, Carbon::today('Asia/Phnom_Penh'));
         $canCompletePreAttendance = (bool) ($todaySession['is_pre_attendance'] ?? false);
+        $hasPreAttendanceApproval = ! $canCompletePreAttendance
+            || $this->instructorClasses->canUsePreAttendanceApproval($request->user(), $class->id);
+
+        if ($canCompletePreAttendance && ! $hasPreAttendanceApproval) {
+            return redirect()
+                ->route('instructor.pre-attendance')
+                ->with('warning', 'Please request admin approval before re-tracking pre-attendance.');
+        }
+
         $isAutoRecorded = ($todaySession['status'] ?? null) === 'auto_recorded';
         $canOpenAttendance = ! $isAutoRecorded && ($allowTrackAnytime || $canCompletePreAttendance || (bool) ($attendanceWindow['can_submit'] ?? false));
         $attendanceSession = $qrAttendanceAvailable && $canOpenAttendance
@@ -184,7 +216,7 @@ class InstructorClassController extends Controller
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
             'attendanceLocked' => $isAutoRecorded || (! $canCorrectQrAttendance
-                && ! $canCompletePreAttendance
+                && (! $canCompletePreAttendance || ! $hasPreAttendanceApproval)
                 && ($hasAttendance
                     || ! ($attendanceWindow['can_submit'] ?? false)
                     || ($presentedAttendanceSession['status'] ?? null) === AttendanceSession::STATUS_STOPPED)),
@@ -273,6 +305,16 @@ class InstructorClassController extends Controller
 
         if (($class->class_status ?? null) !== 'active') {
             return back()->with('warning', 'Attendance can only be tracked while the class is active.');
+        }
+
+        $preAttendanceSession = ClassSession::query()
+            ->where('study_class_id', $class->id)
+            ->whereDate('session_date', Carbon::today('Asia/Phnom_Penh'))
+            ->whereIn('status', [ClassSession::STATUS_PRE_ATTENDANCE, ClassSession::STATUS_PARTIAL])
+            ->exists();
+
+        if ($preAttendanceSession && ! $this->instructorClasses->canUsePreAttendanceApproval($request->user(), $class->id)) {
+            return back()->with('warning', 'Please request admin approval before starting pre-attendance re-track.');
         }
 
         $this->attendanceQr->startSession($studyClassModel, $request->user());

@@ -4,6 +4,7 @@ namespace App\Modules\Instructor\Services;
 
 use App\Models\AttendanceSession;
 use App\Models\ClassSession;
+use App\Models\PreAttendanceRequest;
 use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
@@ -126,6 +127,7 @@ class InstructorClassService
                 ClassSession::STATUS_PARTIAL,
             ])
             ->addSelect([
+                'class_sessions.id as class_session_id',
                 'class_sessions.status as session_status',
                 'class_sessions.session_date',
                 'class_sessions.recorded_at',
@@ -139,6 +141,12 @@ class InstructorClassService
         }
 
         $classIds = $classes->pluck('id');
+        $requests = PreAttendanceRequest::query()
+            ->whereIn('study_class_id', $classIds)
+            ->whereDate('session_date', $today)
+            ->where('requested_by', $instructor->id)
+            ->get()
+            ->keyBy('study_class_id');
         $trackedCounts = DB::table('student_attendances')
             ->whereIn('study_class_id', $classIds)
             ->whereDate('attendance_date', $today)
@@ -173,13 +181,16 @@ class InstructorClassService
                 ->all());
 
         return $classes
-            ->map(function (stdClass $class) use ($trackedCounts, $unresolvedStudents): array {
+            ->map(function (stdClass $class) use ($requests, $trackedCounts, $unresolvedStudents): array {
                 $presentedClass = $this->presentClass($class);
                 $pendingStudents = $unresolvedStudents->get($class->id, []);
                 $trackedCount = (int) ($trackedCounts[$class->id] ?? 0);
+                $request = $requests->get($class->id);
+                $requestStatus = $request?->status;
 
                 return [
                     ...$presentedClass,
+                    'class_session_id' => (int) $class->class_session_id,
                     'session_status' => $class->session_status,
                     'session_status_label' => str_replace('_', ' ', ucfirst((string) $class->session_status)),
                     'session_date' => Carbon::parse($class->session_date)->format('Y-m-d'),
@@ -187,11 +198,53 @@ class InstructorClassService
                     'tracked_count' => $trackedCount,
                     'unresolved_count' => count($pendingStudents),
                     'unresolved_students' => $pendingStudents,
-                    'can_retrack' => strtolower((string) ($class->class_status ?? '')) === 'active',
+                    'request_status' => $requestStatus,
+                    'request_status_label' => $requestStatus ? ucfirst(str_replace('_', ' ', $requestStatus)) : null,
+                    'can_request_retrack' => strtolower((string) ($class->class_status ?? '')) === 'active'
+                        && ! in_array($requestStatus, [PreAttendanceRequest::STATUS_PENDING, PreAttendanceRequest::STATUS_APPROVED], true),
+                    'can_retrack' => strtolower((string) ($class->class_status ?? '')) === 'active'
+                        && $requestStatus === PreAttendanceRequest::STATUS_APPROVED,
                 ];
             })
             ->filter(fn (array $class) => $class['unresolved_count'] > 0)
             ->values();
+    }
+
+    public function requestPreAttendance(User $instructor, int $studyClassId, ?string $note = null): PreAttendanceRequest
+    {
+        $today = Carbon::today('Asia/Phnom_Penh')->toDateString();
+        $session = ClassSession::query()
+            ->where('study_class_id', $studyClassId)
+            ->whereDate('session_date', $today)
+            ->whereIn('status', [
+                ClassSession::STATUS_PRE_ATTENDANCE,
+                ClassSession::STATUS_PARTIAL,
+            ])
+            ->first();
+
+        if (! $session) {
+            throw ValidationException::withMessages([
+                'request' => 'This class is not in pre-attendance recovery.',
+            ]);
+        }
+
+        return PreAttendanceRequest::query()->updateOrCreate(
+            [
+                'study_class_id' => $studyClassId,
+                'session_date' => $today,
+                'requested_by' => $instructor->id,
+            ],
+            [
+                'class_session_id' => $session->id,
+                'session_status' => $session->status,
+                'status' => PreAttendanceRequest::STATUS_PENDING,
+                'note' => $note,
+                'requested_at' => now(),
+                'reviewed_by' => null,
+                'reviewed_at' => null,
+                'completed_at' => null,
+            ],
+        );
     }
 
     public function findForInstructor(User $instructor, int $studyClassId): stdClass
@@ -401,10 +454,19 @@ class InstructorClassService
                 ClassSession::STATUS_PARTIAL,
             ], true);
             $allowTrackAnytime = $this->allowTrackAnytime();
+            $approvedPreAttendanceRequest = $canCompletePreAttendance
+                ? $this->approvedPreAttendanceRequest($instructor, $studyClassId, $attendanceDate)
+                : null;
 
             if ($session && $session->status === ClassSession::STATUS_AUTO_RECORDED) {
                 throw ValidationException::withMessages([
                     'records' => 'The system already auto-recorded this class.',
+                ]);
+            }
+
+            if ($canCompletePreAttendance && ! $approvedPreAttendanceRequest) {
+                throw ValidationException::withMessages([
+                    'records' => 'Pre-attendance recovery needs admin approval before re-track.',
                 ]);
             }
 
@@ -508,6 +570,13 @@ class InstructorClassService
                 ]);
             }
 
+            if ($approvedPreAttendanceRequest) {
+                $approvedPreAttendanceRequest->update([
+                    'status' => PreAttendanceRequest::STATUS_COMPLETED,
+                    'completed_at' => now(),
+                ]);
+            }
+
             if ($activeQrSession && ($data['stop_session'] ?? false)) {
                 $activeQrSession->update([
                     'status' => AttendanceSession::STATUS_STOPPED,
@@ -516,6 +585,23 @@ class InstructorClassService
                 ]);
             }
         });
+    }
+
+    public function canUsePreAttendanceApproval(User $instructor, int $studyClassId, Carbon|string|null $date = null): bool
+    {
+        $attendanceDate = Carbon::parse($date ?? Carbon::today('Asia/Phnom_Penh'))->toDateString();
+
+        return (bool) $this->approvedPreAttendanceRequest($instructor, $studyClassId, $attendanceDate);
+    }
+
+    private function approvedPreAttendanceRequest(User $instructor, int $studyClassId, Carbon|string $date): ?PreAttendanceRequest
+    {
+        return PreAttendanceRequest::query()
+            ->where('study_class_id', $studyClassId)
+            ->where('requested_by', $instructor->id)
+            ->whereDate('session_date', Carbon::parse($date)->toDateString())
+            ->where('status', PreAttendanceRequest::STATUS_APPROVED)
+            ->first();
     }
 
     public function attendanceWindow(int $studyClassId, Carbon|string|null $attendanceDate = null): array

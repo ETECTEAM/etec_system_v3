@@ -4,7 +4,9 @@ namespace Tests\Unit\Attendance;
 
 use App\Models\ClassSession;
 use App\Models\GradingSetting;
+use App\Models\PreAttendanceRequest;
 use App\Models\StudentAttendance;
+use App\Models\User;
 use App\Modules\Attendance\Actions\FinalizeAutoRecordedSession;
 use App\Modules\Instructor\Services\InstructorClassService;
 use Database\Seeders\Core\RoleSeeder;
@@ -268,6 +270,18 @@ class InstructorClassServiceTest extends TestCase
             'source' => StudentAttendance::SOURCE_QR,
         ]);
 
+        PreAttendanceRequest::create([
+            'study_class_id' => $class->id,
+            'class_session_id' => $session->id,
+            'requested_by' => $class->teacher_id,
+            'reviewed_by' => User::factory()->create()->id,
+            'session_date' => '2026-08-21',
+            'session_status' => ClassSession::STATUS_PARTIAL,
+            'status' => PreAttendanceRequest::STATUS_APPROVED,
+            'requested_at' => now(),
+            'reviewed_at' => now(),
+        ]);
+
         $this->service->saveAttendance($class->teacher, $class->id, [
             'attendance_date' => '2026-08-21',
             'records' => [
@@ -297,6 +311,40 @@ class InstructorClassServiceTest extends TestCase
             'student_enrollment_id' => $unresolvedEnrollment->id,
             'status' => 'absent',
             'source' => StudentAttendance::SOURCE_MANUAL,
+        ]);
+        $this->assertDatabaseHas('pre_attendance_requests', [
+            'study_class_id' => $class->id,
+            'requested_by' => $class->teacher_id,
+            'status' => PreAttendanceRequest::STATUS_COMPLETED,
+        ]);
+    }
+
+    public function test_pre_attendance_completion_requires_admin_approval(): void
+    {
+        $now = Carbon::parse('2026-08-21 09:30:00', 'Asia/Phnom_Penh');
+        Carbon::setTestNow($now);
+
+        $class = $this->makeStudyClass();
+        $student = $this->makeStudent();
+        $enrollment = $this->enroll($class, $student);
+        $session = $this->sessionFor(Carbon::parse('2026-08-21 09:00:00', 'Asia/Phnom_Penh'), 20, ['class' => $class]);
+        $session->update([
+            'status' => ClassSession::STATUS_PRE_ATTENDANCE,
+            'recorded_at' => Carbon::parse('2026-08-21 09:20:00', 'Asia/Phnom_Penh'),
+            'grace_minutes_used' => 20,
+        ]);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Pre-attendance recovery needs admin approval before re-track.');
+
+        $this->service->saveAttendance($class->teacher, $class->id, [
+            'attendance_date' => '2026-08-21',
+            'records' => [[
+                'student_id' => $student->id,
+                'enrollment_id' => $enrollment->id,
+                'status' => 'present',
+                'note' => null,
+            ]],
         ]);
     }
 
