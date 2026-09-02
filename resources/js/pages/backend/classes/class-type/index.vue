@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useI18n } from '@/i18n'
-import { useToast } from 'vue-toastification'
+import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
 const { confirm } = useConfirm()

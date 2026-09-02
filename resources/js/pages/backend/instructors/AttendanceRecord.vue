@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Head, Link, router } from "@inertiajs/vue3";
 import axios from "axios";
-import { useToast } from "vue-toastification";
+import { useToast } from "@/composables/useToast";
 import {
   ArrowRightLeft,
   Bot,

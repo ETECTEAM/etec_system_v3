@@ -217,7 +217,7 @@ import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from '@
 import { Pagination } from '@/components/ui/pagination';
 import { SelectSearch } from '@/components/ui/select-search';
 import { useI18n } from '@/i18n';
-import { useToast } from 'vue-toastification';
+import { useToast } from '@/composables/useToast';
 
 const { t } = useI18n();
 const toast = useToast();

@@ -2,7 +2,7 @@
 import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import { ref, computed, onMounted } from 'vue'
-import { useToast } from 'vue-toastification'
+import { useToast } from '@/composables/useToast'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'

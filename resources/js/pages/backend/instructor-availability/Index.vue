@@ -1,7 +1,7 @@
 <script setup>
 import axios from 'axios'
 import { computed, ref } from 'vue'
-import { useToast } from 'vue-toastification'
+import { useToast } from '@/composables/useToast'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import { Card } from '@/components/ui/card'
 import { PageHero } from '@/components/ui/page-hero'

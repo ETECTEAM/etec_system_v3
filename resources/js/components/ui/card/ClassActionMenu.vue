@@ -6,7 +6,6 @@ import { useI18n } from "@/i18n";
 import { useConfirm } from "@/composables/useConfirm";
 import {
   MoreVertical,
-  Eye,
   SquarePen,
   Copy,
   UserPlus,
@@ -108,19 +107,9 @@ function onMenuItemClick(item) {
 
 const menus = computed(() => [
   {
-    label: "View Class",
-    icon: Eye,
-    action: () => router.get(props.viewUrl ?? `/dashboard/enroll/view/${props.classData.id}`),
-  },
-  {
     label: "Edit Class",
     icon: SquarePen,
     action: () => router.get(`/dashboard/enroll/edit/${props.classData.id}`),
-  },
-  {
-    label: "Copy Class",
-    icon: Copy,
-    action: () => router.get(`/dashboard/enroll/copy/${props.classData.id}`),
   },
   {
     label: "Register Student",
@@ -134,6 +123,11 @@ const menus = computed(() => [
     action: () => { showQr.value = true; open.value = false; },
     disabled: lockedStudentActions.value,
   },
+  {
+    label: "Copy Class",
+    icon: Copy,
+    action: () => router.get(`/dashboard/enroll/copy/${props.classData.id}`),
+  },
   { label: "Switch Teacher", icon: UserCog, action: () => window.alert("Switch teacher is not available yet.") },
 ]
   .filter((item) => !props.hiddenItems.includes(item.label))
@@ -141,7 +135,7 @@ const menus = computed(() => [
   .concat(props.extraItems.filter((item) => !isAdminUser.value || item.label !== "Collapse Class")));
 
 const actions = computed(() => [
-  { label: "Pre-End", icon: CirclePause, class: "text-yellow-600", action: async () => {
+  { label: "Pre-End", icon: CirclePause, textClass: "text-amber-700 dark:text-amber-400", iconClass: "text-amber-500 dark:text-amber-400", action: async () => {
     const ok = await confirm({
       title: t("Pre-End Class?"),
       message: t("This will lock attendance tracking and prevent new students from joining. Are you sure you want to pre-end this class?"),
@@ -152,7 +146,7 @@ const actions = computed(() => [
     if (!ok) return;
     updateStatus("inactive");
   }},
-  { label: "End", icon: CircleX, class: "text-red-600", action: async () => {
+  { label: "End", icon: CircleX, textClass: "text-red-600 dark:text-red-400", iconClass: "text-red-500 dark:text-red-400", action: async () => {
     const ok = await confirm({
       title: t("End Class?"),
       message: t("This will permanently end the class and lock all activity. Are you sure you want to end this class?"),
@@ -197,41 +191,40 @@ const actions = computed(() => [
       <MoreVertical class="h-5 w-5" />
     </button>
 
-    <div v-if="open" class="absolute right-0 z-50 mt-2 w-56 rounded-xl shadow-2xl bg-white py-2 dark:bg-gray-800 dark:ring-1 dark:ring-gray-700">
-      <!-- Normal menu -->
+    <div v-if="open" class="absolute right-0 z-[60] mt-1 w-52 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800">
+      <!-- Normal actions -->
       <button
         v-for="item in menus"
         :key="item.label"
         @click="onMenuItemClick(item)"
         :disabled="item.disabled"
         :class="[
-          'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors',
+          'flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors',
           item.disabled
             ? 'cursor-not-allowed text-slate-400 dark:text-gray-500'
             : 'text-slate-700 hover:bg-slate-50 dark:text-gray-300 dark:hover:bg-gray-700',
         ]"
       >
-        <component :is="item.icon" class="h-4 w-4" />
+        <span class="flex w-5 shrink-0 justify-center">
+          <component :is="item.icon" class="h-4 w-4" />
+        </span>
         {{ t(item.label) }}
       </button>
 
-      <div v-if="actions.length" class="my-2 border-t dark:border-gray-700"></div>
+      <div v-if="actions.length" class="mx-3 my-1.5 border-t border-slate-200 dark:border-gray-700"></div>
 
-      <!-- Pre-End & End -->
-      <div v-if="actions.length" class="grid grid-cols-2 gap-2 px-3">
-        <button
-          v-for="item in actions"
-          :key="item.label"
-          @click="item.action?.()"
-          :class="[
-            'flex items-center justify-center gap-1 rounded-lg py-2 hover:bg-slate-100 dark:hover:bg-gray-700',
-            item.class,
-          ]"
-        >
-          <component :is="item.icon" class="h-4 w-4" />
-          {{ t(item.label) }}
-        </button>
-      </div>
+      <!-- Lifecycle actions: Pre-End (warning) and End (destructive) -->
+      <button
+        v-for="item in actions"
+        :key="item.label"
+        @click="item.action?.()"
+        class="flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-gray-700"
+      >
+        <span class="flex w-5 shrink-0 justify-center">
+          <component :is="item.icon" :class="['h-4 w-4', item.iconClass]" />
+        </span>
+        <span :class="['font-medium', item.textClass]">{{ t(`${item.label} Class`) }}</span>
+      </button>
     </div>
 
     <Teleport to="body">

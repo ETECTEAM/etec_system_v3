@@ -4,7 +4,7 @@ import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOp
 import { ref, computed } from "vue";
 import { QrcodeCanvas } from "qrcode.vue";
 import axios from "axios";
-import { useToast } from "vue-toastification";
+import { useToast } from "@/composables/useToast";
 import NotificationBadge from "../notification-badge/NotificationBadge.vue";
 import ClassActionMenu from "./ClassActionMenu.vue";
 import CollapseClassModal from "./CollapseClassModal.vue";

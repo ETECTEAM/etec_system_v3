@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { router } from "@inertiajs/vue3";
 import axios from "axios";
 import { Search, RotateCcw, Plus, LayoutGrid, Table2, UserPlus, UserCheck, Printer, Pencil, ArrowRightLeft, X, Check } from "@lucide/vue";
-import { useToast } from "vue-toastification";
+import { useToast } from "@/composables/useToast";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
 import ClassTable from "./components/ClassTable.vue";
@@ -233,6 +233,8 @@ async function printReceipt(row) {
     fee_amount: row.fee_amount,
     document_fee_amount: row.document_fee_amount,
     enrollment_id: row.enrollment_id,
+    // Drives the "scan for attendance" QR on the receipt (ReceiptPrint.vue).
+    public_token: row.public_token,
   };
 
   await nextTick();

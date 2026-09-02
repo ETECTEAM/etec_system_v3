@@ -673,5 +673,9 @@ export const backendFinalTranslations = {
     "Download PDF": "ទាញយក PDF",
     "No ended classes yet": "មិនទាន់មានថ្នាក់រៀនដែលបានបញ្ចប់",
     "A class shows up here once it has been ended.": "ថ្នាក់រៀននឹងបង្ហាញនៅទីនេះ បន្ទាប់ពីវាត្រូវបានបញ្ចប់។",
+    "Success": "ជោគជ័យ",
+    "Error": "កំហុស",
+    "Warning": "ព្រមាន",
+    "Notice": "ដំណឹង",
   },
 }

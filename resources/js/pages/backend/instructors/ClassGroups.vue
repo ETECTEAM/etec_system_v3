@@ -2,7 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { Head, Link } from "@inertiajs/vue3";
 import axios from "axios";
-import { useToast } from "vue-toastification";
+import { useToast } from "@/composables/useToast";
 import { Save, RefreshCw, Users, UserMinus, Search, Shuffle, MousePointerClick } from "@lucide/vue";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";

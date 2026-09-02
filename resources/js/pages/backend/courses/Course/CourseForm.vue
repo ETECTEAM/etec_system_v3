@@ -240,7 +240,7 @@
 import { ref, computed, watch } from 'vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { useToast } from 'vue-toastification';
+import { useToast } from '@/composables/useToast';
 import { ChevronDown, ChevronUp } from '@lucide/vue';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 
