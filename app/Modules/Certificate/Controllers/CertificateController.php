@@ -333,7 +333,7 @@ class CertificateController extends Controller
                 ->where('type_name', 'like', '%internship%')
                 ->orWhere('type_name', 'like', '%intership%')
             )
-            ->whereDoesntHave('course.track.category', fn (Builder $category) => $category
+            ->whereDoesntHave('course.track.subCategory.category', fn (Builder $category) => $category
                 ->where('name', 'like', '%internship%')
                 ->orWhere('name', 'like', '%intership%')
             )
@@ -361,7 +361,7 @@ class CertificateController extends Controller
                     ->orWhereHas('classType', fn (Builder $classType) => $classType
                         ->where('type_name', 'like', "%{$keyword}%")
                     )
-                    ->orWhereHas('course.track.category', fn (Builder $category) => $category
+                    ->orWhereHas('course.track.subCategory.category', fn (Builder $category) => $category
                         ->where('name', 'like', "%{$keyword}%")
                     )
                     ->orWhereHas('course.track', fn (Builder $track) => $track
