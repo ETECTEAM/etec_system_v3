@@ -127,11 +127,8 @@ function attendanceItem(classData) {
   ];
 }
 
-function requestCertificate(classData) {
-  router.post(`/dashboard/instructor/classes/${classData.id}/certificate-request`, {}, {
-    preserveScroll: true,
-    onSuccess: () => router.reload({ only: ["classes"], preserveScroll: true }),
-  });
+function openCertificateRequest(classData) {
+  router.get(`/dashboard/instructor/classes/${classData.id}/certificate-request`);
 }
 
 function certificateItem(classData) {
@@ -143,7 +140,7 @@ function certificateItem(classData) {
       label: hasRequest ? "Certificate Requested" : "Request Certificate",
       icon: Award,
       disabled: hasRequest,
-      action: () => requestCertificate(classData),
+      action: () => openCertificateRequest(classData),
     },
   ];
 }

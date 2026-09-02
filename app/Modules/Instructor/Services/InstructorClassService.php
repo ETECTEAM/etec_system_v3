@@ -860,7 +860,7 @@ class InstructorClassService
                 DB::raw("group_concat(users.name separator ', ') as co_instructor_names"),
             ]);
 
-        $certificateRequests = DB::table('certificate_class_requests')
+        $certificateRequests = DB::table('class_certificate_requests')
             ->where('status', 'pending')
             ->groupBy('study_class_id')
             ->select([

@@ -85,6 +85,90 @@
     "websiteManagement": "Website Management",
     "workSchedules": "Work Schedules"
   },
+  "certificatePage": {
+    "actions": {
+      "back": "Back",
+      "close": "Close",
+      "create": "Create",
+      "createCertificate": "Create Certificate",
+      "next": "Next",
+      "print": "Print",
+      "printAll": "Print All",
+      "saveCourse": "Save Course",
+      "startPrint": "Start Print",
+      "startPrintAll": "Start Print All",
+      "viewStudents": "View Students"
+    },
+    "filters": {
+      "all": "All",
+      "select": "Select"
+    },
+    "form": {
+      "course": "Course / COURSE",
+      "grantedDate": "Granted Date / GRANTED DATE",
+      "savedCourses": "Saved Courses",
+      "selectCourse": "Select Course",
+      "studentName": "Student Name / STUDENT NAME"
+    },
+    "free": {
+      "course": "Course",
+      "endDate": "Course End Date",
+      "selectCourse": "Select Course",
+      "studentNameEnglish": "Student Name in English"
+    },
+    "modal": {
+      "certificatesReady": ":count certificates ready",
+      "editHint": "Change only name, course and granted date.",
+      "editInfo": "Edit Information",
+      "preview": "Preview",
+      "printCertificate": "Print Certificate",
+      "singleCertificate": "Single certificate",
+      "studentsReady": "All students ready to print certificates"
+    },
+    "sections": {
+      "classInfo": "Class Information",
+      "classInfoKh": "Class Information",
+      "courseType": "Course Type :category",
+      "studentList": "Student List",
+      "studentListKh": "Student List"
+    },
+    "states": {
+      "loadingData": "Loading data...",
+      "loadingStudents": "Loading students...",
+      "noClasses": "No classes found for this certificate type.",
+      "openRegularPage": "Please open Regular Certificate for the completed dynamic page."
+    },
+    "stats": {
+      "totalCourseFinish": "Total Course Finish",
+      "totalDone": "Total Certificate Done",
+      "totalRequested": "Total Student Request Certificate"
+    },
+    "studentsCount": ":count students",
+    "table": {
+      "actions": "Actions",
+      "course": "Course",
+      "gender": "Gender",
+      "no": "No",
+      "phone": "Phone",
+      "remainingStudents": "Remaining Students",
+      "studentName": "Student Name",
+      "students": "Students",
+      "teacher": "Teacher",
+      "time": "Time"
+    },
+    "titles": {
+      "free": "Free Certificate",
+      "internship": "Internship Certificate",
+      "meal": "Meal Certificate",
+      "normal": "Regular Certificate",
+      "scholarship": "Scholarship Certificate"
+    },
+    "validation": {
+      "courseRequired": "Course is required!",
+      "endDateRequired": "End date is required!",
+      "fullNameRequired": "Full Name is required!"
+    }
+  },
   "notifications": {
     "empty": "No notifications yet.",
     "title": "Notifications"

@@ -104,7 +104,7 @@ class StudyClass extends Model
 
     public function certificateRequests()
     {
-        return $this->hasMany(CertificateClassRequest::class);
+        return $this->hasMany(ClassCertificateRequest::class);
     }
 
     /**

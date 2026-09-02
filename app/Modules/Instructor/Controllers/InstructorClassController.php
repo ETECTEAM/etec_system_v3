@@ -551,15 +551,7 @@ class InstructorClassController extends Controller
     {
         $typeName = strtolower((string) ($class->class_type_name ?? ''));
 
-        if (str_contains($typeName, 'free')) {
-            return 'free';
-        }
-
-        if (str_contains($typeName, 'scholar')) {
-            return 'scholarship';
-        }
-
-        if (str_contains($typeName, 'internship')) {
+        if (str_contains($typeName, 'internship') || str_contains($typeName, 'intership')) {
             return 'internship';
         }
 
