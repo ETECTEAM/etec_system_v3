@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class StudyClass extends Model
 {
@@ -20,6 +21,7 @@ class StudyClass extends Model
 
     protected $fillable = [
         'title',
+        'slug',
         'course_id',
         'lesson_id',
         'teacher_id',
@@ -162,6 +164,23 @@ class StudyClass extends Model
     public function classTypeValue(): string
     {
         return $this->isOnline() ? 'online' : 'physical';
+    }
+
+    public static function uniqueSlug(string $title, ?int $ignoreId = null): string
+    {
+        $baseSlug = Str::slug($title) ?: 'class';
+        $slug = $baseSlug;
+        $suffix = 2;
+
+        while (static::query()
+            ->where('slug', $slug)
+            ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
+            ->exists()) {
+            $slug = "{$baseSlug}-{$suffix}";
+            $suffix++;
+        }
+
+        return $slug;
     }
 
     /**

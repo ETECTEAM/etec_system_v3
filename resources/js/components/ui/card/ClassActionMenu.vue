@@ -58,7 +58,7 @@ const page = usePage();
 const roles = computed(() => page.props.auth?.roles ?? []);
 const isAdminUser = computed(() => roles.value.includes("super_admin") || roles.value.includes("admin"));
 const isInstructor = computed(() => roles.value.includes("instructor") && !isAdminUser.value);
-const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.id}`);
+const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.slug ?? props.classData.id}`);
 
 function closeDropdown() {
   open.value = false;
@@ -236,7 +236,7 @@ const actions = computed(() => [
 
     <Teleport to="body">
       <div v-if="showQr" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/50 px-4" @click.self="showQr = false">
-        <div class="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl dark:bg-gray-900">
+        <div class="w-full max-w-xl rounded-2xl bg-white p-6 text-center shadow-xl dark:bg-gray-900">
           <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">
             {{ t('Generate QR') }}
           </h3>
@@ -245,7 +245,7 @@ const actions = computed(() => [
           </p>
 
           <div class="mt-5 inline-flex rounded-2xl bg-white p-4 shadow-inner">
-            <QrcodeCanvas :value="qrUrl" :size="220" level="H" />
+            <QrcodeCanvas :value="qrUrl" :size="450" level="H" class="mx-auto block" />
           </div>
 
           <a :href="qrUrl" target="_blank" class="mt-4 block break-all text-xs text-blue-700 hover:underline dark:text-blue-400">

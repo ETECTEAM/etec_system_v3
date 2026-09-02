@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class StudentEnrollment extends Model
 {
@@ -12,6 +13,7 @@ class StudentEnrollment extends Model
     protected $table = 'student_enrollments';
 
     protected $fillable = [
+        'public_token',
         'study_class_id',
         'student_id',
         'course_id',
@@ -49,6 +51,22 @@ class StudentEnrollment extends Model
             'no_instructor' => 'boolean',
             'no_room' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (StudentEnrollment $enrollment): void {
+            $enrollment->public_token ??= static::uniquePublicToken();
+        });
+    }
+
+    public static function uniquePublicToken(): string
+    {
+        do {
+            $token = Str::random(40);
+        } while (static::query()->where('public_token', $token)->exists());
+
+        return $token;
     }
 
     public function studyClass()

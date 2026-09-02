@@ -29,8 +29,11 @@ class UpdateStudyClass
                 $data['room_id'] = null;
             }
 
+            $title = $course?->title ?? $data['title'];
+
             $studyClass->update([
-                'title' => $course?->title ?? $data['title'],
+                'title' => $title,
+                'slug' => $studyClass->slug ?: StudyClass::uniqueSlug($title, $studyClass->id),
                 'course_id' => $data['course_id'],
                 'lesson_id' => $data['lesson_id'] ?? null,
                 'teacher_id' => $data['teacher_id'] ?? null,

@@ -18,7 +18,7 @@ class PublicStudentAttendanceController extends Controller
     {
         $enrollment->load([
             'student:id,full_name,gender',
-            'studyClass:id,title,course_id,term_id,time_id',
+            'studyClass:id,title,slug,course_id,term_id,time_id',
             'studyClass.course:id,title',
             'studyClass.term:id,term_name',
             'studyClass.time:id,time_name',

@@ -29,7 +29,7 @@ const form = useForm({
   phone: "",
 });
 
-const joinUrl = computed(() => `/join-class/${props.classData.id}`);
+const joinUrl = computed(() => `/join-class/${props.classData.slug ?? props.classData.id}`);
 
 function submit() {
   if (props.isLocked) {

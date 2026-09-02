@@ -293,10 +293,10 @@ class PublicApiService
         ];
     }
 
-    public function publicVideoDetail(int $id): array
+    public function publicVideoDetail(string $slug): array
     {
         $video = $this->videosQuery()
-            ->where('id', $id)
+            ->where('slug', $slug)
             ->where('is_active', true)
             ->first();
 
@@ -351,6 +351,7 @@ class PublicApiService
             ->select([
                 'id',
                 'title',
+                'slug',
                 'description',
                 'video_path',
                 'thumbnail_path',
@@ -453,6 +454,7 @@ class PublicApiService
     {
         return [
             'id' => $video->id,
+            'slug' => $video->slug,
             'title' => $video->title,
             'description' => $video->description,
             'video_url' => $this->storageUrl($video->video_path, $video->updated_at),

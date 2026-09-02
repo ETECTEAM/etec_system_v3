@@ -10,4 +10,4 @@ Route::get('/attendance/qr/{token}', [AttendanceQrController::class, 'show'])->n
 Route::post('/attendance/qr/{token}', [AttendanceQrController::class, 'store'])->middleware('throttle:attendance-qr-submit')->name('frontend.attendance.qr.store');
 
 // Public, read-only attendance summary a family member reaches by scanning the QR code on a student's enrolment receipt.
-Route::get('/student-attendance/{enrollment}', [PublicStudentAttendanceController::class, 'show'])->middleware('throttle:60,1')->name('frontend.student-attendance.show');
+Route::get('/student-attendance/{enrollment:public_token}', [PublicStudentAttendanceController::class, 'show'])->middleware('throttle:60,1')->name('frontend.student-attendance.show');
