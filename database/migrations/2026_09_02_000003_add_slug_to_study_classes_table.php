@@ -14,7 +14,7 @@ return new class extends Migration
         });
 
         StudyClass::query()
-            ->select(['id', 'title', 'slug'])
+            ->select(['id', 'title', 'slug', 'created_at'])
             ->orderBy('id')
             ->get()
             ->each(function (StudyClass $studyClass): void {
@@ -23,7 +23,7 @@ return new class extends Migration
                 }
 
                 $studyClass->forceFill([
-                    'slug' => StudyClass::uniqueSlug($studyClass->title, $studyClass->id),
+                    'slug' => StudyClass::uniqueSlug($studyClass->title, $studyClass->id, $studyClass->created_at),
                 ])->save();
             });
     }

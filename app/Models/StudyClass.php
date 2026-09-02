@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 class StudyClass extends Model
@@ -166,11 +167,12 @@ class StudyClass extends Model
         return $this->isOnline() ? 'online' : 'physical';
     }
 
-    public static function uniqueSlug(string $title, ?int $ignoreId = null): string
+    public static function uniqueSlug(string $title, ?int $ignoreId = null, mixed $timestamp = null): string
     {
-        $baseSlug = Str::slug($title) ?: 'class';
+        $dateTime = $timestamp ? Carbon::parse($timestamp) : now();
+        $baseSlug = (Str::slug($title) ?: 'class').'-'.$dateTime->format('YmdHis');
         $slug = $baseSlug;
-        $suffix = 2;
+        $suffix = 1;
 
         while (static::query()
             ->where('slug', $slug)

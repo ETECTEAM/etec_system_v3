@@ -14,7 +14,7 @@ return new class extends Migration
         });
 
         WebsiteVideo::query()
-            ->select(['id', 'title', 'slug'])
+            ->select(['id', 'title', 'slug', 'created_at'])
             ->orderBy('id')
             ->get()
             ->each(function (WebsiteVideo $video): void {
@@ -23,7 +23,7 @@ return new class extends Migration
                 }
 
                 $video->forceFill([
-                    'slug' => WebsiteVideo::uniqueSlug($video->title, $video->id),
+                    'slug' => WebsiteVideo::uniqueSlug($video->title, $video->id, $video->created_at),
                 ])->save();
             });
     }
