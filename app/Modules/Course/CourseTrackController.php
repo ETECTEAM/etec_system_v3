@@ -3,6 +3,7 @@
 
 namespace App\Modules\Course;
 
+use App\Models\ClassType;
 use App\Models\CourseTrack;
 use App\Models\SubCategory;
 use Illuminate\Http\Request;
@@ -33,7 +34,8 @@ class CourseTrackController extends Controller
         $subCategories = SubCategory::where('status', 'active')->get();
         return Inertia::render('backend/courses/Track/TrackForm', [
             'track' => null,
-            'subCategories' => $subCategories
+            'subCategories' => $subCategories,
+            'classTypes' => ClassType::where('is_active', true)->orderBy('type_name')->get(['class_type_id', 'type_name']),
         ]);
     }
 
@@ -44,6 +46,7 @@ class CourseTrackController extends Controller
     {
         $validated = $request->validate([
             'sub_category_id' => 'required|exists:sub_categories,id',
+            'class_type_id' => 'nullable|integer|exists:class_type,class_type_id',
             'name' => 'required|string|max:255|unique:course_tracks,name',
             'description' => 'nullable|string',
             'status' => 'nullable|in:active,inactive'
@@ -51,6 +54,7 @@ class CourseTrackController extends Controller
 
         CourseTrack::create([
             'sub_category_id' => $validated['sub_category_id'],
+            'class_type_id' => $request->filled('class_type_id') ? (int) $validated['class_type_id'] : null,
             'name' => $validated['name'],
             'slug' => Str::slug($validated['name']),
             'description' => $validated['description'] ?? null,
@@ -79,7 +83,8 @@ class CourseTrackController extends Controller
         $subCategories = SubCategory::where('status', 'active')->get();
         return Inertia::render('backend/courses/Track/TrackForm', [
             'track' => $track,
-            'subCategories' => $subCategories
+            'subCategories' => $subCategories,
+            'classTypes' => ClassType::where('is_active', true)->orderBy('type_name')->get(['class_type_id', 'type_name']),
         ]);
     }
 
@@ -90,6 +95,7 @@ class CourseTrackController extends Controller
     {
         $validated = $request->validate([
             'sub_category_id' => 'required|exists:sub_categories,id',
+            'class_type_id' => 'nullable|integer|exists:class_type,class_type_id',
             'name' => 'required|string|max:255|unique:course_tracks,name,' . $track->id,
             'description' => 'nullable|string',
             'status' => 'nullable|in:active,inactive'
@@ -97,6 +103,7 @@ class CourseTrackController extends Controller
 
         $track->update([
             'sub_category_id' => $validated['sub_category_id'],
+            'class_type_id' => $request->filled('class_type_id') ? (int) $validated['class_type_id'] : null,
             'name' => $validated['name'],
             'slug' => Str::slug($validated['name']),
             'description' => $validated['description'] ?? null,

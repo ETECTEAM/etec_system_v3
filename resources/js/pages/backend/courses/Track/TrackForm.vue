@@ -61,6 +61,23 @@
                         </p>
                     </div>
 
+                    <!-- Class Type mapping (optional) -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5 dark:text-gray-300">
+                            {{ $t('Class Type') }}
+                        </label>
+                        <select v-model="form.class_type_id" class="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white">
+                            <option value="">{{ $t('Default (Physical / Scholarship / Online)') }}</option>
+                            <option v-for="classType in classTypes" :key="classType.class_type_id" :value="classType.class_type_id">
+                                {{ classType.type_name }}
+                            </option>
+                        </select>
+                        <p class="mt-1.5 text-xs text-slate-500 dark:text-gray-400">
+                            {{ $t("Enroll Config shows only this Class Type's schedules for this track's courses.") }}
+                        </p>
+                        <p v-if="errors.class_type_id" class="mt-1.5 text-sm text-red-600 dark:text-red-400">{{ errors.class_type_id }}</p>
+                    </div>
+
                     <!-- Name -->
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1.5 dark:text-gray-300">
@@ -156,6 +173,10 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
+    classTypes: {
+        type: Array,
+        default: () => []
+    },
     errors: {
         type: Object,
         default: () => ({})
@@ -172,6 +193,7 @@ const generateSlug = (name) => {
 
 const form = useForm({
     sub_category_id: props.track?.sub_category_id || '',
+    class_type_id: props.track?.class_type_id || '',
     name: props.track?.name || '',
     slug: props.track?.slug || '',
     description: props.track?.description || '',
