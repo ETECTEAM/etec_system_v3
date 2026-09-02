@@ -143,6 +143,13 @@ class InstructorClassController extends Controller
         return back()->with('success', 'Pre-attendance request sent to admin.');
     }
 
+    public function history(Request $request): Response
+    {
+        return Inertia::render('backend/instructors/ClassHistory', [
+            'classes' => $this->instructorClasses->endedClasses($request->user()),
+        ]);
+    }
+
     public function result(Request $request, string $studyClass): Response|HttpResponse
     {
         $class = $this->instructorClasses->findResultForInstructor($request->user(), (int) $studyClass);

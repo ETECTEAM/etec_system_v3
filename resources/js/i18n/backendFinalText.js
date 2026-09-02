@@ -667,5 +667,11 @@ export const backendFinalTranslations = {
     "No Class Type mapped — showing default schedules": "មិនទាន់កំណត់ប្រភេទថ្នាក់ — កំពុងបង្ហាញកាលវិភាគលំនាំដើម",
     "Default (Physical / Scholarship / Online)": "លំនាំដើម (Physical / Scholarship / Online)",
     "Enroll Config shows only this Class Type's schedules for this track's courses.": "ការកំណត់ការចុះឈ្មោះនឹងបង្ហាញតែកាលវិភាគរបស់ប្រភេទថ្នាក់នេះ សម្រាប់វគ្គសិក្សានៅក្នុងផ្លូវសិក្សានេះ។",
+    "Class History": "ប្រវត្តិថ្នាក់រៀន",
+    "Your ended classes. Open one to view or re-download its result sheet.": "ថ្នាក់រៀនដែលបានបញ្ចប់របស់អ្នក។ បើកមួយដើម្បីមើល ឬទាញយកសន្លឹកលទ្ធផលឡើងវិញ។",
+    "View result": "មើលលទ្ធផល",
+    "Download PDF": "ទាញយក PDF",
+    "No ended classes yet": "មិនទាន់មានថ្នាក់រៀនដែលបានបញ្ចប់",
+    "A class shows up here once it has been ended.": "ថ្នាក់រៀននឹងបង្ហាញនៅទីនេះ បន្ទាប់ពីវាត្រូវបានបញ្ចប់។",
   },
 }
