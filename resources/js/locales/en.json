@@ -49,6 +49,7 @@
     "certificateMeal": "Meal Certificate",
     "certificateScholarship": "Scholarship Certificate",
     "certificateInternship": "Internship Certificate",
+    "certificateReport": "Certificate Report",
     "enrollConfig": "Enroll Config",
     "enrollManagement": "Enrollment Management",
     "floors": "Floors",
@@ -102,6 +103,8 @@
     "filters": {
       "all": "All",
       "allMonth": "All months",
+      "allStatus": "All status",
+      "allTypes": "All types",
       "select": "Select"
     },
     "months": {
@@ -158,6 +161,10 @@
       "totalDone": "Total Certificate Done",
       "totalRequested": "Total Student Request Certificate"
     },
+    "status": {
+      "notPrinted": "Not yet",
+      "printed": "Printed"
+    },
     "studentsCount": ":count students",
     "table": {
       "actions": "Actions",
@@ -165,18 +172,30 @@
       "gender": "Gender",
       "no": "No",
       "phone": "Phone",
+      "printedStudents": "Printed",
       "remainingStudents": "Remaining",
+      "requestedAt": "Requested",
+      "status": "Status",
       "studentName": "Student Name",
       "students": "Students",
-      "teacher": "Teacher",
-      "time": "Time"
+      "teacher": "Instructor",
+      "time": "Time",
+      "type": "Type"
     },
     "titles": {
       "free": "Free Certificate",
       "internship": "Internship Certificate",
       "meal": "Meal Certificate",
       "normal": "Regular Certificate",
+      "report": "Certificate Report",
       "scholarship": "Scholarship Certificate"
+    },
+    "types": {
+      "free": "Free",
+      "internship": "Internship",
+      "meal": "Meal",
+      "normal": "Regular",
+      "scholarship": "Scholarship"
     },
     "validation": {
       "courseRequired": "Course is required!",

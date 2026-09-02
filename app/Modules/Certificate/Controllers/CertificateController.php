@@ -19,6 +19,7 @@ use Inertia\Response;
 class CertificateController extends Controller
 {
     private const TYPES = ['free', 'normal', 'scholarship', 'meal', 'internship'];
+    private const PAGE_TYPES = ['free', 'normal', 'scholarship', 'meal', 'internship', 'report'];
     private const SPECIAL_CLASS_KEYWORDS = [
         'free' => ['free'],
         'scholarship' => ['scholar'],
@@ -27,7 +28,7 @@ class CertificateController extends Controller
 
     public function index(Request $request): Response
     {
-        $type = $this->normaliseType($request->query('type', 'free'));
+        $type = $this->normalisePageType($request->query('type', 'free'));
 
         return Inertia::render('backend/certificates/Index', [
             'type' => $type,
@@ -44,19 +45,7 @@ class CertificateController extends Controller
     public function classes(Request $request): JsonResponse
     {
         $type = $this->normaliseType($request->query('type', 'normal'));
-        $track = trim((string) $request->query('track', 'all'));
-        $now = now();
-        $month = $request->query('month', 'all');
-        $year = (int) $request->query('year', $now->year);
-        $month = $month === 'all' ? null : (int) $month;
-
-        if ($month !== null && ($month < 1 || $month > 12)) {
-            $month = null;
-        }
-
-        if ($year < 2000 || $year > 2100) {
-            $year = $now->year;
-        }
+        [$track, $month, $year] = $this->classListFilters($request);
 
         $classes = StudyClass::query()
             ->with([
@@ -81,6 +70,11 @@ class CertificateController extends Controller
             ->latest('id')
             ->get();
 
+        $requestCounts = DB::table('class_certificate_requests')
+            ->where('certificate_type', $type)
+            ->whereIn('study_class_id', $classes->pluck('id'))
+            ->pluck('student_count', 'study_class_id');
+
         $printedCounts = DB::table('student_certificate_normal')
             ->select('study_class_id', DB::raw('COUNT(DISTINCT student_id) as printed_students'))
             ->where('certificate_type', $type)
@@ -89,16 +83,103 @@ class CertificateController extends Controller
             ->pluck('printed_students', 'study_class_id');
 
         $classes = $classes
-            ->map(fn (StudyClass $studyClass): array => [
-                'id' => $studyClass->id,
-                'category' => $studyClass->course?->track?->name ?? 'Other',
-                'course' => $studyClass->course?->title ?? $studyClass->title,
-                'teacher_name' => $studyClass->teacher?->name ?? 'No teacher',
-                'time' => $studyClass->time?->time_name ?? $this->classTime($studyClass),
-                'class_type' => $studyClass->classType?->type_name ?? $studyClass->classTypeValue(),
-                'total_students' => (int) $studyClass->total_students,
-                'printed_students' => (int) ($printedCounts[$studyClass->id] ?? 0),
+            ->map(function (StudyClass $studyClass) use ($printedCounts, $requestCounts): array {
+                $requestedStudents = (int) ($requestCounts[$studyClass->id] ?: $studyClass->total_students);
+                $printedStudents = (int) ($printedCounts[$studyClass->id] ?? 0);
+
+                return [
+                    'id' => $studyClass->id,
+                    'category' => $studyClass->course?->track?->name ?? 'Other',
+                    'course' => $studyClass->course?->title ?? $studyClass->title,
+                    'teacher_name' => $this->instructorDisplayName($studyClass->teacher?->name),
+                    'time' => $studyClass->time?->time_name ?? $this->classTime($studyClass),
+                    'class_type' => $studyClass->classType?->type_name ?? $studyClass->classTypeValue(),
+                    'total_students' => $requestedStudents,
+                    'printed_students' => $printedStudents,
+                    'remaining_students' => max($requestedStudents - $printedStudents, 0),
+                ];
+            })
+            ->filter(fn (array $studyClass): bool => $studyClass['remaining_students'] > 0)
+            ->values();
+
+        return response()->json([
+            'data' => $classes,
+            'tracks' => $this->certificateTrackOptions(),
+        ]);
+    }
+
+    public function reportClasses(Request $request): JsonResponse
+    {
+        [$track, $month, $year] = $this->classListFilters($request);
+        $certificateType = $this->normaliseReportType($request->query('certificate_type', 'all'));
+        $status = $this->normaliseReportStatus($request->query('status', 'all'));
+
+        $requests = ClassCertificateRequest::query()
+            ->with([
+                'studyClass' => fn ($query) => $query
+                    ->with([
+                        'course:id,title,course_track_id',
+                        'course.track:id,name,sub_category_id',
+                        'teacher:id,name',
+                        'time:id,time_name',
+                        'classType:class_type_id,type_name',
+                    ])
+                    ->withCount([
+                        'enrollments as total_students' => fn (Builder $query) => $query->where('enrollment_status', 'active'),
+                    ]),
             ])
+            ->when($certificateType !== 'all', fn (Builder $query) => $query->where('certificate_type', $certificateType))
+            ->when($month !== null, fn (Builder $query) => $query->whereMonth('requested_at', $month))
+            ->whereYear('requested_at', $year)
+            ->whereHas('studyClass', function (Builder $query) use ($track, $certificateType): void {
+                $query->whereIn('status', ['pre_end', 'ended', 'completed', 'active'])
+                    ->when($track !== '' && $track !== 'all', fn (Builder $query) => $query
+                        ->whereHas('course.track', fn (Builder $trackQuery) => $trackQuery->where('name', $track))
+                    )
+                    ->when($certificateType !== 'all', fn (Builder $query) => $this->applyCertificateClassTypeFilter($query, $certificateType));
+            })
+            ->latest('requested_at')
+            ->latest('id')
+            ->get();
+
+        $printedCounts = DB::table('student_certificate_normal')
+            ->select('study_class_id', 'certificate_type', DB::raw('COUNT(DISTINCT student_id) as printed_students'))
+            ->whereIn('study_class_id', $requests->pluck('study_class_id'))
+            ->whereIn('certificate_type', $requests->pluck('certificate_type'))
+            ->groupBy('study_class_id', 'certificate_type')
+            ->get()
+            ->keyBy(fn ($row): string => $row->study_class_id.'|'.$row->certificate_type);
+
+        $classes = $requests
+            ->map(function (ClassCertificateRequest $request) use ($printedCounts): ?array {
+                $studyClass = $request->studyClass;
+
+                if (! $studyClass) {
+                    return null;
+                }
+
+                $requestedStudents = (int) ($request->student_count ?: $studyClass->total_students);
+                $printedStudents = (int) ($printedCounts[$studyClass->id.'|'.$request->certificate_type]->printed_students ?? 0);
+                $remainingStudents = max($requestedStudents - $printedStudents, 0);
+                $printStatus = $requestedStudents > 0 && $remainingStudents === 0 ? 'printed' : 'not_printed';
+
+                return [
+                    'id' => $studyClass->id,
+                    'category' => $studyClass->course?->track?->name ?? 'Other',
+                    'certificate_type' => $request->certificate_type,
+                    'course' => $studyClass->course?->title ?? $studyClass->title,
+                    'teacher_name' => $this->instructorDisplayName($studyClass->teacher?->name),
+                    'time' => $studyClass->time?->time_name ?? $this->classTime($studyClass),
+                    'class_type' => $studyClass->classType?->type_name ?? $studyClass->classTypeValue(),
+                    'requested_at' => $request->requested_at?->format('Y-m-d h:i A') ?? '-',
+                    'total_students' => $requestedStudents,
+                    'printed_students' => $printedStudents,
+                    'remaining_students' => $remainingStudents,
+                    'print_status' => $printStatus,
+                ];
+            })
+            ->filter()
+            ->when($status !== 'all', fn ($classes) => $classes->filter(fn (array $class): bool => $class['print_status'] === $status))
             ->values();
 
         return response()->json([
@@ -112,6 +193,7 @@ class CertificateController extends Controller
         $type = $this->normaliseType($request->query('type', 'normal'));
         $certificateRequest = ClassCertificateRequest::query()
             ->where('study_class_id', $studyClass->id)
+            ->where('certificate_type', $type)
             ->first(['requested_student_ids']);
 
         $requestedStudentIds = collect($certificateRequest?->requested_student_ids ?? [])
@@ -301,6 +383,51 @@ class CertificateController extends Controller
         }
 
         return $prefix.str_pad((string) $sequence, 3, '0', STR_PAD_LEFT).' ETEC';
+    }
+
+    private function classListFilters(Request $request): array
+    {
+        $track = trim((string) $request->query('track', 'all'));
+        $now = now();
+        $month = $request->query('month', 'all');
+        $year = (int) $request->query('year', $now->year);
+        $month = $month === 'all' ? null : (int) $month;
+
+        if ($month !== null && ($month < 1 || $month > 12)) {
+            $month = null;
+        }
+
+        if ($year < 2018 || $year > (int) $now->year) {
+            $year = (int) $now->year;
+        }
+
+        return [$track, $month, $year];
+    }
+
+    private function instructorDisplayName(?string $name): string
+    {
+        $name = trim((string) $name);
+
+        if ($name === '') {
+            return 'No instructor';
+        }
+
+        return trim(preg_split('/\s*[·•]\s*/u', $name, 2)[0] ?? $name) ?: $name;
+    }
+
+    private function normalisePageType(string $type): string
+    {
+        return in_array($type, self::PAGE_TYPES, true) ? $type : 'free';
+    }
+
+    private function normaliseReportType(string $type): string
+    {
+        return $type === 'all' || in_array($type, self::TYPES, true) ? $type : 'all';
+    }
+
+    private function normaliseReportStatus(string $status): string
+    {
+        return in_array($status, ['all', 'printed', 'not_printed'], true) ? $status : 'all';
     }
 
     private function whereRegularCertificateClass(Builder $query): Builder

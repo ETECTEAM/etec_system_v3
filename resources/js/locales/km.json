@@ -49,6 +49,7 @@
     "certificateMeal": "សញ្ញាបត្រអាហាររួបករណ៏",
     "certificateScholarship": "សញ្ញាបត្រអាហាររូបករណ៍",
     "certificateInternship": "សញ្ញាបត្រថ្នាក់ Internship",
+    "certificateReport": "របាយការណ៍សញ្ញាបត្រ",
     "enrollConfig": "កំណត់ការចុះឈ្មោះ",
     "enrollManagement": "គ្រប់គ្រងការចុះឈ្មោះ",
     "floors": "ជាន់",
@@ -102,6 +103,8 @@
     "filters": {
       "all": "ទាំងអស់",
       "allMonth": "គ្រប់ខែ",
+      "allStatus": "គ្រប់ស្ថានភាព",
+      "allTypes": "គ្រប់ប្រភេទ",
       "select": "ជ្រើសរើស"
     },
     "months": {
@@ -158,6 +161,10 @@
       "totalDone": "ចំនួនសញ្ញាបត្ររួចរាល់",
       "totalRequested": "ចំនួនសិស្សស្នើសុំសញ្ញាបត្រ"
     },
+    "status": {
+      "notPrinted": "មិនទាន់បោះពុម្ព",
+      "printed": "បានបោះពុម្ព"
+    },
     "studentsCount": ":count នាក់",
     "table": {
       "actions": "សកម្មភាព",
@@ -165,18 +172,30 @@
       "gender": "ភេទ",
       "no": "ល.រ",
       "phone": "លេខទូរស័ព្ទ",
+      "printedStudents": "បានបោះពុម្ព",
       "remainingStudents": "សិស្សដែលនៅសល់",
+      "requestedAt": "ថ្ងៃស្នើសុំ",
+      "status": "ស្ថានភាព",
       "studentName": "ឈ្មោះសិស្ស",
       "students": "សិស្ស",
       "teacher": "គ្រូបង្រៀន",
-      "time": "ម៉ោង"
+      "time": "ម៉ោង",
+      "type": "ប្រភេទ"
     },
     "titles": {
       "free": "សញ្ញាបត្រថ្នាក់ Free",
       "internship": "សញ្ញាបត្រថ្នាក់ Internship",
       "meal": "សញ្ញាបត្រអាហាររូបករណ៍",
       "normal": "តារាង សញ្ញាបត្រធម្មតា",
+      "report": "របាយការណ៍សញ្ញាបត្រ",
       "scholarship": "សញ្ញាបត្រអាហាររូបករណ៍"
+    },
+    "types": {
+      "free": "Free",
+      "internship": "Internship",
+      "meal": "Meal",
+      "normal": "ធម្មតា",
+      "scholarship": "អាហារូបករណ៍"
     },
     "validation": {
       "courseRequired": "ត្រូវការវគ្គសិក្សា!",

@@ -54,6 +54,14 @@ export function build(ctx) {
         exact: false,
         isActive: isType("internship"),
       },
+      {
+        label: "Certificate Report",
+        labelKey: "navigation.certificateReport",
+        href: "/dashboard/certificates?type=report",
+        match: ["/dashboard/certificates"],
+        exact: false,
+        isActive: isType("report"),
+      },
     ],
   };
 }
