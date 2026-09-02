@@ -4,7 +4,6 @@ namespace App\Modules\Certificate\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassCertificateRequest;
-use App\Models\Course;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use Carbon\Carbon;
@@ -20,6 +19,11 @@ use Inertia\Response;
 class CertificateController extends Controller
 {
     private const TYPES = ['free', 'normal', 'scholarship', 'meal', 'internship'];
+    private const SPECIAL_CLASS_KEYWORDS = [
+        'free' => ['free'],
+        'scholarship' => ['scholar'],
+        'internship' => ['internship', 'intership'],
+    ];
 
     public function index(Request $request): Response
     {
@@ -30,7 +34,6 @@ class CertificateController extends Controller
             'freeCertificates' => fn () => $this->freeCertificates($request),
             'freeCourses' => fn () => $this->customCourses('course_custom'),
             'normalCourses' => fn () => $this->customCourses('course_custom_normal'),
-            'certificateRequests' => fn () => $this->classCertificateRequests($type),
             'generatedIds' => [
                 'free' => $this->generateFreeId(),
                 'normal' => $this->generateNormalId(),
@@ -41,6 +44,19 @@ class CertificateController extends Controller
     public function classes(Request $request): JsonResponse
     {
         $type = $this->normaliseType($request->query('type', 'normal'));
+        $track = trim((string) $request->query('track', 'all'));
+        $now = now();
+        $month = $request->query('month', 'all');
+        $year = (int) $request->query('year', $now->year);
+        $month = $month === 'all' ? null : (int) $month;
+
+        if ($month !== null && ($month < 1 || $month > 12)) {
+            $month = null;
+        }
+
+        if ($year < 2000 || $year > 2100) {
+            $year = $now->year;
+        }
 
         $classes = StudyClass::query()
             ->with([
@@ -56,7 +72,10 @@ class CertificateController extends Controller
                 'enrollments as total_students' => fn (Builder $query) => $query->where('enrollment_status', 'active'),
             ])
             ->whereIn('status', ['pre_end', 'ended', 'completed', 'active'])
-            ->when($type !== 'free', fn (Builder $query) => $this->whereRequestedCertificateClass($query, $type))
+            ->where(fn (Builder $query) => $this->whereRequestedCertificateClass($query, $type, $month, $year))
+            ->when($track !== '' && $track !== 'all', fn (Builder $query) => $query
+                ->whereHas('course.track', fn (Builder $trackQuery) => $trackQuery->where('name', $track))
+            )
             ->when($type === 'normal', fn (Builder $query) => $this->whereRegularCertificateClass($query))
             ->when($type !== 'normal', fn (Builder $query) => $this->whereTypedCertificateClass($query, $type))
             ->latest('id')
@@ -72,10 +91,7 @@ class CertificateController extends Controller
         $classes = $classes
             ->map(fn (StudyClass $studyClass): array => [
                 'id' => $studyClass->id,
-                'category' => $studyClass->course?->track?->subCategory?->category?->name
-                    ?? $studyClass->course?->track?->subCategory?->name
-                    ?? $studyClass->course?->track?->name
-                    ?? 'General',
+                'category' => $studyClass->course?->track?->name ?? 'Other',
                 'course' => $studyClass->course?->title ?? $studyClass->title,
                 'teacher_name' => $studyClass->teacher?->name ?? 'No teacher',
                 'time' => $studyClass->time?->time_name ?? $this->classTime($studyClass),
@@ -85,7 +101,10 @@ class CertificateController extends Controller
             ])
             ->values();
 
-        return response()->json(['data' => $classes]);
+        return response()->json([
+            'data' => $classes,
+            'tracks' => $this->certificateTrackOptions(),
+        ]);
     }
 
     public function students(Request $request, StudyClass $studyClass): JsonResponse
@@ -156,7 +175,7 @@ class CertificateController extends Controller
         $validated = $request->validate([
             'student_id' => ['required', 'integer', 'exists:students,id'],
             'study_class_id' => ['required', 'integer', 'exists:study_classes,id'],
-            'certificate_type' => ['required', Rule::in(['normal', 'scholarship', 'meal', 'internship'])],
+            'certificate_type' => ['required', Rule::in(self::TYPES)],
             'student_name' => ['required', 'string', 'max:100'],
             'course' => ['required', 'string', 'max:100'],
             'granted_date' => ['required', 'string', 'max:50'],
@@ -247,58 +266,15 @@ class CertificateController extends Controller
         return DB::table($table)->select('course_name')->orderBy('course_name')->get()->all();
     }
 
-    private function classCertificateRequests(string $type): array
-    {
-        return ClassCertificateRequest::query()
-            ->with([
-                'studyClass:id,title,teacher_id,course_id,term_id,time_id,class_type_id,status',
-                'studyClass.course:id,title,course_track_id',
-                'studyClass.course.track:id,name,sub_category_id',
-                'studyClass.course.track.subCategory:id,name,category_id',
-                'studyClass.course.track.subCategory.category:id,name',
-                'studyClass.teacher:id,name',
-                'requestedBy:id,name',
-            ])
-            ->whereHas('studyClass', fn (Builder $query) => $this->applyCertificateClassTypeFilter($query, $type))
-            ->latest('requested_at')
-            ->get()
-            ->map(function (ClassCertificateRequest $request): array {
-                $studyClass = $request->studyClass;
-
-                return [
-                    'id' => $request->id,
-                    'study_class_id' => $request->study_class_id,
-                    'class_title' => $studyClass?->title ?? 'Unknown class',
-                    'course' => $studyClass?->course?->title ?? $studyClass?->title ?? '-',
-                    'teacher_name' => $studyClass?->teacher?->name ?? '-',
-                    'student_count' => (int) $request->student_count,
-                    'student_ids' => collect($request->requested_student_ids ?? [])->map(fn ($id): int => (int) $id)->values()->all(),
-                    'status' => $request->status,
-                    'status_label' => ucfirst(str_replace('_', ' ', $request->status)),
-                    'certificate_type' => $request->certificate_type,
-                    'requested_by' => $request->requestedBy?->name ?? '-',
-                    'requested_at' => $request->requested_at?->format('Y-m-d h:i A'),
-                    'note' => $request->note,
-                ];
-            })
-            ->values()
-            ->all();
-    }
-
     private function applyCertificateClassTypeFilter(Builder $query, string $type): void
     {
-        match ($type) {
-            'free' => $query->whereHas('classType', fn (Builder $classType) => $classType->where('type_name', 'like', '%free%')),
-            'meal', 'internship' => $query->whereHas('classType', fn (Builder $classType) => $classType
-                ->where('type_name', 'like', '%internship%')
-                ->orWhere('type_name', 'like', '%intership%')),
-            default => $query->where(fn (Builder $regular) => $regular
-                ->whereDoesntHave('classType')
-                ->orWhereHas('classType', fn (Builder $classType) => $classType
-                    ->where('type_name', 'not like', '%free%')
-                    ->where('type_name', 'not like', '%internship%')
-                    ->where('type_name', 'not like', '%intership%'))),
-        };
+        if ($type === 'normal') {
+            $this->whereRegularCertificateClass($query);
+
+            return;
+        }
+
+        $this->whereTypedCertificateClass($query, $type);
     }
 
     private function generateFreeId(): string
@@ -329,57 +305,84 @@ class CertificateController extends Controller
 
     private function whereRegularCertificateClass(Builder $query): Builder
     {
-        return $query
-            ->whereDoesntHave('classType', fn (Builder $classType) => $classType
-                ->where('type_name', 'like', '%internship%')
-                ->orWhere('type_name', 'like', '%intership%')
-            )
-            ->whereDoesntHave('course.track.category', fn (Builder $category) => $category
-                ->where('name', 'like', '%internship%')
-                ->orWhere('name', 'like', '%intership%')
-            )
-            ->whereDoesntHave('course.track', fn (Builder $track) => $track
-                ->where('name', 'like', '%internship%')
-                ->orWhere('name', 'like', '%intership%')
-            );
-    }
-
-    private function whereTypedCertificateClass(Builder $query, string $type): Builder
-    {
-        if ($type === 'free') {
-            return $query;
-        }
-
-        $keywords = match ($type) {
-            'meal', 'internship' => ['internship', 'intership'],
-            'scholarship' => ['scholar'],
-            default => [$type],
-        };
-
-        return $query->where(function (Builder $query) use ($keywords): void {
-            foreach ($keywords as $keyword) {
-                $query
-                    ->orWhereHas('classType', fn (Builder $classType) => $classType
-                        ->where('type_name', 'like', "%{$keyword}%")
-                    )
-                    ->orWhereHas('course.track.category', fn (Builder $category) => $category
-                        ->where('name', 'like', "%{$keyword}%")
-                    )
-                    ->orWhereHas('course.track', fn (Builder $track) => $track
-                        ->where('name', 'like', "%{$keyword}%")
-                    );
+        return $query->where(function (Builder $regular): void {
+            foreach (self::SPECIAL_CLASS_KEYWORDS as $keywords) {
+                $this->whereNotMatchingClassKeywords($regular, $keywords);
             }
         });
     }
 
-    private function whereRequestedCertificateClass(Builder $query, string $type): Builder
+    private function whereTypedCertificateClass(Builder $query, string $type): Builder
     {
-        $types = $type === 'meal' ? ['meal', 'internship'] : [$type];
+        $keywords = match ($type) {
+            'meal' => self::SPECIAL_CLASS_KEYWORDS['internship'],
+            default => self::SPECIAL_CLASS_KEYWORDS[$type] ?? [$type],
+        };
 
+        return $query->where(fn (Builder $query) => $this->whereMatchingClassKeywords($query, $keywords));
+    }
+
+    private function whereRequestedCertificateClass(Builder $query, string $type, ?int $month, int $year): Builder
+    {
         return $query->whereHas('certificateRequests', fn (Builder $request) => $request
-            ->whereIn('certificate_type', $types)
+            ->where('certificate_type', $type)
             ->where('status', 'pending')
+            ->when($month !== null, fn (Builder $request) => $request->whereMonth('requested_at', $month))
+            ->whereYear('requested_at', $year)
         );
+    }
+
+    private function certificateTrackOptions(): array
+    {
+        return DB::table('course_tracks')
+            ->where('status', 'active')
+            ->whereNotNull('name')
+            ->orderBy('name')
+            ->pluck('name')
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function whereMatchingClassKeywords(Builder $query, array $keywords): void
+    {
+        foreach ($keywords as $keyword) {
+            $query
+                ->orWhereHas('classType', fn (Builder $classType) => $classType
+                    ->where('type_name', 'like', "%{$keyword}%")
+                )
+                ->orWhereHas('course', fn (Builder $course) => $course
+                    ->where('title', 'like', "%{$keyword}%")
+                )
+                ->orWhereHas('course.track', fn (Builder $track) => $track
+                    ->where('name', 'like', "%{$keyword}%")
+                )
+                ->orWhereHas('course.track.subCategory', fn (Builder $subCategory) => $subCategory
+                    ->where('name', 'like', "%{$keyword}%")
+                )
+                ->orWhereHas('course.track.subCategory.category', fn (Builder $category) => $category
+                    ->where('name', 'like', "%{$keyword}%")
+                );
+        }
+    }
+
+    private function whereNotMatchingClassKeywords(Builder $query, array $keywords): void
+    {
+        $query
+            ->whereDoesntHave('classType', fn (Builder $classType) => $this->whereNameMatchesKeywords($classType, 'type_name', $keywords))
+            ->whereDoesntHave('course', fn (Builder $course) => $this->whereNameMatchesKeywords($course, 'title', $keywords))
+            ->whereDoesntHave('course.track', fn (Builder $track) => $this->whereNameMatchesKeywords($track, 'name', $keywords))
+            ->whereDoesntHave('course.track.subCategory', fn (Builder $subCategory) => $this->whereNameMatchesKeywords($subCategory, 'name', $keywords))
+            ->whereDoesntHave('course.track.subCategory.category', fn (Builder $category) => $this->whereNameMatchesKeywords($category, 'name', $keywords));
+    }
+
+    private function whereNameMatchesKeywords(Builder $query, string $column, array $keywords): void
+    {
+        $query->where(function (Builder $query) use ($column, $keywords): void {
+            foreach ($keywords as $keyword) {
+                $query->orWhere($column, 'like', "%{$keyword}%");
+            }
+        });
     }
 
     private function normaliseType(string $type): string

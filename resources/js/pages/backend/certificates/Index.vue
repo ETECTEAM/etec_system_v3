@@ -28,7 +28,6 @@ const props = defineProps({
     freeCertificates: { type: Object, default: () => ({ data: [], meta: {}, course_filter: '' }) },
     freeCourses: { type: Array, default: () => [] },
     normalCourses: { type: Array, default: () => [] },
-    certificateRequests: { type: Array, default: () => [] },
     generatedIds: { type: Object, default: () => ({ free: '', normal: '' }) },
 })
 
@@ -38,7 +37,8 @@ axios.defaults.withCredentials = true
 const certificateType = computed(() => props.type)
 const isNormal = computed(() => certificateType.value === 'normal')
 const isFree = computed(() => certificateType.value === 'free')
-const isClassCertificate = computed(() => !isFree.value)
+const isClassCertificate = computed(() => ['free', 'normal', 'scholarship', 'meal', 'internship'].includes(certificateType.value))
+const classCertificatePreview = computed(() => isFree.value ? FreeCertificatePreview : RealCertificatePreview)
 const { resolvedTheme } = useTheme()
 const { t } = useI18n()
 const isDarkTheme = computed(() => resolvedTheme.value === 'dark')
@@ -53,8 +53,11 @@ const pageTitle = computed(() => ({
 
 const classRows = ref([])
 const classLoading = ref(false)
-const selectedCategory = ref('all')
-const selectedCourse = ref('all')
+const currentClassFilterDate = new Date()
+const selectedTrack = ref('all')
+const selectedMonth = ref('all')
+const selectedYear = ref(currentClassFilterDate.getFullYear())
+const trackOptions = ref([])
 const categoryPages = reactive({})
 const selectedClass = ref(null)
 const selectedStudent = ref(null)
@@ -87,24 +90,30 @@ const printForm = reactive({
 const perPage = 9
 
 const categories = computed(() => {
-    const values = classRows.value.map((item) => item.category || 'General')
-    return ['all', ...new Set(values)]
-})
-
-const courseOptions = computed(() => {
-    const values = classRows.value
-        .filter((item) => selectedCategory.value === 'all' || item.category === selectedCategory.value)
-        .map((item) => item.course || 'Untitled Course')
+    const values = trackOptions.value.length
+        ? trackOptions.value
+        : classRows.value.map((item) => item.category || 'General')
 
     return ['all', ...new Set(values)]
 })
 
-const filteredClasses = computed(() => classRows.value.filter((item) => {
-    const matchesCategory = selectedCategory.value === 'all' || item.category === selectedCategory.value
-    const matchesCourse = selectedCourse.value === 'all' || item.course === selectedCourse.value
+const monthOptions = computed(() => [
+    { value: 'all', label: t('certificatePage.filters.allMonth') },
+    ...Array.from({ length: 12 }, (_, index) => {
+        const value = index + 1
+        return {
+            value,
+            label: t(`certificatePage.months.${value}`),
+        }
+    }),
+])
 
-    return matchesCategory && matchesCourse
-}))
+const yearOptions = computed(() => {
+    const currentYear = currentClassFilterDate.getFullYear()
+    return Array.from({ length: currentYear - 2018 + 1 }, (_, index) => 2018 + index)
+})
+
+const filteredClasses = computed(() => classRows.value)
 
 const groupedClasses = computed(() => filteredClasses.value.reduce((groups, item) => {
     const key = item.category || 'General'
@@ -130,7 +139,6 @@ const pagedGroups = computed(() => Object.entries(groupedClasses.value).reduce((
 const totalRequested = computed(() => filteredClasses.value.reduce((sum, item) => sum + Number(item.total_students || 0), 0))
 const totalPrinted = computed(() => filteredClasses.value.reduce((sum, item) => sum + Number(item.printed_students || 0), 0))
 const totalFinishedCourses = computed(() => filteredClasses.value.length)
-const hasCertificateRequests = computed(() => props.certificateRequests.length > 0)
 
 const currentCertificate = computed(() => ({
     student_name: printForm.student_name || 'STUDENT NAME',
@@ -162,8 +170,8 @@ watch(() => props.type, () => {
     if (isClassCertificate.value) loadClasses()
 })
 
-watch(selectedCategory, () => {
-    selectedCourse.value = 'all'
+watch([selectedTrack, selectedMonth, selectedYear], () => {
+    if (isClassCertificate.value) loadClasses()
 })
 
 onMounted(() => {
@@ -176,9 +184,7 @@ let normalPrintStyleElement = null
 watchEffect(() => {
     if (typeof document === 'undefined') return
 
-    document.body.classList.toggle('free-certificate-print', isFree.value)
-
-    if (isFree.value && !freePrintStyleElement) {
+    if (!isClassCertificate.value && isFree.value && !freePrintStyleElement) {
         freePrintStyleElement = document.createElement('style')
         freePrintStyleElement.dataset.freeCertificatePrint = 'true'
         freePrintStyleElement.textContent = `
@@ -250,7 +256,8 @@ watchEffect(() => {
         document.head.appendChild(freePrintStyleElement)
     }
 
-    if (!isFree.value && freePrintStyleElement) {
+    if ((isClassCertificate.value || !isFree.value) && freePrintStyleElement) {
+        document.body.classList.remove('free-certificate-print')
         freePrintStyleElement.remove()
         freePrintStyleElement = null
     }
@@ -298,9 +305,16 @@ async function loadClasses() {
     classLoading.value = true
     try {
         const { data } = await axios.get('/dashboard/certificates/classes', {
-            params: { type: certificateType.value },
+            params: {
+                type: certificateType.value,
+                track: selectedTrack.value,
+                month: selectedMonth.value,
+                year: selectedYear.value,
+            },
         })
         classRows.value = data.data || []
+        trackOptions.value = data.tracks || []
+        Object.keys(categoryPages).forEach((key) => delete categoryPages[key])
     } finally {
         classLoading.value = false
     }
@@ -468,19 +482,23 @@ function beginNormalPrint() {
         normalPrintStyleElement.remove()
     }
 
+    const page = isFree.value
+        ? { orientation: 'landscape', width: '297mm', height: '210mm' }
+        : { orientation: 'portrait', width: '210mm', height: '297mm' }
+
     normalPrintStyleElement = document.createElement('style')
     normalPrintStyleElement.dataset.normalCertificatePrint = 'true'
     normalPrintStyleElement.textContent = `
         @media print {
-            @page { size: A4 portrait; margin: 0; }
+            @page { size: A4 ${page.orientation}; margin: 0; }
             html,
             body {
-                width: 210mm !important;
-                min-width: 210mm !important;
-                max-width: 210mm !important;
-                height: 297mm !important;
-                min-height: 297mm !important;
-                max-height: 297mm !important;
+                width: ${page.width} !important;
+                min-width: ${page.width} !important;
+                max-width: ${page.width} !important;
+                height: ${page.height} !important;
+                min-height: ${page.height} !important;
+                max-height: ${page.height} !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 overflow: hidden !important;
@@ -501,12 +519,12 @@ function beginNormalPrint() {
                 inset: 0 auto auto 0 !important;
                 z-index: 999999 !important;
                 display: block !important;
-                width: 210mm !important;
-                min-width: 210mm !important;
-                max-width: 210mm !important;
-                height: 297mm !important;
-                min-height: 297mm !important;
-                max-height: 297mm !important;
+                width: ${page.width} !important;
+                min-width: ${page.width} !important;
+                max-width: ${page.width} !important;
+                height: ${page.height} !important;
+                min-height: ${page.height} !important;
+                max-height: ${page.height} !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 overflow: hidden !important;
@@ -517,12 +535,12 @@ function beginNormalPrint() {
                 display: flex !important;
                 align-items: stretch !important;
                 justify-content: stretch !important;
-                width: 210mm !important;
-                min-width: 210mm !important;
-                max-width: 210mm !important;
-                height: 297mm !important;
-                min-height: 297mm !important;
-                max-height: 297mm !important;
+                width: ${page.width} !important;
+                min-width: ${page.width} !important;
+                max-width: ${page.width} !important;
+                height: ${page.height} !important;
+                min-height: ${page.height} !important;
+                max-height: ${page.height} !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 overflow: hidden !important;
@@ -543,12 +561,12 @@ function beginNormalPrint() {
                 box-sizing: border-box !important;
                 display: flex !important;
                 flex: 1 1 auto !important;
-                width: 210mm !important;
-                min-width: 210mm !important;
-                max-width: 210mm !important;
-                height: 297mm !important;
-                min-height: 297mm !important;
-                max-height: 297mm !important;
+                width: ${page.width} !important;
+                min-width: ${page.width} !important;
+                max-width: ${page.width} !important;
+                height: ${page.height} !important;
+                min-height: ${page.height} !important;
+                max-height: ${page.height} !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 overflow: hidden !important;
@@ -572,6 +590,120 @@ function beginNormalPrint() {
                 flex: 1 1 auto !important;
                 min-height: 0 !important;
                 border-width: 5mm !important;
+            }
+            body.normal-certificate-print #normal-cert-print .certificate-free-wrapper {
+                box-sizing: border-box !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: ${page.width} !important;
+                min-width: ${page.width} !important;
+                max-width: ${page.width} !important;
+                height: ${page.height} !important;
+                min-height: ${page.height} !important;
+                max-height: ${page.height} !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+                border-radius: 0 !important;
+                background: #fff !important;
+                box-shadow: none !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            body.normal-certificate-print #normal-cert-print .certificate-free-wrapper:last-child {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            body.normal-certificate-print #normal-cert-print .certificate-free-wrap {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: ${page.width} !important;
+                height: ${page.height} !important;
+            }
+            body.normal-certificate-print #normal-cert-print .certificate-free {
+                box-sizing: border-box !important;
+                width: ${page.width} !important;
+                height: ${page.height} !important;
+                min-height: ${page.height} !important;
+                padding: 5mm !important;
+                box-shadow: none !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-outer-border {
+                display: flex !important;
+                flex-direction: column !important;
+                box-sizing: border-box !important;
+                width: 100% !important;
+                height: 100% !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-inner-border {
+                display: flex !important;
+                flex: 1 !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                box-sizing: border-box !important;
+                min-height: 0 !important;
+                height: auto !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-logo-box {
+                width: 110px !important;
+                height: 110px !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-motto {
+                margin-top: 4px !important;
+                font-size: 19px !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-kingdom {
+                font-size: 19px !important;
+                line-height: 1.5 !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-kingdom img {
+                max-width: 150px !important;
+                margin-top: 4px !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-title {
+                margin-top: 18px !important;
+                font-size: 56px !important;
+                line-height: 1 !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-certify {
+                margin-top: 20px !important;
+                font-size: 29px !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-student-name {
+                margin: 18px 0 16px !important;
+                font-size: 34px !important;
+                -webkit-text-stroke: 1px #000 !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-desc {
+                font-size: 24px !important;
+                line-height: 1.45 !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-course {
+                width: 500px !important;
+                min-height: 40px !important;
+                margin: 10px auto !important;
+                font-size: 24px !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-granted {
+                margin-bottom: 20px !important;
+                font-size: 18px !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-bottom {
+                margin-top: 5px !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-id-bottom {
+                font-size: 16px !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-sig-line {
+                width: 200px !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-free-sig-name,
+            body.normal-certificate-print #normal-cert-print .cert-free-sig-role {
+                font-size: 18px !important;
             }
             * {
                 print-color-adjust: exact !important;
@@ -606,6 +738,26 @@ async function waitForPrintStyles() {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
 }
 
+function safePrintFileName(value, fallback = 'Certificate') {
+    const name = String(value || fallback)
+        .trim()
+        .replace(/[\\/:*?"<>|]+/g, ' ')
+        .replace(/\s+/g, ' ')
+
+    return name || fallback
+}
+
+function printWithTitle(title) {
+    const originalTitle = document.title
+    document.title = safePrintFileName(title)
+
+    try {
+        window.print()
+    } finally {
+        document.title = originalTitle
+    }
+}
+
 async function printSingle() {
     const student = selectedStudent.value
     if (!printForm.course.trim()) return
@@ -613,7 +765,7 @@ async function printSingle() {
     beginNormalPrint()
     const cleanupPrint = scheduleNormalPrintCleanup()
     await waitForPrintStyles()
-    window.print()
+    printWithTitle(printForm.student_name || student?.name)
     const printed = window.confirm('Printed successfully?')
     cleanupPrint()
     if (!printed) return
@@ -641,7 +793,7 @@ async function printAllDrafts() {
     beginNormalPrint()
     const cleanupPrint = scheduleNormalPrintCleanup()
     await waitForPrintStyles()
-    window.print()
+    printWithTitle(studentDrafts.value[0]?.draft_name || printForm.student_name)
     const printed = window.confirm('Printed successfully?')
     cleanupPrint()
     if (!printed) return
@@ -724,7 +876,7 @@ function saveFreeAfterPrint() {
     if (Object.keys(freeErrors.value).length) return
 
     document.body.classList.add('free-certificate-print')
-    window.print()
+    printWithTitle(freeForm.student_name)
     if (!window.confirm('Printed successfully?')) return
 
     freeSaving.value = true
@@ -746,63 +898,6 @@ function saveFreeAfterPrint() {
     <Head :title="pageTitle" />
 
     <DashboardLayout>
-        <div v-if="isFree && hasCertificateRequests" class="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm no-print dark:border-gray-800 dark:bg-gray-900">
-            <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-gray-800">
-                <div>
-                    <p class="text-xs font-black uppercase tracking-[0.2em] text-amber-500 dark:text-amber-400">Certificate Requests</p>
-                    <h2 class="mt-1 text-lg font-black text-slate-950 dark:text-gray-100">Free certificate requests</h2>
-                </div>
-                <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
-                    {{ certificateRequests.length }} request{{ certificateRequests.length === 1 ? '' : 's' }}
-                </span>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="min-w-[860px] w-full border-collapse text-sm">
-                    <thead>
-                        <tr class="bg-slate-50 text-xs font-black uppercase tracking-[0.08em] text-slate-500 dark:bg-gray-950 dark:text-gray-400">
-                            <th class="border-b border-slate-200 px-4 py-3 text-left dark:border-gray-800">Class</th>
-                            <th class="border-b border-slate-200 px-4 py-3 text-left dark:border-gray-800">Teacher</th>
-                            <th class="border-b border-slate-200 px-4 py-3 text-center dark:border-gray-800">Students</th>
-                            <th class="border-b border-slate-200 px-4 py-3 text-center dark:border-gray-800">Status</th>
-                            <th class="border-b border-slate-200 px-4 py-3 text-left dark:border-gray-800">Requested By</th>
-                            <th class="border-b border-slate-200 px-4 py-3 text-left dark:border-gray-800">Requested At</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="request in certificateRequests" :key="request.id" class="transition hover:bg-slate-50/80 dark:hover:bg-gray-800/50">
-                            <td class="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900 dark:border-gray-800 dark:text-gray-100">
-                                <div class="flex items-start gap-2">
-                                    <Bookmark class="mt-0.5 h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" />
-                                    <div>
-                                        <p class="font-black">{{ request.class_title }}</p>
-                                        <p class="text-xs text-slate-500 dark:text-gray-400">{{ request.course }}</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="border-b border-slate-100 px-4 py-3 text-slate-700 dark:border-gray-800 dark:text-gray-300">
-                                {{ request.teacher_name }}
-                            </td>
-                            <td class="border-b border-slate-100 px-4 py-3 text-center font-black text-slate-900 dark:border-gray-800 dark:text-gray-100">
-                                {{ request.student_count }}
-                            </td>
-                            <td class="border-b border-slate-100 px-4 py-3 text-center dark:border-gray-800">
-                                <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
-                                    {{ request.status_label }}
-                                </span>
-                            </td>
-                            <td class="border-b border-slate-100 px-4 py-3 text-slate-700 dark:border-gray-800 dark:text-gray-300">
-                                {{ request.requested_by }}
-                            </td>
-                            <td class="border-b border-slate-100 px-4 py-3 text-slate-700 dark:border-gray-800 dark:text-gray-300">
-                                {{ request.requested_at ?? '-' }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
         <section
             v-if="isClassCertificate"
             class="normal-certificate-page"
@@ -813,15 +908,21 @@ function saveFreeAfterPrint() {
                     <h1>{{ pageTitle }}</h1>
 
                     <div class="normal-actions">
-                        <select v-model="selectedCategory" class="filter-select">
+                        <select v-model="selectedTrack" class="filter-select">
                             <option v-for="category in categories" :key="category" :value="category">
                                 {{ category === 'all' ? t('certificatePage.filters.all') : category }}
                             </option>
                         </select>
 
-                        <select v-model="selectedCourse" class="filter-select">
-                            <option v-for="course in courseOptions" :key="course" :value="course">
-                                {{ course === 'all' ? t('certificatePage.filters.select') : course }}
+                        <select v-model="selectedMonth" class="filter-select filter-select-small">
+                            <option v-for="month in monthOptions" :key="month.value" :value="month.value">
+                                {{ month.label }}
+                            </option>
+                        </select>
+
+                        <select v-model.number="selectedYear" class="filter-select filter-select-small">
+                            <option v-for="year in yearOptions" :key="year" :value="year">
+                                {{ year }}
                             </option>
                         </select>
 
@@ -831,87 +932,6 @@ function saveFreeAfterPrint() {
                         </button>
                     </div>
                 </header>
-
-                <div v-if="hasCertificateRequests" class="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm no-print dark:border-gray-800 dark:bg-gray-900">
-                    <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-gray-800">
-                        <div>
-                            <p class="text-xs font-black uppercase tracking-[0.2em] text-amber-500 dark:text-amber-400">Certificate Requests</p>
-                            <h2 class="mt-1 text-lg font-black text-slate-950 dark:text-gray-100">Requests waiting in super admin</h2>
-                        </div>
-                        <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
-                            {{ certificateRequests.length }} request{{ certificateRequests.length === 1 ? '' : 's' }}
-                        </span>
-                    </div>
-
-                    <div class="overflow-x-auto">
-                        <table class="min-w-[860px] w-full border-collapse text-sm">
-                            <thead>
-                                <tr class="bg-slate-50 text-xs font-black uppercase tracking-[0.08em] text-slate-500 dark:bg-gray-950 dark:text-gray-400">
-                                    <th class="border-b border-slate-200 px-4 py-3 text-left dark:border-gray-800">Class</th>
-                                    <th class="border-b border-slate-200 px-4 py-3 text-left dark:border-gray-800">Teacher</th>
-                                    <th class="border-b border-slate-200 px-4 py-3 text-center dark:border-gray-800">Students</th>
-                                    <th class="border-b border-slate-200 px-4 py-3 text-center dark:border-gray-800">Status</th>
-                                    <th class="border-b border-slate-200 px-4 py-3 text-left dark:border-gray-800">Requested By</th>
-                                    <th class="border-b border-slate-200 px-4 py-3 text-left dark:border-gray-800">Requested At</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="request in certificateRequests" :key="request.id" class="transition hover:bg-slate-50/80 dark:hover:bg-gray-800/50">
-                                    <td class="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900 dark:border-gray-800 dark:text-gray-100">
-                                        <div class="flex items-start gap-2">
-                                            <Bookmark class="mt-0.5 h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" />
-                                            <div>
-                                                <p class="font-black">{{ request.class_title }}</p>
-                                                <p class="text-xs text-slate-500 dark:text-gray-400">{{ request.course }}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="border-b border-slate-100 px-4 py-3 text-slate-700 dark:border-gray-800 dark:text-gray-300">
-                                        {{ request.teacher_name }}
-                                    </td>
-                                    <td class="border-b border-slate-100 px-4 py-3 text-center font-black text-slate-900 dark:border-gray-800 dark:text-gray-100">
-                                        {{ request.student_count }}
-                                    </td>
-                                    <td class="border-b border-slate-100 px-4 py-3 text-center dark:border-gray-800">
-                                        <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
-                                            {{ request.status_label }}
-                                        </span>
-                                    </td>
-                                    <td class="border-b border-slate-100 px-4 py-3 text-slate-700 dark:border-gray-800 dark:text-gray-300">
-                                        {{ request.requested_by }}
-                                    </td>
-                                    <td class="border-b border-slate-100 px-4 py-3 text-slate-700 dark:border-gray-800 dark:text-gray-300">
-                                        {{ request.requested_at ?? '-' }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="normal-summary no-print">
-                    <article>
-                        <span><Users class="h-5 w-5" /></span>
-                        <div>
-                            <p>{{ t('certificatePage.stats.totalRequested') }}</p>
-                            <strong>{{ totalRequested }}</strong>
-                        </div>
-                    </article>
-                    <article>
-                        <span><BookOpen class="h-5 w-5" /></span>
-                        <div>
-                            <p>{{ t('certificatePage.stats.totalCourseFinish') }}</p>
-                            <strong>{{ totalFinishedCourses }}</strong>
-                        </div>
-                    </article>
-                    <article>
-                        <span><Award class="h-5 w-5" /></span>
-                        <div>
-                            <p>{{ t('certificatePage.stats.totalDone') }}</p>
-                            <strong>{{ totalPrinted }}</strong>
-                        </div>
-                    </article>
-                </div>
 
                 <div v-if="classLoading" class="loading-card no-print">
                     <Loader2 class="h-6 w-6 animate-spin" />
@@ -1017,7 +1037,6 @@ function saveFreeAfterPrint() {
                         <span><BookOpen class="h-7 w-7" /></span>
                         <div>
                             <h2>{{ t('certificatePage.sections.classInfoKh') }}</h2>
-                            <p>{{ t('certificatePage.sections.classInfo') }}</p>
                         </div>
                     </header>
                     <div class="info-grid">
@@ -1042,7 +1061,6 @@ function saveFreeAfterPrint() {
                             <span><Users class="h-7 w-7" /></span>
                             <div>
                                 <h2>{{ t('certificatePage.sections.studentListKh') }}</h2>
-                                <p>{{ t('certificatePage.sections.studentList') }}</p>
                             </div>
                         </div>
                         <strong>{{ t('certificatePage.studentsCount', { count: students.length }) }}</strong>
@@ -1066,11 +1084,14 @@ function saveFreeAfterPrint() {
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="student in students" :key="student.id">
+                                <tr
+                                    v-for="student in students"
+                                    :key="student.id"
+                                    :class="{ 'printed-student-row': student.is_printed }"
+                                >
                                     <td><span class="student-id">{{ student.id }}</span></td>
                                     <td>
                                         <div class="student-name">
-                                            <span><User class="h-4 w-4" /></span>
                                             <strong>{{ student.name }}</strong>
                                         </div>
                                     </td>
@@ -1078,10 +1099,21 @@ function saveFreeAfterPrint() {
                                     <td>{{ student.tel }}</td>
                                     <td>{{ selectedClass.course }}</td>
                                     <td>
-                                        <button class="print-button" type="button" @click="openPrintModal(student)">
+                                        <div class="student-print-actions">
+                                            <span v-if="student.is_printed" class="printed-status">
+                                                <CheckCircle2 class="h-4 w-4" />
+                                                Printed
+                                            </span>
+                                            <button
+                                                class="print-button"
+                                                :class="{ 'reprint-button': student.is_printed }"
+                                                type="button"
+                                                @click="openPrintModal(student)"
+                                            >
                                             <Printer class="h-4 w-4" />
-                                            Print
-                                        </button>
+                                                {{ student.is_printed ? 'Re-print' : 'Print' }}
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -1151,7 +1183,8 @@ function saveFreeAfterPrint() {
                     </div>
 
                     <div class="print-batch">
-                        <RealCertificatePreview
+                        <component
+                            :is="classCertificatePreview"
                             v-for="student in studentDrafts"
                             :key="student.id"
                             :certificate="{
@@ -1217,12 +1250,13 @@ function saveFreeAfterPrint() {
                                 <span>{{ t('certificatePage.modal.preview') }}</span>
                                 <strong>{{ isPrintAllMode ? t('certificatePage.modal.certificatesReady', { count: studentDrafts.length || 1 }) : t('certificatePage.modal.singleCertificate') }}</strong>
                             </div>
-                            <RealCertificatePreview :certificate="currentCertificate" :class="{ 'screen-preview-only': isPrintAllMode }" />
+                            <component :is="classCertificatePreview" :certificate="currentCertificate" />
                         </section>
                     </div>
 
                     <div v-if="isPrintAllMode" class="print-batch">
-                        <RealCertificatePreview
+                        <component
+                            :is="classCertificatePreview"
                             v-for="student in studentDrafts"
                             :key="student.id"
                             :certificate="{
@@ -1354,7 +1388,8 @@ function saveFreeAfterPrint() {
                 id="normal-cert-print"
                 class="normal-print-root"
             >
-                <RealCertificatePreview
+                <component
+                    :is="classCertificatePreview"
                     v-for="(certificate, index) in normalPrintCertificates"
                     :key="`${certificate.certificate_id}-${index}`"
                     :certificate="certificate"
@@ -1466,14 +1501,14 @@ const LegacyCertificatePreview = {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
-    margin-bottom: 24px;
+    gap: 14px;
+    margin-bottom: 18px;
 }
 
 .normal-toolbar h1 {
     margin: 0;
     font-family: var(--font-khmer), "Khmer OS Muol Light", "Noto Serif Khmer", "Poppins", "Segoe UI", Arial, sans-serif;
-    font-size: clamp(24px, 2.2vw, 32px);
+    font-size: clamp(22px, 2vw, 28px);
     font-weight: 800;
     color: #050505;
 }
@@ -1494,18 +1529,30 @@ const LegacyCertificatePreview = {
 .saved-course-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+}
+
+.normal-actions {
+    flex: 0 0 auto;
+    justify-content: flex-end;
+    min-width: 760px;
 }
 
 .filter-select {
-    min-width: 190px;
-    height: 43px;
+    flex: 0 0 250px;
+    width: 250px;
+    height: 38px;
     border: 1px solid #d7dbe7;
     border-radius: 6px;
     background: #fff;
-    padding: 0 14px;
-    font-size: 16px;
+    padding: 0 12px;
+    font-size: 14px;
     outline: none;
+}
+
+.filter-select-small {
+    flex-basis: 124px;
+    width: 124px;
 }
 
 :global(.dark) .filter-select {
@@ -1567,27 +1614,32 @@ button:disabled {
 }
 
 .blue-action {
-    min-height: 44px;
+    flex: 0 0 190px;
+    width: 190px;
+    min-height: 38px;
     background: dodgerblue;
     color: #fff;
-    padding: 0 22px;
-    box-shadow: 0 9px 18px rgba(30, 144, 255, .24);
+    padding: 0 16px;
+    font-size: 14px;
+    box-shadow: 0 7px 14px rgba(30, 144, 255, .2);
 }
 
 .purple-action {
-    min-height: 44px;
+    min-height: 38px;
     background: #2d2e83;
     color: #fff;
-    padding: 0 22px;
-    box-shadow: 0 9px 18px rgba(45, 46, 131, .22);
+    padding: 0 16px;
+    font-size: 14px;
+    box-shadow: 0 7px 14px rgba(45, 46, 131, .2);
 }
 
 .green-action {
-    min-height: 44px;
+    min-height: 38px;
     background: #0f9650;
     color: #fff;
-    padding: 0 22px;
-    box-shadow: 0 9px 18px rgba(15, 150, 80, .18);
+    padding: 0 16px;
+    font-size: 14px;
+    box-shadow: 0 7px 14px rgba(15, 150, 80, .16);
 }
 
 .normal-summary {
@@ -1688,7 +1740,7 @@ button:disabled {
 
 .category-stack {
     display: grid;
-    gap: 24px;
+    gap: 16px;
 }
 
 .category-card,
@@ -1730,19 +1782,54 @@ button:disabled {
 }
 
 .category-card h2 {
-    padding: 11px 18px;
-    font-size: 23px;
+    padding: 9px 16px;
+    font-size: 18px;
     font-weight: 900;
 }
 
 .table-wrap {
     overflow-x: auto;
-    padding: 16px;
+    padding: 12px 14px;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
+}
+
+.class-table {
+    min-width: 960px;
+    table-layout: fixed;
+}
+
+.class-table th:nth-child(1),
+.class-table td:nth-child(1) {
+    width: 56px;
+}
+
+.class-table th:nth-child(2),
+.class-table td:nth-child(2) {
+    width: 26%;
+}
+
+.class-table th:nth-child(3),
+.class-table td:nth-child(3) {
+    width: 28%;
+}
+
+.class-table th:nth-child(4),
+.class-table td:nth-child(4) {
+    width: 15%;
+}
+
+.class-table th:nth-child(5),
+.class-table td:nth-child(5) {
+    width: 13%;
+}
+
+.class-table th:nth-child(6),
+.class-table td:nth-child(6) {
+    width: 18%;
 }
 
 .class-table th,
@@ -1752,7 +1839,7 @@ table {
 .draft-table th,
 .draft-table td {
     border: 1px solid #d6dce7;
-    padding: 10px 12px;
+    padding: 8px 10px;
     text-align: center;
     vertical-align: middle;
 }
@@ -1779,8 +1866,9 @@ table {
 .student-table th {
     background: #cfe2fb;
     color: #030714;
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 900;
+    line-height: 1.25;
 }
 
 :global(.dark) .class-table th,
@@ -1809,7 +1897,8 @@ table {
 }
 
 .class-table td {
-    font-size: 16px;
+    font-size: 14px;
+    line-height: 1.35;
 }
 
 .count-badge {
@@ -1817,11 +1906,11 @@ table {
     align-items: center;
     justify-content: center;
     gap: 4px;
-    min-width: 25px;
-    min-height: 22px;
-    border-radius: 7px;
-    padding: 2px 8px;
-    font-size: 14px;
+    min-width: 22px;
+    min-height: 20px;
+    border-radius: 6px;
+    padding: 1px 7px;
+    font-size: 12px;
     font-weight: 900;
 }
 
@@ -1836,11 +1925,11 @@ table {
 }
 
 .view-students {
-    min-height: 31px;
+    min-height: 30px;
     background: #1832a3;
     color: #fff;
-    padding: 0 12px;
-    font-size: 15px;
+    padding: 0 10px;
+    font-size: 13px;
 }
 
 .view-students.make-cert {
@@ -1886,12 +1975,12 @@ table {
 }
 
 .back-button {
-    min-height: 48px;
+    min-height: 38px;
     border: 1px solid #dce1ef;
     background: #fff;
     color: #2d2e83;
-    padding: 0 24px;
-    font-size: 17px;
+    padding: 0 16px;
+    font-size: 14px;
 }
 
 :global(.dark) .back-button {
@@ -1902,7 +1991,7 @@ table {
 
 .info-card,
 .students-card {
-    margin-bottom: 30px;
+    margin-bottom: 16px;
 }
 
 .info-card header,
@@ -1910,26 +1999,46 @@ table {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 30px;
+    border-bottom: 1px solid #d9deeb;
+    background: #f8fafc;
+    color: #111827;
+    padding: 14px 18px;
 }
 
 .info-card header {
     justify-content: flex-start;
-    gap: 18px;
+    gap: 10px;
 }
 
 .info-card header span,
 .students-card header .section-title span {
-    width: 54px;
-    height: 54px;
-    background: rgba(255, 255, 255, .13);
-    color: #dce4ff;
+    width: 36px;
+    height: 36px;
+    background: #e8eefc;
+    color: #2d2e83;
+}
+
+:global(.dark) .info-card header,
+:global(.dark) .students-card header,
+.is-dark-theme .info-card header,
+.is-dark-theme .students-card header {
+    border-bottom-color: #263244;
+    background: #172033 !important;
+    color: #f8fafc;
+}
+
+:global(.dark) .info-card header span,
+:global(.dark) .students-card header .section-title span,
+.is-dark-theme .info-card header span,
+.is-dark-theme .students-card header .section-title span {
+    background: rgba(96, 165, 250, .14);
+    color: #bfdbfe;
 }
 
 .info-card h2,
 .students-card h2 {
     margin: 0;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 900;
 }
 
@@ -1941,15 +2050,17 @@ table {
 .info-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    padding: 18px 30px;
+    padding: 0;
 }
 
 .info-grid div {
-    min-height: 70px;
+    min-height: 62px;
     display: grid;
-    place-items: center;
+    align-content: center;
+    gap: 5px;
     border-right: 1px solid #dfe4f0;
-    text-align: center;
+    padding: 12px 18px;
+    text-align: left;
 }
 
 :global(.dark) .info-grid div {
@@ -1962,7 +2073,9 @@ table {
 
 .info-grid p {
     color: #74798f;
+    font-size: 12px;
     font-weight: 800;
+    text-transform: uppercase;
 }
 
 :global(.dark) .info-grid p {
@@ -1970,25 +2083,73 @@ table {
 }
 
 .info-grid strong {
-    color: #02030b;
-    font-size: 20px;
+    color: #111827;
+    font-size: 15px;
+    line-height: 1.35;
 }
 
 :global(.dark) .info-grid strong {
     color: #f8fafc;
 }
 
+.is-dark-theme .info-grid strong {
+    color: #f8fafc !important;
+}
+
 .section-title {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 10px;
 }
 
 .students-card header > strong {
-    border-radius: 7px;
-    background: #1e246e;
-    padding: 9px 28px;
-    font-size: 20px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #2d2e83;
+    padding: 6px 13px;
+    font-size: 13px;
+}
+
+:global(.dark) .students-card header > strong,
+.is-dark-theme .students-card header > strong {
+    background: rgba(96, 165, 250, .14);
+    color: #bfdbfe;
+}
+
+.student-table {
+    min-width: 940px;
+    table-layout: fixed;
+}
+
+.student-table th:nth-child(1),
+.student-table td:nth-child(1) {
+    width: 70px;
+}
+
+.student-table th:nth-child(2),
+.student-table td:nth-child(2) {
+    width: 20%;
+    text-align: left;
+}
+
+.student-table th:nth-child(3),
+.student-table td:nth-child(3) {
+    width: 110px;
+}
+
+.student-table th:nth-child(4),
+.student-table td:nth-child(4) {
+    width: 150px;
+}
+
+.student-table th:nth-child(5),
+.student-table td:nth-child(5) {
+    text-align: left;
+}
+
+.student-table th:nth-child(6),
+.student-table td:nth-child(6) {
+    width: 260px;
 }
 
 .student-table th {
@@ -2000,31 +2161,50 @@ table {
 }
 
 .student-table td {
-    height: 76px;
-    font-size: 17px;
+    height: 54px;
+    font-size: 14px;
+}
+
+.printed-student-row {
+    background: #f7f7fb;
+    color: #4b5563;
+}
+
+:global(.dark) .printed-student-row,
+.is-dark-theme .printed-student-row {
+    background: rgba(30, 41, 59, .58);
+    color: #9ca3af;
+}
+
+.printed-student-row td:nth-child(n + 2):nth-child(-n + 5) {
+    color: #4b5563;
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+}
+
+:global(.dark) .printed-student-row td:nth-child(n + 2):nth-child(-n + 5),
+.is-dark-theme .printed-student-row td:nth-child(n + 2):nth-child(-n + 5) {
+    color: #9ca3af !important;
 }
 
 .student-id {
     display: inline-flex;
     align-items: center;
-    min-height: 38px;
-    border-radius: 8px;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
+    border-radius: 6px;
     background: #2d2e83;
     color: #fff;
-    padding: 0 3px;
+    padding: 0 6px;
     font-weight: 900;
 }
 
 .student-name {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 14px;
-}
-
-.student-name span {
-    width: 43px;
-    height: 43px;
+    justify-content: flex-start;
+    min-width: 0;
 }
 
 .gender-pill {
@@ -2032,8 +2212,8 @@ table {
     border-radius: 7px;
     background: #eeecff;
     color: #172179;
-    padding: 7px 15px;
-    font-size: 13px;
+    padding: 5px 11px;
+    font-size: 12px;
     font-weight: 900;
 }
 
@@ -2043,11 +2223,37 @@ table {
 }
 
 .print-button {
-    min-height: 39px;
+    min-height: 32px;
     background: #0ca34f;
     color: #fff;
-    padding: 0 17px;
-    font-size: 16px;
+    padding: 0 12px;
+    font-size: 13px;
+}
+
+.student-print-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.printed-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 32px;
+    border-radius: 6px;
+    background: #56aa7e;
+    color: #fff;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.print-button.reprint-button {
+    background: #3b82f6;
+    box-shadow: 0 7px 14px rgba(59, 130, 246, .18);
 }
 
 .loading-card {
@@ -3209,6 +3415,18 @@ table {
     .detail-buttons {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .normal-actions {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .filter-select,
+    .filter-select-small,
+    .blue-action {
+        flex: 0 0 auto;
+        width: 100%;
     }
 
     .normal-summary,

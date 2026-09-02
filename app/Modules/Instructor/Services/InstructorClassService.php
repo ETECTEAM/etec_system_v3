@@ -928,7 +928,12 @@ class InstructorClassService
 
     private function certificateRequestTypesForClass(stdClass $class): array
     {
-        return $this->isInternshipClass($class) ? ['meal', 'internship'] : ['normal'];
+        return match ($this->certificateRequestTypeForClass($class)) {
+            'free' => ['free'],
+            'scholarship' => ['scholarship'],
+            'internship' => ['meal', 'internship'],
+            default => ['normal'],
+        };
     }
 
     private function certificateRequestTypesFromCsv(?string $types): array
@@ -945,18 +950,28 @@ class InstructorClassService
             ->all();
     }
 
-    private function isInternshipClass(stdClass $class): bool
+    private function certificateRequestTypeForClass(stdClass $class): string
     {
-        return collect([
+        $text = strtolower(collect([
             $class->class_type_name ?? null,
             $class->course_title ?? null,
             $class->lesson_title ?? null,
             $class->title ?? null,
-        ])->contains(function ($value): bool {
-            $name = strtolower((string) $value);
+        ])->filter()->implode(' '));
 
-            return str_contains($name, 'internship') || str_contains($name, 'intership');
-        });
+        if (str_contains($text, 'free')) {
+            return 'free';
+        }
+
+        if (str_contains($text, 'scholar')) {
+            return 'scholarship';
+        }
+
+        if (str_contains($text, 'internship') || str_contains($text, 'intership')) {
+            return 'internship';
+        }
+
+        return 'normal';
     }
 
     private function attendanceStats(int $studyClassId): Collection

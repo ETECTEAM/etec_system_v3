@@ -101,7 +101,22 @@
     },
     "filters": {
       "all": "All",
+      "allMonth": "All months",
       "select": "Select"
+    },
+    "months": {
+      "1": "January",
+      "2": "February",
+      "3": "March",
+      "4": "April",
+      "5": "May",
+      "6": "June",
+      "7": "July",
+      "8": "August",
+      "9": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December"
     },
     "form": {
       "course": "Course / COURSE",
@@ -128,7 +143,7 @@
     "sections": {
       "classInfo": "Class Information",
       "classInfoKh": "Class Information",
-      "courseType": "Course Type :category",
+      "courseType": ":category",
       "studentList": "Student List",
       "studentListKh": "Student List"
     },
@@ -150,7 +165,7 @@
       "gender": "Gender",
       "no": "No",
       "phone": "Phone",
-      "remainingStudents": "Remaining Students",
+      "remainingStudents": "Remaining",
       "studentName": "Student Name",
       "students": "Students",
       "teacher": "Teacher",
