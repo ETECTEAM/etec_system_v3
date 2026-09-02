@@ -19,6 +19,7 @@ use App\Support\InstructorDisplayName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -27,7 +28,6 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use stdClass;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class InstructorClassController extends Controller
 {
@@ -143,7 +143,7 @@ class InstructorClassController extends Controller
         return back()->with('success', 'Pre-attendance request sent to admin.');
     }
 
-    public function result(Request $request, string $studyClass): Response|BinaryFileResponse
+    public function result(Request $request, string $studyClass): Response|HttpResponse
     {
         $class = $this->instructorClasses->findResultForInstructor($request->user(), (int) $studyClass);
         $students = $this->instructorClasses->students($class->id);
@@ -388,16 +388,18 @@ class InstructorClassController extends Controller
         ]);
     }
 
-    private function downloadResultPdf(stdClass $class, Collection $students): BinaryFileResponse
+    private function downloadResultPdf(stdClass $class, Collection $students): HttpResponse
     {
         $classData = $this->instructorClasses->presentClass($class);
-        $pdfPath = $this->classResultPdfGenerator->generate($classData, $students);
+        $pdf = $this->classResultPdfGenerator->generate($classData, $students);
+        $filename = Str::slug($classData['title'] ?? 'class-result').'.pdf';
 
-        return response()
-            ->download($pdfPath, Str::slug($classData['title'] ?? 'class-result').'.pdf', [
-                'Content-Type' => 'application/pdf',
-            ])
-            ->deleteFileAfterSend(true);
+        // Streamed from memory - the generator leaves no file on the server.
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Length' => (string) strlen($pdf),
+        ]);
     }
 
     public function saveScores(Request $request, string $studyClass): JsonResponse|RedirectResponse

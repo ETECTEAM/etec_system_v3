@@ -2,16 +2,22 @@
 
 namespace App\Modules\Enroll\Queries;
 
+use App\Models\ClassType;
 use App\Models\Course;
 use App\Models\CourseEnrollConfig;
+use App\Models\CourseTrack;
 use App\Models\Schedule;
 use App\Models\StudyClass;
 use App\Models\Time;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 class GetCourseClassSchedules
 {
+    /**
+     * Fallback set used only for courses whose track has no class_type_id
+     * mapping - keeps their Enroll Config working exactly as it did before the
+     * mapping existed. A mapped track shows ONLY its own Class Type instead.
+     */
     public const AVAILABLE_CLASS_TYPES = ['Physical Class', 'Scholarship Class', 'Online Class'];
 
     /**
@@ -28,8 +34,13 @@ class GetCourseClassSchedules
     /**
      * Same shape as handle(), but for many courses at once, keyed by course id.
      * Fetches the schedule tree once and every course's open slots in a single
-     * query - two queries total instead of two per course (the enroll-config
-     * page renders dozens of courses, so the per-course version was ~2N).
+     * query - a handful of queries total, not ~2N (the enroll-config page
+     * renders dozens of courses).
+     *
+     * Each course sees only the schedules of the Class Type its track is
+     * mapped to (course_tracks.class_type_id); an unmapped track falls back to
+     * AVAILABLE_CLASS_TYPES so nothing breaks for courses configured before
+     * the mapping existed.
      *
      * @param  iterable<int>  $courseIds
      * @return array<int, array<int, array<string, mixed>>>
@@ -42,6 +53,21 @@ class GetCourseClassSchedules
             return [];
         }
 
+        // course id -> mapped class_type_id (via its track), null when unmapped.
+        $mappedTypeByCourse = Course::query()
+            ->whereIn('courses.id', $courseIds)
+            ->leftJoin('course_tracks', 'course_tracks.id', '=', 'courses.course_track_id')
+            ->pluck('course_tracks.class_type_id', 'courses.id')
+            ->map(fn ($id) => $id !== null ? (int) $id : null);
+
+        $defaultTypeIds = $this->defaultClassTypeIds();
+
+        // Every Class Type any of these courses could show - one Schedule query.
+        $neededTypeIds = $defaultTypeIds
+            ->merge($mappedTypeByCourse->filter()->values())
+            ->unique()
+            ->values();
+
         // Open schedule-scoped rows keyed "scheduleId:timeId", grouped by course -
         // carries max_classes so the page can show / edit each slot's class limit.
         $openConfigsByCourse = CourseEnrollConfig::query()
@@ -52,7 +78,7 @@ class GetCourseClassSchedules
             ->map(fn (Collection $rows) => $rows->keyBy(fn (CourseEnrollConfig $config) => "{$config->schedule_id}:{$config->time_id}"));
 
         $schedules = Schedule::query()
-            ->whereHas('classType', fn ($query) => $query->whereIn('type_name', self::AVAILABLE_CLASS_TYPES))
+            ->whereIn('class_type_id', $neededTypeIds->all())
             ->with([
                 'classType:class_type_id,type_name',
                 'term:id,term_name',
@@ -61,18 +87,65 @@ class GetCourseClassSchedules
             ->get();
 
         return $courseIds
-            ->mapWithKeys(fn (int $courseId) => [
-                $courseId => $this->build($schedules, $openConfigsByCourse->get($courseId) ?? collect()),
-            ])
+            ->mapWithKeys(function (int $courseId) use ($schedules, $openConfigsByCourse, $mappedTypeByCourse, $defaultTypeIds) {
+                $mappedTypeId = $mappedTypeByCourse->get($courseId);
+
+                $courseSchedules = $mappedTypeId !== null
+                    ? $schedules->where('class_type_id', $mappedTypeId)
+                    : $schedules->whereIn('class_type_id', $defaultTypeIds->all());
+
+                return [
+                    $courseId => $this->build(
+                        $courseSchedules->values(),
+                        $openConfigsByCourse->get($courseId) ?? collect(),
+                    ),
+                ];
+            })
             ->all();
     }
 
     /**
-     * @param  EloquentCollection<int, Schedule>  $schedules  the full schedule tree, fetched once
+     * The Class Type ids a course may be configured against on the Enroll
+     * Config page: its track's mapped Class Type when set, otherwise the
+     * default fallback set. Used by the read query above and by the write
+     * guards in CourseController so both agree on what is valid.
+     *
+     * @return Collection<int, int>
+     */
+    public function classTypeIdsForCourse(Course $course): Collection
+    {
+        $mapped = $course->relationLoaded('track')
+            ? $course->track?->class_type_id
+            : CourseTrack::query()->whereKey($course->course_track_id)->value('class_type_id');
+
+        if ($mapped !== null) {
+            return collect([(int) $mapped]);
+        }
+
+        return $this->defaultClassTypeIds();
+    }
+
+    /**
+     * class_type ids for AVAILABLE_CLASS_TYPES, in that order.
+     *
+     * @return Collection<int, int>
+     */
+    private function defaultClassTypeIds(): Collection
+    {
+        return ClassType::query()
+            ->whereIn('type_name', self::AVAILABLE_CLASS_TYPES)
+            ->pluck('class_type_id', 'type_name')
+            ->sortBy(fn ($id, $name) => array_search($name, self::AVAILABLE_CLASS_TYPES, true))
+            ->map(fn ($id) => (int) $id)
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, Schedule>  $schedules  the schedules this one course may show
      * @param  Collection<string, CourseEnrollConfig>  $openConfigs  open rows keyed "scheduleId:timeId" for one course
      * @return array<int, array<string, mixed>>
      */
-    private function build(EloquentCollection $schedules, Collection $openConfigs): array
+    private function build(Collection $schedules, Collection $openConfigs): array
     {
         return $schedules
             ->groupBy(fn (Schedule $schedule) => $schedule->classType->type_name)

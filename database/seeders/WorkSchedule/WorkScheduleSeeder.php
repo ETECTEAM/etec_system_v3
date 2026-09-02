@@ -11,6 +11,20 @@ class WorkScheduleSeeder extends Seeder
 {
     private const WEEKDAYS = [1, 2, 3, 4];
     private const WEEKEND = [6, 7];
+    private const SUNDAY = [7];
+
+    /**
+     * Wide time blocks that belong to one program's own Schedule Management
+     * schedule (Microsoft Office's Sunday sessions). They also happen to fit
+     * inside the generic full-time windows, so without this list every
+     * full-time instructor's grid would show "12:00 pm - 05:00 pm" on
+     * weekdays. Only program schedules (schedule(..., program: true)) pick
+     * them up.
+     */
+    private const PROGRAM_ONLY_RANGES = [
+        '08:00 am - 12:00 pm',
+        '12:00 pm - 05:00 pm',
+    ];
 
     /**
      * Seed the instructor work-schedule source of truth.
@@ -34,7 +48,7 @@ class WorkScheduleSeeder extends Seeder
                 return null;
             }
 
-            return ['id' => $time->id, ...$range];
+            return ['id' => $time->id, 'name' => $time->time_name, ...$range];
         })->filter()->values();
 
         foreach ($this->schedules() as $definition) {
@@ -47,7 +61,7 @@ class WorkScheduleSeeder extends Seeder
                 ],
             );
 
-            $entries = $this->entriesForWindows($parsedTimes, $definition['windows']);
+            $entries = $this->entriesForWindows($parsedTimes, $definition['windows'], $definition['program']);
             $desiredKeys = [];
 
             foreach ($entries as $entry) {
@@ -111,12 +125,24 @@ class WorkScheduleSeeder extends Seeder
             $this->schedule('part_time_weekend_morning', 'Weekend Morning', 'part-time instructor: weekend morning only', [
                 ...$this->windows(self::WEEKEND, [['08:00 am', '01:30 pm']]),
             ]),
+
+            // Microsoft Office program. Weekday 90-minute slots plus the wide
+            // Sunday session that only these schedules are allowed to carry
+            // (see PROGRAM_ONLY_RANGES).
+            $this->schedule('office_morning', 'Office · Morning', 'Microsoft Office instructor: weekday mornings (incl. the 12:30 slot) and the Sunday morning session', [
+                ...$this->windows(self::WEEKDAYS, [['09:00 am', '12:15 pm'], ['12:30 pm', '01:45 pm']]),
+                ...$this->windows(self::SUNDAY, [['08:00 am', '12:00 pm']]),
+            ], program: true),
+            $this->schedule('office_afternoon', 'Office · Afternoon', 'Microsoft Office instructor: weekday afternoons and the Sunday afternoon session', [
+                ...$this->windows(self::WEEKDAYS, [['12:30 pm', '05:00 pm']]),
+                ...$this->windows(self::SUNDAY, [['12:00 pm', '05:00 pm']]),
+            ], program: true),
         ];
     }
 
-    private function schedule(string $code, string $name, string $description, array $windows): array
+    private function schedule(string $code, string $name, string $description, array $windows, bool $program = false): array
     {
-        return compact('code', 'name', 'description', 'windows');
+        return compact('code', 'name', 'description', 'windows', 'program');
     }
 
     private function windows(array $days, array $ranges): array
@@ -136,14 +162,25 @@ class WorkScheduleSeeder extends Seeder
         return $windows;
     }
 
-    private function entriesForWindows($times, array $windows): array
+    private function entriesForWindows($times, array $windows, bool $program = false): array
     {
         $entries = [];
 
         foreach ($windows as $window) {
             $matches = $times->filter(
                 fn (array $time) => $time['start'] >= $window['start'] && $time['end'] <= $window['end']
-            )->values();
+            );
+
+            // Keep the wide program blocks on the office_* / program schedules
+            // only - they fit generic full-time windows too, but a generic
+            // instructor is not available for a program's dedicated session.
+            if (! $program) {
+                $matches = $matches->reject(
+                    fn (array $time) => in_array($time['name'], self::PROGRAM_ONLY_RANGES, true)
+                );
+            }
+
+            $matches = $matches->values();
 
             // Weekend windows should only offer the widest block for a given
             // span (e.g. 08:00-11:00) rather than every weekday-granularity

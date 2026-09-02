@@ -657,7 +657,15 @@ async function applyStartDateToAll() {
                       <TableRow>
                         <TableCell :colspan="7" class="bg-slate-50/60 dark:bg-gray-800/30">
                           <div class="space-y-3">
-                            <p class="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400">{{ $t('Class Schedules') }}</p>
+                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <p class="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400">{{ $t('Class Schedules') }}</p>
+                              <span v-if="course.class_type?.mapped" class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:bg-gray-700 dark:text-gray-300">
+                                {{ $t('Class Type') }}: {{ course.class_type.name }}
+                              </span>
+                              <span v-else class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                                {{ $t('No Class Type mapped — showing default schedules') }}
+                              </span>
+                            </div>
 
                             <div v-for="classType in course.class_schedules" :key="classType.class_type_id"
                               class="rounded-xl border overflow-hidden" :class="classTypeAccent(classType).border">

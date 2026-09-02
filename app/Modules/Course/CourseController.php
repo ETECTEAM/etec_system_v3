@@ -122,7 +122,7 @@ class CourseController extends Controller
     }
 
     // Toggle: creates an open row if none exists, deletes it if one does.
-    public function toggleSchedule(Request $request, Course $course): JsonResponse
+    public function toggleSchedule(Request $request, Course $course, GetCourseClassSchedules $classSchedules): JsonResponse
     {
         $validated = $request->validate([
             'schedule_id' => ['required', 'integer', 'exists:schedules,id'],
@@ -136,10 +136,12 @@ class CourseController extends Controller
 
         $schedule = Schedule::query()->with('classType')->findOrFail($validated['schedule_id']);
 
+        // Only this course's mapped Class Type (or the default set when its
+        // track is unmapped) - mirrors what the Enroll Config page shows.
         abort_unless(
-            in_array($schedule->classType?->type_name, GetCourseClassSchedules::AVAILABLE_CLASS_TYPES, true),
+            $classSchedules->classTypeIdsForCourse($course)->contains((int) $schedule->class_type_id),
             422,
-            'This class type is not available for course scheduling.'
+            'This class type is not available for this course.'
         );
 
         $existing = CourseEnrollConfig::query()
@@ -197,7 +199,7 @@ class CourseController extends Controller
     // Bulk counterpart to toggleSchedule() - opens or closes every time slot
     // under one class type for this course in a single request, instead of
     // clicking each badge individually.
-    public function setClassTypeAvailability(Request $request, Course $course): JsonResponse
+    public function setClassTypeAvailability(Request $request, Course $course, GetCourseClassSchedules $classSchedules): JsonResponse
     {
         $validated = $request->validate([
             'class_type_id' => ['required', 'integer', 'exists:class_type,class_type_id'],
@@ -207,9 +209,9 @@ class CourseController extends Controller
         $classType = ClassType::query()->findOrFail($validated['class_type_id']);
 
         abort_unless(
-            in_array($classType->type_name, GetCourseClassSchedules::AVAILABLE_CLASS_TYPES, true),
+            $classSchedules->classTypeIdsForCourse($course)->contains((int) $classType->class_type_id),
             422,
-            'This class type is not available for course scheduling.'
+            'This class type is not available for this course.'
         );
 
         $schedules = Schedule::query()

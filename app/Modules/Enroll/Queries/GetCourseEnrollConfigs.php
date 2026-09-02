@@ -38,7 +38,8 @@ class GetCourseEnrollConfigs
             ->select(['id', 'title', 'course_track_id', 'enroll_order'])
             ->with([
                 'enrollConfig',
-                'track:id,sub_category_id,name',
+                'track:id,sub_category_id,class_type_id,name',
+                'track.classType:class_type_id,type_name',
                 'track.subCategory:id,category_id,name',
                 'track.subCategory.category:id,name',
             ])
@@ -161,11 +162,21 @@ class GetCourseEnrollConfigs
 
     private function present(Course $course): array
     {
+        $classType = $course->track?->classType;
+
         return [
             'id' => $course->id,
             'title' => $course->title,
             'enroll_order' => $course->enroll_order,
             'config' => $this->presentConfig($course->enrollConfig),
+            // Resolved via course_tracks.class_type_id. mapped = false means the
+            // course_schedules below are the default fallback set, not a real
+            // Course -> Class Type mapping - the UI flags this for the admin.
+            'class_type' => [
+                'id' => $classType?->class_type_id,
+                'name' => $classType?->type_name,
+                'mapped' => $classType !== null,
+            ],
             'class_schedules' => $this->schedulesByCourse[$course->id] ?? [],
         ];
     }
