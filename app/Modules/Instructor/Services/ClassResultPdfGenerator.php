@@ -98,6 +98,12 @@ class ClassResultPdfGenerator
 
     private function chromeBinary(): string
     {
+        // Allow overriding the binary with an environment variable (useful in containers).
+        $envPath = env('CHROME_PATH') ?? env('CHROMIUM_PATH') ?? env('BROWSERSHOT_BINARY');
+        if ($envPath && is_executable($envPath)) {
+            return $envPath;
+        }
+
         foreach (['google-chrome', 'chromium', 'chromium-browser'] as $binary) {
             $resolved = trim((string) shell_exec('command -v '.escapeshellarg($binary).' 2>/dev/null'));
 
@@ -106,6 +112,7 @@ class ClassResultPdfGenerator
             }
         }
 
-        throw new RuntimeException('Unable to locate Google Chrome or Chromium for PDF rendering.');
+        $hint = 'Install Google Chrome/Chromium on the host or set CHROME_PATH in your .env to the executable path.';
+        throw new RuntimeException('Unable to locate Google Chrome or Chromium for PDF rendering. '.$hint);
     }
 }
