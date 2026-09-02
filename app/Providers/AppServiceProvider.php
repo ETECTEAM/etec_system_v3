@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\AttendanceRule;
 use App\Models\OfficialLeave;
+use App\Models\StudentAttendanceBlock;
 use App\Models\User;
+use App\Modules\AbsenceBlock\Policies\AttendanceRulePolicy;
+use App\Modules\AbsenceBlock\Policies\StudentAttendanceBlockPolicy;
 use App\Modules\OfficialLeave\Policies\OfficialLeavePolicy;
 use App\Modules\User\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -32,6 +36,8 @@ class AppServiceProvider extends ServiceProvider
         // URL::forceScheme('https');
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(OfficialLeave::class, OfficialLeavePolicy::class);
+        Gate::policy(AttendanceRule::class, AttendanceRulePolicy::class);
+        Gate::policy(StudentAttendanceBlock::class, StudentAttendanceBlockPolicy::class);
 
         RateLimiter::for('login', function (Request $request): Limit {
             $login = trim((string) ($request->input('login') ?? $request->input('email') ?? ''));

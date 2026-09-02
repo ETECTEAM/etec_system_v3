@@ -63,6 +63,8 @@
             "@php artisan test"
         ],
         "seed": "php artisan db:seed",
+        "seed-prod": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Production\\\\ProductionSeeder\"",
+        "seed-dev": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Dev\\\\DevSeeder\"",
         "seed-permission": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Core\\\\CoreSeeder\"",
         "seed-core": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Core\\\\CoreSeeder\"",
         "seed-class": "php artisan db:seed --class=\"Database\\\\Seeders\\\\Class\\\\ClassSeeder\"",

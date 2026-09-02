@@ -1,7 +1,7 @@
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3'
 import { computed } from 'vue'
-import { BellRing, Bot, PencilLine, Save, ShieldAlert, Timer, UserCheck, Zap } from '@lucide/vue'
+import { BellRing, Bot, PencilLine, QrCode, Save, ShieldAlert, Timer, UserCheck, Zap } from '@lucide/vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
@@ -27,6 +27,7 @@ const form = useForm({
   auto_record_notify_instructor: props.settings.notifyInstructor,
   auto_record_allow_override: props.settings.allowOverride,
   auto_record_allow_track_anytime: props.settings.allowTrackAnytime,
+  auto_record_allow_qr_attendance: props.settings.allowQrAttendance,
   auto_record_override_hours: props.settings.overrideHours,
 })
 
@@ -154,14 +155,33 @@ const breadcrumbItems = [
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form @submit.prevent="submit">
           <div class="mb-8">
-            <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-rose-200 bg-rose-50/70 px-4 py-3.5 transition hover:border-rose-300 dark:border-rose-500/20 dark:bg-rose-500/10 dark:hover:border-rose-500/40">
+            <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3.5 transition hover:border-slate-300 dark:border-gray-800 dark:bg-gray-950/40 dark:hover:border-gray-700">
               <span class="flex items-center gap-3">
-                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-rose-700 dark:bg-gray-950/50 dark:text-rose-400">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-400">
+                  <QrCode class="h-4 w-4" />
+                </span>
+                <span>
+                  <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ $t('Allow QR attendance for all classes') }}</span>
+                  <span class="block text-xs text-slate-500 dark:text-gray-400">{{ $t('When off, only Internship classes can use QR attendance for student self-scan.') }}</span>
+                </span>
+              </span>
+              <span class="relative inline-flex items-center">
+                <input v-model="form.auto_record_allow_qr_attendance" type="checkbox" class="peer sr-only">
+                <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-blue-900 dark:bg-gray-600 dark:peer-checked:bg-blue-600"></span>
+                <span class="absolute left-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5"></span>
+              </span>
+            </label>
+          </div>
+
+          <div class="mb-8">
+            <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3.5 transition hover:border-amber-300 dark:border-amber-500/20 dark:bg-amber-500/10 dark:hover:border-amber-500/30">
+              <span class="flex items-center gap-3">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-amber-700 dark:bg-gray-950/50 dark:text-amber-400">
                   <ShieldAlert class="h-4 w-4" />
                 </span>
                 <span>
                   <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ $t('Allow tracking anytime') }}</span>
-                  <span class="block text-xs text-slate-500 dark:text-gray-400">{{ $t('Lets instructors track attendance outside the scheduled session window.') }}</span>
+                  <span class="block text-xs text-slate-500 dark:text-gray-400">{{ $t('Let instructors track attendance outside the scheduled session window.') }}</span>
                 </span>
               </span>
               <span class="relative inline-flex items-center">

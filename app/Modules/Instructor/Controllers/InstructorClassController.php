@@ -12,16 +12,20 @@ use App\Modules\Attendance\Queries\GetSessionBanner;
 use App\Modules\Attendance\Services\AttendanceQrService;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Modules\Instructor\Services\ClassResultPdfGenerator;
 use App\Modules\Instructor\Services\InstructorClassService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use stdClass;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class InstructorClassController extends Controller
 {
@@ -30,6 +34,7 @@ class InstructorClassController extends Controller
         private readonly OverrideAttendanceRecord $overrideAttendance,
         private readonly GetSessionBanner $sessionBanner,
         private readonly AttendanceQrService $attendanceQr,
+        private readonly ClassResultPdfGenerator $classResultPdfGenerator,
     ) {}
 
     public function create(Request $request): Response
@@ -114,10 +119,28 @@ class InstructorClassController extends Controller
         ]);
     }
 
+    public function result(Request $request, string $studyClass): Response|BinaryFileResponse
+    {
+        $class = $this->instructorClasses->findResultForInstructor($request->user(), (int) $studyClass);
+        $students = $this->instructorClasses->students($class->id);
+
+        if ($request->boolean('download', false)) {
+            return $this->downloadResultPdf($class, $students);
+        }
+
+        return Inertia::render('backend/instructors/ClassResult', [
+            'classData' => $this->instructorClasses->presentClass($class),
+            'students' => $students,
+            'autoDownload' => $request->boolean('download', false),
+        ]);
+    }
+
     public function trackAttendance(Request $request, string $studyClass): Response|RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
         $studyClassModel = StudyClass::query()->findOrFail($class->id);
+        $qrAttendanceAvailable = $this->attendanceQr->allowsQrAttendance($studyClassModel);
+        $allowTrackAnytime = $this->attendanceQr->allowsTrackAnytime();
 
         if (($class->class_status ?? null) !== 'active') {
             return redirect()
@@ -130,10 +153,9 @@ class InstructorClassController extends Controller
         $todaySession = $this->sessionBanner->handle($class->id);
         $hasAttendance = $this->instructorClasses->hasAttendanceForDate($class->id, Carbon::today('Asia/Phnom_Penh'));
         $canCompletePreAttendance = (bool) ($todaySession['is_pre_attendance'] ?? false);
-        $allowTrackAnytime = $this->instructorClasses->allowTrackAnytime();
         $isAutoRecorded = ($todaySession['status'] ?? null) === 'auto_recorded';
         $canOpenAttendance = ! $isAutoRecorded && ($allowTrackAnytime || $canCompletePreAttendance || (bool) ($attendanceWindow['can_submit'] ?? false));
-        $attendanceSession = $canOpenAttendance
+        $attendanceSession = $qrAttendanceAvailable && $canOpenAttendance
             ? $this->attendanceQr->getOrCreateTodaySession($studyClassModel, $request->user())
             : AttendanceSession::query()
                 ->where('study_class_id', $class->id)
@@ -151,7 +173,6 @@ class InstructorClassController extends Controller
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
             'attendanceLocked' => $isAutoRecorded || (! $canCorrectQrAttendance
-                && ! $allowTrackAnytime
                 && ! $canCompletePreAttendance
                 && ($hasAttendance
                     || ! ($attendanceWindow['can_submit'] ?? false)
@@ -160,6 +181,8 @@ class InstructorClassController extends Controller
             'todaySession' => $todaySession,
             'attendanceSession' => $presentedAttendanceSession,
             'attendanceSummary' => $attendanceSummary,
+            'qrAttendanceAvailable' => $qrAttendanceAvailable,
+            'allowTrackAnytime' => $allowTrackAnytime,
         ]);
     }
 
@@ -231,7 +254,14 @@ class InstructorClassController extends Controller
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
         $studyClassModel = StudyClass::query()->findOrFail($class->id);
-        $session = $this->attendanceQr->getOrCreateTodaySession($studyClassModel, $request->user());
+        $session = AttendanceSession::query()
+            ->where('study_class_id', $studyClassModel->id)
+            ->whereDate('attendance_date', Carbon::today('Asia/Phnom_Penh'))
+            ->first();
+
+        if (! $session) {
+            return back()->with('warning', 'No attendance session is available to stop.');
+        }
 
         $this->attendanceQr->stopSession($session, $request->user());
 
@@ -257,6 +287,18 @@ class InstructorClassController extends Controller
             'students' => $this->instructorClasses->students($class->id),
             'savedTeams' => $this->instructorClasses->teamsForClass($class->id),
         ]);
+    }
+
+    private function downloadResultPdf(stdClass $class, Collection $students): BinaryFileResponse
+    {
+        $classData = $this->instructorClasses->presentClass($class);
+        $pdfPath = $this->classResultPdfGenerator->generate($classData, $students);
+
+        return response()
+            ->download($pdfPath, Str::slug($classData['title'] ?? 'class-result').'.pdf', [
+                'Content-Type' => 'application/pdf',
+            ])
+            ->deleteFileAfterSend(true);
     }
 
     public function saveScores(Request $request, string $studyClass): JsonResponse|RedirectResponse

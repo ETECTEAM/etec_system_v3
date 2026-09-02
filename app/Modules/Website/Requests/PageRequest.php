@@ -44,9 +44,10 @@ class PageRequest extends FormRequest
             'hero_title' => ['nullable', 'string', 'max:255'],
             'hero_subtitle' => ['nullable', 'string', 'max:255'],
             'hero_description' => ['nullable', 'string', 'max:1000'],
-            'hero_background_image' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
-            'hero_slider_images' => ['nullable', 'array', 'max:3'],
-            'hero_slider_images.*' => ['file', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            // FILE: disabled - not using file uploads
+            // 'hero_background_image' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            // 'hero_slider_images' => ['nullable', 'array', 'max:3'],
+            // 'hero_slider_images.*' => ['file', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'hero_image_states' => ['nullable', 'array'],
             'hero_image_states.*' => ['boolean'],
             'remove_hero_images' => ['nullable', 'array'],
@@ -61,17 +62,18 @@ class PageRequest extends FormRequest
         ];
     }
 
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $validator): void {
-            $page = $this->route('page');
-            $existingCount = $page?->hero?->images()->count() ?? 0;
-            $removeCount = count($this->input('remove_hero_images', []));
-            $newCount = count($this->file('hero_slider_images', []));
-
-            if (($existingCount - $removeCount + $newCount) > 3) {
-                $validator->errors()->add('hero_slider_images', 'Hero slider can have a maximum of 3 images.');
-            }
-        });
-    }
+    // FILE: disabled - not using file uploads
+    // public function withValidator(Validator $validator): void
+    // {
+    //     $validator->after(function (Validator $validator): void {
+    //         $page = $this->route('page');
+    //         $existingCount = $page?->hero?->images()->count() ?? 0;
+    //         $removeCount = count($this->input('remove_hero_images', []));
+    //         $newCount = count($this->file('hero_slider_images', []));
+    //
+    //         if (($existingCount - $removeCount + $newCount) > 3) {
+    //             $validator->errors()->add('hero_slider_images', 'Hero slider can have a maximum of 3 images.');
+    //         }
+    //     });
+    // }
 }

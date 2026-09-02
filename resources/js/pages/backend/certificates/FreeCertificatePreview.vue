@@ -8,7 +8,7 @@ defineProps({
 </script>
 
 <template>
-    <article id="class-free-cert" class="certificate-free-wrapper certificate-preview printable-certificate">
+    <article id="class-free-cert" class="certificate-free-wrapper certificate-preview">
         <div id="printable-certificate-free" class="certificate-free-wrap">
             <div class="certificate-free">
                 <div class="cert-free-outer-border">
@@ -129,6 +129,18 @@ defineProps({
     box-shadow: 0 6px 24px rgba(15, 23, 42, .08);
 }
 
+:global(.dark) .certificate-free-wrapper {
+    background: #111827;
+    box-shadow: 0 22px 50px rgba(0, 0, 0, .32);
+}
+
+:global(html.dark) .certificate-free-wrapper {
+    background:
+        radial-gradient(circle at 50% 0%, rgba(96, 165, 250, .10), transparent 34%),
+        #111827 !important;
+    box-shadow: 0 22px 50px rgba(0, 0, 0, .34) !important;
+}
+
 .free-print-root {
     display: none;
 }
@@ -143,7 +155,19 @@ defineProps({
     width: 795px;
     min-height: 462px;
     background: #fff;
+    color-scheme: light;
     padding: 6px;
+}
+
+:global(.dark) .certificate-free,
+:global(.dark) .cert-free-inner-border {
+    background: #fff;
+}
+
+:global(html.dark) .certificate-free,
+:global(html.dark) .cert-free-inner-border {
+    background: #fff !important;
+    color-scheme: light;
 }
 
 .cert-free-outer-border {
@@ -354,13 +378,43 @@ defineProps({
 }
 
 @media print {
+    @page {
+        size: A4 landscape;
+        margin: 0;
+    }
+
+    :global(html),
+    :global(body) {
+        width: 297mm !important;
+        height: 210mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        background: #fff !important;
+    }
+
+    :global(body.free-certificate-print *) {
+        visibility: hidden !important;
+    }
+
+    :global(body.free-certificate-print > *:not(#class-free-cert-print)) {
+        display: none !important;
+    }
+
+    :global(body.free-certificate-print #class-free-cert-print),
+    :global(body.free-certificate-print #class-free-cert-print *) {
+        visibility: visible !important;
+    }
+
     #class-free-cert {
         display: none !important;
     }
 
-    #class-free-cert-print {
+    #class-free-cert-print,
+    :global(body.free-certificate-print #class-free-cert-print) {
         position: fixed !important;
         inset: 0 !important;
+        z-index: 999999 !important;
         width: 297mm !important;
         height: 210mm !important;
         min-height: 210mm !important;

@@ -56,7 +56,7 @@ class UpdateUserRequest extends FormRequest
     public function toData(): UpdateUserData
     {
         $data = $this->validated();
-        return new UpdateUserData($this->displayName($data), $data['email'], $data['password'] ?? null, $data['role'], $data['account_status'], $this->file('avatar'), $this->student($data), $this->instructorData($data));
+        return new UpdateUserData($this->displayName($data), $data['email'], $data['password'] ?? null, $data['role'], $data['account_status'], null /* FILE: disabled - $this->file('avatar') */, $this->student($data), $this->instructorData($data));
     }
 
     /**
@@ -72,7 +72,8 @@ class UpdateUserRequest extends FormRequest
             'name' => ['required_unless:role,student,instructor', 'nullable', 'string', 'max:255'],
             'role' => ['required', 'string', Rule::in($roles)],
             'account_status' => ['required', 'string', Rule::in(['active', 'inactive'])],
-            'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            // FILE: disabled - not using file uploads
+            // 'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             // student_* fields are nullable here since they only apply when role === 'student'.
             'student_full_name' => ['nullable', 'string', 'max:255'],
             'student_first_name' => ['nullable', 'string', 'max:255'], 'student_last_name' => ['nullable', 'string', 'max:255'],

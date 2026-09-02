@@ -13,6 +13,7 @@ import EmptyState from "../../../components/ui/empty-state/EmptyState.vue";
 import DepositSummaryCard from "./components/DepositSummaryCard.vue";
 import ReceiptPrint from "./components/ReceiptPrint.vue";
 import MoveEnrollmentModal from "./components/MoveEnrollmentModal.vue";
+import RegisterStudentModal from "./components/RegisterStudentModal.vue";
 import { getEcho } from "@/echo";
 import { latinNameError } from "@/composables/useLatinNameValidation";
 import Table from "../../../components/ui/table/Table.vue";
@@ -214,6 +215,7 @@ async function printReceipt(row) {
   receiptClassData.value = {
     course: row.course_title ?? row.class_title,
     price: row.fee_amount,
+    unit_price: row.unit_price ?? null,
     document_price: row.document_fee_amount,
     term: studyDaysLabel(row),
     time: row.start_time && row.end_time ? `${row.start_time} - ${row.end_time}` : "-",
@@ -364,6 +366,10 @@ async function saveEdit(row) {
     editSaving.value = false;
   }
 }
+
+// Table-view "Register Student": the picked class row, or null when the modal is
+// closed. The card view owns its own modal per ClassCrad.
+const registerTarget = ref(null);
 
 // Move a registered student into a different existing class (e.g. joining a
 // friend's class instead of the one they were auto-assigned to).
@@ -557,7 +563,7 @@ onBeforeUnmount(() => {
 
       <!-- Table View -->
       <div v-else-if="viewMode === 'table' && filteredClasses.length > 0" class="w-full overflow-x-auto">
-        <ClassTable :items="filteredClasses" />
+        <ClassTable :items="filteredClasses" @register-student="registerTarget = $event" />
       </div>
 
       <!-- Empty State (Card/Table only; Registrations keeps its own empty row) -->
@@ -784,6 +790,14 @@ onBeforeUnmount(() => {
         :enrollment="movingRow"
         @close="closeMoveModal"
         @moved="onStudentMoved"
+      />
+
+      <RegisterStudentModal
+        :show="!!registerTarget"
+        :class-id="registerTarget?.id"
+        :class-title="registerTarget?.title"
+        :seats-left="registerTarget ? Math.max(0, (registerTarget.capacity ?? 0) - (registerTarget.students ?? 0)) : null"
+        @close="registerTarget = null"
       />
 
       <!-- Record Payment & Print confirmation -->

@@ -1,5 +1,6 @@
 <script setup>
-import { computed, watch } from 'vue';
+import axios from 'axios';
+import { computed, onMounted, ref, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -10,10 +11,17 @@ const props = defineProps({
   courses: Array,
   lessons: Array,
   rooms: Array,
+  classTypes: {
+    type: Array,
+    default: () => [],
+  },
   // Class Type -> Term -> Time, already narrowed to the slots this instructor
   // is free for (see InstructorClassService::formOptions).
   scheduleGroups: { type: Array, default: () => [] },
 });
+
+const classTypeList = ref([...props.classTypes]);
+const isLoadingClassTypes = ref(false);
 
 const form = useForm({
   // Title is not shown on the form - the server sets it to the course title.
@@ -47,11 +55,29 @@ const roomOptions = computed(() => toOptions(props.rooms));
 
 // --- Class Type -> Term -> Time cascade, sourced from scheduleGroups ---
 const classTypeOptions = computed(() =>
-  props.scheduleGroups.map((group) => ({
-    label: group.class_type_name,
-    value: String(group.class_type_id),
+  classTypeList.value.map((classType) => ({
+    label: classType.type_name,
+    value: String(classType.class_type_id),
   })),
 );
+
+async function fetchClassTypes() {
+  isLoadingClassTypes.value = true;
+
+  try {
+    const response = await axios.get('/dashboard/class-types/data', {
+      params: {
+        per_page: 'all',
+      },
+    });
+
+    classTypeList.value = response.data.data ?? classTypeList.value;
+  } catch (error) {
+    console.error('Failed to fetch class types', error);
+  } finally {
+    isLoadingClassTypes.value = false;
+  }
+}
 
 const selectedGroup = computed(() =>
   props.scheduleGroups.find((group) => String(group.class_type_id) === String(form.class_type_id)),
@@ -102,6 +128,10 @@ const selectClass = 'flex w-full h-11 items-center justify-between rounded-xl bo
 const submit = () => {
   form.post('/dashboard/instructor/classes');
 };
+
+onMounted(() => {
+  fetchClassTypes();
+});
 </script>
 
 <template>

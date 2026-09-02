@@ -2,8 +2,6 @@
 
 namespace App\Modules\User\Data;
 
-use Illuminate\Http\UploadedFile;
-
 /**
  * Carries validated user update input into UserService.
  */
@@ -15,7 +13,7 @@ readonly class UpdateUserData
         public ?string $password,
         public string $role,
         public string $status,
-        public ?UploadedFile $avatar,
+        // public ?UploadedFile $avatar, // FILE: disabled - not using file uploads
         public array $student,
         public array $instructorData,
     ) {}

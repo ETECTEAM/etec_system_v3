@@ -25,8 +25,13 @@
     "km": "Khmer"
   },
   "navigation": {
+    "absenceBlockAudit": "Audit Log",
+    "absenceBlocklist": "Blocklist",
+    "absenceBlocks": "Absence Blocks",
     "accessLocations": "Location Lock",
     "accountSecurity": "Account Security",
+    "attendanceRuleSettings": "Rule Settings",
+    "attendanceRules": "Attendance Rules",
     "attendanceSettings": "Attendance Settings",
     "blockedAccounts": "Blocked Accounts",
     "buildingManagement": "Building Management",
@@ -45,6 +50,7 @@
     "enrollConfig": "Enroll Config",
     "enrollManagement": "Enrollment Management",
     "floors": "Floors",
+    "instructorAvailability": "Instructor Busy Time",
     "lessons": "Lessons",
     "lockoutSettings": "Lockout Settings",
     "loginSecurity": "Login Security",

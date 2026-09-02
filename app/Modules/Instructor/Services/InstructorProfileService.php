@@ -5,10 +5,12 @@ namespace App\Modules\Instructor\Services;
 use App\Models\InstructorAttachment;
 use App\Models\InstructorAvailability;
 use App\Models\InstructorData;
+use App\Models\StudyClass;
+// use Illuminate\Http\UploadedFile; // FILE: disabled - not using file uploads
 use App\Models\WorkSchedule;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+
+// use Illuminate\Support\Facades\Storage; // FILE: disabled - not using file uploads
 
 class InstructorProfileService
 {
@@ -53,7 +55,12 @@ class InstructorProfileService
      */
     public function generateInstructorAvailabilities(InstructorData $instructor): void
     {
-        InstructorAvailability::where('instructor_id', $instructor->id)->delete();
+        // Only the schedule-derived rows are rebuilt. Slots an admin opened
+        // manually from the Instructor Busy Time grid (source = 'admin') are
+        // left untouched so a profile save doesn't wipe them.
+        InstructorAvailability::where('instructor_id', $instructor->id)
+            ->where('source', InstructorAvailability::SOURCE_SCHEDULE)
+            ->delete();
 
         if (! $instructor->work_schedule_id) {
             return;
@@ -73,7 +80,7 @@ class InstructorProfileService
 
         foreach ($schedule->times as $wst) {
             $timeName = $wst->time?->time_name ?? '';
-            $range = \App\Models\StudyClass::parseTimeRange($timeName);
+            $range = StudyClass::parseTimeRange($timeName);
             $start = $range['start'] ?? null;
             $end = $range['end'] ?? null;
 
@@ -96,6 +103,7 @@ class InstructorProfileService
                 'start_time' => $start,
                 'end_time' => $end,
                 'is_active' => true,
+                'source' => InstructorAvailability::SOURCE_SCHEDULE,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
@@ -128,52 +136,55 @@ class InstructorProfileService
         return $start >= '12:00' ? 'afternoon' : 'morning';
     }
 
-    public function saveAttachment(int $instructorId, UploadedFile $file, string $type, ?string $title = null, bool $isPrimary = false): InstructorAttachment
-    {
-        $path = $file->store("instructors/{$instructorId}", 'public');
+    // FILE: disabled - not using file uploads
+    // public function saveAttachment(int $instructorId, UploadedFile $file, string $type, ?string $title = null, bool $isPrimary = false): InstructorAttachment
+    // {
+    //     $path = $file->store("instructors/{$instructorId}", 'public');
+    //
+    //     return InstructorAttachment::create([
+    //         'instructor_id' => $instructorId,
+    //         'type' => $type,
+    //         'title' => $title,
+    //         'file_name' => $file->getClientOriginalName(),
+    //         'file_path' => $path,
+    //         'file_mime' => $file->getMimeType(),
+    //         'file_size' => $file->getSize(),
+    //         'is_primary' => $isPrimary,
+    //     ]);
+    // }
 
-        return InstructorAttachment::create([
-            'instructor_id' => $instructorId,
-            'type' => $type,
-            'title' => $title,
-            'file_name' => $file->getClientOriginalName(),
-            'file_path' => $path,
-            'file_mime' => $file->getMimeType(),
-            'file_size' => $file->getSize(),
-            'is_primary' => $isPrimary,
-        ]);
-    }
+    // FILE: disabled - not using file uploads
+    // public function replaceAttachment(int $instructorId, UploadedFile $file, string $type, ?string $title = null): InstructorAttachment
+    // {
+    //     $old = InstructorAttachment::where('instructor_id', $instructorId)
+    //         ->where('type', $type)
+    //         ->where('is_primary', true)
+    //         ->first();
+    //
+    //     if ($old) {
+    //         Storage::disk('public')->delete($old->file_path);
+    //         $old->delete();
+    //     }
+    //
+    //     return $this->saveAttachment($instructorId, $file, $type, $title, true);
+    // }
 
-    public function replaceAttachment(int $instructorId, UploadedFile $file, string $type, ?string $title = null): InstructorAttachment
-    {
-        $old = InstructorAttachment::where('instructor_id', $instructorId)
-            ->where('type', $type)
-            ->where('is_primary', true)
-            ->first();
-
-        if ($old) {
-            Storage::disk('public')->delete($old->file_path);
-            $old->delete();
-        }
-
-        return $this->saveAttachment($instructorId, $file, $type, $title, true);
-    }
-
-    public function deleteAttachment(int $instructorId, string $type): bool
-    {
-        $attachments = InstructorAttachment::where('instructor_id', $instructorId)
-            ->where('type', $type)
-            ->get();
-
-        if ($attachments->isEmpty()) {
-            return false;
-        }
-
-        foreach ($attachments as $attachment) {
-            Storage::disk('public')->delete($attachment->file_path);
-            $attachment->delete();
-        }
-
-        return true;
-    }
+    // FILE: disabled - not using file uploads
+    // public function deleteAttachment(int $instructorId, string $type): bool
+    // {
+    //     $attachments = InstructorAttachment::where('instructor_id', $instructorId)
+    //         ->where('type', $type)
+    //         ->get();
+    //
+    //     if ($attachments->isEmpty()) {
+    //         return false;
+    //     }
+    //
+    //     foreach ($attachments as $attachment) {
+    //         Storage::disk('public')->delete($attachment->file_path);
+    //         $attachment->delete();
+    //     }
+    //
+    //     return true;
+    // }
 }

@@ -1,7 +1,7 @@
 <script setup>
 import { router } from "@inertiajs/vue3";
 import { route } from "ziggy-js";
-import { Eye, Pencil, Trash2, Copy } from "@lucide/vue";
+import { Eye, Pencil, Trash2, Copy, UserPlus } from "@lucide/vue";
 import { useI18n } from "@/i18n";
 import { useConfirm } from "@/composables/useConfirm";
 
@@ -19,8 +19,15 @@ const props = defineProps({
   },
 });
 
+const emit = defineEmits(["register-student"]);
+
 const { t } = useI18n();
 const { confirm } = useConfirm();
+
+const LOCKED_STATUSES = ["pre_end", "ended", "cancelled", "inactive", "completed"];
+
+const isLocked = (item) =>
+  LOCKED_STATUSES.includes(String(item.class_status ?? "").toLowerCase());
 
 const viewClass = (id) => {
   router.get(`/dashboard/enroll/view/${id}`);
@@ -110,6 +117,15 @@ const deleteClass = async (id) => {
 
           <TableCell>
             <div class="flex justify-center gap-2">
+              <button
+                v-if="!isLocked(item)"
+                :title="t('Register Student')"
+                @click="emit('register-student', item)"
+                class="rounded-lg bg-emerald-100 p-2 text-emerald-600 transition hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+              >
+                <UserPlus class="h-4 w-4" />
+              </button>
+
               <button
                 @click="viewClass(item.id)"
                 class="rounded-lg bg-blue-100 p-2 text-blue-600 transition hover:bg-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"

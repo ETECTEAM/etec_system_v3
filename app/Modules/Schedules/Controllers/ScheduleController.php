@@ -7,6 +7,7 @@ use App\Models\Term;
 use App\Models\Time;
 use App\Models\ClassType;
 use App\Models\Schedule;
+use App\Models\StudyClass;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -64,10 +65,15 @@ class ScheduleController extends Controller
                             'id' => $schedule->id,
                             'term_id' => $schedule->term_id,
                             'term_name' => $schedule->term?->term_name ?? '-',
-                            'times' => $schedule->times->map(fn ($time) => [
-                                'id' => $time->id,
-                                'time_name' => $time->time_name,
-                            ])->values(),
+                            // time_id isn't chronological (overlapping slots are added across
+                            // class types over time) — order the chips by parsed start/end.
+                            'times' => $schedule->times
+                                ->sortBy(fn ($time) => self::timeSortKey($time->time_name))
+                                ->map(fn ($time) => [
+                                    'id' => $time->id,
+                                    'time_name' => $time->time_name,
+                                ])
+                                ->values(),
                         ]),
                 ];
             })
@@ -205,5 +211,16 @@ class ScheduleController extends Controller
         return redirect()
             ->route('schdule.index')
             ->with('success', 'Schedules deleted successfully.');
+    }
+
+    /**
+     * Chronological sort key for a time slot: zero-padded 24h "start-end"
+     * ("14:00-15:15"), unparseable slots last. See StudyClass::parseTimeRange().
+     */
+    private static function timeSortKey(?string $timeName): string
+    {
+        $range = StudyClass::parseTimeRange($timeName);
+
+        return ($range['start'] ?? '99:99').'-'.($range['end'] ?? '99:99');
     }
 }

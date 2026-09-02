@@ -32,11 +32,13 @@ class EnrollStudent
             $config = $this->resolveEnrollConfig($class);
             $resolvedFee = $config?->resolvedPrice() ?? (float) $class->price;
             $resolvedDocFee = $config !== null ? (float) $config->document_price : (float) $class->document_price;
+            $unitPrice = $config && (float) $config->unit_price > 0 ? (float) $config->unit_price : $resolvedFee;
 
             return $this->registrations->createEnrollment(array_merge($overrides, [
                 'study_class_id' => $class->id,
                 'student_id' => $studentId,
                 'fee_amount' => $resolvedFee,
+                'unit_price' => $unitPrice,
                 'document_fee_amount' => $resolvedDocFee,
             ]));
         });

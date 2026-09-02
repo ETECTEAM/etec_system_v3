@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import {
@@ -18,6 +18,7 @@ import {
     X,
 } from '@lucide/vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import { useTheme } from '../../../composables/useTheme'
 import RealCertificatePreview from './CertificatePreview.vue'
 import FreeCertificatePreview from './FreeCertificatePreview.vue'
 
@@ -37,6 +38,8 @@ const certificateType = computed(() => props.type === 'meal' ? 'meal' : props.ty
 const isNormal = computed(() => certificateType.value === 'normal')
 const isFree = computed(() => certificateType.value === 'free')
 const isClassCertificate = computed(() => !isFree.value)
+const { resolvedTheme } = useTheme()
+const isDarkTheme = computed(() => resolvedTheme.value === 'dark')
 
 const pageTitle = computed(() => ({
     free: 'សញ្ញាបត្រថ្នាក់ Free',
@@ -134,6 +137,22 @@ const currentCertificate = computed(() => ({
     director: printForm.director || 'Mr. HENG PHEAKNA',
 }))
 
+const normalPrintCertificates = computed(() => {
+    if (isPrintAllMode.value && studentDrafts.value.length) {
+        return studentDrafts.value.map((student) => ({
+            student_name: selectedStudent.value?.id === student.id
+                ? printForm.student_name
+                : student.draft_name || student.name,
+            course: printForm.course || selectedClass.value?.course || 'COURSE NAME',
+            granted_date: formatReadableDate(printForm.granted_date),
+            certificate_id: student.certificate_id || normalCertificateId.value || '0000000 ETEC',
+            director: printForm.director,
+        }))
+    }
+
+    return [currentCertificate.value]
+})
+
 watch(() => props.type, () => {
     closeModal()
     selectedClass.value = null
@@ -149,6 +168,7 @@ onMounted(() => {
 })
 
 let freePrintStyleElement = null
+let normalPrintStyleElement = null
 
 watchEffect(() => {
     if (typeof document === 'undefined') return
@@ -235,8 +255,11 @@ watchEffect(() => {
 
 onUnmounted(() => {
     document.body.classList.remove('free-certificate-print')
+    document.body.classList.remove('normal-certificate-print')
     freePrintStyleElement?.remove()
     freePrintStyleElement = null
+    normalPrintStyleElement?.remove()
+    normalPrintStyleElement = null
 })
 
 function remainingStudents(item) {
@@ -435,12 +458,162 @@ async function saveDraftStudent(student) {
     await savePrintedStudent(student, student.draft_name)
 }
 
+function beginNormalPrint() {
+    document.body.classList.add('normal-certificate-print')
+
+    if (normalPrintStyleElement) {
+        normalPrintStyleElement.remove()
+    }
+
+    normalPrintStyleElement = document.createElement('style')
+    normalPrintStyleElement.dataset.normalCertificatePrint = 'true'
+    normalPrintStyleElement.textContent = `
+        @media print {
+            @page { size: A4 portrait; margin: 0; }
+            html,
+            body {
+                width: 210mm !important;
+                min-width: 210mm !important;
+                max-width: 210mm !important;
+                height: 297mm !important;
+                min-height: 297mm !important;
+                max-height: 297mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+                background: #fff !important;
+            }
+            body.normal-certificate-print > *:not(#normal-cert-print) {
+                display: none !important;
+            }
+            body.normal-certificate-print #app {
+                display: none !important;
+            }
+            body.normal-certificate-print #normal-cert-print,
+            body.normal-certificate-print #normal-cert-print * {
+                visibility: visible !important;
+            }
+            body.normal-certificate-print #normal-cert-print {
+                position: fixed !important;
+                inset: 0 auto auto 0 !important;
+                z-index: 999999 !important;
+                display: block !important;
+                width: 210mm !important;
+                min-width: 210mm !important;
+                max-width: 210mm !important;
+                height: 297mm !important;
+                min-height: 297mm !important;
+                max-height: 297mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+                background: #fff !important;
+            }
+            body.normal-certificate-print #normal-cert-print .printable-certificate {
+                box-sizing: border-box !important;
+                display: flex !important;
+                align-items: stretch !important;
+                justify-content: stretch !important;
+                width: 210mm !important;
+                min-width: 210mm !important;
+                max-width: 210mm !important;
+                height: 297mm !important;
+                min-height: 297mm !important;
+                max-height: 297mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+                background: #fff !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                page-break-before: auto !important;
+                break-before: auto !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            body.normal-certificate-print #normal-cert-print .printable-certificate:last-child {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            body.normal-certificate-print #normal-cert-print .certificate-wrap,
+            body.normal-certificate-print #normal-cert-print .certificate {
+                box-sizing: border-box !important;
+                display: flex !important;
+                flex: 1 1 auto !important;
+                width: 210mm !important;
+                min-width: 210mm !important;
+                max-width: 210mm !important;
+                height: 297mm !important;
+                min-height: 297mm !important;
+                max-height: 297mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+                background: #fff !important;
+                box-shadow: none !important;
+                transform: none !important;
+            }
+            body.normal-certificate-print #normal-cert-print .certificate {
+                padding: 4mm !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-outer-border {
+                box-sizing: border-box !important;
+                display: flex !important;
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                border-width: 8mm !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-inner-border {
+                box-sizing: border-box !important;
+                display: flex !important;
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                border-width: 5mm !important;
+            }
+            * {
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
+            }
+        }
+    `
+    document.head.appendChild(normalPrintStyleElement)
+}
+
+function endNormalPrint() {
+    document.body.classList.remove('normal-certificate-print')
+    normalPrintStyleElement?.remove()
+    normalPrintStyleElement = null
+}
+
+function scheduleNormalPrintCleanup() {
+    let cleaned = false
+    const cleanup = () => {
+        if (cleaned) return
+        cleaned = true
+        window.removeEventListener('afterprint', cleanup)
+        endNormalPrint()
+    }
+
+    window.addEventListener('afterprint', cleanup)
+    return cleanup
+}
+
+async function waitForPrintStyles() {
+    await nextTick()
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+}
+
 async function printSingle() {
     const student = selectedStudent.value
     if (!printForm.course.trim()) return
 
+    beginNormalPrint()
+    const cleanupPrint = scheduleNormalPrintCleanup()
+    await waitForPrintStyles()
     window.print()
-    if (!window.confirm('Printed successfully?')) return
+    const printed = window.confirm('Printed successfully?')
+    cleanupPrint()
+    if (!printed) return
 
     if (!student) return
 
@@ -462,8 +635,13 @@ async function printAllDrafts() {
     }))
     await assignDraftCertificateIds()
 
+    beginNormalPrint()
+    const cleanupPrint = scheduleNormalPrintCleanup()
+    await waitForPrintStyles()
     window.print()
-    if (!window.confirm('Printed successfully?')) return
+    const printed = window.confirm('Printed successfully?')
+    cleanupPrint()
+    if (!printed) return
 
     printSaving.value = true
     try {
@@ -542,6 +720,7 @@ function saveFreeAfterPrint() {
     if (!freeForm.end_date) freeErrors.value.end_date = 'End date is required.'
     if (Object.keys(freeErrors.value).length) return
 
+    document.body.classList.add('free-certificate-print')
     window.print()
     if (!window.confirm('Printed successfully?')) return
 
@@ -564,7 +743,11 @@ function saveFreeAfterPrint() {
     <Head :title="pageTitle" />
 
     <DashboardLayout>
-        <section v-if="isClassCertificate" class="normal-certificate-page">
+        <section
+            v-if="isClassCertificate"
+            class="normal-certificate-page"
+            :class="{ 'is-dark-theme': isDarkTheme }"
+        >
             <template v-if="!selectedClass">
                 <header class="normal-toolbar no-print">
                     <h1>{{ pageTitle }}</h1>
@@ -1009,7 +1192,11 @@ function saveFreeAfterPrint() {
             </div>
         </section>
 
-        <section v-else class="legacy-certificate-page">
+        <section
+            v-else
+            class="legacy-certificate-page"
+            :class="{ 'is-dark-theme': isDarkTheme }"
+        >
             <form v-if="isFree" class="free-form free-form-card" @submit.prevent="saveFreeAfterPrint">
                 <div class="free-form-grid">
                     <label class="free-field" :class="{ 'has-error': freeErrors.student_name }">
@@ -1100,6 +1287,20 @@ function saveFreeAfterPrint() {
                 Please open សញ្ញាបត្រថ្នាក់ធម្មតា for the completed dynamic page.
             </div>
         </section>
+
+        <Teleport to="body">
+            <div
+                v-if="isClassCertificate && modalMode"
+                id="normal-cert-print"
+                class="normal-print-root"
+            >
+                <RealCertificatePreview
+                    v-for="(certificate, index) in normalPrintCertificates"
+                    :key="`${certificate.certificate_id}-${index}`"
+                    :certificate="certificate"
+                />
+            </div>
+        </Teleport>
     </DashboardLayout>
 </template>
 
@@ -1177,6 +1378,29 @@ const LegacyCertificatePreview = {
     color: #101126;
 }
 
+:global(.dark) .normal-certificate-page {
+    background:
+        radial-gradient(circle at 18% 0%, rgba(37, 99, 235, .14), transparent 30%),
+        linear-gradient(180deg, #0b1120 0%, #111827 100%);
+    color: #e5e7eb;
+}
+
+.normal-certificate-page.is-dark-theme,
+.legacy-certificate-page.is-dark-theme {
+    background:
+        radial-gradient(circle at 18% 0%, rgba(37, 99, 235, .16), transparent 30%),
+        linear-gradient(180deg, #0b1120 0%, #111827 100%) !important;
+    color: #e5e7eb !important;
+}
+
+.certificate-dark-ui.normal-certificate-page,
+.certificate-dark-ui.legacy-certificate-page {
+    background:
+        radial-gradient(circle at 18% 0%, rgba(37, 99, 235, .16), transparent 30%),
+        linear-gradient(180deg, #0b1120 0%, #111827 100%) !important;
+    color: #e5e7eb !important;
+}
+
 .normal-toolbar,
 .detail-toolbar {
     display: flex;
@@ -1192,6 +1416,15 @@ const LegacyCertificatePreview = {
     font-size: clamp(24px, 2.2vw, 32px);
     font-weight: 800;
     color: #050505;
+}
+
+:global(.dark) .normal-toolbar h1 {
+    color: #f8fafc;
+}
+
+.is-dark-theme .normal-toolbar h1,
+.is-dark-theme .legacy-header h1 {
+    color: #f8fafc !important;
 }
 
 .normal-actions,
@@ -1213,6 +1446,18 @@ const LegacyCertificatePreview = {
     padding: 0 14px;
     font-size: 16px;
     outline: none;
+}
+
+:global(.dark) .filter-select {
+    border-color: #374151;
+    background: #111827;
+    color: #e5e7eb;
+}
+
+.is-dark-theme .filter-select {
+    border-color: #374151 !important;
+    background: #111827 !important;
+    color: #e5e7eb !important;
 }
 
 .filter-select:focus,
@@ -1304,6 +1549,22 @@ button:disabled {
     box-shadow: 0 3px 10px rgba(20, 24, 60, .08);
 }
 
+:global(.dark) .normal-summary article {
+    border-color: #263244;
+    background: linear-gradient(180deg, #172033 0%, #111827 100%);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .28);
+}
+
+.is-dark-theme .normal-summary article,
+.is-dark-theme .category-card,
+.is-dark-theme .info-card,
+.is-dark-theme .students-card,
+.is-dark-theme .loading-card {
+    border-color: #263244 !important;
+    background: linear-gradient(180deg, #172033 0%, #111827 100%) !important;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, .3) !important;
+}
+
 .normal-summary span,
 .info-card header span,
 .students-card header .section-title span,
@@ -1320,16 +1581,49 @@ button:disabled {
     height: 46px;
 }
 
+:global(.dark) .normal-summary span,
+:global(.dark) .info-card header span,
+:global(.dark) .students-card header .section-title span,
+:global(.dark) .student-name span {
+    background: rgba(96, 165, 250, .12);
+    color: #93c5fd;
+}
+
+.is-dark-theme .normal-summary span,
+.is-dark-theme .info-card header span,
+.is-dark-theme .students-card header .section-title span,
+.is-dark-theme .student-name span {
+    background: rgba(96, 165, 250, .12) !important;
+    color: #93c5fd !important;
+}
+
 .normal-summary p {
     margin: 0 0 2px;
     color: #6e738a;
     font-size: 14px;
 }
 
+:global(.dark) .normal-summary p {
+    color: #9ca3af;
+}
+
+.is-dark-theme .normal-summary p,
+.is-dark-theme .info-grid p {
+    color: #9ca3af !important;
+}
+
 .normal-summary strong {
     color: #2d2e83;
     font-size: 27px;
     line-height: 1;
+}
+
+:global(.dark) .normal-summary strong {
+    color: #93c5fd;
+}
+
+.is-dark-theme .normal-summary strong {
+    color: #93c5fd !important;
 }
 
 .category-stack {
@@ -1347,12 +1641,32 @@ button:disabled {
     box-shadow: 0 3px 9px rgba(18, 18, 60, .12);
 }
 
+:global(.dark) .category-card,
+:global(.dark) .info-card,
+:global(.dark) .students-card {
+    border-color: #263244;
+    background: #111827;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, .3);
+}
+
 .category-card h2,
 .info-card header,
 .students-card header {
     margin: 0;
     background: #2d2e83;
     color: #fff;
+}
+
+:global(.dark) .category-card h2,
+:global(.dark) .info-card header,
+:global(.dark) .students-card header {
+    background: linear-gradient(135deg, #1e3a8a, #312e81);
+}
+
+.is-dark-theme .category-card h2,
+.is-dark-theme .info-card header,
+.is-dark-theme .students-card header {
+    background: linear-gradient(135deg, #1e3a8a, #312e81) !important;
 }
 
 .category-card h2 {
@@ -1383,12 +1697,55 @@ table {
     vertical-align: middle;
 }
 
+:global(.dark) .class-table th,
+:global(.dark) .class-table td,
+:global(.dark) .student-table th,
+:global(.dark) .student-table td,
+:global(.dark) .draft-table th,
+:global(.dark) .draft-table td {
+    border-color: #263244;
+}
+
+.is-dark-theme .class-table th,
+.is-dark-theme .class-table td,
+.is-dark-theme .student-table th,
+.is-dark-theme .student-table td,
+.is-dark-theme .draft-table th,
+.is-dark-theme .draft-table td {
+    border-color: #263244 !important;
+}
+
 .class-table th,
 .student-table th {
     background: #cfe2fb;
     color: #030714;
     font-size: 18px;
     font-weight: 900;
+}
+
+:global(.dark) .class-table th,
+:global(.dark) .student-table th {
+    background: #1f2a44;
+    color: #f8fafc;
+}
+
+.is-dark-theme .class-table th,
+.is-dark-theme .student-table th,
+.is-dark-theme .draft-table th {
+    background: #1f2a44 !important;
+    color: #f8fafc !important;
+}
+
+:global(.dark) .class-table td,
+:global(.dark) .student-table td,
+:global(.dark) .draft-table td {
+    color: #d1d5db;
+}
+
+.is-dark-theme .class-table td,
+.is-dark-theme .student-table td,
+.is-dark-theme .draft-table td {
+    color: #d1d5db !important;
 }
 
 .class-table td {
@@ -1457,6 +1814,12 @@ table {
     font-size: 17px;
 }
 
+:global(.dark) .pagination-row button {
+    border-color: #3b82f6;
+    background: #111827;
+    color: #bfdbfe;
+}
+
 .pagination-row button.active {
     background: #1e2b9a;
     color: #fff;
@@ -1469,6 +1832,12 @@ table {
     color: #2d2e83;
     padding: 0 24px;
     font-size: 17px;
+}
+
+:global(.dark) .back-button {
+    border-color: #374151;
+    background: #111827;
+    color: #bfdbfe;
 }
 
 .info-card,
@@ -1523,6 +1892,10 @@ table {
     text-align: center;
 }
 
+:global(.dark) .info-grid div {
+    border-right-color: #263244;
+}
+
 .info-grid div:last-child {
     border-right: 0;
 }
@@ -1532,9 +1905,17 @@ table {
     font-weight: 800;
 }
 
+:global(.dark) .info-grid p {
+    color: #9ca3af;
+}
+
 .info-grid strong {
     color: #02030b;
     font-size: 20px;
+}
+
+:global(.dark) .info-grid strong {
+    color: #f8fafc;
 }
 
 .section-title {
@@ -1552,6 +1933,10 @@ table {
 
 .student-table th {
     background: #efeff9;
+}
+
+:global(.dark) .student-table th {
+    background: #1f2a44;
 }
 
 .student-table td {
@@ -1592,6 +1977,11 @@ table {
     font-weight: 900;
 }
 
+:global(.dark) .gender-pill {
+    background: rgba(96, 165, 250, .14);
+    color: #bfdbfe;
+}
+
 .print-button {
     min-height: 39px;
     background: #0ca34f;
@@ -1611,6 +2001,12 @@ table {
     background: #fff;
     color: #586074;
     font-weight: 800;
+}
+
+:global(.dark) .loading-card {
+    border-color: #263244;
+    background: #111827;
+    color: #aeb8cc;
 }
 
 .modal-shell {
@@ -1634,6 +2030,18 @@ table {
     border-radius: 16px;
     background: #fff;
     box-shadow: 0 30px 70px rgba(0, 0, 0, .35);
+}
+
+:global(.dark) .certificate-modal {
+    border: 1px solid #263244;
+    background: #111827;
+    color: #e5e7eb;
+}
+
+.is-dark-theme .certificate-modal {
+    border-color: #263244 !important;
+    background: #111827 !important;
+    color: #e5e7eb !important;
 }
 
 .print-modal {
@@ -1685,6 +2093,19 @@ table {
         radial-gradient(circle at 50% 8%, rgba(255, 255, 255, .92), rgba(222, 224, 232, .94) 48%, #d7d8de 100%);
 }
 
+:global(.dark) .print-grid {
+    background:
+        linear-gradient(90deg, #111827 0 310px, transparent 310px),
+        radial-gradient(circle at 50% 8%, rgba(51, 65, 85, .8), rgba(30, 41, 59, .94) 48%, #0f172a 100%);
+}
+
+.is-dark-theme .print-grid,
+.is-dark-theme .create-grid {
+    background:
+        linear-gradient(90deg, #111827 0 310px, transparent 310px),
+        radial-gradient(circle at 50% 8%, rgba(51, 65, 85, .8), rgba(30, 41, 59, .94) 48%, #0f172a 100%) !important;
+}
+
 .modal-editor {
     display: grid;
     align-content: start;
@@ -1695,6 +2116,20 @@ table {
         radial-gradient(circle at 0 0, rgba(45, 46, 131, .08), transparent 34%),
         linear-gradient(180deg, #fbfcff 0%, #f6f8fe 58%, #f3f5fb 100%);
     padding: 26px 26px 28px;
+}
+
+:global(.dark) .modal-editor {
+    border-right-color: #263244;
+    background:
+        radial-gradient(circle at 0 0, rgba(59, 130, 246, .13), transparent 34%),
+        linear-gradient(180deg, #111827 0%, #0f172a 100%);
+}
+
+.is-dark-theme .modal-editor {
+    border-right-color: #263244 !important;
+    background:
+        radial-gradient(circle at 0 0, rgba(59, 130, 246, .13), transparent 34%),
+        linear-gradient(180deg, #111827 0%, #0f172a 100%) !important;
 }
 
 .modal-editor h3,
@@ -1708,12 +2143,30 @@ table {
     font-weight: 600;
 }
 
+:global(.dark) .modal-editor h3,
+:global(.dark) .draft-title {
+    color: #bfdbfe;
+}
+
+.is-dark-theme .modal-editor h3,
+.is-dark-theme .draft-title {
+    color: #bfdbfe !important;
+}
+
 .editor-heading {
     display: flex;
     align-items: center;
     gap: 14px;
     border-bottom: 1px solid #dce3f2;
     padding-bottom: 18px;
+}
+
+:global(.dark) .editor-heading {
+    border-bottom-color: #263244;
+}
+
+.is-dark-theme .editor-heading {
+    border-bottom-color: #263244 !important;
 }
 
 .editor-heading span {
@@ -1729,6 +2182,20 @@ table {
     box-shadow: inset 0 0 0 1px rgba(45, 46, 131, .04);
 }
 
+:global(.dark) .editor-heading span {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, 0)),
+        rgba(96, 165, 250, .12);
+    color: #bfdbfe;
+}
+
+.is-dark-theme .editor-heading span {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, 0)),
+        rgba(96, 165, 250, .12) !important;
+    color: #bfdbfe !important;
+}
+
 .editor-heading h3 {
     margin: 0;
     color: #20227d;
@@ -1737,12 +2204,30 @@ table {
     line-height: 1.05;
 }
 
+:global(.dark) .editor-heading h3 {
+    color: #e0e7ff;
+}
+
+.is-dark-theme .editor-heading h3 {
+    color: #e0e7ff !important;
+}
+
 .editor-heading p {
     max-width: 205px;
     margin: 6px 0 0;
     color: #747b97;
     font-size: 10.5px;
     line-height: 1.45;
+}
+
+:global(.dark) .editor-heading p,
+:global(.dark) .modal-editor label {
+    color: #9ca3af;
+}
+
+.is-dark-theme .editor-heading p,
+.is-dark-theme .modal-editor label {
+    color: #9ca3af !important;
 }
 
 .modal-editor label {
@@ -1770,6 +2255,29 @@ table {
     outline: none;
     box-shadow: 0 1px 0 rgba(15, 23, 42, .02);
     transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+:global(.dark) .modal-editor input,
+:global(.dark) .modal-editor textarea,
+:global(.dark) .modal-editor select,
+:global(.dark) .draft-table input {
+    border-color: #374151;
+    background: #0f172a;
+    color: #e5e7eb;
+}
+
+.is-dark-theme .modal-editor input,
+.is-dark-theme .modal-editor textarea,
+.is-dark-theme .modal-editor select,
+.is-dark-theme .draft-table input {
+    border-color: #374151 !important;
+    background: #0f172a !important;
+    color: #e5e7eb !important;
+}
+
+:global(.dark) .modal-editor input::placeholder,
+:global(.dark) .modal-editor textarea::placeholder {
+    color: #6b7280;
 }
 
 .modal-editor input {
@@ -1853,6 +2361,11 @@ table {
     font-weight: 900;
 }
 
+:global(.dark) .draft-table th {
+    background: #1f2937;
+    color: #f8fafc;
+}
+
 .draft-table td {
     font-size: 18px;
 }
@@ -1871,6 +2384,120 @@ table {
     background: #fff;
     gap: 12px;
     padding: 14px 32px;
+}
+
+:global(.dark) .modal-footer {
+    border-top-color: #263244;
+    background: #0f172a;
+}
+
+.is-dark-theme .modal-footer {
+    border-top-color: #263244 !important;
+    background: #0f172a !important;
+}
+
+.certificate-dark-ui .certificate-modal {
+    border: 1px solid #263244 !important;
+    background: #111827 !important;
+    color: #e5e7eb !important;
+}
+
+.certificate-dark-ui .print-grid,
+.certificate-dark-ui .create-grid {
+    background:
+        linear-gradient(90deg, #111827 0 310px, transparent 310px),
+        radial-gradient(circle at 50% 8%, rgba(51, 65, 85, .8), rgba(30, 41, 59, .94) 48%, #0f172a 100%) !important;
+}
+
+.certificate-dark-ui .modal-editor {
+    border-right-color: #263244 !important;
+    background:
+        radial-gradient(circle at 0 0, rgba(59, 130, 246, .13), transparent 34%),
+        linear-gradient(180deg, #111827 0%, #0f172a 100%) !important;
+}
+
+.certificate-dark-ui .modal-footer {
+    border-top-color: #263244 !important;
+    background: #0f172a !important;
+}
+
+.certificate-dark-ui .preview-zone {
+    background:
+        radial-gradient(circle at 50% 0%, rgba(96, 165, 250, .12), transparent 38%),
+        #111827 !important;
+}
+
+.certificate-dark-ui .modal-editor h3,
+.certificate-dark-ui .draft-title,
+.certificate-dark-ui .editor-heading h3 {
+    color: #e0e7ff !important;
+}
+
+.certificate-dark-ui .editor-heading,
+.certificate-dark-ui .draft-table-wrap {
+    border-color: #263244 !important;
+}
+
+.certificate-dark-ui .editor-heading p,
+.certificate-dark-ui .modal-editor label {
+    color: #9ca3af !important;
+}
+
+.certificate-dark-ui .modal-editor input,
+.certificate-dark-ui .modal-editor textarea,
+.certificate-dark-ui .modal-editor select,
+.certificate-dark-ui .draft-table input {
+    border-color: #374151 !important;
+    background: #0f172a !important;
+    color: #e5e7eb !important;
+}
+
+.certificate-dark-ui .modal-editor input::placeholder,
+.certificate-dark-ui .modal-editor textarea::placeholder {
+    color: #64748b !important;
+}
+
+.certificate-dark-ui .normal-summary article,
+.certificate-dark-ui .category-card,
+.certificate-dark-ui .info-card,
+.certificate-dark-ui .students-card,
+.certificate-dark-ui .loading-card,
+.certificate-dark-ui .free-form-card {
+    border-color: #263244 !important;
+    background:
+        radial-gradient(circle at 12% 0%, rgba(96, 165, 250, .10), transparent 32%),
+        linear-gradient(180deg, #172033 0%, #111827 100%) !important;
+    color: #e5e7eb !important;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, .34) !important;
+}
+
+.certificate-dark-ui .filter-select,
+.certificate-dark-ui .free-field input,
+.certificate-dark-ui .free-field select {
+    border-color: #374151 !important;
+    background: #0f172a !important;
+    color: #e5e7eb !important;
+}
+
+.certificate-dark-ui .free-field input::placeholder {
+    color: #7b8498 !important;
+}
+
+.certificate-dark-ui .normal-summary p,
+.certificate-dark-ui .free-field > span:first-child,
+.certificate-dark-ui .preview-head span,
+.certificate-dark-ui .info-grid p,
+.certificate-dark-ui .student-table td,
+.certificate-dark-ui .class-table td,
+.certificate-dark-ui .draft-table td {
+    color: #9ca3af !important;
+}
+
+.certificate-dark-ui .normal-summary strong,
+.certificate-dark-ui .legacy-header h1,
+.certificate-dark-ui .normal-toolbar h1,
+.certificate-dark-ui .free-field > span:first-child b {
+    color: #e5e7eb !important;
 }
 
 .modal-footer .light-action,
@@ -1909,9 +2536,21 @@ table {
     font-size: 16px;
 }
 
+:global(.dark) .light-action,
+:global(.dark) .outline-action {
+    border-color: #374151;
+    background: #111827;
+    color: #d1d5db;
+}
+
 .outline-action {
     border-color: #2d2e83;
     color: #2d2e83;
+}
+
+:global(.dark) .outline-action {
+    border-color: #60a5fa;
+    color: #bfdbfe;
 }
 
 .preview-zone {
@@ -1922,6 +2561,12 @@ table {
     padding: 18px 32px 30px;
 }
 
+:global(.dark) .preview-zone {
+    background:
+        radial-gradient(circle at 50% 0%, rgba(96, 165, 250, .12), transparent 38%),
+        #111827;
+}
+
 .preview-head {
     display: flex;
     align-items: center;
@@ -1929,6 +2574,10 @@ table {
     width: min(560px, 100%);
     margin: 0 0 13px;
     color: #838386;
+}
+
+:global(.dark) .preview-head {
+    color: #a3a3a3;
 }
 
 .preview-head span {
@@ -1945,7 +2594,16 @@ table {
     font-size: 12px;
 }
 
+:global(.dark) .preview-head strong {
+    background: rgba(96, 165, 250, .14);
+    color: #bfdbfe;
+}
+
 .print-batch {
+    display: none;
+}
+
+.normal-print-root {
     display: none;
 }
 
@@ -1957,6 +2615,10 @@ table {
     border-radius: 8px;
 }
 
+:global(.dark) .certificate-preview {
+    background: transparent;
+}
+
 .certificate-wrap {
     display: flex;
     justify-content: center;
@@ -1964,11 +2626,40 @@ table {
     padding: 5px;
 }
 
+:global(.dark) .certificate-wrap {
+    background: #e0e0e0;
+}
+
 .certificate {
     width: 520px;
     background: #fff;
     padding: 10px;
     box-shadow: 0 22px 45px rgba(20, 20, 45, .2);
+}
+
+:global(.dark) .certificate,
+:global(.dark) .cert-inner-border {
+    background: #fff;
+}
+
+.is-dark-theme :deep(.certificate-preview),
+.is-dark-theme :deep(.certificate-free-wrapper) {
+    background:
+        radial-gradient(circle at 50% 0%, rgba(96, 165, 250, .10), transparent 34%),
+        #111827 !important;
+    box-shadow: 0 22px 50px rgba(0, 0, 0, .34) !important;
+}
+
+.is-dark-theme :deep(.certificate-wrap) {
+    background: #e0e0e0 !important;
+}
+
+.is-dark-theme :deep(.certificate),
+.is-dark-theme :deep(.certificate-free),
+.is-dark-theme :deep(.cert-inner-border),
+.is-dark-theme :deep(.cert-free-inner-border) {
+    background: #fff !important;
+    color-scheme: light !important;
 }
 
 .cert-outer-border {
@@ -2184,6 +2875,20 @@ table {
     background: #f5f6fa;
 }
 
+:global(.dark) .legacy-certificate-page {
+    background:
+        radial-gradient(circle at 12% 0%, rgba(37, 99, 235, .13), transparent 34%),
+        linear-gradient(180deg, #0b1120 0%, #111827 100%);
+    color: #e5e7eb;
+}
+
+:global(html.dark) .legacy-certificate-page {
+    background:
+        radial-gradient(circle at 16% 0%, rgba(37, 99, 235, .16), transparent 32%),
+        linear-gradient(180deg, #0b1120 0%, #111827 100%) !important;
+    color: #e5e7eb !important;
+}
+
 .legacy-header h1 {
     margin: 0 0 20px;
     font-size: 30px;
@@ -2202,6 +2907,28 @@ table {
     background: #fff;
     padding: 30px 50px 36px;
     box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+}
+
+:global(.dark) .free-form-card {
+    border-color: #263244;
+    background: linear-gradient(180deg, #172033 0%, #111827 100%);
+    box-shadow: 0 20px 48px rgba(0, 0, 0, .32);
+}
+
+:global(html.dark) .free-form-card {
+    border-color: #263244 !important;
+    background:
+        radial-gradient(circle at 12% 0%, rgba(96, 165, 250, .10), transparent 32%),
+        linear-gradient(180deg, #172033 0%, #111827 100%) !important;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, .34) !important;
+}
+
+.is-dark-theme .free-form-card {
+    border-color: #263244 !important;
+    background:
+        radial-gradient(circle at 12% 0%, rgba(96, 165, 250, .10), transparent 32%),
+        linear-gradient(180deg, #172033 0%, #111827 100%) !important;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, .34) !important;
 }
 
 .free-form-grid {
@@ -2226,6 +2953,18 @@ table {
     font-weight: 700;
 }
 
+:global(.dark) .free-field > span:first-child {
+    color: #bfdbfe;
+}
+
+:global(html.dark) .free-field > span:first-child {
+    color: #bfdbfe !important;
+}
+
+.is-dark-theme .free-field > span:first-child {
+    color: #bfdbfe !important;
+}
+
 .free-field b {
     color: #dc3545;
     font-weight: 700;
@@ -2245,6 +2984,18 @@ table {
     pointer-events: none;
 }
 
+:global(.dark) .free-input-icon {
+    color: #94a3b8;
+}
+
+:global(html.dark) .free-input-icon {
+    color: #94a3b8 !important;
+}
+
+.is-dark-theme .free-input-icon {
+    color: #94a3b8 !important;
+}
+
 .free-field input,
 .free-field select {
     width: 100%;
@@ -2260,6 +3011,27 @@ table {
     transition: border-color .25s ease, box-shadow .25s ease, background .25s ease, transform .25s ease;
 }
 
+:global(.dark) .free-field input,
+:global(.dark) .free-field select {
+    border-color: #374151;
+    background: #0f172a;
+    color: #f8fafc;
+}
+
+:global(html.dark) .free-field input,
+:global(html.dark) .free-field select {
+    border-color: #374151 !important;
+    background: #0f172a !important;
+    color: #f8fafc !important;
+}
+
+.is-dark-theme .free-field input,
+.is-dark-theme .free-field select {
+    border-color: #374151 !important;
+    background: #0f172a !important;
+    color: #f8fafc !important;
+}
+
 .free-field input:focus,
 .free-field select:focus {
     border-color: #2d2e81;
@@ -2268,9 +3040,28 @@ table {
     transform: translateY(-1px);
 }
 
+:global(.dark) .free-field input:focus,
+:global(.dark) .free-field select:focus {
+    border-color: #60a5fa;
+    background: #111827;
+    box-shadow: 0 0 0 4px rgba(96, 165, 250, .16);
+}
+
 .free-field input::placeholder {
     color: #aeb5c8;
     font-weight: 600;
+}
+
+:global(.dark) .free-field input::placeholder {
+    color: #6b7280;
+}
+
+:global(html.dark) .free-field input::placeholder {
+    color: #64748b !important;
+}
+
+.is-dark-theme .free-field input::placeholder {
+    color: #64748b !important;
 }
 
 .free-field.has-error input,
@@ -2278,6 +3069,13 @@ table {
     border-color: #f05265;
     background: #fff8f9;
     box-shadow: 0 0 0 3px rgba(240, 82, 101, .06);
+}
+
+:global(.dark) .free-field.has-error input,
+:global(.dark) .free-field.has-error select {
+    border-color: #fb7185;
+    background: rgba(127, 29, 29, .16);
+    box-shadow: 0 0 0 3px rgba(251, 113, 133, .11);
 }
 
 .free-field.has-error .free-input-icon {
@@ -2416,45 +3214,96 @@ table {
 }
 
 @media print {
-    body * {
-        visibility: hidden !important;
-    }
-
-    .print-batch {
-        display: block !important;
-    }
-
-    .printable-certificate,
-    .printable-certificate * {
-        visibility: visible !important;
-    }
-
-    .printable-certificate {
-        display: grid !important;
-        place-items: center !important;
+    :global(body.normal-certificate-print) {
+        width: 210mm !important;
+        height: 297mm !important;
+        min-height: 297mm !important;
+        max-height: 297mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
         overflow: hidden !important;
-        width: 100vw !important;
-        min-height: 100vh !important;
         background: #fff !important;
-        page-break-after: always !important;
-        break-after: page !important;
     }
 
-    .screen-preview-only {
+    :global(body.normal-certificate-print > *:not(#normal-cert-print)) {
         display: none !important;
     }
 
-    .cert-paper {
-        width: 148mm !important;
-        min-height: 210mm !important;
-        border: 0 !important;
-        padding: 8mm !important;
-        print-color-adjust: exact !important;
-        -webkit-print-color-adjust: exact !important;
+    :global(body.normal-certificate-print #app) {
+        display: none !important;
     }
 
-    .certificate-free-wrapper {
+    :global(body.normal-certificate-print #normal-cert-print),
+    :global(body.normal-certificate-print #normal-cert-print *) {
         visibility: visible !important;
+    }
+
+    :global(body.normal-certificate-print #normal-cert-print) {
+        position: fixed !important;
+        inset: 0 auto auto 0 !important;
+        display: block !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        min-height: 297mm !important;
+        max-height: 297mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        background: #fff !important;
+    }
+
+    :global(body.normal-certificate-print #normal-cert-print .printable-certificate) {
+        display: flex !important;
+        align-items: stretch !important;
+        justify-content: stretch !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        min-height: 297mm !important;
+        max-height: 297mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        background: #fff !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-before: auto !important;
+        break-before: auto !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    :global(body.normal-certificate-print #normal-cert-print .printable-certificate:last-child) {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+    }
+
+    :global(body.normal-certificate-print #normal-cert-print .certificate-wrap) {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 297mm !important;
+        max-height: 297mm !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
+    :global(body.normal-certificate-print #normal-cert-print .certificate) {
+        box-sizing: border-box !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        min-height: 297mm !important;
+        max-height: 297mm !important;
+        margin: 0 !important;
+        padding: 5mm !important;
+        overflow: hidden !important;
+        background: #fff !important;
+        box-shadow: none !important;
+        transform: none !important;
     }
 
     * {

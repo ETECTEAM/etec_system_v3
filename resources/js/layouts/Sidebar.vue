@@ -62,8 +62,9 @@ const menuItems = computed(() => {
       exact: true,
       icon: "home",
       // An instructor's class screens (attendance, tracking) are drilled into from the
-      // dashboard, so they keep Dashboard highlighted rather than nothing at all.
-      isActive: (path) => path === "/dashboard" || path.startsWith("/dashboard/instructor/classes"),
+      // dashboard, except when they were opened from Pre Attendance recovery.
+      isActive: (path, fullPath) =>
+        path === "/dashboard" || (path.startsWith("/dashboard/instructor/classes") && !fullPath.includes("from=pre-attendance")),
     },
   ];
 

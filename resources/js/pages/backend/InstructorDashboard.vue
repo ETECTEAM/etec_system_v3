@@ -101,8 +101,9 @@ function viewUrl(classData) {
 
 // A class shared with this instructor ("Collapse Class") is taught by them but owned by
 // someone else, so the owner-only actions are dropped rather than left to 403.
-// "Add Student" is intentionally NOT here: enrollment is class-level, so either
-// instructor on a collapsed class may add students (the backend has no owner check).
+// "Register Student" is intentionally NOT here: enrollment is class-level, so either
+// instructor on a collapsed class may add students (EnrollmentClassController's
+// ensureInstructorCanManageClassStudents() allows the co-instructor too).
 const OWNER_ONLY_ACTIONS = ["Edit Class", "Collapse Class", "Pre-End", "End"];
 
 function hiddenItems(classData) {

@@ -58,10 +58,11 @@ class InstructorProfileRequest extends FormRequest
             'linkedin' => ['nullable', 'string', 'url', 'max:255'],
             'github' => ['nullable', 'string', 'url', 'max:255'],
             'portfolio_url' => ['nullable', 'string', 'url', 'max:255'],
-            'profile_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
-            'cv_file' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:5120'],
-            'attachments' => ['nullable', 'array'],
-            'attachments.*' => ['file', 'mimes:pdf,doc,docx,jpeg,png,jpg', 'max:5120'],
+            // FILE: disabled - not using file uploads
+            // 'profile_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
+            // 'cv_file' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:5120'],
+            // 'attachments' => ['nullable', 'array'],
+            // 'attachments.*' => ['file', 'mimes:pdf,doc,docx,jpeg,png,jpg', 'max:5120'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ];
     }

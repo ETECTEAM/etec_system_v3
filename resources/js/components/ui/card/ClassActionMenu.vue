@@ -35,6 +35,8 @@ const props = defineProps({
   },
 });
 
+const emit = defineEmits(["register-student"]);
+
 const open = ref(false);
 const showQr = ref(false);
 const dropdownRef = ref(null);
@@ -84,9 +86,12 @@ onUnmounted(() => {
   document.removeEventListener("keydown", handleKeydown);
 });
 
-function updateStatus(status) {
+function updateStatus(status, onSuccess = null) {
   router.post(`/dashboard/enroll/${props.classData.id}/status`, { status }, {
     preserveScroll: true,
+    onSuccess: () => {
+      onSuccess?.();
+    },
     onFinish: () => {
       open.value = false;
     },
@@ -118,9 +123,9 @@ const menus = computed(() => [
     action: () => router.get(`/dashboard/enroll/copy/${props.classData.id}`),
   },
   {
-    label: "Add Student",
+    label: "Register Student",
     icon: UserPlus,
-    action: () => router.get(`/dashboard/enroll/${props.classData.id}/students/create`),
+    action: () => { emit("register-student"); open.value = false; },
     disabled: lockedStudentActions.value,
   },
   {
@@ -132,7 +137,7 @@ const menus = computed(() => [
   { label: "Switch Teacher", icon: UserCog, action: () => window.alert("Switch teacher is not available yet.") },
 ]
   .filter((item) => !props.hiddenItems.includes(item.label))
-  .filter((item) => !isAdminUser.value || !["Add Student", "Generate QR"].includes(item.label))
+  .filter((item) => !isAdminUser.value || item.label !== "Generate QR")
   .concat(props.extraItems.filter((item) => !isAdminUser.value || item.label !== "Collapse Class")));
 
 const actions = computed(() => [
@@ -156,7 +161,11 @@ const actions = computed(() => [
       danger: true,
     });
     if (!ok) return;
-    updateStatus("completed");
+    updateStatus("completed", () => {
+      if (isInstructor.value) {
+        window.location.href = `/dashboard/instructor/classes/${props.classData.id}/result?download=1`;
+      }
+    });
   }},
 ].filter((item) => {
   if (props.hiddenItems.includes(item.label)) {

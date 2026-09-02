@@ -25,8 +25,13 @@
     "km": "ខ្មែរ"
   },
   "navigation": {
+    "absenceBlockAudit": "កំណត់ហេតុសវនកម្ម",
+    "absenceBlocklist": "បញ្ជីទប់ស្កាត់",
+    "absenceBlocks": "ការទប់ស្កាត់អវត្តមាន",
     "accessLocations": "ចាក់សោទីតាំង",
     "accountSecurity": "សុវត្ថិភាពគណនី",
+    "attendanceRuleSettings": "ការកំណត់ច្បាប់វត្តមាន",
+    "attendanceRules": "ច្បាប់វត្តមាន",
     "attendanceSettings": "ការកំណត់វត្តមាន",
     "blockedAccounts": "គណនីដែលបានបិទ",
     "buildingManagement": "គ្រប់គ្រងអគារ",
@@ -45,6 +50,7 @@
     "enrollConfig": "កំណត់ការចុះឈ្មោះ",
     "enrollManagement": "គ្រប់គ្រងការចុះឈ្មោះ",
     "floors": "ជាន់",
+    "instructorAvailability": "ពេលវេលារវល់របស់គ្រូ",
     "lessons": "មេរៀន",
     "lockoutSettings": "ការកំណត់ការចាក់សោ",
     "loginSecurity": "សុវត្ថិភាពចូលគណនី",

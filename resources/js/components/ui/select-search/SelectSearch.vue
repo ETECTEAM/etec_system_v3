@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()
@@ -35,6 +35,19 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  // Type-to-filter box at the top of the panel. On by default, but only
+  // actually rendered once the list is long enough to be worth searching
+  // (see `showSearch`) so short selects stay clean. Pass :searchable="false"
+  // to force it off.
+  searchable: {
+    type: Boolean,
+    default: true,
+  },
+  // Minimum option count before the search box appears.
+  searchThreshold: {
+    type: Number,
+    default: 6,
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -43,12 +56,30 @@ const open = ref(false)
 const root = ref(null)
 const panel = ref(null)
 const triggerButton = ref(null)
+const searchInput = ref(null)
 const panelStyle = ref({})
+const query = ref('')
 
 const selectedLabel = computed(() => {
   const found = props.options.find((option) => option.value === props.modelValue)
 
   return found ? t(found.label) : null
+})
+
+const showSearch = computed(() => props.searchable && props.options.length >= props.searchThreshold)
+
+const filteredOptions = computed(() => {
+  if (!showSearch.value) {
+    return props.options
+  }
+
+  const q = query.value.trim().toLowerCase()
+
+  if (q === '') {
+    return props.options
+  }
+
+  return props.options.filter((option) => String(t(option.label)).toLowerCase().includes(q))
 })
 
 // The panel is teleported to <body> (see template) rather than absolutely
@@ -92,13 +123,19 @@ async function toggleDropdown() {
   open.value = !open.value
 
   if (open.value) {
+    query.value = ''
     await nextTick()
     updatePanelPosition()
+
+    if (showSearch.value) {
+      searchInput.value?.focus()
+    }
   }
 }
 
 function closeDropdown() {
   open.value = false
+  query.value = ''
 }
 
 function selectOption(option) {
@@ -109,6 +146,16 @@ function selectOption(option) {
 function clearSelection() {
   emit('update:modelValue', '')
   closeDropdown()
+}
+
+// Enter in the search box picks the only / first remaining match, so a
+// keyboard user never has to reach for the mouse.
+function selectFirstMatch() {
+  const [first] = filteredOptions.value
+
+  if (first) {
+    selectOption(first)
+  }
 }
 
 function handleDocumentClick(event) {
@@ -138,6 +185,14 @@ function handleScroll(event) {
     updatePanelPosition()
   }
 }
+
+// Filtering shrinks/grows the panel; when it opens upward its top edge moves,
+// so re-anchor it to the trigger after the list changes.
+watch(filteredOptions, () => {
+  if (open.value) {
+    nextTick(updatePanelPosition)
+  }
+})
 
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick)
@@ -176,6 +231,17 @@ onBeforeUnmount(() => {
         :style="panelStyle"
         class="z-[130] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
       >
+        <div v-if="showSearch" class="border-b border-slate-100 p-2 dark:border-gray-700">
+          <input
+            ref="searchInput"
+            v-model="query"
+            type="text"
+            :placeholder="t('Search...')"
+            class="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:focus:ring-blue-500/20"
+            @keydown.enter.prevent="selectFirstMatch"
+          />
+        </div>
+
         <div class="max-h-48 overflow-y-auto py-1">
           <button
             v-if="clearable && modelValue !== ''"
@@ -187,7 +253,7 @@ onBeforeUnmount(() => {
           </button>
 
           <button
-            v-for="option in options"
+            v-for="option in filteredOptions"
             :key="option.value"
             type="button"
             class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
@@ -197,7 +263,7 @@ onBeforeUnmount(() => {
             <span v-if="option.value === modelValue" class="text-blue-600 dark:text-blue-400">✓</span>
           </button>
 
-          <div v-if="options.length === 0" class="px-4 py-3 text-sm text-slate-400 dark:text-gray-500">
+          <div v-if="filteredOptions.length === 0" class="px-4 py-3 text-sm text-slate-400 dark:text-gray-500">
             {{ t(emptyText) }}
           </div>
         </div>

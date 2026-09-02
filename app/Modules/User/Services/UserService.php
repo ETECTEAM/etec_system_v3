@@ -11,7 +11,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+// use Illuminate\Support\Facades\Storage; // FILE: disabled - not using file uploads
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 
@@ -201,7 +201,8 @@ class UserService
                 'role' => $data->role, 'status' => $data->status, 'created_by' => $creatorId,
             ]);
             $user->syncRoles([$data->role]);
-            $this->syncPhoto($user, $data->avatar);
+            // FILE: disabled - not using file uploads
+            // $this->syncPhoto($user, $data->avatar);
             $this->instructorService->syncProfile($user, $data->role, $data->student, $data->instructorData);
             return $user->fresh(['roles', 'student', 'instructorData', 'photo', 'creator']);
         });
@@ -217,7 +218,8 @@ class UserService
             $attributes = ['name' => $data->name, 'email' => $data->email, 'role' => $data->role, 'status' => $data->status];
             if ($data->password !== null && $data->password !== '') { $attributes['password'] = $data->password; }
             $user->update($attributes);
-            $this->syncPhoto($user, $data->avatar);
+            // FILE: disabled - not using file uploads
+            // $this->syncPhoto($user, $data->avatar);
             $user->syncRoles([$data->role]);
             $this->instructorService->syncProfile($user, $data->role, $data->student, $data->instructorData);
             return $user->fresh(['roles', 'student', 'instructorData', 'photo']);
@@ -243,23 +245,24 @@ class UserService
         }
     }
 
-    private function syncPhoto(User $user, ?\Illuminate\Http\UploadedFile $avatar): void
-    {
-        if ($avatar === null) {
-            return;
-        }
-
-        $previousPath = $user->photo?->file_path;
-
-        $user->photo()->updateOrCreate(['user_id' => $user->id], [
-            'file_path' => $avatar->store('avatars', 'public'),
-            'file_name' => $avatar->getClientOriginalName(),
-            'file_mime' => $avatar->getClientMimeType(),
-            'file_size' => $avatar->getSize(),
-        ]);
-
-        if ($previousPath !== null && $previousPath !== '') {
-            Storage::disk('public')->delete($previousPath);
-        }
-    }
+    // FILE: disabled - not using file uploads
+    // private function syncPhoto(User $user, ?\Illuminate\Http\UploadedFile $avatar): void
+    // {
+    //     if ($avatar === null) {
+    //         return;
+    //     }
+    //
+    //     $previousPath = $user->photo?->file_path;
+    //
+    //     $user->photo()->updateOrCreate(['user_id' => $user->id], [
+    //         'file_path' => $avatar->store('avatars', 'public'),
+    //         'file_name' => $avatar->getClientOriginalName(),
+    //         'file_mime' => $avatar->getClientMimeType(),
+    //         'file_size' => $avatar->getSize(),
+    //     ]);
+    //
+    //     if ($previousPath !== null && $previousPath !== '') {
+    //         Storage::disk('public')->delete($previousPath);
+    //     }
+    // }
 }

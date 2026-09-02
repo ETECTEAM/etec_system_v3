@@ -38,6 +38,11 @@ const form = useForm({
 });
 const nameLiveError = computed(() => latinNameError(form.name));
 
+function normalizePhoneInput(event) {
+  const value = event.target.value ?? "";
+  form.phone = String(value).replace(/\D+/g, "").slice(0, 12);
+}
+
 function submit() {
   if (nameLiveError.value) {
     return;
@@ -146,6 +151,11 @@ function classList() {
               <input
                 v-model="form.phone"
                 type="text"
+                inputmode="numeric"
+                autocomplete="tel"
+                pattern="[0-9]*"
+                maxlength="12"
+                @input="normalizePhoneInput"
                 class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
                 :placeholder="$t('Enter phone number')"
               />

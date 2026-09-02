@@ -202,13 +202,14 @@ class AuthController extends Controller
 
     /**
      * Where a freshly verified user lands. Newly self-registered instructors
-     * who still need to finish setup are sent to their profile page instead of
-     * straight to the dashboard; everyone else goes to the normal redirect.
+     * who still need to finish setup are sent into the onboarding wizard
+     * instead of straight to the dashboard; everyone else goes to the normal
+     * redirect.
      */
     private function postVerificationRedirect(User $user): string
     {
         if ($this->onboarding->isPending($user)) {
-            return '/dashboard/instructor/profile';
+            return '/dashboard/instructor/onboarding';
         }
 
         return $this->redirectPathFor($user);
@@ -322,25 +323,30 @@ class AuthController extends Controller
     public function sendResetLink(ForgotPasswordRequest $request): RedirectResponse
     {
         $data = $request->toData();
-        $user = User::query()->where('email', $data->email)->first();
+        $user = User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($data->email)])->first();
 
-        if ($user && ! $user->passwordResetRecipient()) {
+        if (! $user) {
             throw ValidationException::withMessages([
-                'email' => ['This account does not have a verified recovery email yet.'],
+                'email' => ["This email doesn't have an account in the system."],
+            ]);
+        }
+
+        if (! $user->passwordResetRecipient()) {
+            throw ValidationException::withMessages([
+                'email' => ['This account does not have a recovery email yet.'],
             ]);
         }
 
         $status = Password::sendResetLink(['email' => $data->email]);
 
-        // Same generic outcome either way, so this can't be used to enumerate accounts.
-        if (! in_array($status, [Password::RESET_LINK_SENT, Password::INVALID_USER], true)) {
+        if ($status !== Password::RESET_LINK_SENT) {
             throw ValidationException::withMessages([
                 'email' => [__($status)],
             ]);
         }
 
         return redirect('/forgot-password')
-            ->with('success', 'If an account exists for that email, a password reset link has been sent.');
+            ->with('success', 'Password reset link sent to your recovery email.');
     }
 
     public function showResetPassword(Request $request, string $token): Response

@@ -21,6 +21,7 @@ class Student extends Model
         'term_id',
         'time_id',
         'fee_amount',
+        'unit_price',
         'document_fee_amount',
     ];
 

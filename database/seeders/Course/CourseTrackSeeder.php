@@ -62,6 +62,14 @@ class CourseTrackSeeder extends Seeder
                 'sub_category_id' => $this->getSubCategoryId('Web Development'),
                 'name' => 'Backend Course'
             ],
+            [
+                'sub_category_id' => $this->getSubCategoryId('Office Skills'),
+                'name' => 'Microsoft Office'
+            ],
+            [
+                'sub_category_id' => $this->getSubCategoryId('Internship'),
+                'name' => 'Internship'
+            ],
         ];
 
         $usedSlugs = [];

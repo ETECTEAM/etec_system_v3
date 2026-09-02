@@ -46,7 +46,8 @@ class StoreUserRequest extends FormRequest
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in($roles)],
             'account_status' => ['required', 'string', Rule::in(['active', 'inactive'])],
-            'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            // FILE: disabled - not using file uploads
+            // 'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             // student_* fields are nullable here since they only apply when role === 'student'.
             'student_full_name' => ['nullable', 'string', 'max:255'],
             'student_first_name' => ['nullable', 'string', 'max:255'], 'student_last_name' => ['nullable', 'string', 'max:255'],
@@ -85,7 +86,7 @@ class StoreUserRequest extends FormRequest
             $data['password'], 
             $data['role'], 
             $data['account_status'], 
-            $this->file('avatar'), 
+            null, // FILE: disabled - $this->file('avatar')
             $this->student($data), 
             $this->instructorData($data)
         );

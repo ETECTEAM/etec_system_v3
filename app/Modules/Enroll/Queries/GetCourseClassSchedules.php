@@ -5,6 +5,8 @@ namespace App\Modules\Enroll\Queries;
 use App\Models\Course;
 use App\Models\CourseEnrollConfig;
 use App\Models\Schedule;
+use App\Models\StudyClass;
+use App\Models\Time;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
@@ -82,16 +84,22 @@ class GetCourseClassSchedules
                         'schedule_id' => $schedule->id,
                         'term_id' => $schedule->term_id,
                         'term_name' => $schedule->term?->term_name,
-                        'times' => $schedule->times->map(function ($time) use ($schedule, $openConfigs) {
-                            $config = $openConfigs->get("{$schedule->id}:{$time->id}");
+                        // Chronological by real start time, not Time.id / pivot
+                        // order - a slot like "02:00 pm - 3:15 pm" added later
+                        // must still sort between 12:30 pm and 03:30 pm. Mirrors
+                        // GetClassFormOptions::scheduleGroups().
+                        'times' => $schedule->times
+                            ->sortBy(fn (Time $time) => StudyClass::parseTimeRange($time->time_name)['start'] ?? '99:99')
+                            ->map(function (Time $time) use ($schedule, $openConfigs) {
+                                $config = $openConfigs->get("{$schedule->id}:{$time->id}");
 
-                            return [
-                                'time_id' => $time->id,
-                                'time_name' => $time->time_name,
-                                'is_open' => $config !== null,
-                                'max_classes' => $config?->max_classes,
-                            ];
-                        })->values()->all(),
+                                return [
+                                    'time_id' => $time->id,
+                                    'time_name' => $time->time_name,
+                                    'is_open' => $config !== null,
+                                    'max_classes' => $config?->max_classes,
+                                ];
+                            })->values()->all(),
                     ])
                     ->values()
                     ->all();
