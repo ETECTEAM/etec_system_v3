@@ -19,7 +19,7 @@ use Inertia\Response;
 
 class CertificateController extends Controller
 {
-    private const TYPES = ['free', 'normal', 'scholarship', 'meal'];
+    private const TYPES = ['free', 'normal', 'scholarship', 'internship'];
 
     public function index(Request $request): Response
     {
@@ -45,8 +45,9 @@ class CertificateController extends Controller
         $classes = StudyClass::query()
             ->with([
                 'course:id,title,course_track_id',
-                'course.track:id,name,category_id',
-                'course.track.category:id,name',
+                'course.track:id,name,sub_category_id',
+                'course.track.subCategory:id,name,category_id',
+                'course.track.subCategory.category:id,name',
                 'teacher:id,name',
                 'time:id,time_name',
                 'classType:class_type_id,type_name',
@@ -55,10 +56,7 @@ class CertificateController extends Controller
                 'enrollments as total_students' => fn (Builder $query) => $query->where('enrollment_status', 'active'),
             ])
             ->whereIn('status', ['pre_end', 'ended', 'completed', 'active'])
-            ->when($type !== 'normal', fn (Builder $query) => $query->whereHas(
-                'classType',
-                fn (Builder $classType) => $classType->where('type_name', 'like', '%scholar%')->orWhere('type_name', 'like', '%meal%')
-            ))
+            ->where(fn (Builder $query) => $this->applyCertificateClassTypeFilter($query, $type))
             ->latest('id')
             ->get();
 
@@ -72,7 +70,8 @@ class CertificateController extends Controller
         $classes = $classes
             ->map(fn (StudyClass $studyClass): array => [
                 'id' => $studyClass->id,
-                'category' => $studyClass->course?->track?->category?->name
+                'category' => $studyClass->course?->track?->subCategory?->category?->name
+                    ?? $studyClass->course?->track?->subCategory?->name
                     ?? $studyClass->course?->track?->name
                     ?? 'General',
                 'course' => $studyClass->course?->title ?? $studyClass->title,
@@ -90,6 +89,14 @@ class CertificateController extends Controller
     public function students(Request $request, StudyClass $studyClass): JsonResponse
     {
         $type = $this->normaliseType($request->query('type', 'normal'));
+        $certificateRequest = ClassCertificateRequest::query()
+            ->where('study_class_id', $studyClass->id)
+            ->first(['requested_student_ids']);
+
+        $requestedStudentIds = collect($certificateRequest?->requested_student_ids ?? [])
+            ->map(fn ($id): int => (int) $id)
+            ->filter()
+            ->values();
 
         $students = StudentEnrollment::query()
             ->with([
@@ -100,6 +107,7 @@ class CertificateController extends Controller
             ])
             ->where('study_class_id', $studyClass->id)
             ->where('enrollment_status', 'active')
+            ->when($requestedStudentIds->isNotEmpty(), fn (Builder $query) => $query->whereIn('student_id', $requestedStudentIds))
             ->orderBy('id')
             ->get()
             ->map(fn (StudentEnrollment $enrollment): array => [
@@ -146,7 +154,7 @@ class CertificateController extends Controller
         $validated = $request->validate([
             'student_id' => ['required', 'integer', 'exists:students,id'],
             'study_class_id' => ['required', 'integer', 'exists:study_classes,id'],
-            'certificate_type' => ['required', Rule::in(['normal', 'scholarship', 'meal'])],
+            'certificate_type' => ['required', Rule::in(['normal', 'scholarship', 'internship'])],
             'student_name' => ['required', 'string', 'max:100'],
             'course' => ['required', 'string', 'max:100'],
             'granted_date' => ['required', 'string', 'max:50'],
@@ -239,20 +247,17 @@ class CertificateController extends Controller
 
     private function classCertificateRequests(string $type): array
     {
-        if ($type === 'free') {
-            return [];
-        }
-
         return ClassCertificateRequest::query()
             ->with([
                 'studyClass:id,title,teacher_id,course_id,term_id,time_id,class_type_id,status',
                 'studyClass.course:id,title,course_track_id',
-                'studyClass.course.track:id,name,category_id',
-                'studyClass.course.track.category:id,name',
+                'studyClass.course.track:id,name,sub_category_id',
+                'studyClass.course.track.subCategory:id,name,category_id',
+                'studyClass.course.track.subCategory.category:id,name',
                 'studyClass.teacher:id,name',
                 'requestedBy:id,name',
             ])
-            ->where('certificate_type', $type)
+            ->whereHas('studyClass', fn (Builder $query) => $this->applyCertificateClassTypeFilter($query, $type))
             ->latest('requested_at')
             ->get()
             ->map(function (ClassCertificateRequest $request): array {
@@ -265,6 +270,7 @@ class CertificateController extends Controller
                     'course' => $studyClass?->course?->title ?? $studyClass?->title ?? '-',
                     'teacher_name' => $studyClass?->teacher?->name ?? '-',
                     'student_count' => (int) $request->student_count,
+                    'student_ids' => collect($request->requested_student_ids ?? [])->map(fn ($id): int => (int) $id)->values()->all(),
                     'status' => $request->status,
                     'status_label' => ucfirst(str_replace('_', ' ', $request->status)),
                     'certificate_type' => $request->certificate_type,
@@ -275,6 +281,21 @@ class CertificateController extends Controller
             })
             ->values()
             ->all();
+    }
+
+    private function applyCertificateClassTypeFilter(Builder $query, string $type): void
+    {
+        match ($type) {
+            'free' => $query->whereHas('classType', fn (Builder $classType) => $classType->where('type_name', 'like', '%free%')),
+            'scholarship' => $query->whereHas('classType', fn (Builder $classType) => $classType->where('type_name', 'like', '%scholar%')),
+            'internship' => $query->whereHas('classType', fn (Builder $classType) => $classType->where('type_name', 'like', '%internship%')),
+            default => $query->where(fn (Builder $regular) => $regular
+                ->whereDoesntHave('classType')
+                ->orWhereHas('classType', fn (Builder $classType) => $classType
+                    ->where('type_name', 'not like', '%free%')
+                    ->where('type_name', 'not like', '%scholar%')
+                    ->where('type_name', 'not like', '%internship%'))),
+        };
     }
 
     private function generateFreeId(): string

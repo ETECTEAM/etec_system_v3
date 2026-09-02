@@ -31,7 +31,7 @@ export function build(ctx) {
         isActive: isType("free"),
       },
       {
-        label: "Normal Certificate",
+        label: "Regular Certificate",
         labelKey: "navigation.certificateNormal",
         href: "/dashboard/certificates?type=normal",
         match: ["/dashboard/certificates"],
@@ -39,12 +39,20 @@ export function build(ctx) {
         isActive: isType("normal"),
       },
       {
-        label: "Meal Certificate",
-        labelKey: "navigation.certificateMeal",
-        href: "/dashboard/certificates?type=meal",
+        label: "Scholarship Certificate",
+        labelKey: "navigation.certificateScholarship",
+        href: "/dashboard/certificates?type=scholarship",
         match: ["/dashboard/certificates"],
         exact: false,
-        isActive: isType("meal"),
+        isActive: isType("scholarship"),
+      },
+      {
+        label: "Internship Certificate",
+        labelKey: "navigation.certificateInternship",
+        href: "/dashboard/certificates?type=internship",
+        match: ["/dashboard/certificates"],
+        exact: false,
+        isActive: isType("internship"),
       },
     ],
   };

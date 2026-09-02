@@ -47,6 +47,8 @@
     "certificateFree": "សញ្ញាបត្រថ្នាក់Free",
     "certificateNormal": "សញ្ញាបត្រថ្នាក់ធម្មតា",
     "certificateMeal": "សញ្ញាបត្រអាហាររួបករណ៏",
+    "certificateScholarship": "សញ្ញាបត្រអាហាររូបករណ៍",
+    "certificateInternship": "សញ្ញាបត្រ Internship",
     "enrollConfig": "កំណត់ការចុះឈ្មោះ",
     "enrollManagement": "គ្រប់គ្រងការចុះឈ្មោះ",
     "floors": "ជាន់",

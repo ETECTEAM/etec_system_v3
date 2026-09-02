@@ -34,7 +34,7 @@ const props = defineProps({
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 axios.defaults.withCredentials = true
 
-const certificateType = computed(() => props.type === 'meal' ? 'meal' : props.type)
+const certificateType = computed(() => props.type)
 const isNormal = computed(() => certificateType.value === 'normal')
 const isFree = computed(() => certificateType.value === 'free')
 const isClassCertificate = computed(() => !isFree.value)
@@ -45,7 +45,7 @@ const pageTitle = computed(() => ({
     free: 'សញ្ញាបត្រថ្នាក់ Free',
     normal: 'តារាង សញ្ញាបត្រធម្មតា',
     scholarship: 'សញ្ញាបត្រអាហាររូបករណ៍',
-    meal: 'សញ្ញាបត្រអាហាររូបករណ៍',
+    internship: 'សញ្ញាបត្រ Internship',
 }[certificateType.value] ?? 'សញ្ញាបត្រ'))
 
 const classRows = ref([])
@@ -743,6 +743,63 @@ function saveFreeAfterPrint() {
     <Head :title="pageTitle" />
 
     <DashboardLayout>
+        <div v-if="isFree && hasCertificateRequests" class="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm no-print dark:border-gray-800 dark:bg-gray-900">
+            <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-gray-800">
+                <div>
+                    <p class="text-xs font-black uppercase tracking-[0.2em] text-amber-500 dark:text-amber-400">Certificate Requests</p>
+                    <h2 class="mt-1 text-lg font-black text-slate-950 dark:text-gray-100">Free certificate requests</h2>
+                </div>
+                <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+                    {{ certificateRequests.length }} request{{ certificateRequests.length === 1 ? '' : 's' }}
+                </span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-[860px] w-full border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 text-xs font-black uppercase tracking-[0.08em] text-slate-500 dark:bg-gray-950 dark:text-gray-400">
+                            <th class="border-b border-slate-200 px-4 py-3 text-left dark:border-gray-800">Class</th>
+                            <th class="border-b border-slate-200 px-4 py-3 text-left dark:border-gray-800">Teacher</th>
+                            <th class="border-b border-slate-200 px-4 py-3 text-center dark:border-gray-800">Students</th>
+                            <th class="border-b border-slate-200 px-4 py-3 text-center dark:border-gray-800">Status</th>
+                            <th class="border-b border-slate-200 px-4 py-3 text-left dark:border-gray-800">Requested By</th>
+                            <th class="border-b border-slate-200 px-4 py-3 text-left dark:border-gray-800">Requested At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="request in certificateRequests" :key="request.id" class="transition hover:bg-slate-50/80 dark:hover:bg-gray-800/50">
+                            <td class="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900 dark:border-gray-800 dark:text-gray-100">
+                                <div class="flex items-start gap-2">
+                                    <Bookmark class="mt-0.5 h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" />
+                                    <div>
+                                        <p class="font-black">{{ request.class_title }}</p>
+                                        <p class="text-xs text-slate-500 dark:text-gray-400">{{ request.course }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="border-b border-slate-100 px-4 py-3 text-slate-700 dark:border-gray-800 dark:text-gray-300">
+                                {{ request.teacher_name }}
+                            </td>
+                            <td class="border-b border-slate-100 px-4 py-3 text-center font-black text-slate-900 dark:border-gray-800 dark:text-gray-100">
+                                {{ request.student_count }}
+                            </td>
+                            <td class="border-b border-slate-100 px-4 py-3 text-center dark:border-gray-800">
+                                <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+                                    {{ request.status_label }}
+                                </span>
+                            </td>
+                            <td class="border-b border-slate-100 px-4 py-3 text-slate-700 dark:border-gray-800 dark:text-gray-300">
+                                {{ request.requested_by }}
+                            </td>
+                            <td class="border-b border-slate-100 px-4 py-3 text-slate-700 dark:border-gray-800 dark:text-gray-300">
+                                {{ request.requested_at ?? '-' }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <section
             v-if="isClassCertificate"
             class="normal-certificate-page"

@@ -210,11 +210,29 @@ class InstructorClassController extends Controller
 
         $validated = $request->validate([
             'confirm_request' => ['accepted'],
+            'student_ids' => ['required', 'array', 'min:1'],
+            'student_ids.*' => ['required', 'integer'],
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
 
         if ($students->isEmpty()) {
             return back()->with('warning', 'This class does not have any active students to request a certificate for.');
+        }
+
+        $activeStudentIds = $students->pluck('id')->map(fn ($id): int => (int) $id);
+        $requestedStudentIds = collect($validated['student_ids'])
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($requestedStudentIds->isEmpty()) {
+            return back()->with('warning', 'Please approve at least one student before requesting certificates.');
+        }
+
+        if ($requestedStudentIds->diff($activeStudentIds)->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'student_ids' => 'Certificate requests can only include active students from this class.',
+            ]);
         }
 
         ClassCertificateRequest::query()->updateOrCreate(
@@ -223,7 +241,8 @@ class InstructorClassController extends Controller
                 'requested_by' => $request->user()->id,
                 'certificate_type' => $certificateType,
                 'status' => 'pending',
-                'student_count' => $students->count(),
+                'student_count' => $requestedStudentIds->count(),
+                'requested_student_ids' => $requestedStudentIds->all(),
                 'note' => $validated['note'] ?? null,
                 'requested_at' => now(),
                 'reviewed_by' => null,
@@ -479,12 +498,16 @@ class InstructorClassController extends Controller
     {
         $typeName = strtolower((string) ($class->class_type_name ?? ''));
 
+        if (str_contains($typeName, 'free')) {
+            return 'free';
+        }
+
         if (str_contains($typeName, 'scholar')) {
             return 'scholarship';
         }
 
-        if (str_contains($typeName, 'meal')) {
-            return 'meal';
+        if (str_contains($typeName, 'internship')) {
+            return 'internship';
         }
 
         return 'normal';
@@ -507,6 +530,7 @@ class InstructorClassController extends Controller
             'status' => $request->status,
             'status_label' => ucfirst(str_replace('_', ' ', $request->status)),
             'student_count' => (int) $request->student_count,
+            'student_ids' => collect($request->requested_student_ids ?? [])->map(fn ($id): int => (int) $id)->values()->all(),
             'note' => $request->note,
             'requested_at' => $request->requested_at?->format('Y-m-d h:i A'),
             'requested_by' => $request->requestedBy?->name,

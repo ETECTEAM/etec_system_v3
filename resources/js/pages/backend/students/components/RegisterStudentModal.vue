@@ -1,9 +1,7 @@
 <script setup>
-import { computed } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { useForm } from "@inertiajs/vue3";
-import { useToast } from "vue-toastification";
 import { X, UserPlus } from "@lucide/vue";
-import { useI18n } from "@/i18n";
 import { latinNameError } from "@/composables/useLatinNameValidation";
 
 const props = defineProps({
@@ -27,8 +25,7 @@ const props = defineProps({
 
 const emit = defineEmits(["close"]);
 
-const { t } = useI18n();
-const toast = useToast();
+const nameInput = ref(null);
 
 const form = useForm({
   name: "",
@@ -49,6 +46,15 @@ function close() {
   emit("close");
 }
 
+function resetForNextStudent() {
+  form.reset();
+  form.clearErrors();
+
+  nextTick(() => {
+    nameInput.value?.focus();
+  });
+}
+
 function submit() {
   if (nameLiveError.value || !props.classId) {
     return;
@@ -57,8 +63,7 @@ function submit() {
   form.post(`/dashboard/enroll/${props.classId}/students`, {
     preserveScroll: true,
     onSuccess: () => {
-      toast.success(t("Student registered."));
-      close();
+      resetForNextStudent();
     },
   });
 }
@@ -102,6 +107,7 @@ function submit() {
             {{ $t('Student Name') }}
           </label>
           <input
+            ref="nameInput"
             v-model="form.name"
             type="text"
             :class="[

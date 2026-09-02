@@ -16,6 +16,7 @@ class ClassCertificateRequest extends Model
         'certificate_type',
         'status',
         'student_count',
+        'requested_student_ids',
         'note',
         'requested_at',
         'reviewed_at',
@@ -28,6 +29,7 @@ class ClassCertificateRequest extends Model
             'requested_by' => 'integer',
             'reviewed_by' => 'integer',
             'student_count' => 'integer',
+            'requested_student_ids' => 'array',
             'requested_at' => 'datetime',
             'reviewed_at' => 'datetime',
         ];

@@ -47,6 +47,8 @@
     "certificateFree": "Free Certificate",
     "certificateNormal": "Regular Certificate",
     "certificateMeal": "Meal Certificate",
+    "certificateScholarship": "Scholarship Certificate",
+    "certificateInternship": "Internship Certificate",
     "enrollConfig": "Enroll Config",
     "enrollManagement": "Enrollment Management",
     "floors": "Floors",
