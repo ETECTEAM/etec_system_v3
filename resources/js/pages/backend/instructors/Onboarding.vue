@@ -21,6 +21,8 @@ const STEPS = [
   { key: 'done', label: 'All set' },
 ]
 
+const displayUserName = computed(() => String(props.user?.name ?? '').split(/[·•]/u)[0].trim())
+
 function resolveInitialStep() {
   // Arrived here straight from finishing the last step - show the "all set" screen.
   if (props.justCompleted) return 2
@@ -190,7 +192,7 @@ function logout() {
           <p class="text-xs font-semibold tracking-wide text-blue-800 uppercase dark:text-blue-400">{{ $t('Welcome') }}</p>
           <h1 class="mt-1 text-2xl font-black sm:text-3xl">{{ $t('Finish your setup') }}</h1>
           <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">
-            {{ $t('A couple of quick steps and your dashboard is ready') }}{{ props.user?.name ? `, ${props.user.name}` : '' }}.
+            {{ $t('A couple of quick steps and your dashboard is ready') }}{{ displayUserName ? `, ${displayUserName}` : '' }}.
           </p>
         </div>
         <button

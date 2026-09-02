@@ -3,6 +3,7 @@
 namespace App\Modules\Enroll\Queries;
 
 use App\Models\StudentEnrollment;
+use App\Support\InstructorDisplayName;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -105,7 +106,7 @@ class GetPublicRegistrations
             'enroll_start_date' => optional(
                 $enrollment->studyClass?->course?->enrollConfigForTime($enrollment->studyClass?->time_id)
             )?->start_date?->format('Y-m-d'),
-            'teacher_name' => $enrollment->studyClass?->teacher?->name,
+            'teacher_name' => InstructorDisplayName::format($enrollment->studyClass?->teacher?->name, ''),
             'building' => $enrollment->studyClass?->room?->floor?->building?->name,
             'floor' => $enrollment->studyClass?->room?->floor?->name,
             'room' => $enrollment->studyClass?->room?->room_number ?? ($enrollment->studyClass?->isOnline() ? 'Online' : null),

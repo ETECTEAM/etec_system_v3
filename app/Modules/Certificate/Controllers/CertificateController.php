@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ClassCertificateRequest;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
+use App\Support\InstructorDisplayName;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -406,13 +407,7 @@ class CertificateController extends Controller
 
     private function instructorDisplayName(?string $name): string
     {
-        $name = trim((string) $name);
-
-        if ($name === '') {
-            return 'No instructor';
-        }
-
-        return trim(preg_split('/\s*[·•]\s*/u', $name, 2)[0] ?? $name) ?: $name;
+        return InstructorDisplayName::format($name, 'No instructor');
     }
 
     private function normalisePageType(string $type): string

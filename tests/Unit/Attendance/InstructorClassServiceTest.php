@@ -391,4 +391,121 @@ class InstructorClassServiceTest extends TestCase
             'source' => StudentAttendance::SOURCE_AUTO,
         ]);
     }
+
+    public function test_save_teams_persists_generated_team_arrangement(): void
+    {
+        $class = $this->makeStudyClass();
+        $students = collect(range(1, 4))
+            ->map(function (): int {
+                $student = $this->makeStudent();
+
+                return $student->id;
+            });
+
+        $students->each(function (int $studentId) use ($class): void {
+            $this->enroll($class, \App\Models\Student::query()->findOrFail($studentId));
+        });
+
+        $savedTeams = $this->service->saveTeams($class->id, 2, [
+            [
+                'team_name' => 'Team 1',
+                'project_topic' => 'POS',
+                'student_ids' => $students->take(2)->values()->all(),
+            ],
+            [
+                'team_name' => 'Team 2',
+                'project_topic' => 'Inventory',
+                'student_ids' => $students->skip(2)->values()->all(),
+            ],
+        ], $class->teacher_id);
+
+        $this->assertCount(2, $savedTeams);
+        $this->assertDatabaseCount('teams', 2);
+        $this->assertDatabaseCount('team_members', 4);
+        $this->assertDatabaseHas('teams', [
+            'group_id' => $class->id,
+            'team_name' => 'Team 1',
+            'project_topic' => 'POS',
+        ]);
+    }
+
+    public function test_save_teams_rejects_duplicate_student_assignments(): void
+    {
+        $class = $this->makeStudyClass();
+        $student = $this->makeStudent();
+        $this->enroll($class, $student);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('A student can belong to only one team in this group.');
+
+        $this->service->saveTeams($class->id, 2, [
+            [
+                'team_name' => 'Team 1',
+                'student_ids' => [$student->id],
+            ],
+            [
+                'team_name' => 'Team 2',
+                'student_ids' => [$student->id],
+            ],
+        ]);
+    }
+
+    public function test_save_teams_rejects_students_outside_the_class_roster(): void
+    {
+        $class = $this->makeStudyClass();
+        $student = $this->makeStudent();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Only students from this class can be assigned to a team.');
+
+        $this->service->saveTeams($class->id, 1, [
+            [
+                'team_name' => 'Team 1',
+                'student_ids' => [$student->id],
+            ],
+        ]);
+    }
+
+    public function test_save_teams_rejects_mismatched_team_count(): void
+    {
+        $class = $this->makeStudyClass();
+        $student = $this->makeStudent();
+        $this->enroll($class, $student);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('The number of teams must match the generated team count.');
+
+        $this->service->saveTeams($class->id, 2, [
+            [
+                'team_name' => 'Team 1',
+                'student_ids' => [$student->id],
+            ],
+        ]);
+    }
+
+    public function test_save_teams_rejects_duplicate_team_names(): void
+    {
+        $class = $this->makeStudyClass();
+        $students = collect(range(1, 2))
+            ->map(function () use ($class) {
+                $student = $this->makeStudent();
+                $this->enroll($class, $student);
+
+                return $student;
+            });
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Team names must be unique within this group.');
+
+        $this->service->saveTeams($class->id, 2, [
+            [
+                'team_name' => 'Team 1',
+                'student_ids' => [$students[0]->id],
+            ],
+            [
+                'team_name' => 'team 1',
+                'student_ids' => [$students[1]->id],
+            ],
+        ]);
+    }
 }
