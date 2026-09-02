@@ -492,6 +492,15 @@ class InstructorClassService
             $lockEvaluator = app(AbsenceBlockEvaluator::class);
             $permissionEvaluator = app(PermissionLimitEvaluator::class);
             $class = StudyClass::query()->find($studyClassId);
+
+            // first attendance submission for a class sets the start date and activates the class
+            if ($class && $class->start_date === null) {
+                $class->update([
+                    'start_date' => $attendanceDate,
+                    'status' => 'active',
+                ]);
+            }
+
             $settledAbsent = [];
 
             foreach ($data['records'] as $record) {
