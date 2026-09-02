@@ -13,6 +13,14 @@ jobs:
     runs-on: [self-hosted, production]
 
     steps:
+      - name: Ensure deploy repo permissions
+        working-directory: /opt/etec-system
+        run: |
+          if [ ! -w .git/objects ]; then
+            echo "Repairing /opt/etec-system/.git ownership for runner user"
+            sudo chown -R "$(id -u):$(id -g)" .git
+          fi
+
       # deploy.sh does its own git fetch/reset --hard against the real
       # deployed repo, and docker-compose.prod.yml bind-mounts that same
       # path — it must run from /opt/etec-system itself, not a fresh
