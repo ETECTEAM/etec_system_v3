@@ -4,11 +4,18 @@ FROM php:8.3-fpm AS base
 
 WORKDIR /var/www
 
-# System libraries required to build the gd and zip PHP extensions
+# System libraries required to build the gd and zip PHP extensions, plus
+# chromium: ClassResultPdfGenerator shells out to headless Chrome
+# (--print-to-pdf) to render the class-result sheet, so the binary has to
+# exist in the php-fpm container. fonts-liberation is the base font set
+# headless Chrome expects; Khmer text in the PDF uses a Battambang @font-face
+# embedded by the Blade view, so no system Khmer font is needed.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         curl \
         unzip \
+        chromium \
+        fonts-liberation \
         libpng-dev \
         libjpeg62-turbo-dev \
         libwebp-dev \

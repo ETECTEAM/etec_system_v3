@@ -13,7 +13,10 @@ class ClassResultPdfGenerator
     private const ROWS_PER_PAGE = 15;
 
     /**
-     * Generate a downloadable PDF for the class result sheet.
+     * Render the class result sheet and return the raw PDF bytes. Nothing is
+     * kept on the server: the temp files headless Chrome needs (HTML input +
+     * PDF output) all live under one uuid dir that is deleted before this
+     * returns, so the caller streams the PDF straight from memory.
      */
     public function generate(array $classData, Collection $students): string
     {
@@ -21,7 +24,7 @@ class ClassResultPdfGenerator
         $reportDate = now()->timezone('Asia/Phnom_Penh');
         $tempDir = sys_get_temp_dir().'/class-result-'.Str::uuid();
         $htmlPath = $tempDir.'/class-result.html';
-        $pdfPath = sys_get_temp_dir().'/class-result-'.Str::uuid().'.pdf';
+        $pdfPath = $tempDir.'/class-result.pdf';
 
         File::makeDirectory($tempDir, 0755, true);
 
@@ -38,7 +41,7 @@ class ClassResultPdfGenerator
 
             $this->printHtmlToPdf($htmlPath, $pdfPath);
 
-            return $pdfPath;
+            return File::get($pdfPath);
         } finally {
             if (File::exists($tempDir)) {
                 File::deleteDirectory($tempDir);
@@ -98,10 +101,14 @@ class ClassResultPdfGenerator
 
     private function chromeBinary(): string
     {
-        // Allow overriding the binary with an environment variable (useful in containers).
-        $envPath = env('CHROME_PATH') ?? env('CHROMIUM_PATH') ?? env('BROWSERSHOT_BINARY');
-        if ($envPath && is_executable($envPath)) {
-            return $envPath;
+        $configured = trim((string) config('services.chrome.path'));
+
+        if ($configured !== '') {
+            if (! is_executable($configured)) {
+                throw new RuntimeException("CHROME_PATH is set to [{$configured}] but it is not an executable file.");
+            }
+
+            return $configured;
         }
 
         foreach (['google-chrome', 'chromium', 'chromium-browser'] as $binary) {
@@ -112,7 +119,9 @@ class ClassResultPdfGenerator
             }
         }
 
-        $hint = 'Install Google Chrome/Chromium on the host or set CHROME_PATH in your .env to the executable path.';
-        throw new RuntimeException('Unable to locate Google Chrome or Chromium for PDF rendering. '.$hint);
+        throw new RuntimeException(
+            'Unable to locate Google Chrome or Chromium for PDF rendering. Install chromium in the '
+            .'app container or set CHROME_PATH in .env to the executable path.'
+        );
     }
 }

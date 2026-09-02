@@ -14,6 +14,13 @@ return [
     |
     */
 
+    // Absolute path to a Chrome/Chromium binary for ClassResultPdfGenerator's
+    // headless PDF rendering. Leave null to auto-detect google-chrome /
+    // chromium / chromium-browser on PATH (the Docker image ships chromium).
+    'chrome' => [
+        'path' => env('CHROME_PATH'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],
