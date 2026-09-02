@@ -47,10 +47,7 @@
     "certificateFree": "Free Certificate",
     "certificateNormal": "Regular Certificate",
     "certificateMeal": "Meal Certificate",
-<<<<<<< HEAD
     "certificateScholarship": "Scholarship Certificate",
-=======
->>>>>>> 32208d4 (update_cirtificate)
     "certificateInternship": "Internship Certificate",
     "enrollConfig": "Enroll Config",
     "enrollManagement": "Enrollment Management",
