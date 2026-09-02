@@ -53,15 +53,7 @@ export function build(ctx) {
         match: ["/dashboard/certificates"],
         exact: false,
         isActive: isType("internship"),
-      },
-      {
-        label: "Internship Certificate",
-        labelKey: "navigation.certificateInternship",
-        href: "/dashboard/certificates?type=internship",
-        match: ["/dashboard/certificates"],
-        exact: false,
-        isActive: isType("internship"),
-      },
+      }
     ],
   };
 }

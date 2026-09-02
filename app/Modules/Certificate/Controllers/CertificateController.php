@@ -19,7 +19,7 @@ use Inertia\Response;
 
 class CertificateController extends Controller
 {
-    private const TYPES = ['free', 'normal', 'scholarship', 'meal', 'internship'];
+    private const TYPES = ['free', 'normal', 'scholarship', 'internship'];
 
     public function index(Request $request): Response
     {
@@ -156,7 +156,7 @@ class CertificateController extends Controller
         $validated = $request->validate([
             'student_id' => ['required', 'integer', 'exists:students,id'],
             'study_class_id' => ['required', 'integer', 'exists:study_classes,id'],
-            'certificate_type' => ['required', Rule::in(['normal', 'scholarship', 'meal', 'internship'])],
+            'certificate_type' => ['required', Rule::in(['normal', 'scholarship', 'internship'])],
             'student_name' => ['required', 'string', 'max:100'],
             'course' => ['required', 'string', 'max:100'],
             'granted_date' => ['required', 'string', 'max:50'],
@@ -333,7 +333,7 @@ class CertificateController extends Controller
                 ->where('type_name', 'like', '%internship%')
                 ->orWhere('type_name', 'like', '%intership%')
             )
-            ->whereDoesntHave('course.track.category', fn (Builder $category) => $category
+            ->whereDoesntHave('course.track.subCategory.category', fn (Builder $category) => $category
                 ->where('name', 'like', '%internship%')
                 ->orWhere('name', 'like', '%intership%')
             )
@@ -361,7 +361,7 @@ class CertificateController extends Controller
                     ->orWhereHas('classType', fn (Builder $classType) => $classType
                         ->where('type_name', 'like', "%{$keyword}%")
                     )
-                    ->orWhereHas('course.track.category', fn (Builder $category) => $category
+                    ->orWhereHas('course.track.subCategory.category', fn (Builder $category) => $category
                         ->where('name', 'like', "%{$keyword}%")
                     )
                     ->orWhereHas('course.track', fn (Builder $track) => $track
