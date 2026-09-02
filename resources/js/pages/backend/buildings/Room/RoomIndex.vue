@@ -7,7 +7,7 @@ import { Pagination } from '../../../../components/ui/pagination'
 import { PageHero } from '../../../../components/ui/page-hero'
 import DashboardLayout from '../../../../layouts/DashboardLayout.vue'
 import { useI18n } from '@/i18n'
-import { useToast } from 'vue-toastification'
+import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
 const toast = useToast()

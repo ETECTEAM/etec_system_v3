@@ -94,6 +94,17 @@ class InstructorClassService
             ->map(fn (stdClass $class) => $this->presentClass($class));
     }
 
+    // Ended / completed classes for the Class History page - the dashboard
+    // only lists upcoming/active/pre_end, so this is the only way back to a
+    // finished class to re-open its result sheet.
+    public function endedClasses(User $instructor): Collection
+    {
+        return $this->classesQuery($instructor, ['ended', 'completed'])
+            ->orderByDesc('study_classes.id')
+            ->get()
+            ->map(fn (stdClass $class) => $this->presentClass($class));
+    }
+
     public function summary(User $instructor): array
     {
         $activeEnrollments = DB::table('student_enrollments')
@@ -492,6 +503,15 @@ class InstructorClassService
             $lockEvaluator = app(AbsenceBlockEvaluator::class);
             $permissionEvaluator = app(PermissionLimitEvaluator::class);
             $class = StudyClass::query()->find($studyClassId);
+
+            // first attendance submission for a class sets the start date and activates the class
+            if ($class && $class->start_date === null) {
+                $class->update([
+                    'start_date' => $attendanceDate,
+                    'status' => 'active',
+                ]);
+            }
+
             $settledAbsent = [];
 
             foreach ($data['records'] as $record) {

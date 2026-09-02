@@ -2,7 +2,7 @@
 import { computed, ref, watch } from "vue";
 import axios from "axios";
 import { usePage } from "@inertiajs/vue3";
-import { useToast } from "vue-toastification";
+import { useToast } from "@/composables/useToast";
 import { Search, UserRound, X } from "@lucide/vue";
 import { SelectSearch } from "@/components/ui/select-search";
 import { useI18n } from "@/i18n";

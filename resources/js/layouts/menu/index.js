@@ -1,6 +1,7 @@
 import * as accessLocation from "./accessLocation";
 import * as building from "./building";
 import * as classes from "./classes";
+import * as classHistory from "./classHistory";
 import * as enroll from "./enroll";
 import * as certificate from "./certificate";
 import * as enrollConfig from "./enrollConfig";
@@ -21,6 +22,7 @@ import * as website from "./website";
 export const menuDomains = [
   building,
   classes,
+  classHistory,
   enroll,
   certificate,
   enrollConfig,

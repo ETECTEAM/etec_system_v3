@@ -21,6 +21,7 @@ import {
   MapPin,
   ClipboardCheck,
   UserX,
+  History,
 } from "@lucide/vue";
 
 // Maps a menu item's `icon` string to its Lucide component.
@@ -46,6 +47,7 @@ export const menuIcons = {
   access_locations: MapPin,
   pre_attendance: ClipboardCheck,
   absence_block: UserX,
+  class_history: History,
 };
 
 // Used when an item's `icon` key has no entry above.

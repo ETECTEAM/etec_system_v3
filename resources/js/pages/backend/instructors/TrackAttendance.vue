@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { Head, Link, router, useForm } from "@inertiajs/vue3";
 import { QrcodeCanvas } from "qrcode.vue";
 import { ArrowLeft, Bot, Clock, QrCode, Save } from "@lucide/vue";
-import { useToast } from "vue-toastification";
+import { useToast } from "@/composables/useToast";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import { getEcho } from "../../../echo";

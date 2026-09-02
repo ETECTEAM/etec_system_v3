@@ -79,23 +79,56 @@ class ClassResultPdfGenerator
     private function printHtmlToPdf(string $htmlPath, string $pdfPath): void
     {
         $chrome = $this->chromeBinary();
-        $process = new Process([
-            $chrome,
-            '--headless=new',
-            '--disable-gpu',
-            '--no-sandbox',
-            '--disable-dev-shm-usage',
-            '--user-data-dir='.dirname($htmlPath).'/chrome',
-            '--no-pdf-header-footer',
-            '--print-to-pdf='.$pdfPath,
-            'file://'.$htmlPath,
-        ]);
+
+        // php-fpm runs as www-data, whose real $HOME is the read-only code
+        // mount. Chrome needs somewhere writable for its profile/cache/crash
+        // dirs or it aborts with SIGTRAP - point them all at the throwaway
+        // temp dir (deleted by generate()'s finally block).
+        $chromeHome = dirname($htmlPath).'/chrome';
+        File::ensureDirectoryExists($chromeHome);
+
+        $process = new Process(
+            [
+                $chrome,
+                '--headless=new',
+                '--no-sandbox',
+                '--disable-gpu',
+                '--disable-dev-shm-usage',
+                '--disable-software-rasterizer',
+                // The crash handler can itself SIGTRAP in a container - off.
+                '--disable-crash-reporter',
+                '--disable-breakpad',
+                '--no-zygote',
+                '--user-data-dir='.$chromeHome,
+                '--no-pdf-header-footer',
+                '--print-to-pdf='.$pdfPath,
+                'file://'.$htmlPath,
+            ],
+            null,
+            [
+                'HOME' => $chromeHome,
+                'XDG_CONFIG_HOME' => $chromeHome,
+                'XDG_CACHE_HOME' => $chromeHome,
+                'TMPDIR' => dirname($htmlPath),
+            ],
+        );
 
         $process->setTimeout(60);
-        $process->run();
+
+        try {
+            $process->run();
+        } catch (\Throwable $e) {
+            throw new RuntimeException(
+                'Class result PDF renderer failed to run: '.$e->getMessage().' '.trim($process->getErrorOutput()),
+                0,
+                $e,
+            );
+        }
 
         if (! $process->isSuccessful() || ! is_file($pdfPath) || filesize($pdfPath) === 0) {
-            throw new RuntimeException('Unable to render class result PDF: '.$process->getErrorOutput());
+            throw new RuntimeException(
+                'Unable to render class result PDF: '.trim($process->getErrorOutput() ?: $process->getOutput())
+            );
         }
     }
 
