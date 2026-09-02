@@ -79,6 +79,7 @@ class GetPublicRegistrations
     {
         return [
             'enrollment_id' => $enrollment->id,
+            'public_token' => $enrollment->public_token,
             'name' => $enrollment->student?->full_name ?? '-',
             'gender' => $enrollment->student?->gender ?? '-',
             'phone' => $enrollment->student?->phone ?? '-',

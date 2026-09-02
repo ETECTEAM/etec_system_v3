@@ -74,6 +74,7 @@ class CreateStudyClass
 
         return [
             'title' => $course?->title ?? $data['title'],
+            'slug' => StudyClass::uniqueSlug($course?->title ?? $data['title']),
             'course_id' => $data['course_id'],
             'lesson_id' => $data['lesson_id'] ?? null,
             'teacher_id' => $data['teacher_id'] ?? null,

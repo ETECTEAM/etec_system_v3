@@ -21,6 +21,7 @@ class GetClassList
             ->select([
                 'id',
                 'title',
+                'slug',
                 'course_id',
                 'lesson_id',
                 'teacher_id',
@@ -143,6 +144,7 @@ class GetClassList
 
         return [
             'id' => $studyClass->id,
+            'slug' => $studyClass->slug,
             'title' => $studyClass->title,
             'course' => $studyClass->course?->title,
             'course_price' => $studyClass->course?->price !== null ? (float) $studyClass->course->price : null,

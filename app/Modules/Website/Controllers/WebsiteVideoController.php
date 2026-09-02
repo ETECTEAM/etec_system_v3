@@ -145,6 +145,9 @@ class WebsiteVideoController extends Controller
 
         return [
             'title' => $request->validated('title'),
+            'slug' => $video instanceof WebsiteVideo && $video->slug
+                ? $video->slug
+                : WebsiteVideo::uniqueSlug($request->validated('title'), $video?->id),
             'description' => $request->validated('description'),
             'video_path' => $videoPath,
             'thumbnail_path' => $thumbnailPath,
@@ -162,6 +165,7 @@ class WebsiteVideoController extends Controller
     {
         return [
             'id' => $video->id,
+            'slug' => $video->slug,
             'title' => $video->title,
             'description' => $video->description,
             'video_path' => null,
