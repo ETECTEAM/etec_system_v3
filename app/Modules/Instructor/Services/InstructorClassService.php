@@ -15,6 +15,7 @@ use App\Modules\AbsenceBlock\Services\PermissionLimitEvaluator;
 use App\Modules\AbsenceBlock\Support\LockState;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Support\InstructorDisplayName;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -786,7 +787,7 @@ class InstructorClassService
                 'note' => $record->note ?? '-',
                 'locked' => (bool) $record->locked,
                 'lock_reason' => $record->lock_reason,
-                'tracked_by' => $record->tracked_by_name ?? '-',
+                'tracked_by' => InstructorDisplayName::format($record->tracked_by_name ?? null),
                 'updated_at' => $record->updated_at ? Carbon::parse($record->updated_at)->format('Y-m-d H:i') : '-',
             ]);
 
@@ -813,7 +814,7 @@ class InstructorClassService
             'title' => $class->title,
             'course' => $class->course_title,
             'lesson' => $class->lesson_title ?? 'No lesson',
-            'teacher' => $class->teacher_name ?? '-',
+            'teacher' => InstructorDisplayName::format($class->teacher_name ?? null),
             'building' => $class->building_name ?? '-',
             'floor' => $class->floor_name ?? '-',
             'room' => $class->room_number ?? ($classTypeValue === 'online' ? 'Online' : '-'),
@@ -829,7 +830,7 @@ class InstructorClassService
             'subject' => $class->my_subject ?? null,
             'is_owner' => (bool) ($class->is_owner ?? true),
             'is_shared' => ! empty($class->co_instructor_names),
-            'shared_with' => $class->co_instructor_names ?? null,
+            'shared_with' => $this->instructorDisplayNames($class->co_instructor_names ?? null),
             'certificate_request_types' => $this->certificateRequestTypesFromCsv($class->certificate_request_types ?? null),
             'has_certificate_request' => ! empty($class->certificate_request_types),
             'capacity' => (int) $class->capacity,
@@ -927,6 +928,18 @@ class InstructorClassService
             // instructors teach the class but don't own it, so the card can hide the actions
             // (edit, end, share) the backend would reject for them anyway.
             ->selectRaw('(study_classes.teacher_id = ?) as is_owner', [$instructor->id]);
+    }
+
+    private function instructorDisplayNames(?string $names): ?string
+    {
+        if (! $names) {
+            return null;
+        }
+
+        return collect(explode(',', $names))
+            ->map(fn (string $name) => InstructorDisplayName::format($name))
+            ->filter(fn (string $name) => $name !== '-')
+            ->implode(', ');
     }
 
     private function certificateRequestTypesForClass(stdClass $class): array
@@ -1145,6 +1158,7 @@ class InstructorClassService
         }
 
         $seenStudentIds = [];
+        $seenTeamNames = [];
 
         foreach ($teams as $index => $team) {
             $teamName = trim((string) ($team['team_name'] ?? ''));
@@ -1156,6 +1170,16 @@ class InstructorClassService
                     "teams.$index.team_name" => 'Team name is required.',
                 ]);
             }
+
+            $teamNameKey = mb_strtolower($teamName);
+
+            if (isset($seenTeamNames[$teamNameKey])) {
+                throw ValidationException::withMessages([
+                    "teams.$index.team_name" => 'Team names must be unique within this group.',
+                ]);
+            }
+
+            $seenTeamNames[$teamNameKey] = true;
 
             if (empty($studentIds)) {
                 throw ValidationException::withMessages([

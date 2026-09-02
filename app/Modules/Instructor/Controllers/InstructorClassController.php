@@ -15,6 +15,7 @@ use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Instructor\Services\ClassResultPdfGenerator;
 use App\Modules\Instructor\Services\InstructorClassService;
+use App\Support\InstructorDisplayName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -161,6 +162,11 @@ class InstructorClassController extends Controller
     public function requestCertificate(Request $request, string $studyClass): RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return back()->with('warning', 'Certificates can only be requested while the class is active.');
+        }
+
         $types = $this->instructorClasses->requestCertificates($class, $request->user());
         $label = in_array('internship', $types, true)
             ? 'Internship and meal certificate request sent successfully.'
@@ -232,8 +238,22 @@ class InstructorClassController extends Controller
     public function certificateRequest(Request $request, string $studyClass): Response
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
-        $students = $this->instructorClasses->students($class->id);
         $certificateType = $this->certificateTypeForClass($class);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return Inertia::render('backend/instructors/CertificateRequest', [
+                'classData' => $this->instructorClasses->presentClass($class),
+                'students' => collect(),
+                'studentCount' => 0,
+                'certificateType' => $certificateType,
+                'certificateTypeLabel' => ucfirst($certificateType),
+                'certificateRequest' => $this->certificateRequestData($class->id),
+                'canRequestCertificate' => false,
+                'requestUnavailableReason' => 'Certificates can only be requested while the class is active.',
+            ]);
+        }
+
+        $students = $this->instructorClasses->students($class->id);
 
         return Inertia::render('backend/instructors/CertificateRequest', [
             'classData' => $this->instructorClasses->presentClass($class),
@@ -242,12 +262,19 @@ class InstructorClassController extends Controller
             'certificateType' => $certificateType,
             'certificateTypeLabel' => ucfirst($certificateType),
             'certificateRequest' => $this->certificateRequestData($class->id),
+            'canRequestCertificate' => true,
+            'requestUnavailableReason' => null,
         ]);
     }
 
     public function storeCertificateRequest(Request $request, string $studyClass): RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return back()->with('warning', 'Certificates can only be requested while the class is active.');
+        }
+
         $students = $this->instructorClasses->students($class->id);
         $certificateType = $this->certificateTypeForClass($class);
 
@@ -591,7 +618,7 @@ class InstructorClassController extends Controller
             'student_ids' => collect($request->requested_student_ids ?? [])->map(fn ($id): int => (int) $id)->values()->all(),
             'note' => $request->note,
             'requested_at' => $request->requested_at?->format('Y-m-d h:i A'),
-            'requested_by' => $request->requestedBy?->name,
+            'requested_by' => InstructorDisplayName::format($request->requestedBy?->name, ''),
         ];
     }
 }

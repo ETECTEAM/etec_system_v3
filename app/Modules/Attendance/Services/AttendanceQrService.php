@@ -6,6 +6,7 @@ use App\Models\AttendanceSession;
 use App\Models\StudentAttendance;
 use App\Models\StudyClass;
 use App\Models\User;
+use App\Support\InstructorDisplayName;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -209,7 +210,7 @@ class AttendanceQrService
                 'id' => $studyClass->id,
                 'title' => $studyClass->title,
                 'course' => $studyClass->course?->title,
-                'teacher' => $studyClass->teacher?->name ?? '-',
+                'teacher' => InstructorDisplayName::format($studyClass->teacher?->name),
                 'room' => $studyClass->room?->room_number ?? '-',
             ],
         ];

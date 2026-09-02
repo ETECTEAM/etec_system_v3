@@ -7,6 +7,7 @@ use App\Models\InstructorScheduleBlock;
 use App\Models\StudyClass;
 use App\Models\Time;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Support\InstructorDisplayName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,7 @@ class InstructorScheduleBlockController extends Controller
         abort_unless($instructorData, 404, 'No instructor profile found for this account.');
 
         return Inertia::render('backend/instructors/ScheduleBlocks', [
-            'instructorName' => $instructorData->full_name,
+            'instructorName' => InstructorDisplayName::format($instructorData->full_name),
             'workSchedule' => $instructorData->workSchedule
                 ? ['name' => $instructorData->workSchedule->name]
                 : null,

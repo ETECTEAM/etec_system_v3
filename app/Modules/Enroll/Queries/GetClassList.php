@@ -6,6 +6,7 @@ use App\Models\CourseEnrollConfig;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Models\Term;
+use App\Support\InstructorDisplayName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
@@ -102,7 +103,7 @@ class GetClassList
                     'course' => $studyClass->course?->title ?? '-',
                     'term' => $studyClass->term?->term_name ?? '-',
                     'time' => $studyClass->time?->time_name ?? '-',
-                    'teacher' => $studyClass->teacher?->name ?? '-',
+                    'teacher' => InstructorDisplayName::format($studyClass->teacher?->name),
                     'current_students' => $currentStudents,
                     'capacity' => $capacity,
                     'is_full' => $currentStudents >= $capacity,
@@ -150,7 +151,7 @@ class GetClassList
             'course_price' => $studyClass->course?->price !== null ? (float) $studyClass->course->price : null,
             'course_document_price' => $studyClass->course?->document_price !== null ? (float) $studyClass->course->document_price : null,
             'lesson' => $studyClass->lesson?->title ?? '-',
-            'teacher' => $studyClass->teacher?->name ?? '-',
+            'teacher' => InstructorDisplayName::format($studyClass->teacher?->name),
             'building' => $studyClass->room?->floor?->building?->name ?? '-',
             'floor' => $studyClass->room?->floor?->name ?? '-',
             'room' => $studyClass->room?->room_number ?? ($studyClass->isOnline() ? 'Online' : '-'),
