@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref } from "vue";
 import { Head } from "@inertiajs/vue3";
-import { Building2, CalendarCheck, CalendarX, Clock, FileCheck2, GraduationCap, Inbox, Plus, Smartphone, X } from "@lucide/vue";
+import { Building2, CalendarCheck, CalendarX, Clock, FileCheck2, GraduationCap, Inbox, Monitor, Plus, Smartphone, X } from "@lucide/vue";
 import { useI18n } from "@/i18n";
 
 // Public, read-only page a family member opens by scanning the receipt QR code.
@@ -32,6 +32,34 @@ const pageLocale = supportedLocales.some((item) => item.code === storedLocale) ?
 setLocale(pageLocale);
 onBeforeUnmount(() => setLocale(appLocale));
 
+// Remember which attendance page this visitor looked at so the installed PWA
+// app can reopen directly to it the next time it's launched from the home screen.
+// The URL is kept both in localStorage (for any page-level fallback) and in
+// IndexedDB (readable by the service worker, so it can intercept the PWA launch
+// and jump straight to attendance without ever showing the register page).
+const ATTENDANCE_URL_KEY = "etec.attendance.url";
+const ATTENDANCE_DB = "etec-attendance";
+const ATTENDANCE_DB_STORE = "attendance";
+const attendanceUrl = typeof window !== "undefined" ? window.location.pathname + window.location.search : "";
+
+if (typeof window !== "undefined") {
+  window.localStorage.setItem(ATTENDANCE_URL_KEY, attendanceUrl);
+}
+
+if (typeof indexedDB !== "undefined") {
+  const request = indexedDB.open(ATTENDANCE_DB, 1);
+  request.onupgradeneeded = () => {
+    if (!request.result.objectStoreNames.contains(ATTENDANCE_DB_STORE)) {
+      request.result.createObjectStore(ATTENDANCE_DB_STORE);
+    }
+  };
+  request.onsuccess = () => {
+    const tx = request.result.transaction(ATTENDANCE_DB_STORE, "readwrite");
+    tx.objectStore(ATTENDANCE_DB_STORE).put(attendanceUrl, "url");
+    tx.oncomplete = () => request.result.close();
+  };
+}
+
 // KH first (the default), then EN — a visitor-facing order, not the registry order.
 const languageOptions = [{ code: "km" }, { code: "en" }].filter((item) =>
   supportedLocales.some((supported) => supported.code === item.code)
@@ -46,21 +74,24 @@ function languageLabel(code) {
   return code === "km" ? "ខ្មែរ" : "EN";
 }
 
-// ---- Add to Home Screen -------------------------------------------------
-// A persistent "+ Add to phone screen" button pinned to the bottom-right.
+// ---- Add to Home Screen / Desktop ----------------------------------------
+// A persistent "+ Add to screen" button pinned to the bottom-right.
 // Android/Chrome fire beforeinstallprompt once the app is installable and
 // tapping the button launches the native install prompt; iOS has no prompt, so
-// it opens an explainer sheet instead. The button hides once the app is
-// installed or the visitor dismisses it via the sheet.
+// it opens an explainer sheet instead. Desktop browsers show bookmark/pin
+// instructions. The button hides once the app is installed or the visitor
+// dismisses it via the sheet.
 const A2HS_KEY = "etec.a2hs";
 const deferredPrompt = ref(null);
 const installFABVisible = ref(false);
 const installSheetOpen = ref(false);
 const isIOS = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isDesktop = typeof navigator !== "undefined" && !/iphone|ipad|ipod|android|webos|blackberry|opera mini|iemobile/i.test(navigator.userAgent);
 
 const installHint = computed(() => {
   if (deferredPrompt.value) return t("Install the app for one-tap access to attendance.");
   if (isIOS) return t("On Safari, tap the Share button and choose 'Add to Home Screen'.");
+  if (isDesktop) return t("Bookmark this page or pin the tab for quick access.");
   return t("Install the app for one-tap access to attendance.");
 });
 
@@ -335,7 +366,7 @@ function formatDate(date) {
 
     </div>
 
-    <!-- Add to Home Screen button + explainer sheet -->
+    <!-- Add to Home Screen / Desktop button + explainer sheet -->
     <Transition name="fab">
       <button
         v-if="installFABVisible"
@@ -346,7 +377,7 @@ function formatDate(date) {
         <span class="grid h-8 w-8 place-items-center rounded-full bg-white/20 text-white transition group-hover:scale-105 group-hover:bg-white/25">
           <Plus class="h-4 w-4" stroke-width="3" />
         </span>
-        <span class="whitespace-nowrap">{{ $t('Add to phone screen') }}</span>
+        <span class="whitespace-nowrap">{{ isDesktop ? $t('Add To screen') : $t('Add To phone screen') }}</span>
       </button>
     </Transition>
 
@@ -358,10 +389,11 @@ function formatDate(date) {
       <div class="w-full max-w-sm rounded-3xl border border-slate-200/80 bg-white p-5 shadow-2xl dark:border-gray-700 dark:bg-gray-900">
         <div class="flex items-start gap-3">
           <div class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-blue-600 text-white shadow-md shadow-blue-600/30">
-            <Smartphone class="h-5 w-5" />
+            <Smartphone v-if="!isDesktop" class="h-5 w-5" />
+            <Monitor v-else class="h-5 w-5" />
           </div>
           <div class="min-w-0 flex-1">
-            <p class="text-sm font-bold text-slate-900 dark:text-gray-100">{{ $t('Add ETEC to your Home Screen') }}</p>
+            <p class="text-sm font-bold text-slate-900 dark:text-gray-100">{{ isDesktop ? $t('Add ETEC to your Desktop') : $t('Add ETEC to your Home Screen') }}</p>
             <p class="mt-0.5 text-xs font-medium text-slate-500 dark:text-gray-400">{{ installHint }}</p>
           </div>
           <button type="button" class="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-300" :aria-label="$t('Not now')" @click="closeInstallSheet">
@@ -369,7 +401,8 @@ function formatDate(date) {
           </button>
         </div>
 
-        <div class="mt-4 rounded-xl bg-slate-50 p-3.5 dark:bg-gray-800/60">
+        <!-- Mobile instructions -->
+        <div v-if="!isDesktop" class="mt-4 rounded-xl bg-slate-50 p-3.5 dark:bg-gray-800/60">
           <p class="text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500">{{ $t('How to install') }}</p>
           <ol class="mt-2.5 space-y-2">
             <li class="flex items-start gap-2.5">
@@ -383,6 +416,25 @@ function formatDate(date) {
             <li class="flex items-start gap-2.5">
               <span class="mt-px grid h-5 w-5 shrink-0 place-items-center rounded-full bg-blue-600 text-[10px] font-black text-white">3</span>
               <span class="text-xs font-medium leading-5 text-slate-600 dark:text-gray-300">{{ $t('Choose \u2018Add to Home Screen\u2019.') }}</span>
+            </li>
+          </ol>
+        </div>
+
+        <!-- Desktop instructions -->
+        <div v-else class="mt-4 rounded-xl bg-slate-50 p-3.5 dark:bg-gray-800/60">
+          <p class="text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500">{{ $t('How to add') }}</p>
+          <ol class="mt-2.5 space-y-2">
+            <li class="flex items-start gap-2.5">
+              <span class="mt-px grid h-5 w-5 shrink-0 place-items-center rounded-full bg-blue-600 text-[10px] font-black text-white">1</span>
+              <span class="text-xs font-medium leading-5 text-slate-600 dark:text-gray-300">{{ $t('Click the bookmark icon in your browser\u2019s address bar.') }}</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span class="mt-px grid h-5 w-5 shrink-0 place-items-center rounded-full bg-blue-600 text-[10px] font-black text-white">2</span>
+              <span class="text-xs font-medium leading-5 text-slate-600 dark:text-gray-300">{{ $t('Or right-click the tab and select \u2018Pin Tab\u2019.') }}</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span class="mt-px grid h-5 w-5 shrink-0 place-items-center rounded-full bg-blue-600 text-[10px] font-black text-white">3</span>
+              <span class="text-xs font-medium leading-5 text-slate-600 dark:text-gray-300">{{ $t('For Chrome/Edge, you can also install as an app from the menu.') }}</span>
             </li>
           </ol>
         </div>
