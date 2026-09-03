@@ -1,3 +1,7 @@
+// Side-effect import FIRST: the PWA install composable attaches its
+// beforeinstallprompt/appinstalled listeners at import time, so they must be
+// live before any code-split page component (and before createInertiaApp) runs.
+import './composables/usePwaInstall'
 import { createApp, Fragment, h } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers'

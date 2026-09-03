@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { Head } from "@inertiajs/vue3";
 import { Building2, CalendarCheck, CalendarX, Clock, FileCheck2, GraduationCap, Inbox, Monitor, Plus, Smartphone, X } from "@lucide/vue";
 import { useI18n } from "@/i18n";
+import { usePwaInstall } from "@/composables/usePwaInstall";
 
 // Public, read-only page a family member opens by scanning the receipt QR code.
 const props = defineProps({
@@ -82,7 +83,10 @@ function languageLabel(code) {
 // instructions. The button hides once the app is installed or the visitor
 // dismisses it via the sheet.
 const A2HS_KEY = "etec.a2hs";
-const deferredPrompt = ref(null);
+// deferredPrompt/installed/promptInstall come from the module-level PWA install
+// singleton, whose listeners are attached at import time (see app.js) so the
+// beforeinstallprompt event is never missed on code-split page mounts.
+const { deferredPrompt, installed, ready, promptInstall } = usePwaInstall();
 const installFABVisible = ref(false);
 const installSheetOpen = ref(false);
 const isIOS = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -107,36 +111,30 @@ if (typeof window !== "undefined") {
   if (!isStandalone) {
     maybeShowInstallFAB();
   }
-
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    deferredPrompt.value = event;
-    maybeShowInstallFAB();
-  });
-
-  window.addEventListener("appinstalled", () => {
-    installFABVisible.value = false;
-    installSheetOpen.value = false;
-    deferredPrompt.value = null;
-  });
 }
 
 function handleInstallTap() {
-  if (deferredPrompt.value) {
-    installApp();
-  } else {
-    installSheetOpen.value = true;
-  }
+  installSheetOpen.value = true;
 }
 
-async function installApp() {
-  const prompt = deferredPrompt.value;
-  if (!prompt) return;
-  prompt.prompt();
-  await prompt.userChoice;
-  installFABVisible.value = false;
-  deferredPrompt.value = null;
-}
+// Surface the FAB as soon as the browser signals installability — the prompt
+// may already be captured at mount time, so watch immediately.
+watch(
+  ready,
+  (isReady) => {
+    if (isReady) maybeShowInstallFAB();
+  },
+  { immediate: true }
+);
+
+// Auto-close the sheet and hide the button if the app gets installed (e.g. via
+// the browser's own UI instead of the modal button).
+watch(installed, (isInstalled) => {
+  if (isInstalled) {
+    installFABVisible.value = false;
+    installSheetOpen.value = false;
+  }
+});
 
 function dismissInstall() {
   window.localStorage.setItem(A2HS_KEY, "dismissed");
@@ -443,7 +441,15 @@ function formatDate(date) {
           <button type="button" class="rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-400 transition hover:text-slate-600 dark:text-gray-500 dark:hover:text-gray-300" @click="dismissInstall">
             {{ $t("Don't show again") }}
           </button>
-          <button type="button" class="inline-flex h-9 items-center justify-center rounded-xl bg-blue-600 px-5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700" @click="closeInstallSheet">
+          <button
+            v-if="deferredPrompt"
+            type="button"
+            class="inline-flex h-9 items-center justify-center rounded-xl bg-blue-600 px-5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700"
+            @click="promptInstall"
+          >
+            {{ $t('Install') }}
+          </button>
+          <button v-else type="button" class="inline-flex h-9 items-center justify-center rounded-xl bg-blue-600 px-5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700" @click="closeInstallSheet">
             {{ $t('Got it') }}
           </button>
         </div>
