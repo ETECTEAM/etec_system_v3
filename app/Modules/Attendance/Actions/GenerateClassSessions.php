@@ -23,7 +23,7 @@ class GenerateClassSessions
     {
         $result = ['created' => 0, 'skipped_no_students' => 0, 'skipped_no_match' => 0];
 
-        if (Holiday::whereDate('date', $date->toDateString())->exists()) {
+        if (Holiday::isHoliday($date)) {
             return $result;
         }
 

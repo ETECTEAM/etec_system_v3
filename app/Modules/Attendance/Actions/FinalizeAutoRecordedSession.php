@@ -3,9 +3,11 @@
 namespace App\Modules\Attendance\Actions;
 
 use App\Models\ClassSession;
+use App\Models\Holiday;
 use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
 use App\Modules\AbsenceBlock\Actions\AutoBlockStudent;
+use App\Modules\Holiday\Services\HolidayService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -14,6 +16,8 @@ use Illuminate\Support\Facades\DB;
  */
 class FinalizeAutoRecordedSession
 {
+    public function __construct(private readonly HolidayService $holidays) {}
+
     public function handle(int $sessionId): void
     {
         DB::transaction(function () use ($sessionId): void {
@@ -24,6 +28,12 @@ class FinalizeAutoRecordedSession
                 ClassSession::STATUS_PARTIAL,
                 ClassSession::STATUS_AUTO_RECORDED,
             ], true) || ! $session->recorded_at) {
+                return;
+            }
+
+            if (Holiday::isHoliday($session->session_date)) {
+                $this->holidays->skipUnresolvedSession($session);
+
                 return;
             }
 

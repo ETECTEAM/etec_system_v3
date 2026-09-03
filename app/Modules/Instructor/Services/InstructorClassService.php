@@ -4,6 +4,7 @@ namespace App\Modules\Instructor\Services;
 
 use App\Models\AttendanceSession;
 use App\Models\ClassSession;
+use App\Models\Holiday;
 use App\Models\PreAttendanceRequest;
 use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
@@ -33,6 +34,8 @@ class InstructorClassService
     public const ATTENDANCE_WINDOW_REASON_AFTER_DEADLINE = 'after_deadline';
 
     public const ATTENDANCE_WINDOW_REASON_ALREADY_SUBMITTED = 'already_submitted';
+
+    public const ATTENDANCE_WINDOW_REASON_HOLIDAY = 'holiday';
 
     private const VISIBLE_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
 
@@ -380,6 +383,10 @@ class InstructorClassService
         $termName = $class->term_name ?? $class->term ?? null;
         $timeName = $class->time_name ?? $class->time ?? null;
 
+        if (Holiday::isHoliday($today)) {
+            return;
+        }
+
         if (! $this->allowTrackAnytime() && ! in_array($today->format('l'), StudyClass::parseTermDays($termName), true)) {
             return;
         }
@@ -434,6 +441,12 @@ class InstructorClassService
     public function saveAttendance(User $instructor, int $studyClassId, array $data): void
     {
         $attendanceDate = Carbon::parse($data['attendance_date'] ?? now())->toDateString();
+
+        if (Holiday::isHoliday($attendanceDate)) {
+            throw ValidationException::withMessages([
+                'records' => 'Attendance cannot be tracked on a holiday.',
+            ]);
+        }
 
         $enrollments = DB::table('student_enrollments')
             ->where('study_class_id', $studyClassId)
@@ -629,6 +642,18 @@ class InstructorClassService
     public function attendanceWindow(int $studyClassId, Carbon|string|null $attendanceDate = null): array
     {
         $date = Carbon::parse($attendanceDate ?? Carbon::today('Asia/Phnom_Penh'))->toDateString();
+
+        if (Holiday::isHoliday($date)) {
+            return [
+                'session_date' => $date,
+                'status' => ClassSession::STATUS_SKIPPED,
+                'can_submit' => false,
+                'reason' => self::ATTENDANCE_WINDOW_REASON_HOLIDAY,
+                'starts_at' => null,
+                'ends_at' => null,
+            ];
+        }
+
         $session = ClassSession::query()
             ->where('study_class_id', $studyClassId)
             ->whereDate('session_date', $date)
@@ -680,6 +705,10 @@ class InstructorClassService
             return false;
         }
 
+        if (($attendanceWindow['reason'] ?? null) === self::ATTENDANCE_WINDOW_REASON_HOLIDAY) {
+            return false;
+        }
+
         if (($todaySession['status'] ?? null) === ClassSession::STATUS_AUTO_RECORDED) {
             return false;
         }
@@ -708,6 +737,10 @@ class InstructorClassService
             return 'Submitted Today';
         }
 
+        if (($attendanceWindow['reason'] ?? null) === self::ATTENDANCE_WINDOW_REASON_HOLIDAY) {
+            return 'Holiday';
+        }
+
         if ($this->allowTrackAnytime()) {
             return 'Track Attendance';
         }
@@ -720,6 +753,7 @@ class InstructorClassService
             self::ATTENDANCE_WINDOW_REASON_BEFORE_START => 'Not Started',
             self::ATTENDANCE_WINDOW_REASON_AFTER_DEADLINE => 'Window Closed',
             self::ATTENDANCE_WINDOW_REASON_NO_SESSION => 'No Session',
+            self::ATTENDANCE_WINDOW_REASON_HOLIDAY => 'Holiday',
             default => 'Track Attendance',
         };
     }

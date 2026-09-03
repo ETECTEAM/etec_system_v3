@@ -4,6 +4,7 @@ namespace Tests\Unit\Attendance;
 
 use App\Models\ClassSession;
 use App\Models\GradingSetting;
+use App\Models\Holiday;
 use App\Models\PreAttendanceRequest;
 use App\Models\StudentAttendance;
 use App\Models\User;
@@ -174,6 +175,59 @@ class InstructorClassServiceTest extends TestCase
             'note' => 'On time',
         ]);
         $this->assertSame(ClassSession::STATUS_RECORDED, $session->fresh()->status);
+    }
+
+    public function test_manual_attendance_is_rejected_on_a_holiday_even_when_track_anytime_is_enabled(): void
+    {
+        GradingSetting::query()->updateOrCreate(
+            ['key' => 'attendance.auto_record_allow_track_anytime'],
+            ['value' => 'true', 'type' => 'boolean', 'label' => 'Allow tracking anytime', 'group' => 'attendance'],
+        );
+        Cache::forget(GradingSetting::CACHE_KEY);
+
+        $now = Carbon::parse('2026-08-21 09:10:00', 'Asia/Phnom_Penh');
+        Carbon::setTestNow($now);
+        Holiday::create(['date' => '2026-08-21', 'name' => 'School Holiday']);
+
+        $class = $this->makeStudyClass();
+        $student = $this->makeStudent();
+        $enrollment = $this->enroll($class, $student);
+        $session = $this->sessionFor(Carbon::parse('2026-08-21 09:00:00', 'Asia/Phnom_Penh'), 20, ['class' => $class]);
+
+        try {
+            $this->service->saveAttendance($class->teacher, $class->id, [
+                'attendance_date' => '2026-08-21',
+                'records' => [[
+                    'student_id' => $student->id,
+                    'enrollment_id' => $enrollment->id,
+                    'status' => 'present',
+                    'note' => null,
+                ]],
+            ]);
+
+            $this->fail('Holiday attendance tracking was not rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertSame('Attendance cannot be tracked on a holiday.', $exception->validator->errors()->first('records'));
+        }
+
+        $this->assertSame(ClassSession::STATUS_PENDING, $session->fresh()->status);
+        $this->assertDatabaseCount('student_attendances', 0);
+    }
+
+    public function test_attendance_window_is_closed_on_a_holiday(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-08-21 09:10:00', 'Asia/Phnom_Penh'));
+        Holiday::create(['date' => '2026-08-21', 'name' => 'School Holiday']);
+
+        $class = $this->makeStudyClass();
+        $this->enroll($class, $this->makeStudent());
+        $this->sessionFor(Carbon::parse('2026-08-21 09:00:00', 'Asia/Phnom_Penh'), 20, ['class' => $class]);
+
+        $window = $this->service->attendanceWindow($class->id, '2026-08-21');
+
+        $this->assertFalse($window['can_submit']);
+        $this->assertSame(InstructorClassService::ATTENDANCE_WINDOW_REASON_HOLIDAY, $window['reason']);
+        $this->assertSame(ClassSession::STATUS_SKIPPED, $window['status']);
     }
 
     public function test_manual_save_before_grace_finalizes_all_submitted_students_without_pre_attendance(): void
