@@ -7,6 +7,7 @@ use App\Models\ClassCertificateRequest;
 use App\Models\AttendanceSession;
 use App\Models\ClassSession;
 use App\Models\Course;
+use App\Models\Holiday;
 use App\Models\StudyClass;
 use App\Modules\Attendance\Actions\OverrideAttendanceRecord;
 use App\Modules\Attendance\Queries\GetSessionBanner;
@@ -195,6 +196,12 @@ class InstructorClassController extends Controller
                 ->with('warning', 'Attendance can only be tracked while the class is active.');
         }
 
+        if (Holiday::isHoliday(Carbon::today('Asia/Phnom_Penh'))) {
+            return redirect()
+                ->route('instructor.classes.attendance', $class->id)
+                ->with('warning', 'Attendance cannot be tracked on a holiday.');
+        }
+
         $this->instructorClasses->ensureTodayAttendanceSession($class, $request->user());
         $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
         $todaySession = $this->sessionBanner->handle($class->id);
@@ -339,6 +346,10 @@ class InstructorClassController extends Controller
 
         if (($class->class_status ?? null) !== 'active') {
             return back()->with('warning', 'Attendance can only be tracked while the class is active.');
+        }
+
+        if (Holiday::isHoliday(Carbon::today('Asia/Phnom_Penh'))) {
+            return back()->with('warning', 'Attendance cannot be tracked on a holiday.');
         }
 
         $preAttendanceSession = ClassSession::query()
@@ -570,6 +581,12 @@ class InstructorClassController extends Controller
             'records.*.status' => ['required', 'string', Rule::in(InstructorClassService::ATTENDANCE_STATUSES)],
             'records.*.note' => ['nullable', 'string', 'max:255'],
         ]);
+
+        if (Holiday::isHoliday($validated['attendance_date'])) {
+            return redirect()
+                ->route('instructor.classes.attendance', $class->id)
+                ->with('warning', 'Attendance cannot be tracked on a holiday.');
+        }
 
         $this->overrideAttendance->handle(
             $request->user(),
