@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { usePage } from "@inertiajs/vue3";
 import { Pen } from "@lucide/vue";
 import { menuDomains } from "./menu";
@@ -131,13 +131,41 @@ function openActiveMenus(items = menuItems.value, parentKey = "root") {
   }
 }
 
+// The nav is its own scroll region; after navigating to a deep item its link
+// can sit below the fold. Nudge it into view - scrollBy only ever moves the
+// nav, never the page.
+const navRef = ref(null);
+
+async function revealActiveItem() {
+  await nextTick();
+
+  const nav = navRef.value;
+  if (!nav || !nav.offsetParent) return;
+
+  const el = nav.querySelector('[aria-current="page"]');
+  if (!el) return;
+
+  const navRect = nav.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  const pad = 16;
+
+  if (elRect.top < navRect.top + pad) {
+    nav.scrollBy({ top: elRect.top - navRect.top - pad, behavior: "smooth" });
+  } else if (elRect.bottom > navRect.bottom - pad) {
+    nav.scrollBy({ top: elRect.bottom - navRect.bottom + pad, behavior: "smooth" });
+  }
+}
+
 watch(currentPath, () => {
   openActiveMenus();
+  revealActiveItem();
 });
 
 watch(menuItems, () => {
   openActiveMenus();
 }, { immediate: true });
+
+onMounted(revealActiveItem);
 
 const isDrawing = ref(false);
 
@@ -210,7 +238,7 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <nav class="mt-6 min-h-0 flex-1 overflow-y-auto">
+        <nav ref="navRef" class="mt-6 min-h-0 flex-1 overflow-y-auto">
           <p v-if="!props.collapsed" class="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-gray-500">
             {{ t("navigation.navigation") }}
           </p>
