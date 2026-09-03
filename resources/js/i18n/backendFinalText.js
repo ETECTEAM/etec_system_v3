@@ -677,5 +677,7 @@ export const backendFinalTranslations = {
     "Error": "កំហុស",
     "Warning": "ព្រមាន",
     "Notice": "ដំណឹង",
+    "Student leave & permission requests — monthly quota and the leave-request QR link lifetime.": "សំណើសុំច្បាប់ និងការអនុញ្ញាតរបស់សិស្ស — កូតាប្រចាំខែ និងថិរវេលានៃតំណ QR សុំច្បាប់។",
+    "Fallback limits for auto-locking a student who misses too many sessions — used when no Attendance Rule matches.": "ដែនកំណត់បម្រុងសម្រាប់ចាក់សោសិស្សដោយស្វ័យប្រវត្តិ ពេលអវត្តមានច្រើនពេក — ប្រើពេលគ្មានវិន័យវត្តមានណាត្រូវគ្នា។",
   },
 }
