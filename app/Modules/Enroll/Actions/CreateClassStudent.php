@@ -31,6 +31,7 @@ class CreateClassStudent
                 'fee_amount' => $resolvedFee,
                 'unit_price' => $unitPrice,
                 'document_fee_amount' => $resolvedDocFee,
+                'source' => 'admin_register',
             ]);
         });
     }

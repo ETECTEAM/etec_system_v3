@@ -57,6 +57,9 @@ class StudentRegistrationService
         $enrollmentId = DB::table('student_enrollments')->insertGetId([
             'public_token' => StudentEnrollment::uniquePublicToken(),
             'study_class_id' => $data['study_class_id'],
+            'course_id' => $data['course_id'] ?? null,
+            'term_id' => $data['term_id'] ?? null,
+            'time_id' => $data['time_id'] ?? null,
             'student_id' => $data['student_id'],
             'enrollment_status' => $data['enrollment_status'] ?? 'active',
             'payment_status' => $data['payment_status'] ?? 'unpaid',

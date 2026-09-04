@@ -9,8 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 /**
- * Lists students who self-registered via the public /classes page
- * (StudentEnrollment.source = 'public_website'), shaped for the dashboard's
+ * Lists student registrations that should appear in the dashboard's
  * "Registrations" tab and its receipt-printing action.
  */
 class GetPublicRegistrations
@@ -40,7 +39,7 @@ class GetPublicRegistrations
     private function baseQuery(string $search = ''): Builder
     {
         return StudentEnrollment::query()
-            ->whereIn('source', ['public_website', 'qr_code'])
+            ->whereIn('source', ['public_website', 'qr_code', 'admin_register'])
             ->whereIn('enrollment_status', ['active', 'pending', 'unassigned'])
             ->with([
                 'student:id,full_name,gender,phone',
