@@ -1,6 +1,7 @@
 import * as accessLocation from "./accessLocation";
 import * as building from "./building";
 import * as classes from "./classes";
+import * as classHistory from "./classHistory";
 import * as enroll from "./enroll";
 import * as certificate from "./certificate";
 import * as enrollConfig from "./enrollConfig";
@@ -14,6 +15,7 @@ import * as instructorAvailability from "./instructorAvailability";
 import * as schedule from "./schedule";
 import * as loginSecurity from "./loginSecurity";
 import * as attendanceSettings from "./attendanceSettings";
+import * as holiday from "./holiday";
 import * as officialLeave from "./officialLeave";
 import * as absenceBlock from "./absenceBlock";
 import * as website from "./website";
@@ -21,6 +23,7 @@ import * as website from "./website";
 export const menuDomains = [
   building,
   classes,
+  classHistory,
   enroll,
   certificate,
   enrollConfig,
@@ -35,6 +38,7 @@ export const menuDomains = [
   schedule,
   loginSecurity,
   attendanceSettings,
+  holiday,
   officialLeave,
   absenceBlock,
   accessLocation,

@@ -3,9 +3,11 @@
 namespace App\Modules\Attendance\Services;
 
 use App\Models\AttendanceSession;
+use App\Models\Holiday;
 use App\Models\StudentAttendance;
 use App\Models\StudyClass;
 use App\Models\User;
+use App\Support\InstructorDisplayName;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -21,6 +23,13 @@ class AttendanceQrService
     public function getOrCreateTodaySession(StudyClass $studyClass, User $creator): AttendanceSession
     {
         $date = Carbon::today('Asia/Phnom_Penh')->toDateString();
+
+        if (Holiday::isHoliday($date)) {
+            throw ValidationException::withMessages([
+                'attendance' => 'Attendance cannot be tracked on a holiday.',
+            ]);
+        }
+
         $session = AttendanceSession::query()
             ->where('study_class_id', $studyClass->id)
             ->whereDate('attendance_date', $date)
@@ -43,6 +52,13 @@ class AttendanceQrService
     {
         $now = Carbon::now('Asia/Phnom_Penh');
         $date = $now->toDateString();
+
+        if (Holiday::isHoliday($date)) {
+            throw ValidationException::withMessages([
+                'attendance' => 'Attendance cannot be tracked on a holiday.',
+            ]);
+        }
+
         $token = Str::random(64);
         $expiresAt = $now->copy()->addMinutes($this->ttlMinutes($studyClass));
 
@@ -209,7 +225,7 @@ class AttendanceQrService
                 'id' => $studyClass->id,
                 'title' => $studyClass->title,
                 'course' => $studyClass->course?->title,
-                'teacher' => $studyClass->teacher?->name ?? '-',
+                'teacher' => InstructorDisplayName::format($studyClass->teacher?->name),
                 'room' => $studyClass->room?->room_number ?? '-',
             ],
         ];
@@ -230,6 +246,12 @@ class AttendanceQrService
         }
 
         $date = Carbon::parse($sessionData['attendance_date'])->toDateString();
+
+        if (Holiday::isHoliday($date)) {
+            throw ValidationException::withMessages([
+                'student_id' => 'Attendance cannot be submitted on a holiday.',
+            ]);
+        }
 
         // An absence-blocked student can't self-check-in via QR.
         $lock = app(\App\Modules\AbsenceBlock\Services\AbsenceBlockEvaluator::class)

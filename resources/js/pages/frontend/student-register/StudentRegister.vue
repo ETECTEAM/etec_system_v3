@@ -53,6 +53,15 @@ const props = defineProps({
   },
 });
 
+// If the visitor previously opened this page from an installed PWA (start_url
+// lands here), reopen their last-viewed attendance summary instead of showing
+// the course catalog again.
+const ATTENDANCE_URL_KEY = "etec.attendance.url";
+const attendanceUrl = typeof window !== "undefined" ? window.localStorage.getItem(ATTENDANCE_URL_KEY) : null;
+if (attendanceUrl && attendanceUrl.startsWith("/student-attendance/") && typeof window !== "undefined") {
+  window.location.assign(attendanceUrl);
+}
+
 const flashSuccess = computed(() => props.registrationStatus);
 
 // Public page with its own light/dark toggle. Unlike the old forced-light

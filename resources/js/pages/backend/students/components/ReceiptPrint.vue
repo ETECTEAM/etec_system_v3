@@ -31,8 +31,8 @@ const receiptNo = computed(() => {
 // Public attendance summary the family reaches by scanning the printed QR -
 // only present once an enrollment exists (parked pre-registrations have no id).
 const attendanceUrl = computed(() => {
-  const enrollmentId = props.student?.enrollment_id;
-  return enrollmentId ? `${window.location.origin}/student-attendance/${enrollmentId}` : "";
+  const publicToken = props.student?.public_token;
+  return publicToken ? `${window.location.origin}/student-attendance/${publicToken}` : "";
 });
 
 const copies = [

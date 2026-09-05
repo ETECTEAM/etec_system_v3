@@ -2,7 +2,7 @@
 import { ref, computed } from "vue";
 import { Head, useForm, router } from "@inertiajs/vue3";
 import { route } from "ziggy-js";
-import { useToast } from "vue-toastification";
+import { useToast } from "@/composables/useToast";
 import {
     ArrowLeft,
     Save,

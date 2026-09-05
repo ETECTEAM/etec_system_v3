@@ -4,6 +4,7 @@ namespace App\Modules\Instructor\Services;
 
 use App\Models\AttendanceSession;
 use App\Models\ClassSession;
+use App\Models\Holiday;
 use App\Models\PreAttendanceRequest;
 use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
@@ -15,6 +16,7 @@ use App\Modules\AbsenceBlock\Services\PermissionLimitEvaluator;
 use App\Modules\AbsenceBlock\Support\LockState;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Support\InstructorDisplayName;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +34,8 @@ class InstructorClassService
     public const ATTENDANCE_WINDOW_REASON_AFTER_DEADLINE = 'after_deadline';
 
     public const ATTENDANCE_WINDOW_REASON_ALREADY_SUBMITTED = 'already_submitted';
+
+    public const ATTENDANCE_WINDOW_REASON_HOLIDAY = 'holiday';
 
     private const VISIBLE_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
 
@@ -67,6 +71,7 @@ class InstructorClassService
 
         return DB::table('study_classes')->insertGetId([
             'title' => $data['title'],
+            'slug' => StudyClass::uniqueSlug($data['title']),
             'course_id' => $data['course_id'],
             'lesson_id' => $data['lesson_id'] ?? null,
             'term_id' => $data['term_id'] ?? null,
@@ -87,6 +92,17 @@ class InstructorClassService
     public function classes(User $instructor): Collection
     {
         return $this->classesQuery($instructor)
+            ->orderByDesc('study_classes.id')
+            ->get()
+            ->map(fn (stdClass $class) => $this->presentClass($class));
+    }
+
+    // Ended / completed classes for the Class History page - the dashboard
+    // only lists upcoming/active/pre_end, so this is the only way back to a
+    // finished class to re-open its result sheet.
+    public function endedClasses(User $instructor): Collection
+    {
+        return $this->classesQuery($instructor, ['ended', 'completed'])
             ->orderByDesc('study_classes.id')
             ->get()
             ->map(fn (stdClass $class) => $this->presentClass($class));
@@ -367,6 +383,10 @@ class InstructorClassService
         $termName = $class->term_name ?? $class->term ?? null;
         $timeName = $class->time_name ?? $class->time ?? null;
 
+        if (Holiday::isHoliday($today)) {
+            return;
+        }
+
         if (! $this->allowTrackAnytime() && ! in_array($today->format('l'), StudyClass::parseTermDays($termName), true)) {
             return;
         }
@@ -421,6 +441,12 @@ class InstructorClassService
     public function saveAttendance(User $instructor, int $studyClassId, array $data): void
     {
         $attendanceDate = Carbon::parse($data['attendance_date'] ?? now())->toDateString();
+
+        if (Holiday::isHoliday($attendanceDate)) {
+            throw ValidationException::withMessages([
+                'records' => 'Attendance cannot be tracked on a holiday.',
+            ]);
+        }
 
         $enrollments = DB::table('student_enrollments')
             ->where('study_class_id', $studyClassId)
@@ -490,6 +516,15 @@ class InstructorClassService
             $lockEvaluator = app(AbsenceBlockEvaluator::class);
             $permissionEvaluator = app(PermissionLimitEvaluator::class);
             $class = StudyClass::query()->find($studyClassId);
+
+            // first attendance submission for a class sets the start date and activates the class
+            if ($class && $class->start_date === null) {
+                $class->update([
+                    'start_date' => $attendanceDate,
+                    'status' => 'active',
+                ]);
+            }
+
             $settledAbsent = [];
 
             foreach ($data['records'] as $record) {
@@ -607,6 +642,18 @@ class InstructorClassService
     public function attendanceWindow(int $studyClassId, Carbon|string|null $attendanceDate = null): array
     {
         $date = Carbon::parse($attendanceDate ?? Carbon::today('Asia/Phnom_Penh'))->toDateString();
+
+        if (Holiday::isHoliday($date)) {
+            return [
+                'session_date' => $date,
+                'status' => ClassSession::STATUS_SKIPPED,
+                'can_submit' => false,
+                'reason' => self::ATTENDANCE_WINDOW_REASON_HOLIDAY,
+                'starts_at' => null,
+                'ends_at' => null,
+            ];
+        }
+
         $session = ClassSession::query()
             ->where('study_class_id', $studyClassId)
             ->whereDate('session_date', $date)
@@ -658,6 +705,10 @@ class InstructorClassService
             return false;
         }
 
+        if (($attendanceWindow['reason'] ?? null) === self::ATTENDANCE_WINDOW_REASON_HOLIDAY) {
+            return false;
+        }
+
         if (($todaySession['status'] ?? null) === ClassSession::STATUS_AUTO_RECORDED) {
             return false;
         }
@@ -686,6 +737,10 @@ class InstructorClassService
             return 'Submitted Today';
         }
 
+        if (($attendanceWindow['reason'] ?? null) === self::ATTENDANCE_WINDOW_REASON_HOLIDAY) {
+            return 'Holiday';
+        }
+
         if ($this->allowTrackAnytime()) {
             return 'Track Attendance';
         }
@@ -698,6 +753,7 @@ class InstructorClassService
             self::ATTENDANCE_WINDOW_REASON_BEFORE_START => 'Not Started',
             self::ATTENDANCE_WINDOW_REASON_AFTER_DEADLINE => 'Window Closed',
             self::ATTENDANCE_WINDOW_REASON_NO_SESSION => 'No Session',
+            self::ATTENDANCE_WINDOW_REASON_HOLIDAY => 'Holiday',
             default => 'Track Attendance',
         };
     }
@@ -785,7 +841,7 @@ class InstructorClassService
                 'note' => $record->note ?? '-',
                 'locked' => (bool) $record->locked,
                 'lock_reason' => $record->lock_reason,
-                'tracked_by' => $record->tracked_by_name ?? '-',
+                'tracked_by' => InstructorDisplayName::format($record->tracked_by_name ?? null),
                 'updated_at' => $record->updated_at ? Carbon::parse($record->updated_at)->format('Y-m-d H:i') : '-',
             ]);
 
@@ -808,10 +864,11 @@ class InstructorClassService
 
         return [
             'id' => $class->id,
+            'slug' => $class->slug,
             'title' => $class->title,
             'course' => $class->course_title,
             'lesson' => $class->lesson_title ?? 'No lesson',
-            'teacher' => $class->teacher_name ?? '-',
+            'teacher' => InstructorDisplayName::format($class->teacher_name ?? null),
             'building' => $class->building_name ?? '-',
             'floor' => $class->floor_name ?? '-',
             'room' => $class->room_number ?? ($classTypeValue === 'online' ? 'Online' : '-'),
@@ -827,7 +884,7 @@ class InstructorClassService
             'subject' => $class->my_subject ?? null,
             'is_owner' => (bool) ($class->is_owner ?? true),
             'is_shared' => ! empty($class->co_instructor_names),
-            'shared_with' => $class->co_instructor_names ?? null,
+            'shared_with' => $this->instructorDisplayNames($class->co_instructor_names ?? null),
             'certificate_request_types' => $this->certificateRequestTypesFromCsv($class->certificate_request_types ?? null),
             'has_certificate_request' => ! empty($class->certificate_request_types),
             'capacity' => (int) $class->capacity,
@@ -900,6 +957,7 @@ class InstructorClassService
             })
             ->select([
                 'study_classes.id',
+                'study_classes.slug',
                 'study_classes.title',
                 'study_classes.capacity',
                 'study_classes.status as class_status',
@@ -924,6 +982,18 @@ class InstructorClassService
             // instructors teach the class but don't own it, so the card can hide the actions
             // (edit, end, share) the backend would reject for them anyway.
             ->selectRaw('(study_classes.teacher_id = ?) as is_owner', [$instructor->id]);
+    }
+
+    private function instructorDisplayNames(?string $names): ?string
+    {
+        if (! $names) {
+            return null;
+        }
+
+        return collect(explode(',', $names))
+            ->map(fn (string $name) => InstructorDisplayName::format($name))
+            ->filter(fn (string $name) => $name !== '-')
+            ->implode(', ');
     }
 
     private function certificateRequestTypesForClass(stdClass $class): array
@@ -1132,6 +1202,7 @@ class InstructorClassService
         }
 
         $seenStudentIds = [];
+        $seenTeamNames = [];
 
         foreach ($teams as $index => $team) {
             $teamName = trim((string) ($team['team_name'] ?? ''));
@@ -1143,6 +1214,16 @@ class InstructorClassService
                     "teams.$index.team_name" => 'Team name is required.',
                 ]);
             }
+
+            $teamNameKey = mb_strtolower($teamName);
+
+            if (isset($seenTeamNames[$teamNameKey])) {
+                throw ValidationException::withMessages([
+                    "teams.$index.team_name" => 'Team names must be unique within this group.',
+                ]);
+            }
+
+            $seenTeamNames[$teamNameKey] = true;
 
             if (empty($studentIds)) {
                 throw ValidationException::withMessages([

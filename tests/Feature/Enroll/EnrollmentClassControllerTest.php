@@ -239,7 +239,59 @@ class EnrollmentClassControllerTest extends TestCase
         $this->assertDatabaseHas('student_enrollments', [
             'study_class_id' => $studyClass->id,
             'enrollment_status' => 'active',
+            'source' => 'admin_register',
         ]);
+
+        $this->actingAs($this->admin())
+            ->getJson('/dashboard/enroll/registrations/data?search=Walk%20In')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Walk In')
+            ->assertJsonPath('data.0.source', 'admin_register')
+            ->assertJsonPath('data.0.class_id', $studyClass->id);
+    }
+
+    public function test_admin_pre_registration_creates_a_receipt_ready_registration_row(): void
+    {
+        $course = $this->createCourse('Receipt Course');
+        $classType = $this->createPhysicalClassType();
+        ['term' => $term, 'time' => $time] = $this->createScheduleGrid($classType);
+
+        $this->actingAs($this->superAdmin())
+            ->post('/dashboard/enroll/students', [
+                'name' => 'Admin Pre Register',
+                'gender' => 'male',
+                'phone' => '012345699',
+                'course_id' => $course->id,
+                'term_id' => $term->id,
+                'time_id' => $time->id,
+                'price' => 150,
+                'unit_price' => 180,
+                'document_price' => 10,
+            ])
+            ->assertRedirect('/dashboard/enroll/students/create');
+
+        $this->assertDatabaseHas('student_enrollments', [
+            'study_class_id' => null,
+            'course_id' => $course->id,
+            'term_id' => $term->id,
+            'time_id' => $time->id,
+            'enrollment_status' => 'unassigned',
+            'source' => 'admin_register',
+            'fee_amount' => 150,
+            'unit_price' => 180,
+            'document_fee_amount' => 10,
+            'no_room_and_instructor' => true,
+        ]);
+
+        $this->actingAs($this->superAdmin())
+            ->getJson('/dashboard/enroll/registrations/data?search=Admin%20Pre%20Register')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Admin Pre Register')
+            ->assertJsonPath('data.0.source', 'admin_register')
+            ->assertJsonPath('data.0.course_title', 'Receipt Course')
+            ->assertJsonPath('data.0.requested_term', 'Mon & Tue')
+            ->assertJsonPath('data.0.requested_time', '08:00 AM - 10:00 AM')
+            ->assertJsonPath('data.0.needs_manual_scheduling', true);
     }
 
     public function test_instructor_cannot_register_a_student_into_another_instructors_class(): void

@@ -7,6 +7,7 @@ use App\Models\ClassCertificateRequest;
 use App\Models\AttendanceSession;
 use App\Models\ClassSession;
 use App\Models\Course;
+use App\Models\Holiday;
 use App\Models\StudyClass;
 use App\Modules\Attendance\Actions\OverrideAttendanceRecord;
 use App\Modules\Attendance\Queries\GetSessionBanner;
@@ -15,9 +16,11 @@ use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Instructor\Services\ClassResultPdfGenerator;
 use App\Modules\Instructor\Services\InstructorClassService;
+use App\Support\InstructorDisplayName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -26,7 +29,6 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use stdClass;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class InstructorClassController extends Controller
 {
@@ -142,7 +144,14 @@ class InstructorClassController extends Controller
         return back()->with('success', 'Pre-attendance request sent to admin.');
     }
 
-    public function result(Request $request, string $studyClass): Response|BinaryFileResponse
+    public function history(Request $request): Response
+    {
+        return Inertia::render('backend/instructors/ClassHistory', [
+            'classes' => $this->instructorClasses->endedClasses($request->user()),
+        ]);
+    }
+
+    public function result(Request $request, string $studyClass): Response|HttpResponse
     {
         $class = $this->instructorClasses->findResultForInstructor($request->user(), (int) $studyClass);
         $students = $this->instructorClasses->students($class->id);
@@ -161,6 +170,11 @@ class InstructorClassController extends Controller
     public function requestCertificate(Request $request, string $studyClass): RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return back()->with('warning', 'Certificates can only be requested while the class is active.');
+        }
+
         $types = $this->instructorClasses->requestCertificates($class, $request->user());
         $label = in_array('internship', $types, true)
             ? 'Internship and meal certificate request sent successfully.'
@@ -180,6 +194,12 @@ class InstructorClassController extends Controller
             return redirect()
                 ->route('instructor.classes.attendance', $class->id)
                 ->with('warning', 'Attendance can only be tracked while the class is active.');
+        }
+
+        if (Holiday::isHoliday(Carbon::today('Asia/Phnom_Penh'))) {
+            return redirect()
+                ->route('instructor.classes.attendance', $class->id)
+                ->with('warning', 'Attendance cannot be tracked on a holiday.');
         }
 
         $this->instructorClasses->ensureTodayAttendanceSession($class, $request->user());
@@ -232,8 +252,22 @@ class InstructorClassController extends Controller
     public function certificateRequest(Request $request, string $studyClass): Response
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
-        $students = $this->instructorClasses->students($class->id);
         $certificateType = $this->certificateTypeForClass($class);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return Inertia::render('backend/instructors/CertificateRequest', [
+                'classData' => $this->instructorClasses->presentClass($class),
+                'students' => collect(),
+                'studentCount' => 0,
+                'certificateType' => $certificateType,
+                'certificateTypeLabel' => ucfirst($certificateType),
+                'certificateRequest' => $this->certificateRequestData($class->id),
+                'canRequestCertificate' => false,
+                'requestUnavailableReason' => 'Certificates can only be requested while the class is active.',
+            ]);
+        }
+
+        $students = $this->instructorClasses->students($class->id);
 
         return Inertia::render('backend/instructors/CertificateRequest', [
             'classData' => $this->instructorClasses->presentClass($class),
@@ -242,12 +276,19 @@ class InstructorClassController extends Controller
             'certificateType' => $certificateType,
             'certificateTypeLabel' => ucfirst($certificateType),
             'certificateRequest' => $this->certificateRequestData($class->id),
+            'canRequestCertificate' => true,
+            'requestUnavailableReason' => null,
         ]);
     }
 
     public function storeCertificateRequest(Request $request, string $studyClass): RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return back()->with('warning', 'Certificates can only be requested while the class is active.');
+        }
+
         $students = $this->instructorClasses->students($class->id);
         $certificateType = $this->certificateTypeForClass($class);
 
@@ -307,6 +348,10 @@ class InstructorClassController extends Controller
             return back()->with('warning', 'Attendance can only be tracked while the class is active.');
         }
 
+        if (Holiday::isHoliday(Carbon::today('Asia/Phnom_Penh'))) {
+            return back()->with('warning', 'Attendance cannot be tracked on a holiday.');
+        }
+
         $preAttendanceSession = ClassSession::query()
             ->where('study_class_id', $class->id)
             ->whereDate('session_date', Carbon::today('Asia/Phnom_Penh'))
@@ -361,16 +406,18 @@ class InstructorClassController extends Controller
         ]);
     }
 
-    private function downloadResultPdf(stdClass $class, Collection $students): BinaryFileResponse
+    private function downloadResultPdf(stdClass $class, Collection $students): HttpResponse
     {
         $classData = $this->instructorClasses->presentClass($class);
-        $pdfPath = $this->classResultPdfGenerator->generate($classData, $students);
+        $pdf = $this->classResultPdfGenerator->generate($classData, $students);
+        $filename = Str::slug($classData['title'] ?? 'class-result').'.pdf';
 
-        return response()
-            ->download($pdfPath, Str::slug($classData['title'] ?? 'class-result').'.pdf', [
-                'Content-Type' => 'application/pdf',
-            ])
-            ->deleteFileAfterSend(true);
+        // Streamed from memory - the generator leaves no file on the server.
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Length' => (string) strlen($pdf),
+        ]);
     }
 
     public function saveScores(Request $request, string $studyClass): JsonResponse|RedirectResponse
@@ -535,6 +582,12 @@ class InstructorClassController extends Controller
             'records.*.note' => ['nullable', 'string', 'max:255'],
         ]);
 
+        if (Holiday::isHoliday($validated['attendance_date'])) {
+            return redirect()
+                ->route('instructor.classes.attendance', $class->id)
+                ->with('warning', 'Attendance cannot be tracked on a holiday.');
+        }
+
         $this->overrideAttendance->handle(
             $request->user(),
             $class->id,
@@ -583,7 +636,7 @@ class InstructorClassController extends Controller
             'student_ids' => collect($request->requested_student_ids ?? [])->map(fn ($id): int => (int) $id)->values()->all(),
             'note' => $request->note,
             'requested_at' => $request->requested_at?->format('Y-m-d h:i A'),
-            'requested_by' => $request->requestedBy?->name,
+            'requested_by' => InstructorDisplayName::format($request->requestedBy?->name, ''),
         ];
     }
 }

@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class WebsiteVideo extends Model
 {
     protected $fillable = [
         'title',
+        'slug',
         'description',
         'video_path',
         'thumbnail_path',
@@ -50,5 +53,23 @@ class WebsiteVideo extends Model
         $version = $this->updated_at?->timestamp ?? time();
 
         return '/storage/'.ltrim($this->thumbnail_path, '/').'?v='.$version;
+    }
+
+    public static function uniqueSlug(string $title, ?int $ignoreId = null, mixed $timestamp = null): string
+    {
+        $dateTime = $timestamp ? Carbon::parse($timestamp) : now();
+        $baseSlug = (Str::slug($title) ?: 'video').'-'.$dateTime->format('YmdHis');
+        $slug = $baseSlug;
+        $suffix = 1;
+
+        while (static::query()
+            ->where('slug', $slug)
+            ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
+            ->exists()) {
+            $slug = "{$baseSlug}-{$suffix}";
+            $suffix++;
+        }
+
+        return $slug;
     }
 }

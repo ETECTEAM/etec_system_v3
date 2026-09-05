@@ -6,8 +6,10 @@ use App\Models\CourseEnrollConfig;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Models\Term;
+use App\Support\InstructorDisplayName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class GetClassList
 {
@@ -21,6 +23,7 @@ class GetClassList
             ->select([
                 'id',
                 'title',
+                'slug',
                 'course_id',
                 'lesson_id',
                 'teacher_id',
@@ -101,7 +104,7 @@ class GetClassList
                     'course' => $studyClass->course?->title ?? '-',
                     'term' => $studyClass->term?->term_name ?? '-',
                     'time' => $studyClass->time?->time_name ?? '-',
-                    'teacher' => $studyClass->teacher?->name ?? '-',
+                    'teacher' => InstructorDisplayName::format($studyClass->teacher?->name),
                     'current_students' => $currentStudents,
                     'capacity' => $capacity,
                     'is_full' => $currentStudents >= $capacity,
@@ -143,12 +146,13 @@ class GetClassList
 
         return [
             'id' => $studyClass->id,
+            'slug' => $studyClass->slug,
             'title' => $studyClass->title,
             'course' => $studyClass->course?->title,
             'course_price' => $studyClass->course?->price !== null ? (float) $studyClass->course->price : null,
             'course_document_price' => $studyClass->course?->document_price !== null ? (float) $studyClass->course->document_price : null,
             'lesson' => $studyClass->lesson?->title ?? '-',
-            'teacher' => $studyClass->teacher?->name ?? '-',
+            'teacher' => InstructorDisplayName::format($studyClass->teacher?->name),
             'building' => $studyClass->room?->floor?->building?->name ?? '-',
             'floor' => $studyClass->room?->floor?->name ?? '-',
             'room' => $studyClass->room?->room_number ?? ($studyClass->isOnline() ? 'Online' : '-'),
@@ -172,6 +176,7 @@ class GetClassList
             'resolved_document_price' => $resolvedDocumentPrice,
             'enrollment_start_date' => optional($studyClass->enrollment_start_date)->format('Y-m-d'),
             'start_date' => optional($studyClass->start_date)->format('Y-m-d'),
+            'start_weeks' => $this->computeStartWeeks($studyClass->start_date),
             'end_date' => optional($studyClass->end_date)->format('Y-m-d'),
             'students' => $currentStudents,
             'current_students' => $currentStudents,
@@ -243,5 +248,36 @@ class GetClassList
             ->map(fn (string $day) => strtolower(trim($day)))
             ->sort()
             ->implode('|');
+    }
+
+    // Weeks since start (0 = today, negative = future). Used by the frontend
+    // for badge styling (today vs recent vs older). Computed in the app's local
+    // timezone (Asia/Phnom_Penh) so midnight boundaries are correct.
+    private function computeStartWeeks(?Carbon $startDate): ?int
+    {
+        if (! $startDate) {
+            return null;
+        }
+
+        $today = Carbon::now('Asia/Phnom_Penh')->startOfDay();
+        $start = $startDate->copy()->setTimezone('Asia/Phnom_Penh')->startOfDay();
+        $days = (int) $start->diffInDays($today, false);
+
+        // Future start date — hide rather than show a negative week count.
+        if ($days < 0) {
+            return null;
+        }
+
+        if ($days === 0) {
+            return 0;
+        }
+
+        // 1-7 → 1wk, 8-14 → 2wk, 15-21 → 3wk, 22-28 → 4wk; past that the count
+        // is completed weeks.
+        if ($days <= 28) {
+            return (int) ceil($days / 7);
+        }
+
+        return (int) floor($days / 7);
     }
 }

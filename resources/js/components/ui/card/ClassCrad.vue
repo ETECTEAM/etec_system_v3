@@ -4,7 +4,7 @@ import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOp
 import { ref, computed } from "vue";
 import { QrcodeCanvas } from "qrcode.vue";
 import axios from "axios";
-import { useToast } from "vue-toastification";
+import { useToast } from "@/composables/useToast";
 import NotificationBadge from "../notification-badge/NotificationBadge.vue";
 import ClassActionMenu from "./ClassActionMenu.vue";
 import CollapseClassModal from "./CollapseClassModal.vue";
@@ -173,7 +173,7 @@ const menuItems = computed(() => [
         ]
         : []),
 ]);
-const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.id}`);
+const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.slug ?? props.classData.id}`);
 
 function showViewClass () {
    router.get(props.viewUrl ?? `/dashboard/enroll/view/${props.classData.id}`);
@@ -551,7 +551,7 @@ async function saveCapacity() {
 
 <Teleport to="body">
     <div v-if="showQrDialog" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/50 px-4" @click.self="showQrDialog = false">
-        <div class="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl dark:bg-gray-900">
+        <div class="w-full max-w-xl rounded-2xl bg-white p-6 text-center shadow-xl dark:bg-gray-900">
             <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">
                 Generate QR
             </h3>
@@ -560,7 +560,7 @@ async function saveCapacity() {
             </p>
 
             <div class="mt-5 inline-flex rounded-2xl bg-white p-4 shadow-inner">
-                <QrcodeCanvas :value="qrUrl" :size="220" level="H" />
+                <QrcodeCanvas :value="qrUrl" :size="450" level="H" class="mx-auto block" />
             </div>
 
             <a :href="qrUrl" target="_blank" class="mt-4 block break-all text-xs text-blue-700 hover:underline dark:text-blue-400">

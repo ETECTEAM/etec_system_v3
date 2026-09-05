@@ -311,8 +311,10 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect($this->redirectPathFor($user))
-            ->with('success', 'Logged in successfully.');
+        // No success flash: landing on the dashboard is confirmation enough, and
+        // the global toast host would otherwise pop "Logged in successfully" on
+        // every sign-in. Create/edit/delete flashes are unaffected.
+        return redirect($this->redirectPathFor($user));
     }
 
     public function showForgotPassword(): Response

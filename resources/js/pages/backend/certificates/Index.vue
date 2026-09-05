@@ -91,6 +91,8 @@ const printForm = reactive({
     granted_date: new Date().toISOString().slice(0, 10),
     certificate_id: props.generatedIds.normal,
     director: 'Mr. HENG PHEAKNA',
+    team_lead_name: 'Mr. SRIN NALEN',
+    team_lead_title: 'Team Leader, KRU IT Solution',
 })
 
 const perPage = 10
@@ -161,16 +163,20 @@ const totalPrinted = computed(() => filteredClasses.value.reduce((sum, item) => 
 const totalFinishedCourses = computed(() => filteredClasses.value.length)
 
 const currentCertificate = computed(() => ({
+    certificate_type: activeCertificateType.value,
     student_name: printForm.student_name || 'STUDENT NAME',
     course: printForm.course || selectedClass.value?.course || 'COURSE NAME',
     granted_date: formatReadableDate(printForm.granted_date),
     certificate_id: printForm.certificate_id || normalCertificateId.value || '0000000 ETEC',
     director: printForm.director || 'Mr. HENG PHEAKNA',
+    team_lead_name: printForm.team_lead_name || 'Mr. SRIN NALEN',
+    team_lead_title: printForm.team_lead_title || 'Team Leader, KRU IT Solution',
 }))
 
 const normalPrintCertificates = computed(() => {
     if (isPrintAllMode.value && studentDrafts.value.length) {
         return studentDrafts.value.map((student) => ({
+            certificate_type: activeCertificateType.value,
             student_name: selectedStudent.value?.id === student.id
                 ? printForm.student_name
                 : student.draft_name || student.name,
@@ -178,6 +184,8 @@ const normalPrintCertificates = computed(() => {
             granted_date: formatReadableDate(printForm.granted_date),
             certificate_id: student.certificate_id || normalCertificateId.value || '0000000 ETEC',
             director: printForm.director,
+            team_lead_name: printForm.team_lead_name,
+            team_lead_title: printForm.team_lead_title,
         }))
     }
 
@@ -405,6 +413,8 @@ function openBlankCertificateModal(studyClass = null) {
     printForm.course = studyClass?.course || 'COURSE NAME'
     printForm.granted_date = new Date().toISOString().slice(0, 10)
     printForm.director = 'Mr. HENG PHEAKNA'
+    printForm.team_lead_name = 'Mr. SRIN NALEN'
+    printForm.team_lead_title = 'Team Leader, KRU IT Solution'
     refreshId('normal')
     modalMode.value = 'print'
 }
@@ -444,6 +454,8 @@ async function openPrintModal(student, printAll = false) {
     printForm.course = selectedClass.value?.course || ''
     printForm.granted_date = new Date().toISOString().slice(0, 10)
     printForm.director = 'Mr. HENG PHEAKNA'
+    printForm.team_lead_name = 'Mr. SRIN NALEN'
+    printForm.team_lead_title = 'Team Leader, KRU IT Solution'
     await refreshId('normal')
     modalMode.value = 'print'
 }
@@ -520,6 +532,8 @@ function beginNormalPrint() {
 
     const page = activeCertificateType.value === 'free'
         ? { orientation: 'landscape', width: '297mm', height: '210mm' }
+        : activeCertificateType.value === 'internship'
+            ? { orientation: 'landscape', width: '297mm', height: '210mm' }
         : { orientation: 'portrait', width: '210mm', height: '297mm' }
 
     normalPrintStyleElement = document.createElement('style')
@@ -1217,6 +1231,16 @@ function saveFreeAfterPrint() {
                                 {{ t('certificatePage.form.grantedDate') }}
                                 <input v-model="printForm.granted_date" type="date" />
                             </label>
+                            <template v-if="activeCertificateType === 'internship'">
+                                <label>
+                                    Team Lead Name
+                                    <input v-model="printForm.team_lead_name" />
+                                </label>
+                                <label>
+                                    Team Lead Title
+                                    <input v-model="printForm.team_lead_title" />
+                                </label>
+                            </template>
                         </aside>
 
                         <section class="draft-table-wrap">
@@ -1254,7 +1278,10 @@ function saveFreeAfterPrint() {
                                 course: printForm.course || selectedClass?.course || 'COURSE NAME',
                                 granted_date: formatReadableDate(printForm.granted_date),
                                 certificate_id: student.certificate_id || normalCertificateId || '0000000 ETEC',
+                                certificate_type: activeCertificateType,
                                 director: printForm.director,
+                                team_lead_name: printForm.team_lead_name,
+                                team_lead_title: printForm.team_lead_title,
                             }"
                         />
                     </div>
@@ -1305,6 +1332,10 @@ function saveFreeAfterPrint() {
                                 </div>
                             </label>
                             <label>{{ t('certificatePage.form.grantedDate') }}<input v-model="printForm.granted_date" type="date" /></label>
+                            <template v-if="activeCertificateType === 'internship'">
+                                <label>Team Lead Name<input v-model="printForm.team_lead_name" /></label>
+                                <label>Team Lead Title<input v-model="printForm.team_lead_title" /></label>
+                            </template>
                         </aside>
 
                         <section class="preview-zone">
@@ -1326,7 +1357,10 @@ function saveFreeAfterPrint() {
                                 course: printForm.course || selectedClass?.course || 'COURSE NAME',
                                 granted_date: formatReadableDate(printForm.granted_date),
                                 certificate_id: student.certificate_id || normalCertificateId || '0000000 ETEC',
+                                certificate_type: activeCertificateType,
                                 director: printForm.director,
+                                team_lead_name: printForm.team_lead_name,
+                                team_lead_title: printForm.team_lead_title,
                             }"
                         />
                     </div>

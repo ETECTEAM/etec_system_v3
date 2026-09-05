@@ -4,6 +4,7 @@ namespace Tests\Unit\Attendance;
 
 use App\Models\ClassSession;
 use App\Models\GradingSetting;
+use App\Models\Holiday;
 use App\Models\PreAttendanceRequest;
 use App\Models\StudentAttendance;
 use App\Models\User;
@@ -174,6 +175,59 @@ class InstructorClassServiceTest extends TestCase
             'note' => 'On time',
         ]);
         $this->assertSame(ClassSession::STATUS_RECORDED, $session->fresh()->status);
+    }
+
+    public function test_manual_attendance_is_rejected_on_a_holiday_even_when_track_anytime_is_enabled(): void
+    {
+        GradingSetting::query()->updateOrCreate(
+            ['key' => 'attendance.auto_record_allow_track_anytime'],
+            ['value' => 'true', 'type' => 'boolean', 'label' => 'Allow tracking anytime', 'group' => 'attendance'],
+        );
+        Cache::forget(GradingSetting::CACHE_KEY);
+
+        $now = Carbon::parse('2026-08-21 09:10:00', 'Asia/Phnom_Penh');
+        Carbon::setTestNow($now);
+        Holiday::create(['date' => '2026-08-21', 'name' => 'School Holiday']);
+
+        $class = $this->makeStudyClass();
+        $student = $this->makeStudent();
+        $enrollment = $this->enroll($class, $student);
+        $session = $this->sessionFor(Carbon::parse('2026-08-21 09:00:00', 'Asia/Phnom_Penh'), 20, ['class' => $class]);
+
+        try {
+            $this->service->saveAttendance($class->teacher, $class->id, [
+                'attendance_date' => '2026-08-21',
+                'records' => [[
+                    'student_id' => $student->id,
+                    'enrollment_id' => $enrollment->id,
+                    'status' => 'present',
+                    'note' => null,
+                ]],
+            ]);
+
+            $this->fail('Holiday attendance tracking was not rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertSame('Attendance cannot be tracked on a holiday.', $exception->validator->errors()->first('records'));
+        }
+
+        $this->assertSame(ClassSession::STATUS_PENDING, $session->fresh()->status);
+        $this->assertDatabaseCount('student_attendances', 0);
+    }
+
+    public function test_attendance_window_is_closed_on_a_holiday(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-08-21 09:10:00', 'Asia/Phnom_Penh'));
+        Holiday::create(['date' => '2026-08-21', 'name' => 'School Holiday']);
+
+        $class = $this->makeStudyClass();
+        $this->enroll($class, $this->makeStudent());
+        $this->sessionFor(Carbon::parse('2026-08-21 09:00:00', 'Asia/Phnom_Penh'), 20, ['class' => $class]);
+
+        $window = $this->service->attendanceWindow($class->id, '2026-08-21');
+
+        $this->assertFalse($window['can_submit']);
+        $this->assertSame(InstructorClassService::ATTENDANCE_WINDOW_REASON_HOLIDAY, $window['reason']);
+        $this->assertSame(ClassSession::STATUS_SKIPPED, $window['status']);
     }
 
     public function test_manual_save_before_grace_finalizes_all_submitted_students_without_pre_attendance(): void
@@ -389,6 +443,123 @@ class InstructorClassServiceTest extends TestCase
             'student_id' => $missing->id,
             'status' => 'absent',
             'source' => StudentAttendance::SOURCE_AUTO,
+        ]);
+    }
+
+    public function test_save_teams_persists_generated_team_arrangement(): void
+    {
+        $class = $this->makeStudyClass();
+        $students = collect(range(1, 4))
+            ->map(function (): int {
+                $student = $this->makeStudent();
+
+                return $student->id;
+            });
+
+        $students->each(function (int $studentId) use ($class): void {
+            $this->enroll($class, \App\Models\Student::query()->findOrFail($studentId));
+        });
+
+        $savedTeams = $this->service->saveTeams($class->id, 2, [
+            [
+                'team_name' => 'Team 1',
+                'project_topic' => 'POS',
+                'student_ids' => $students->take(2)->values()->all(),
+            ],
+            [
+                'team_name' => 'Team 2',
+                'project_topic' => 'Inventory',
+                'student_ids' => $students->skip(2)->values()->all(),
+            ],
+        ], $class->teacher_id);
+
+        $this->assertCount(2, $savedTeams);
+        $this->assertDatabaseCount('teams', 2);
+        $this->assertDatabaseCount('team_members', 4);
+        $this->assertDatabaseHas('teams', [
+            'group_id' => $class->id,
+            'team_name' => 'Team 1',
+            'project_topic' => 'POS',
+        ]);
+    }
+
+    public function test_save_teams_rejects_duplicate_student_assignments(): void
+    {
+        $class = $this->makeStudyClass();
+        $student = $this->makeStudent();
+        $this->enroll($class, $student);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('A student can belong to only one team in this group.');
+
+        $this->service->saveTeams($class->id, 2, [
+            [
+                'team_name' => 'Team 1',
+                'student_ids' => [$student->id],
+            ],
+            [
+                'team_name' => 'Team 2',
+                'student_ids' => [$student->id],
+            ],
+        ]);
+    }
+
+    public function test_save_teams_rejects_students_outside_the_class_roster(): void
+    {
+        $class = $this->makeStudyClass();
+        $student = $this->makeStudent();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Only students from this class can be assigned to a team.');
+
+        $this->service->saveTeams($class->id, 1, [
+            [
+                'team_name' => 'Team 1',
+                'student_ids' => [$student->id],
+            ],
+        ]);
+    }
+
+    public function test_save_teams_rejects_mismatched_team_count(): void
+    {
+        $class = $this->makeStudyClass();
+        $student = $this->makeStudent();
+        $this->enroll($class, $student);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('The number of teams must match the generated team count.');
+
+        $this->service->saveTeams($class->id, 2, [
+            [
+                'team_name' => 'Team 1',
+                'student_ids' => [$student->id],
+            ],
+        ]);
+    }
+
+    public function test_save_teams_rejects_duplicate_team_names(): void
+    {
+        $class = $this->makeStudyClass();
+        $students = collect(range(1, 2))
+            ->map(function () use ($class) {
+                $student = $this->makeStudent();
+                $this->enroll($class, $student);
+
+                return $student;
+            });
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Team names must be unique within this group.');
+
+        $this->service->saveTeams($class->id, 2, [
+            [
+                'team_name' => 'Team 1',
+                'student_ids' => [$students[0]->id],
+            ],
+            [
+                'team_name' => 'team 1',
+                'student_ids' => [$students[1]->id],
+            ],
         ]);
     }
 }

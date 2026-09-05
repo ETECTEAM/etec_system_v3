@@ -39,7 +39,13 @@ const props = defineProps({
 const page = usePage();
 const search = ref("");
 
-const instructorName = computed(() => page.props.auth?.user?.name ?? "Instructor");
+const instructorDisplayName = (name, fallback = "Instructor") => {
+  const displayName = String(name ?? "").split(/[·•]/u)[0].trim();
+
+  return displayName || fallback;
+};
+
+const instructorName = computed(() => instructorDisplayName(page.props.auth?.user?.name));
 const instructorId = computed(() => page.props.auth?.user?.id ?? "-");
 
 const filteredClasses = computed(() => {

@@ -3,13 +3,13 @@
 namespace App\Modules\Enroll\Queries;
 
 use App\Models\StudentEnrollment;
+use App\Support\InstructorDisplayName;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 /**
- * Lists students who self-registered via the public /classes page
- * (StudentEnrollment.source = 'public_website'), shaped for the dashboard's
+ * Lists student registrations that should appear in the dashboard's
  * "Registrations" tab and its receipt-printing action.
  */
 class GetPublicRegistrations
@@ -39,7 +39,7 @@ class GetPublicRegistrations
     private function baseQuery(string $search = ''): Builder
     {
         return StudentEnrollment::query()
-            ->whereIn('source', ['public_website', 'qr_code'])
+            ->whereIn('source', ['public_website', 'qr_code', 'admin_register'])
             ->whereIn('enrollment_status', ['active', 'pending', 'unassigned'])
             ->with([
                 'student:id,full_name,gender,phone',
@@ -79,6 +79,7 @@ class GetPublicRegistrations
     {
         return [
             'enrollment_id' => $enrollment->id,
+            'public_token' => $enrollment->public_token,
             'name' => $enrollment->student?->full_name ?? '-',
             'gender' => $enrollment->student?->gender ?? '-',
             'phone' => $enrollment->student?->phone ?? '-',
@@ -104,7 +105,7 @@ class GetPublicRegistrations
             'enroll_start_date' => optional(
                 $enrollment->studyClass?->course?->enrollConfigForTime($enrollment->studyClass?->time_id)
             )?->start_date?->format('Y-m-d'),
-            'teacher_name' => $enrollment->studyClass?->teacher?->name,
+            'teacher_name' => InstructorDisplayName::format($enrollment->studyClass?->teacher?->name, ''),
             'building' => $enrollment->studyClass?->room?->floor?->building?->name,
             'floor' => $enrollment->studyClass?->room?->floor?->name,
             'room' => $enrollment->studyClass?->room?->room_number ?? ($enrollment->studyClass?->isOnline() ? 'Online' : null),

@@ -4,7 +4,9 @@ namespace Tests\Unit\Attendance;
 
 use App\Models\ClassSession;
 use App\Models\GradingSetting;
+use App\Models\Holiday;
 use App\Models\StudentAttendance;
+use App\Modules\Attendance\Actions\FinalizeAutoRecordedSession;
 use App\Modules\Attendance\Actions\AutoRecordSession;
 use Database\Seeders\Core\RoleSeeder;
 use Database\Seeders\GradingSettingSeeder;
@@ -275,5 +277,73 @@ class AutoRecordSessionTest extends TestCase
         $this->action->handle($session->id);
 
         $this->assertSame(ClassSession::STATUS_SKIPPED, $session->fresh()->status);
+    }
+
+    public function test_existing_pending_session_on_holiday_is_skipped_without_pre_attendance(): void
+    {
+        $date = Carbon::parse('2026-08-18 09:30:00', 'Asia/Phnom_Penh');
+        Carbon::setTestNow($date);
+
+        Holiday::create(['date' => '2026-08-18', 'name' => 'School Holiday']);
+
+        $class = $this->makeStudyClass();
+        $this->enroll($class, $this->makeStudent());
+        $session = $this->makeSession(Carbon::parse('2026-08-18 09:00:00', 'Asia/Phnom_Penh'), 0, ['class' => $class]);
+
+        $this->action->handle($session->id);
+
+        $fresh = $session->fresh();
+        $this->assertSame(ClassSession::STATUS_SKIPPED, $fresh->status);
+        $this->assertNull($fresh->recorded_at);
+        $this->assertDatabaseCount('student_attendances', 0);
+    }
+
+    public function test_holiday_finalize_does_not_create_absent_rows_or_blocks(): void
+    {
+        $date = Carbon::parse('2026-08-18 12:00:00', 'Asia/Phnom_Penh');
+        Carbon::setTestNow($date);
+
+        Holiday::create(['date' => '2026-08-18', 'name' => 'School Holiday']);
+
+        $class = $this->makeStudyClass();
+        $this->enroll($class, $this->makeStudent());
+        $session = $this->makeSession(Carbon::parse('2026-08-18 09:00:00', 'Asia/Phnom_Penh'), 0, ['class' => $class]);
+        $session->update([
+            'status' => ClassSession::STATUS_PRE_ATTENDANCE,
+            'recorded_at' => Carbon::parse('2026-08-17 09:00:00', 'Asia/Phnom_Penh'),
+        ]);
+
+        app(FinalizeAutoRecordedSession::class)->handle($session->id);
+
+        $this->assertSame(ClassSession::STATUS_SKIPPED, $session->fresh()->status);
+        $this->assertDatabaseCount('student_attendances', 0);
+        $this->assertDatabaseCount('student_attendance_blocks', 0);
+    }
+
+    public function test_creating_a_holiday_preserves_existing_manual_attendance(): void
+    {
+        $class = $this->makeStudyClass();
+        $student = $this->makeStudent();
+        $enrollment = $this->enroll($class, $student);
+        $session = $this->makeSession(Carbon::parse('2026-08-18 09:00:00', 'Asia/Phnom_Penh'), 0, ['class' => $class]);
+
+        StudentAttendance::create([
+            'study_class_id' => $class->id,
+            'student_enrollment_id' => $enrollment->id,
+            'student_id' => $student->id,
+            'attendance_date' => $session->session_date,
+            'status' => 'present',
+            'source' => StudentAttendance::SOURCE_MANUAL,
+        ]);
+
+        Holiday::create(['date' => '2026-08-18', 'name' => 'Late Holiday']);
+
+        app(FinalizeAutoRecordedSession::class)->handle($session->id);
+
+        $this->assertDatabaseHas('student_attendances', [
+            'student_enrollment_id' => $enrollment->id,
+            'status' => 'present',
+            'source' => StudentAttendance::SOURCE_MANUAL,
+        ]);
     }
 }

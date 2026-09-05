@@ -7,6 +7,7 @@ use App\Models\ClassSession;
 use App\Models\PreAttendanceRequest;
 use App\Models\User;
 use App\Modules\Attendance\Events\PreAttendanceRequestUpdated;
+use App\Support\InstructorDisplayName;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -43,7 +44,7 @@ class PreAttendanceRequestController extends Controller
         return Inertia::render('backend/pre-attendance-requests/Detail', [
             'instructor' => [
                 'id' => $instructor->id,
-                'name' => $instructor->name ?? '-',
+                'name' => InstructorDisplayName::format($instructor->name),
             ],
             'sessions' => $this->instructorSessionDetails($instructor),
         ]);
@@ -124,7 +125,7 @@ class PreAttendanceRequestController extends Controller
                 'id' => $request->id,
                 'class_id' => $request->study_class_id,
                 'class_title' => $request->studyClass?->title ?? '-',
-                'instructor' => $request->requestedBy?->name ?? '-',
+                'instructor' => InstructorDisplayName::format($request->requestedBy?->name),
                 'session_date' => $request->session_date?->format('Y-m-d'),
                 'session_status' => $request->session_status,
                 'status' => $request->status,
@@ -184,7 +185,7 @@ class PreAttendanceRequestController extends Controller
                 return [
                     'id' => (int) $row->id,
                     'class_title' => $row->title,
-                    'instructor' => $row->instructor ?? '-',
+                'instructor' => InstructorDisplayName::format($row->instructor ?? null),
                     'session_date' => Carbon::parse($row->session_date)->format('Y-m-d'),
                     'time' => $row->time_name ?? '-',
                     'session_status' => $row->status,
@@ -238,7 +239,7 @@ class PreAttendanceRequestController extends Controller
             ->get()
             ->map(fn (User $instructor): array => [
                 'instructor_id' => $instructor->id,
-                'instructor' => $instructor->name ?? '-',
+                'instructor' => InstructorDisplayName::format($instructor->name),
                 'pre_attendance_count' => (int) ($preAttendanceCounts[$instructor->id] ?? 0),
                 'retrack_count' => (int) ($retrackCounts[$instructor->id] ?? 0),
             ])

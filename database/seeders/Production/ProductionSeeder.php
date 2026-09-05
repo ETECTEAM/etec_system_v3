@@ -8,7 +8,7 @@ use Database\Seeders\Course\CategorySeeder;
 use Database\Seeders\Course\CourseSeeder;
 use Database\Seeders\Course\CourseTrackSeeder;
 use Database\Seeders\Course\SubCategorySeeder;
-use Database\Seeders\Dev\CourseEnrollConfigSeeder;
+use Database\Seeders\Dev\DevSeeder;
 use Database\Seeders\Dev\InstructorWorkScheduleSeeder;
 use Database\Seeders\GradingSettingSeeder;
 use Database\Seeders\LoginLockoutSeeder;
@@ -24,14 +24,13 @@ use Database\Seeders\WorkSchedule\WorkScheduleSeeder;
 use Illuminate\Database\Seeder;
 
 /**
- * Seeders that are safe to run on a real production database.
+ * The full seed set for every environment.
  *
- * Only reference / lookup data + a single real super-admin login. No fake
- * users, no demo students, no scenario data - that all lives in
- * \Database\Seeders\Dev\DevSeeder.
- *
- * Runs on every environment (see DatabaseSeeder). Every seeder listed here
- * must be idempotent so a re-run on a live database is harmless.
+ * Sections 1-7 are reference / lookup data + the real super-admin and are safe
+ * on a live database. Section 8 folds in \Database\Seeders\Dev\DevSeeder
+ * (admin login, one instructor per work schedule, every course opened with
+ * flat pricing) so a plain `db:seed` produces the same working dataset
+ * everywhere - remove that call to go back to reference-data-only prod seeds.
  */
 class ProductionSeeder extends Seeder
 {
@@ -70,10 +69,14 @@ class ProductionSeeder extends Seeder
             CourseSeeder::class,
             ScheduleSeeder::class,
 
-            // CourseEnrollConfigSeeder::class,
             InstructorWorkScheduleSeeder::class,
+
             // 7. Public website defaults
             // WebsiteMenuSeeder::class,
+
+            // 8. Demo data - admin login, instructors, course enroll config.
+            //    Drop this line for a reference-data-only production seed.
+            DevSeeder::class,
         ]);
     }
 }

@@ -23,7 +23,7 @@ const breadcrumbItems = [
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Super Admin" :title="$t('Leave Settings')" :description="$t('Configure system-wide leave and permission policies.')" />
+      <PageHero eyebrow="Super Admin" :title="$t('Leave Settings')" :description="$t('Student leave & permission requests — monthly quota and the leave-request QR link lifetime.')" />
 
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800 p-6">
         <form @submit.prevent="submit" class="space-y-6 max-w-2xl">

@@ -10,6 +10,8 @@ export const literalTranslations = {
     "Activity": "សកម្មភាព",
     "Add": "បន្ថែម",
     "Add Student": "បន្ថែមសិស្ស",
+    "Add To phone screen": "បន្ថែមទៅអេក្រង់ទូរស័ព្ទ",
+    "Add To screen": "បន្ថែមទៅអេក្រង់",
     "All": "ទាំងអស់",
     "All Class": "ថ្នាក់ទាំងអស់",
     "All Courses": "វគ្គសិក្សាទាំងអស់",

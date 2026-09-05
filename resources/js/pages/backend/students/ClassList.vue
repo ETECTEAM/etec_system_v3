@@ -2,8 +2,8 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { router } from "@inertiajs/vue3";
 import axios from "axios";
-import { Search, RotateCcw, Plus, LayoutGrid, Table2, UserPlus, UserCheck, Printer, Pencil, ArrowRightLeft, X, Check } from "@lucide/vue";
-import { useToast } from "vue-toastification";
+import { Search, Plus, LayoutGrid, Table2, UserPlus, UserCheck, Printer, Pencil, ArrowRightLeft, X, Check } from "@lucide/vue";
+import { useToast } from "@/composables/useToast";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../../components/ui/card/ClassCrad.vue";
 import ClassTable from "./components/ClassTable.vue";
@@ -68,9 +68,15 @@ const breadcrumbItems = [
   { label: "Class List", current: true },
 ];
 
-function refresh() {
+function clearSearch() {
   clearTimeout(searchTimer);
   search.value = "";
+
+  if (viewMode.value === "registrations") {
+    fetchRegistrations(1);
+    return;
+  }
+
   router.get("/dashboard/enroll", {}, { preserveState: true, replace: true, preserveScroll: true });
 }
 
@@ -92,8 +98,7 @@ function fetchClasses() {
   });
 }
 
-// "Registrations" tab — students who self-registered via the public /classes
-// page (StudentEnrollment.source = 'public_website'), fetched from
+// "Registrations" tab — public/QR/admin-created registrations, fetched from
 // EnrollmentClassController::publicRegistrations() / GetPublicRegistrations.
 const registrations = ref([]);
 const registrationsLoading = ref(false);
@@ -217,8 +222,8 @@ async function printReceipt(row) {
     price: row.fee_amount,
     unit_price: row.unit_price ?? null,
     document_price: row.document_fee_amount,
-    term: studyDaysLabel(row),
-    time: row.start_time && row.end_time ? `${row.start_time} - ${row.end_time}` : "-",
+    term: needsManualScheduling(row) ? (row.requested_term || "-") : studyDaysLabel(row),
+    time: needsManualScheduling(row) ? (row.requested_time || "-") : (row.start_time && row.end_time ? `${row.start_time} - ${row.end_time}` : "-"),
     teacher: row.teacher_name,
     building: row.building,
     floor: row.floor,
@@ -233,6 +238,8 @@ async function printReceipt(row) {
     fee_amount: row.fee_amount,
     document_fee_amount: row.document_fee_amount,
     enrollment_id: row.enrollment_id,
+    // Drives the "scan for attendance" QR on the receipt (ReceiptPrint.vue).
+    public_token: row.public_token,
   };
 
   await nextTick();
@@ -477,9 +484,9 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Actions -->
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2">
           <!-- Search -->
-          <div class="relative w-full sm:w-64">
+          <div class="relative w-full sm:w-72">
             <Search
               class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-500"
             />
@@ -487,109 +494,124 @@ onBeforeUnmount(() => {
               v-model="search"
               type="text"
               :placeholder="$t('Search student...')"
-              class="w-full rounded-xl border border-slate-300 py-2 pl-10 pr-4 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
+              class="h-10 w-full rounded-xl border border-slate-300 bg-white py-2 pl-10 pr-10 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
             />
+            <button
+              v-if="search"
+              type="button"
+              :aria-label="$t('Clear search')"
+              :title="$t('Clear search')"
+              class="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+              @click="clearSearch"
+            >
+              <X class="h-4 w-4" />
+            </button>
           </div>
 
-          <!-- Reset -->
-          <button
-            @click="refresh"
-            class="inline-flex items-center justify-center gap-2 rounded-xl  bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
-          >
-            <RotateCcw class="h-4 w-4" />
-            {{ $t('Reset') }}
-          </button>
-
-          <!-- Card -->
-          <button
-            @click="viewMode = 'card'"
-            :class="[
-              'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition',
-              viewMode === 'card'
-                ? 'border-blue-900 bg-blue-800 text-white'
-                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
-            ]"
-          >
-            <LayoutGrid class="h-4 w-4" />
-            {{ $t('Card') }}
-          </button>
-
-          <!-- Table -->
-          <button
-            @click="viewMode = 'table'"
-            :class="[
-              'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition',
-              viewMode === 'table'
-                ? 'border-blue-900 bg-blue-800 text-white'
-                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
-            ]"
-          >
-            <Table2 class="h-4 w-4" />
-            {{ $t('Table') }}
-          </button>
-
-          <!-- Registrations (students who self-registered on the public /classes page) -->
-          <button
-            @click="selectRegistrationsTab"
-            class="relative inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition"
-            :class="viewMode === 'registrations'
-              ? 'border-blue-900 bg-blue-800 text-white'
-              : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
-          >
-            <UserCheck class="h-4 w-4" />
-            {{ $t('Registrations') }}
-            <span
-              v-if="pendingRegistrationsCount > 0"
-              class="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white"
+          <div class="inline-flex h-10 overflow-hidden rounded-xl border border-slate-300 bg-white p-1 shadow-sm dark:border-gray-600 dark:bg-gray-800">
+            <!-- Card -->
+            <button
+              @click="viewMode = 'card'"
+              :class="[
+                'inline-flex min-w-24 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition',
+                viewMode === 'card'
+                  ? 'bg-blue-900 text-white shadow-sm dark:bg-blue-600'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100',
+              ]"
             >
-              {{ pendingRegistrationsCount > 99 ? '99+' : pendingRegistrationsCount }}
-            </span>
-          </button>
+              <LayoutGrid class="h-4 w-4" />
+              {{ $t('Card') }}
+            </button>
+
+            <!-- Table -->
+            <button
+              @click="viewMode = 'table'"
+              :class="[
+                'inline-flex min-w-24 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition',
+                viewMode === 'table'
+                  ? 'bg-blue-900 text-white shadow-sm dark:bg-blue-600'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100',
+              ]"
+            >
+              <Table2 class="h-4 w-4" />
+              {{ $t('Table') }}
+            </button>
+
+            <!-- Registrations -->
+            <button
+              @click="selectRegistrationsTab"
+              :class="[
+                'relative inline-flex min-w-36 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition',
+                viewMode === 'registrations'
+                  ? 'bg-blue-900 text-white shadow-sm dark:bg-blue-600'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100',
+              ]"
+            >
+              <UserCheck class="h-4 w-4" />
+              {{ $t('Registrations') }}
+              <span
+                v-if="pendingRegistrationsCount > 0"
+                class="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white"
+              >
+                {{ pendingRegistrationsCount > 99 ? '99+' : pendingRegistrationsCount }}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Card View -->
-      <div
-        v-if="viewMode === 'card' && filteredClasses.length > 0"
-        class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-5"
-      >
-        <ClassCrad
-          v-for="item in filteredClasses"
-          :key="item.id"
-          :classData="item"
-          :count="item.notifications"
+      <Transition name="content-switch" mode="out-in">
+        <!-- Card View -->
+        <div
+          v-if="viewMode === 'card' && filteredClasses.length > 0"
+          key="card"
+          class="grid grid-cols-1 gap-5 md:grid-cols-3 xl:grid-cols-4 sm:gap-5"
+        >
+          <ClassCrad
+            v-for="item in filteredClasses"
+            :key="item.id"
+            :classData="item"
+            :count="item.notifications"
+          />
+        </div>
+
+        <!-- Table View -->
+        <div
+          v-else-if="viewMode === 'table' && filteredClasses.length > 0"
+          key="table"
+          class="w-full overflow-x-auto"
+        >
+          <ClassTable :items="filteredClasses" @register-student="registerTarget = $event" />
+        </div>
+
+        <!-- Empty State (Card/Table only; Registrations keeps its own empty row) -->
+        <EmptyState
+          v-else-if="viewMode !== 'registrations' && filteredClasses.length === 0"
+          key="empty"
+          @action="goCreateClass"
         />
-      </div>
 
-      <!-- Table View -->
-      <div v-else-if="viewMode === 'table' && filteredClasses.length > 0" class="w-full overflow-x-auto">
-        <ClassTable :items="filteredClasses" @register-student="registerTarget = $event" />
-      </div>
-
-      <!-- Empty State (Card/Table only; Registrations keeps its own empty row) -->
-      <EmptyState v-else-if="viewMode !== 'registrations' && filteredClasses.length === 0" @action="goCreateClass" />
-
-      <!-- Registrations View -->
-      <div v-else class="w-full overflow-x-auto">
+        <!-- Registrations View -->
+        <div v-else key="registrations" class="w-full overflow-x-auto">
         <div class="bg-white rounded-xl shadow overflow-hidden dark:bg-gray-900">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{{ $t('Name') }}</TableHead>
-                <TableHead>{{ $t('Gender') }}</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>{{ $t('Class') }}</TableHead>
-                <TableHead>{{ $t('Schedule') }}</TableHead>
-                <TableHead>{{ $t('Price') }}</TableHead>
-                <TableHead>{{ $t('Payment Status') }}</TableHead>
-                <TableHead>{{ $t('Registered') }}</TableHead>
-                <TableHead class="text-right">{{ $t('Action') }}</TableHead>
+                <TableHead class="h-8 px-3 text-[11px]">{{ $t('Name') }}</TableHead>
+                <TableHead class="h-8 px-3 text-[11px]">{{ $t('Gender') }}</TableHead>
+                <TableHead class="h-8 px-3 text-[11px]">Phone</TableHead>
+                <TableHead class="h-8 px-3 text-[11px]">{{ $t('Class') }}</TableHead>
+                <TableHead class="h-8 px-3 text-[11px]">{{ $t('Schedule') }}</TableHead>
+                <TableHead class="h-8 px-3 text-[11px]">{{ $t('Price') }}</TableHead>
+                <TableHead class="h-8 px-3 text-[11px]">{{ $t('Payment Status') }}</TableHead>
+                <TableHead class="h-8 px-3 text-[11px]">{{ $t('Registered') }}</TableHead>
+                <TableHead class="h-8 px-3 text-right text-[11px]">{{ $t('Action') }}</TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
               <TableRow v-for="row in registrations" :key="row.enrollment_id">
-                <TableCell class="whitespace-nowrap font-semibold">
+                <TableCell class="whitespace-nowrap px-3 py-1.5 text-sm font-semibold">
                   <template v-if="isEditing(row)">
                     <input
                       v-model="editDraft.name"
@@ -602,7 +624,7 @@ onBeforeUnmount(() => {
                   <template v-else>{{ row.name }}</template>
                 </TableCell>
 
-                <TableCell>
+                <TableCell class="px-3 py-1.5 text-sm">
                   <template v-if="isEditing(row)">
                     <div class="inline-flex overflow-hidden rounded-lg border border-slate-300 dark:border-gray-600">
                       <button type="button" class="px-2.5 py-1 text-xs font-semibold transition" :class="editDraft.gender === 'male' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-gray-800 dark:text-gray-300'" @click="editDraft.gender = 'male'">{{ $t('Male') }}</button>
@@ -613,7 +635,7 @@ onBeforeUnmount(() => {
                   <template v-else>{{ row.gender }}</template>
                 </TableCell>
 
-                <TableCell class="whitespace-nowrap">
+                <TableCell class="whitespace-nowrap px-3 py-1.5 text-sm">
                   <template v-if="isEditing(row)">
                     <input
                       v-model="editDraft.phone"
@@ -625,25 +647,25 @@ onBeforeUnmount(() => {
                   <template v-else>{{ row.phone }}</template>
                 </TableCell>
 
-                <TableCell class="whitespace-nowrap">
+                <TableCell class="whitespace-nowrap px-3 py-1.5 text-sm">
                   <div v-if="needsManualScheduling(row)">
                     <p>{{ row.course_title || '-' }}</p>
                   </div>
                   <div v-else>
                     <p>{{ row.class_title }}</p>
-                    <p v-if="row.course_title" class="text-xs text-slate-500 dark:text-gray-400">{{ row.course_title }}</p>
+                    <p v-if="row.course_title" class="max-w-72 truncate text-[11px] leading-4 text-slate-500 dark:text-gray-400">{{ row.course_title }}</p>
                   </div>
                 </TableCell>
 
-                <TableCell class="whitespace-nowrap">
+                <TableCell class="whitespace-nowrap px-3 py-1.5 text-sm">
                   {{ needsManualScheduling(row) ? requestedScheduleLabel(row) : scheduleLabel(row) }}
                 </TableCell>
 
-                <TableCell class="whitespace-nowrap">
+                <TableCell class="whitespace-nowrap px-3 py-1.5 text-sm">
                   ${{ Number(row.fee_amount + row.document_fee_amount).toFixed(2) }}
                 </TableCell>
 
-                <TableCell>
+                <TableCell class="px-3 py-1.5 text-sm">
                   <span
                     class="inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs"
                     :class="{
@@ -662,17 +684,17 @@ onBeforeUnmount(() => {
                   </span>
                 </TableCell>
 
-                <TableCell class="whitespace-nowrap text-slate-500 dark:text-gray-400">
+                <TableCell class="whitespace-nowrap px-3 py-1.5 text-sm text-slate-500 dark:text-gray-400">
                   {{ row.enrolled_at }}
                 </TableCell>
 
-                <TableCell>
+                <TableCell class="px-3 py-1.5 text-sm">
                   <div class="flex flex-wrap justify-end items-center gap-1.5">
                     <template v-if="isEditing(row)">
                       <button
                         type="button"
                         :disabled="editSaving || !!editNameLiveError"
-                        class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        class="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                         :title="$t('Save')"
                         @click="saveEdit(row)"
                       >
@@ -682,7 +704,7 @@ onBeforeUnmount(() => {
                       <button
                         type="button"
                         :disabled="editSaving"
-                        class="inline-flex items-center justify-center rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        class="inline-flex h-8 items-center justify-center rounded-lg bg-slate-100 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                         :title="$t('Cancel')"
                         @click="cancelEdit"
                       >
@@ -694,7 +716,7 @@ onBeforeUnmount(() => {
                     <button
                       v-if="isPendingRegistration(row)"
                       type="button"
-                      class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-100 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+                      class="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-emerald-100 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
                       :title="$t('Approve request')"
                       @click="approveRegistration(row)"
                     >
@@ -705,7 +727,7 @@ onBeforeUnmount(() => {
                     <button
                       v-else
                       type="button"
-                      class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                      class="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                       :title="$t('Edit')"
                       @click="startEdit(row)"
                     >
@@ -715,7 +737,7 @@ onBeforeUnmount(() => {
                     <button
                       v-if="!isPendingRegistration(row) && needsManualScheduling(row)"
                       type="button"
-                      class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-100 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+                      class="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-emerald-100 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
                       :title="$t('Assign to Class')"
                       @click="openMoveModal(row)"
                     >
@@ -726,7 +748,7 @@ onBeforeUnmount(() => {
                     <button
                       v-if="!isPendingRegistration(row) && !needsManualScheduling(row)"
                       type="button"
-                      class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-slate-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:disabled:hover:bg-gray-800"
+                      class="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-slate-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:disabled:hover:bg-gray-800"
                       :disabled="row.payment_status !== 'Paid'"
                       :title="row.payment_status === 'Paid' ? $t('Move to Another Class') : $t('Record payment and print the receipt before moving this student.')"
                       @click="openMoveModal(row)"
@@ -737,7 +759,7 @@ onBeforeUnmount(() => {
                     <button
                       v-if="!isPendingRegistration(row)"
                       type="button"
-                      class="inline-flex w-[150px] items-center justify-center gap-1.5 rounded-lg bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
+                      class="inline-flex h-8 w-[150px] items-center justify-center gap-1.5 rounded-lg bg-blue-100 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
                       :disabled="printingId === row.enrollment_id"
                       :title="row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record payment')"
                       @click="row.payment_status === 'Paid' ? printReceipt(row) : openPartialPaymentModal(row)"
@@ -781,7 +803,8 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </div>
-      </div>
+        </div>
+      </Transition>
 
       <ReceiptPrint :classData="receiptClassData" :student="receiptStudent" />
 
@@ -893,3 +916,16 @@ onBeforeUnmount(() => {
     </div>
   </DashboardLayout>
 </template>
+
+<style scoped>
+.content-switch-enter-active,
+.content-switch-leave-active {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.content-switch-enter-from,
+.content-switch-leave-to {
+  opacity: 0;
+  transform: translateY(6px);
+}
+</style>

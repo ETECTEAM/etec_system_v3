@@ -120,6 +120,7 @@ function firstChildHref(item) {
         v-else
         :href="item.href"
         :title="collapsed ? menuLabel(item) : ''"
+        :aria-current="isActive(item) ? 'page' : undefined"
         :class="[
           'flex items-center rounded-xl text-sm transition',
           depth === 0 ? 'font-semibold' : 'font-medium',

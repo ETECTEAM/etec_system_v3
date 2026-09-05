@@ -3,6 +3,7 @@
 namespace App\Modules\Enroll\Services;
 
 use App\Models\StudyClass;
+use App\Models\StudentEnrollment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use stdClass;
@@ -54,7 +55,11 @@ class StudentRegistrationService
     {
         $now = now();
         $enrollmentId = DB::table('student_enrollments')->insertGetId([
+            'public_token' => StudentEnrollment::uniquePublicToken(),
             'study_class_id' => $data['study_class_id'],
+            'course_id' => $data['course_id'] ?? null,
+            'term_id' => $data['term_id'] ?? null,
+            'time_id' => $data['time_id'] ?? null,
             'student_id' => $data['student_id'],
             'enrollment_status' => $data['enrollment_status'] ?? 'active',
             'payment_status' => $data['payment_status'] ?? 'unpaid',

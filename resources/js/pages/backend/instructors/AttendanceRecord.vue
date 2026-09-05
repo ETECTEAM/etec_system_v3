@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Head, Link, router } from "@inertiajs/vue3";
 import axios from "axios";
-import { useToast } from "vue-toastification";
+import { useToast } from "@/composables/useToast";
 import {
   ArrowRightLeft,
   Bot,
@@ -63,17 +63,23 @@ const props = defineProps({
 const rosterStudents = ref([]);
 const pendingRequests = ref([]);
 const classLifecycleStatus = computed(() => String(props.classData?.class_status ?? "").toLowerCase());
+const isActiveClass = computed(() => classLifecycleStatus.value === "active");
+const canRequestCertificate = computed(() => isActiveClass.value && props.certificateRequest?.status !== "pending");
 
 const totalPresent = computed(() =>
   rosterStudents.value.reduce((total, student) => total + Number(student.attendance?.present ?? 0), 0),
 );
 const lifecycleNotice = computed(() => {
+  if (classLifecycleStatus.value === "upcoming") {
+    return "This class is upcoming. Attendance tracking and certificate requests are available after the class becomes active.";
+  }
+
   if (classLifecycleStatus.value === "pre_end") {
-    return "This class has been pre-ended. Attendance tracking is closed.";
+    return "This class has been pre-ended. Attendance tracking and certificate requests are closed.";
   }
 
   if (classLifecycleStatus.value === "ended") {
-    return "This class has ended. Attendance tracking is no longer available.";
+    return "This class has ended. Attendance tracking and certificate requests are no longer available.";
   }
 
   return null;
@@ -305,6 +311,11 @@ function openPendingModal() {
 }
 
 async function openCertificateRequestPage() {
+  if (!canRequestCertificate.value) {
+    toast.warning("Certificates can only be requested while the class is active.");
+    return;
+  }
+
   const accepted = await confirm({
     title: "Request Certificate?",
     message: "This will open the certificate request page for this class.",
@@ -421,7 +432,7 @@ async function approveAllPendingRegistrations() {
           <button
             class="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-500 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-amber-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:opacity-80 dark:disabled:bg-gray-800 dark:disabled:text-gray-400"
             type="button"
-            :disabled="certificateRequest?.status === 'pending'"
+            :disabled="!canRequestCertificate"
             @click="openCertificateRequestPage"
           >
             <FileText class="h-4 w-4" />

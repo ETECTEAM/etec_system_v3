@@ -13,6 +13,7 @@ use App\Models\StudyClass;
 use App\Models\Term;
 use App\Models\Time;
 use App\Models\User;
+use App\Support\InstructorDisplayName;
 
 class GetClassFormOptions
 {
@@ -35,7 +36,14 @@ class GetClassFormOptions
 
         return [
             'courses' => Course::query()->select('id', 'title')->orderBy('title')->get(),
-            'teachers' => User::role('instructor')->select('id', 'name')->orderBy('name')->get(),
+            'teachers' => User::role('instructor')
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (User $teacher) => [
+                    'id' => $teacher->id,
+                    'name' => InstructorDisplayName::format($teacher->name, 'Unknown'),
+                ]),
             'buildings' => Building::query()->select('id', 'name')->orderBy('name')->get(),
             'floors' => $buildingId ? $this->floors($buildingId) : [],
             'rooms' => $floorId ? $this->rooms($floorId) : [],

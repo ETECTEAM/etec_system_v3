@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { Head, Link, router, useForm } from "@inertiajs/vue3";
 import { QrcodeCanvas } from "qrcode.vue";
 import { ArrowLeft, Bot, Clock, QrCode, Save } from "@lucide/vue";
-import { useToast } from "vue-toastification";
+import { useToast } from "@/composables/useToast";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import { getEcho } from "../../../echo";
@@ -120,6 +120,10 @@ const windowMessage = computed(() => {
     return "This class does not have a session today.";
   }
 
+  if (props.attendanceWindow.reason === "holiday") {
+    return "Attendance cannot be tracked on a holiday.";
+  }
+
   if (props.attendanceWindow.reason === "before_start") {
     return "This class has not started yet.";
   }
@@ -169,6 +173,10 @@ const submitLabel = computed(() => {
 
   if (props.attendanceWindow?.reason === "no_session") {
     return "No Session";
+  }
+
+  if (props.attendanceWindow?.reason === "holiday") {
+    return "Holiday";
   }
 
   return "Submitted Today";

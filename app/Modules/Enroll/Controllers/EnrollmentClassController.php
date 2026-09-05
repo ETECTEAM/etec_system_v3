@@ -35,6 +35,7 @@ use App\Modules\Enroll\Requests\UpdatePublicRegistrationRequest;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
+use App\Support\InstructorDisplayName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -324,14 +325,14 @@ class EnrollmentClassController extends Controller
         return response()->json([
             'owner' => $studyClass->teacher ? [
                 'id' => $studyClass->teacher->id,
-                'name' => $studyClass->teacher->name,
+                'name' => InstructorDisplayName::format($studyClass->teacher->name, 'Unknown'),
             ] : null,
             'classTypeId' => $studyClass->class_type_id,
             'termId' => $studyClass->term_id,
             'timeId' => $studyClass->time_id,
             'shared' => $studyClass->instructors->map(fn (User $instructor) => [
                 'id' => $instructor->id,
-                'name' => $instructor->name,
+                'name' => InstructorDisplayName::format($instructor->name, 'Unknown'),
                 'term_id' => $instructor->pivot->term_id,
                 'time_id' => $instructor->pivot->time_id,
                 'subject' => $instructor->pivot->subject,
@@ -341,7 +342,11 @@ class EnrollmentClassController extends Controller
                 ->where('id', '!=', $studyClass->teacher_id)
                 ->select('id', 'name')
                 ->orderBy('name')
-                ->get(),
+                ->get()
+                ->map(fn (User $teacher) => [
+                    'id' => $teacher->id,
+                    'name' => InstructorDisplayName::format($teacher->name, 'Unknown'),
+                ]),
             'schedules' => $this->shareableSchedules($studyClass, $options),
         ]);
     }

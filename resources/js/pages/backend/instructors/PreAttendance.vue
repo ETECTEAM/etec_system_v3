@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Head, Link, router } from "@inertiajs/vue3";
 import { ArrowRight, ClipboardCheck, Clock3, Send, Users } from "@lucide/vue";
-import { useToast } from "vue-toastification";
+import { useToast } from "@/composables/useToast";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import { getEcho } from "../../../echo";

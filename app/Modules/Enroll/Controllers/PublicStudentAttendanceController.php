@@ -16,9 +16,22 @@ class PublicStudentAttendanceController extends Controller
     // fields so a scanned receipt only ever exposes attendance.
     public function show(StudentEnrollment $enrollment): Response
     {
+        return $this->renderAttendance($enrollment);
+    }
+
+    // Attendance summary by enrollment ID (for returning students).
+    public function showById(int $enrollment): Response
+    {
+        $enrollmentModel = StudentEnrollment::findOrFail($enrollment);
+
+        return $this->renderAttendance($enrollmentModel);
+    }
+
+    private function renderAttendance(StudentEnrollment $enrollment): Response
+    {
         $enrollment->load([
             'student:id,full_name,gender',
-            'studyClass:id,title,course_id,term_id,time_id',
+            'studyClass:id,title,slug,course_id,term_id,time_id',
             'studyClass.course:id,title',
             'studyClass.term:id,term_name',
             'studyClass.time:id,time_name',

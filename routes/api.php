@@ -24,7 +24,7 @@ Route::prefix('public')->name('api.public.')->group(function (): void {
     Route::get('/events/{slug}', [PublicApiController::class, 'emptyDetail'])->name('events.show');
 
     Route::get('/videos', [PublicApiController::class, 'videos'])->name('videos.index');
-    Route::get('/videos/{video}', [PublicApiController::class, 'video'])->whereNumber('video')->name('videos.show');
+    Route::get('/videos/{slug}', [PublicApiController::class, 'video'])->name('videos.show');
 
     Route::post('/contact', [PublicApiController::class, 'contact'])->name('contact');
 });

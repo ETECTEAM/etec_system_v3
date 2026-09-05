@@ -1,21 +1,15 @@
+// Side-effect import FIRST: the PWA install composable attaches its
+// beforeinstallprompt/appinstalled listeners at import time, so they must be
+// live before any code-split page component (and before createInertiaApp) runs.
+import './composables/usePwaInstall'
 import { createApp, Fragment, h } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers'
 import { ZiggyVue } from 'ziggy-js';
-import Toast from 'vue-toastification'
-import 'vue-toastification/dist/index.css'
 import '../css/app.css'
 import { createI18n } from './i18n'
 import FlashToasts from './components/FlashToasts.vue'
-
-const toastOptions = {
-    position: 'bottom-right',
-    timeout: 3000,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    icon: true,
-}
+import ToastHost from './components/ToastHost.vue'
 
 createInertiaApp({
     resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob('./pages/**/*.vue')),
@@ -28,11 +22,10 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         const initialLocale = props.initialPage?.props?.locale?.current ?? 'en'
 
-        createApp({ render: () => h(Fragment, [h(App, props), h(FlashToasts)]) })
+        createApp({ render: () => h(Fragment, [h(App, props), h(FlashToasts), h(ToastHost)]) })
             .use(plugin)
             .use(createI18n(initialLocale))
             .use(ZiggyVue)
-            .use(Toast, toastOptions)
             .mount(el)
     },
 })

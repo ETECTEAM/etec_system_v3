@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\ClassSession;
+use App\Models\Holiday;
 use App\Models\Notification;
 use App\Modules\Notification\Events\NotificationsUpdated;
 use Illuminate\Console\Command;
@@ -23,6 +24,10 @@ class SendAttendanceDigestCommand extends Command
     public function handle(): int
     {
         $today = Carbon::now('Asia/Phnom_Penh')->toDateString();
+
+        if (Holiday::isHoliday($today)) {
+            return self::SUCCESS;
+        }
 
         $autoRecorded = ClassSession::query()
             ->whereDate('session_date', $today)

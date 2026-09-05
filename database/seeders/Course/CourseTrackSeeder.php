@@ -3,6 +3,7 @@
 
 namespace Database\Seeders\Course;
 
+use App\Models\ClassType;
 use App\Models\CourseTrack;
 use App\Models\SubCategory;
 use Illuminate\Database\Seeder;
@@ -64,11 +65,15 @@ class CourseTrackSeeder extends Seeder
             ],
             [
                 'sub_category_id' => $this->getSubCategoryId('Office Skills'),
-                'name' => 'Microsoft Office'
+                'name' => 'Microsoft Office',
+                // Enroll Config for this track's courses uses the "Microsoft
+                // Office" Class Type's schedules, not the default set.
+                'class_type' => 'Microsoft Office',
             ],
             [
                 'sub_category_id' => $this->getSubCategoryId('Internship'),
-                'name' => 'Internship'
+                'name' => 'Internship',
+                'class_type' => 'Internship',
             ],
         ];
 
@@ -90,6 +95,7 @@ class CourseTrackSeeder extends Seeder
                 ['name' => $track['name']],
                 [
                     'sub_category_id' => $track['sub_category_id'],
+                    'class_type_id' => $this->getClassTypeId($track['class_type'] ?? null),
                     'slug' => $slug,
                     'status' => 'active'
                 ]
@@ -106,5 +112,22 @@ class CourseTrackSeeder extends Seeder
         }
 
         return $subCategory->id;
+    }
+
+    // Null when the track has no 'class_type' key - it then falls back to the
+    // default schedule set in Enroll Config.
+    private function getClassTypeId(?string $typeName): ?int
+    {
+        if ($typeName === null) {
+            return null;
+        }
+
+        $classType = ClassType::where('type_name', $typeName)->first();
+
+        if (! $classType) {
+            throw new \RuntimeException("ClassType '{$typeName}' not found. Run ClassTypeSeeder first.");
+        }
+
+        return $classType->class_type_id;
     }
 }

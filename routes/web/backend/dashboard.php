@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Modules\Dashboard\Services\DashboardReportService;
 use App\Modules\Instructor\Services\InstructorClassService;
 use App\Modules\Enroll\Actions\ActivateUpcomingClasses;
 
@@ -11,7 +12,7 @@ use App\Modules\Enroll\Actions\ActivateUpcomingClasses;
 */
 
 Route::middleware(['auth', 'active', 'onboarding', 'permission:dashboard.view'])->group(function () {
-    Route::get('/dashboard', function (InstructorClassService $instructorClasses, ActivateUpcomingClasses $activate) {
+    Route::get('/dashboard', function (InstructorClassService $instructorClasses, ActivateUpcomingClasses $activate, DashboardReportService $dashboardReport) {
         $user = request()->user();
 
         if ($user->hasRole('instructor')) {
@@ -33,6 +34,8 @@ Route::middleware(['auth', 'active', 'onboarding', 'permission:dashboard.view'])
             ]);
         }
 
-        return inertia('backend/Home');
+        return inertia('backend/Home', [
+            'report' => $dashboardReport->handle(request()),
+        ]);
     })->name('dashboard');
 });

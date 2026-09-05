@@ -31,6 +31,14 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  canRequestCertificate: {
+    type: Boolean,
+    default: true,
+  },
+  requestUnavailableReason: {
+    type: String,
+    default: null,
+  },
 });
 
 const requestSubmitting = ref(false);
@@ -58,16 +66,28 @@ const allRowsApproved = computed(() => rows.length > 0 && approvedRows.value.len
 const requestStatusLabel = computed(() => props.certificateRequest?.status_label ?? "Draft");
 
 function toggleApprove(row) {
+  if (!props.canRequestCertificate || hasPendingRequest.value) {
+    return;
+  }
+
   row.approved = !row.approved;
 }
 
 function approveAll() {
+  if (!props.canRequestCertificate || hasPendingRequest.value) {
+    return;
+  }
+
   rows.forEach((row) => {
     row.approved = true;
   });
 }
 
 function clearApproved() {
+  if (!props.canRequestCertificate || hasPendingRequest.value) {
+    return;
+  }
+
   rows.forEach((row) => {
     row.approved = false;
   });
@@ -96,7 +116,7 @@ function updateName(row) {
 }
 
 function submitCertificateRequest() {
-  if (!approvedRows.value.length || requestSubmitting.value) {
+  if (!props.canRequestCertificate || !approvedRows.value.length || requestSubmitting.value) {
     return;
   }
 
@@ -148,13 +168,20 @@ function submitCertificateRequest() {
           </Link>
           <button
             type="button"
-            :disabled="requestSubmitting || hasPendingRequest || !approvedRows.length"
+            :disabled="requestSubmitting || hasPendingRequest || !approvedRows.length || !canRequestCertificate"
             @click="submitCertificateRequest"
             class="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {{ requestSubmitting ? "Requesting..." : hasPendingRequest ? "Requested" : `Request (${approvedRows.length})` }}
           </button>
         </div>
+      </div>
+
+      <div
+        v-if="!canRequestCertificate && requestUnavailableReason"
+        class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+      >
+        {{ requestUnavailableReason }}
       </div>
 
       <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -172,7 +199,7 @@ function submitCertificateRequest() {
           <div class="flex flex-wrap gap-2">
             <button
               type="button"
-              :disabled="!rows.length || allRowsApproved || hasPendingRequest"
+              :disabled="!rows.length || allRowsApproved || hasPendingRequest || !canRequestCertificate"
               @click="approveAll"
               class="inline-flex h-9 items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-black text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
             >
@@ -181,7 +208,7 @@ function submitCertificateRequest() {
             </button>
             <button
               type="button"
-              :disabled="!approvedRows.length || hasPendingRequest"
+              :disabled="!approvedRows.length || hasPendingRequest || !canRequestCertificate"
               @click="clearApproved"
               class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
             >
@@ -253,7 +280,7 @@ function submitCertificateRequest() {
                 <td class="border-b border-slate-100 px-4 py-3 text-center dark:border-gray-800">
                   <button
                     type="button"
-                    :disabled="student.saving || hasPendingRequest"
+                    :disabled="student.saving || hasPendingRequest || !canRequestCertificate"
                     @click="toggleApprove(student)"
                     :class="[
                       'inline-flex h-9 w-24 items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-60',
