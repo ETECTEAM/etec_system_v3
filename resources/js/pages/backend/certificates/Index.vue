@@ -125,7 +125,6 @@ const certificateTypeOptions = computed(() => [
     { value: 'normal', label: t('certificatePage.types.normal') },
     { value: 'scholarship', label: t('certificatePage.types.scholarship') },
     { value: 'internship', label: t('certificatePage.types.internship') },
-    { value: 'meal', label: t('certificatePage.types.meal') },
 ])
 
 const reportStatusOptions = computed(() => [
@@ -1564,6 +1563,7 @@ const LegacyCertificatePreview = {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 14px;
     margin-bottom: 18px;
 }
@@ -1596,13 +1596,15 @@ const LegacyCertificatePreview = {
 }
 
 .normal-actions {
-    flex: 0 0 auto;
+    flex: 1 1 560px;
+    flex-wrap: wrap;
     justify-content: flex-end;
-    min-width: 760px;
+    min-width: 0;
 }
 
 .report-actions {
-    min-width: 1008px;
+    flex: 1 1 720px;
+    min-width: 0;
 }
 
 .filter-select {
@@ -1623,8 +1625,9 @@ const LegacyCertificatePreview = {
 }
 
 .report-filter-select {
-    flex-basis: 178px;
-    width: 178px;
+    flex: 1 1 172px;
+    min-width: 150px;
+    width: auto;
 }
 
 :global(.dark) .filter-select {

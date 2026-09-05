@@ -20,6 +20,7 @@ class CertificateController extends Controller
 {
     private const TYPES = ['free', 'normal', 'scholarship', 'meal', 'internship'];
     private const PAGE_TYPES = ['free', 'normal', 'scholarship', 'meal', 'internship', 'report'];
+    private const REQUEST_VISIBLE_CLASS_STATUSES = ['upcoming', 'pre_end', 'ended', 'completed', 'active'];
     private const SPECIAL_CLASS_KEYWORDS = [
         'free' => ['free'],
         'scholarship' => ['scholar'],
@@ -60,7 +61,7 @@ class CertificateController extends Controller
             ->withCount([
                 'enrollments as total_students' => fn (Builder $query) => $query->where('enrollment_status', 'active'),
             ])
-            ->whereIn('status', ['pre_end', 'ended', 'completed', 'active'])
+            ->whereIn('status', self::REQUEST_VISIBLE_CLASS_STATUSES)
             ->where(fn (Builder $query) => $this->whereRequestedCertificateClass($query, $type, $month, $year))
             ->when($track !== '' && $track !== 'all', fn (Builder $query) => $query
                 ->whereHas('course.track', fn (Builder $trackQuery) => $trackQuery->where('name', $track))
@@ -70,8 +71,10 @@ class CertificateController extends Controller
             ->latest('id')
             ->get();
 
+        $requestTypes = $this->requestTypesForPageType($type);
+
         $requestCounts = DB::table('class_certificate_requests')
-            ->where('certificate_type', $type)
+            ->whereIn('certificate_type', $requestTypes)
             ->whereIn('study_class_id', $classes->pluck('id'))
             ->pluck('student_count', 'study_class_id');
 
@@ -128,11 +131,11 @@ class CertificateController extends Controller
                         'enrollments as total_students' => fn (Builder $query) => $query->where('enrollment_status', 'active'),
                     ]),
             ])
-            ->when($certificateType !== 'all', fn (Builder $query) => $query->where('certificate_type', $certificateType))
+            ->when($certificateType !== 'all', fn (Builder $query) => $query->whereIn('certificate_type', $this->requestTypesForPageType($certificateType)))
             ->when($month !== null, fn (Builder $query) => $query->whereMonth('requested_at', $month))
             ->whereYear('requested_at', $year)
             ->whereHas('studyClass', function (Builder $query) use ($track, $certificateType): void {
-                $query->whereIn('status', ['pre_end', 'ended', 'completed', 'active'])
+                $query->whereIn('status', self::REQUEST_VISIBLE_CLASS_STATUSES)
                     ->when($track !== '' && $track !== 'all', fn (Builder $query) => $query
                         ->whereHas('course.track', fn (Builder $trackQuery) => $trackQuery->where('name', $track))
                     )
@@ -193,7 +196,7 @@ class CertificateController extends Controller
         $type = $this->normaliseType($request->query('type', 'normal'));
         $certificateRequest = ClassCertificateRequest::query()
             ->where('study_class_id', $studyClass->id)
-            ->where('certificate_type', $type)
+            ->whereIn('certificate_type', $this->requestTypesForPageType($type))
             ->first(['requested_student_ids']);
 
         $requestedStudentIds = collect($certificateRequest?->requested_student_ids ?? [])
@@ -433,9 +436,7 @@ class CertificateController extends Controller
     private function whereRegularCertificateClass(Builder $query): Builder
     {
         return $query->where(function (Builder $regular): void {
-            foreach (self::SPECIAL_CLASS_KEYWORDS as $keywords) {
-                $this->whereNotMatchingClassKeywords($regular, $keywords);
-            }
+            $this->whereNotMatchingClassKeywords($regular, self::SPECIAL_CLASS_KEYWORDS['internship']);
         });
     }
 
@@ -451,12 +452,25 @@ class CertificateController extends Controller
 
     private function whereRequestedCertificateClass(Builder $query, string $type, ?int $month, int $year): Builder
     {
+        $requestTypes = $this->requestTypesForPageType($type);
+
         return $query->whereHas('certificateRequests', fn (Builder $request) => $request
-            ->where('certificate_type', $type)
+            ->whereIn('certificate_type', $requestTypes)
             ->where('status', 'pending')
             ->when($month !== null, fn (Builder $request) => $request->whereMonth('requested_at', $month))
             ->whereYear('requested_at', $year)
         );
+    }
+
+    private function requestTypesForPageType(string $type): array
+    {
+        return match ($type) {
+            // Legacy non-internship requests may have been saved as free or scholarship.
+            // The current rule is: every non-internship class belongs to Regular.
+            'normal' => ['normal', 'free', 'scholarship'],
+            'meal' => ['meal', 'internship'],
+            default => [$type],
+        };
     }
 
     private function certificateTrackOptions(): array

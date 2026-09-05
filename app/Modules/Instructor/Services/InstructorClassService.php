@@ -929,9 +929,7 @@ class InstructorClassService
     private function certificateRequestTypesForClass(stdClass $class): array
     {
         return match ($this->certificateRequestTypeForClass($class)) {
-            'free' => ['free'],
-            'scholarship' => ['scholarship'],
-            'internship' => ['meal', 'internship'],
+            'internship' => ['internship'],
             default => ['normal'],
         };
     }
@@ -958,14 +956,6 @@ class InstructorClassService
             $class->lesson_title ?? null,
             $class->title ?? null,
         ])->filter()->implode(' '));
-
-        if (str_contains($text, 'free')) {
-            return 'free';
-        }
-
-        if (str_contains($text, 'scholar')) {
-            return 'scholarship';
-        }
 
         if (str_contains($text, 'internship') || str_contains($text, 'intership')) {
             return 'internship';

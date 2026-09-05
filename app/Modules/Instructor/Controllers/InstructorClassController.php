@@ -556,14 +556,6 @@ class InstructorClassController extends Controller
             $class->title ?? null,
         ])->filter()->implode(' '));
 
-        if (str_contains($text, 'free')) {
-            return 'free';
-        }
-
-        if (str_contains($text, 'scholar')) {
-            return 'scholarship';
-        }
-
         if (str_contains($text, 'internship') || str_contains($text, 'intership')) {
             return 'internship';
         }
