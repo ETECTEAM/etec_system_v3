@@ -18,7 +18,7 @@ defineProps({
                                 <div class="cert-free-logo-box">
                                     <img :src="'/assets/Images/logo.png'" alt="ETEC">
                                 </div>
-                                <div class="cert-free-motto">"Build your IT Skill"</div>
+                                <div class="cert-free-motto">"BUild Your IT Skil"</div>
                             </div>
 
                             <div class="cert-free-header-right">
@@ -49,7 +49,7 @@ defineProps({
                             </div>
                             <div class="cert-free-signatur">
                                 <div class="cert-free-sig-line"></div>
-                                <div class="cert-free-sig-name">Mr. Heng Pheakna</div>
+                                <div class="cert-free-sig-name">MR. HENG PHEAKNA</div>
                                 <div class="cert-free-sig-role">Director</div>
                             </div>
                         </div>
@@ -58,59 +58,6 @@ defineProps({
             </div>
         </div>
     </article>
-
-    <Teleport to="body">
-        <article id="class-free-cert-print" class="free-print-root certificate-free-wrapper">
-            <div class="certificate-free-wrap">
-                <div class="certificate-free">
-                    <div class="cert-free-outer-border">
-                        <div class="cert-free-inner-border">
-                            <div class="cert-free-header">
-                                <div class="cert-free-header-left">
-                                    <div class="cert-free-logo-box">
-                                        <img :src="'/assets/Images/logo.png'" alt="ETEC">
-                                    </div>
-                                    <div class="cert-free-motto">"Build your IT Skill"</div>
-                                </div>
-
-                                <div class="cert-free-header-right">
-                                    <div class="cert-free-kingdom">
-                                        <div>KINGDOM OF CAMBODIA</div>
-                                        <div>NATION&nbsp; RELIGION &nbsp;KING</div>
-                                        <img :src="'/assets/Images/border.png'" alt="">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="cert-free-title">Certificate of Completion</div>
-                            <div class="cert-free-certify">This is to certify that</div>
-                            <div class="cert-free-student-name">{{ certificate.student_name }}</div>
-
-                            <div class="cert-free-desc">
-                                has successfully completed all requirements for completion of the<br>
-                                I.T Training Courses in
-                            </div>
-
-                            <div class="cert-free-course">{{ certificate.course }}</div>
-                            <div class="cert-free-granted">Granted: {{ certificate.granted_date }}</div>
-
-                            <div class="cert-free-bottom">
-                                <div class="cert-free-bottom-spacer"></div>
-                                <div class="cert-free-id-bottom">
-                                    <span>ID:</span> {{ certificate.certificate_id }}
-                                </div>
-                                <div class="cert-free-signatur">
-                                    <div class="cert-free-sig-line"></div>
-                                    <div class="cert-free-sig-name">Mr. Heng Pheakna</div>
-                                    <div class="cert-free-sig-role">Director</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </article>
-    </Teleport>
 </template>
 
 <style scoped>
@@ -139,10 +86,6 @@ defineProps({
         radial-gradient(circle at 50% 0%, rgba(96, 165, 250, .10), transparent 34%),
         #111827 !important;
     box-shadow: 0 22px 50px rgba(0, 0, 0, .34) !important;
-}
-
-.free-print-root {
-    display: none;
 }
 
 .certificate-free-wrap {
@@ -200,8 +143,8 @@ defineProps({
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 66px;
-    height: 66px;
+    width: 100px;
+    height: 100px;
     overflow: hidden;
     border-radius: 4px;
 }
@@ -213,7 +156,7 @@ defineProps({
 }
 
 .cert-free-motto {
-    margin-top: 8px;
+    margin-top: 6px;
     color: #333;
     font-family: Arial, sans-serif;
     font-size: 13px;
@@ -297,11 +240,11 @@ defineProps({
     align-items: center;
     justify-content: center;
     width: 500px;
-    min-height: 29px;
-    margin: 8px auto;
+    min-height: 38px;
+    margin: 4px auto;
     color: #000;
     font-family: "Courier New", monospace;
-    font-size: 16px;
+    font-size: 24px;
     font-weight: 900;
     letter-spacing: .07em;
     line-height: 1.25;
@@ -397,21 +340,12 @@ defineProps({
         visibility: hidden !important;
     }
 
-    :global(body.free-certificate-print > *:not(#class-free-cert-print)) {
-        display: none !important;
-    }
-
-    :global(body.free-certificate-print #class-free-cert-print),
-    :global(body.free-certificate-print #class-free-cert-print *) {
+    :global(body.free-certificate-print #class-free-cert),
+    :global(body.free-certificate-print #class-free-cert *) {
         visibility: visible !important;
     }
 
-    :global(body.free-certificate-print) #class-free-cert {
-        display: none !important;
-    }
-
-    #class-free-cert-print,
-    :global(body.free-certificate-print #class-free-cert-print) {
+    :global(body.free-certificate-print #class-free-cert) {
         position: fixed !important;
         inset: 0 !important;
         z-index: 999999 !important;
@@ -427,26 +361,34 @@ defineProps({
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
     }
 
-    #class-free-cert-print .certificate-free-wrap {
+    :global(body.free-certificate-print #class-free-cert .certificate-free-wrap) {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         width: 297mm !important;
         height: 210mm !important;
+        max-height: 210mm !important;
+        overflow: hidden !important;
     }
 
-    #class-free-cert-print .certificate-free {
+    :global(body.free-certificate-print #class-free-cert .certificate-free) {
         box-sizing: border-box !important;
         width: 297mm !important;
         height: 210mm !important;
         min-height: 210mm !important;
+        max-height: 210mm !important;
         padding: 5mm !important;
         box-shadow: none !important;
+        overflow: hidden !important;
     }
 
-    #class-free-cert-print .cert-free-outer-border {
+    :global(body.free-certificate-print #class-free-cert .cert-free-outer-border) {
         display: flex !important;
         flex-direction: column !important;
         box-sizing: border-box !important;
@@ -454,7 +396,7 @@ defineProps({
         height: 100% !important;
     }
 
-    #class-free-cert-print .cert-free-inner-border {
+    :global(body.free-certificate-print #class-free-cert .cert-free-inner-border) {
         display: flex !important;
         flex: 1 !important;
         flex-direction: column !important;
@@ -464,74 +406,74 @@ defineProps({
         height: auto !important;
     }
 
-    #class-free-cert-print .cert-free-logo-box {
-        width: 110px !important;
-        height: 110px !important;
+    :global(body.free-certificate-print #class-free-cert .cert-free-logo-box) {
+        width: 138px !important;
+        height: 138px !important;
     }
 
-    #class-free-cert-print .cert-free-motto {
+    :global(body.free-certificate-print #class-free-cert .cert-free-motto) {
         margin-top: 4px !important;
         font-size: 19px !important;
     }
 
-    #class-free-cert-print .cert-free-kingdom {
+    :global(body.free-certificate-print #class-free-cert .cert-free-kingdom) {
         font-size: 19px !important;
         line-height: 1.5 !important;
     }
 
-    #class-free-cert-print .cert-free-kingdom img {
+    :global(body.free-certificate-print #class-free-cert .cert-free-kingdom img) {
         max-width: 150px !important;
         margin-top: 4px !important;
     }
 
-    #class-free-cert-print .cert-free-title {
+    :global(body.free-certificate-print #class-free-cert .cert-free-title) {
         margin-top: 18px !important;
         font-size: 56px !important;
         line-height: 1 !important;
     }
 
-    #class-free-cert-print .cert-free-certify {
+    :global(body.free-certificate-print #class-free-cert .cert-free-certify) {
         margin-top: 20px !important;
         font-size: 29px !important;
     }
 
-    #class-free-cert-print .cert-free-student-name {
+    :global(body.free-certificate-print #class-free-cert .cert-free-student-name) {
         margin: 18px 0 16px !important;
         font-size: 34px !important;
         -webkit-text-stroke: 1px #000 !important;
     }
 
-    #class-free-cert-print .cert-free-desc {
+    :global(body.free-certificate-print #class-free-cert .cert-free-desc) {
         font-size: 24px !important;
         line-height: 1.45 !important;
     }
 
-    #class-free-cert-print .cert-free-course {
+    :global(body.free-certificate-print #class-free-cert .cert-free-course) {
         width: 500px !important;
-        min-height: 40px !important;
-        margin: 10px auto !important;
-        font-size: 24px !important;
+        min-height: 54px !important;
+        margin: 6px auto !important;
+        font-size: 34px !important;
     }
 
-    #class-free-cert-print .cert-free-granted {
+    :global(body.free-certificate-print #class-free-cert .cert-free-granted) {
         margin-bottom: 20px !important;
         font-size: 18px !important;
     }
 
-    #class-free-cert-print .cert-free-bottom {
+    :global(body.free-certificate-print #class-free-cert .cert-free-bottom) {
         margin-top: 5px !important;
     }
 
-    #class-free-cert-print .cert-free-id-bottom {
+    :global(body.free-certificate-print #class-free-cert .cert-free-id-bottom) {
         font-size: 16px !important;
     }
 
-    #class-free-cert-print .cert-free-sig-line {
+    :global(body.free-certificate-print #class-free-cert .cert-free-sig-line) {
         width: 200px !important;
     }
 
-    #class-free-cert-print .cert-free-sig-name,
-    #class-free-cert-print .cert-free-sig-role {
+    :global(body.free-certificate-print #class-free-cert .cert-free-sig-name),
+    :global(body.free-certificate-print #class-free-cert .cert-free-sig-role) {
         font-size: 18px !important;
     }
 

@@ -61,6 +61,7 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
                                 <img :src="'/assets/Images/logo2.png'" alt="ETEC Center" class="internship-etec-logo">
                                 <img :src="'/assets/KruITSulotion.png'" alt="KRU IT Solution" class="internship-kru-logo">
                             </div>
+                            <div class="internship-khmer-caption">គ្រូអាយធីចិត្តល្អ រួមគ្នាដើម្បីបច្ចេកវិទ្យា</div>
                         </div>
 
                         <div class="internship-kingdom">
@@ -75,7 +76,7 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
                         <p class="internship-presented">is proudly presented to</p>
                         <h2>{{ certificate.student_name }}</h2>
                         <p class="internship-description">
-                            has successfully completed an internship in <strong>{{ certificate.course }}</strong> at KRU IT Solution,
+                            has successfully completed an internship in <strong>{{ certificate.course }}</strong> at <strong>KRU IT Solution</strong>,
                             demonstrating dedication, teamwork, and commitment to professional growth.
                         </p>
                         <p class="internship-granted">Granted: {{ certificate.granted_date }}</p>
@@ -266,8 +267,8 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 
 .cert-logo-img {
     display: inline-block;
-    width: 98px;
-    height: 98px;
+    width: 112px;
+    height: 112px;
     border-radius: 13px;
     object-fit: contain;
 }
@@ -276,8 +277,8 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     display: none;
     align-items: center;
     justify-content: center;
-    width: 88px;
-    height: 88px;
+    width: 102px;
+    height: 102px;
     margin: 0 auto;
     border-radius: 12px;
     background: linear-gradient(135deg, #2d2e81, #1f2060);
@@ -358,9 +359,9 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     margin: 0 0 10px;
     color: #000;
     font-family: "Simp", sans-serif;
-    font-size: 18px;
-    font-weight: bolder;
-    line-height: 28px;
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 34px;
     text-align: center;
     text-shadow: 0 0 2px #000;
     white-space: normal;
@@ -454,7 +455,7 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 .internship-certificate-preview {
     display: block;
     width: 100%;
-    max-width: 960px;
+    max-width: 1040px;
     margin: 0 auto;
     aspect-ratio: 1128 / 792;
     container-type: inline-size;
@@ -471,7 +472,7 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     border: 0.35cqw solid #f7f7f7;
     border-radius: 0.7cqw;
     background: #08216d;
-    padding: 2.48cqw;
+    padding: 2.72cqw;
     color: #111;
     font-family: "Libre Baskerville", "Times New Roman", serif;
     overflow: hidden;
@@ -484,7 +485,7 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     height: 100%;
     border-radius: 0.62cqw;
     background: #fff;
-    padding: 1.42cqw;
+    padding: 1.35cqw;
 }
 
 .internship-border {
@@ -494,7 +495,7 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     flex-direction: column;
     border: 0.18cqw solid #e8f000;
     border-radius: 0.62cqw;
-    padding: 2.39cqw 5.14cqw 1.6cqw;
+    padding: 2.55cqw 5.9cqw 1.9cqw;
 }
 
 /* Corner circuit-trace decorations (dot -> line -> diagonal hash -> line -> dot) */
@@ -522,7 +523,11 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 2.13cqw;
+    gap: 2.4cqw;
+}
+
+.internship-header {
+    min-height: 13.2cqw;
 }
 
 .internship-brand {
@@ -534,30 +539,38 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 .internship-logos {
     display: flex;
     align-items: center;
-    gap: 1.42cqw;
+    gap: 1.0cqw;
 }
 
 .internship-etec-logo {
-    width: 7.36cqw;
-    height: 7.36cqw;
+    width: 9.05cqw;
+    height: 9.05cqw;
     border-radius: 0.53cqw;
     object-fit: cover;
 }
 
 .internship-kru-logo {
-    width: 12.59cqw;
-    height: 8.51cqw;
+    width: 16.05cqw;
+    height: 9.65cqw;
     object-fit: contain;
 }
 
 .internship-khmer-caption {
-    display: none;
+    display: block;
+    margin-top: 0.05cqw;
+    color: #111;
+    font-family: "KhmerUI", "Battambang-Regular", "Koulen", serif;
+    font-size: 1.62cqw;
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .internship-kingdom {
     min-width: 29.79cqw;
-    padding-top: 0.44cqw;
-    font-size: 1.95cqw;
+    padding-top: 0.1cqw;
+    font-size: 2.02cqw;
     font-weight: 900;
     line-height: 1.42;
     text-align: center;
@@ -565,8 +578,8 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 
 .internship-kingdom img {
     display: block;
-    width: 13.12cqw;
-    margin: 0.53cqw auto 0;
+    width: 17.2cqw;
+    margin: 0.9cqw auto 0;
 }
 
 .internship-body {
@@ -576,47 +589,47 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 }
 
 .internship-body h1 {
-    margin: 2.66cqw 0 2.04cqw;
-    font-family: "UnifrakturMaguntia", "oldeng", "Times New Roman", serif;
-    font-size: 5.5cqw;
-    font-weight: 700;
+    margin: 1.65cqw 0 2.75cqw;
+    font-family: "oldeng", "UnifrakturMaguntia", "Times New Roman", serif;
+    font-size: 5.75cqw;
+    font-weight: 400;
+    letter-spacing: .01em;
     line-height: 1;
 }
 
 .internship-presented {
-    margin: 0 0 2.39cqw;
-    font-size: 2.13cqw;
+    margin: 0 0 3.15cqw;
+    font-size: 2.0cqw;
     font-weight: 700;
 }
 
 .internship-body h2 {
     min-width: 14.18cqw;
-    margin: 0 0 3.99cqw;
+    margin: 0 0 5.15cqw;
     border-bottom: 0.18cqw solid #e8f000;
     color: #08216d;
-    padding: 0 1.95cqw 0.62cqw;
+    padding: 0 2.2cqw 0.6cqw;
     font-family: "Libre Baskerville", Georgia, "Times New Roman", serif;
-    font-size: 3.19cqw;
+    font-size: 3.25cqw;
     font-weight: 900;
     line-height: 1.1;
     text-transform: uppercase;
 }
 
 .internship-description {
-    max-width: 74.65cqw;
+    max-width: 78cqw;
     margin: 0;
-    font-size: 1.8cqw;
-    font-weight: 600;
-    line-height: 1.25;
+    font-size: 1.78cqw;
+    font-weight: 400;
+    line-height: 1.22;
 }
 
 .internship-description strong {
     font-weight: 900;
-    /* font-size: 1.8cqw; */
 }
 
 .internship-granted {
-    margin: 3.37cqw 0 0;
+    margin: 3.95cqw 0 0;
     color: #08216d;
     font-size: 1.6cqw;
     font-weight: 900;
@@ -625,15 +638,16 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 .internship-footer {
     align-items: flex-end;
     margin-top: auto;
+    padding-top: 0;
 }
 
 .internship-signature {
-    min-width: 24.82cqw;
+    min-width: 28.2cqw;
     text-align: center;
 }
 
 .internship-sig-line {
-    width: 20.39cqw;
+    width: 23.6cqw;
     height: 0.18cqw;
     margin: 0 auto 0.53cqw;
     background: #e8f000;
@@ -643,7 +657,7 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 .internship-signature span {
     display: block;
     color: #111;
-    font-size: 1.86cqw;
+    font-size: 1.55cqw;
     line-height: 1.25;
 }
 
@@ -654,7 +668,9 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 .internship-id {
     color: red;
     font-family: Arial, sans-serif;
-    font-size: 1.24cqw;
+    align-self: flex-end;
+    margin-bottom: 0.1cqw;
+    font-size: 0.85cqw;
     font-weight: 900;
     white-space: nowrap;
 }
@@ -742,8 +758,8 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 
     .cert-logo-img,
     .cert-logo-fallback {
-        width: 130px !important;
-        height: 130px !important;
+        width: 150px !important;
+        height: 150px !important;
     }
 
     .cert-school-kh {
@@ -785,8 +801,8 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     .cert-course {
         margin-top: 10px !important;
         margin-bottom: 18px !important;
-        font-size: 1.6rem !important;
-        line-height: 43px !important;
+        font-size: 1.9rem !important;
+        line-height: 48px !important;
         -webkit-text-stroke: 1.2px #000 !important;
     }
 
@@ -904,17 +920,22 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     }
 
     .internship-kru-logo {
-        width: 40mm !important;
-        height: 25mm !important;
+        width: 43mm !important;
+        height: 27mm !important;
     }
 
     .internship-khmer-caption {
-        font-size: 4mm !important;
+        display: block !important;
+        font-size: 4.7mm !important;
+        font-weight: 700 !important;
     }
 
     .internship-body h1 {
-        margin-top: 10mm !important;
-        font-size: 17mm !important;
+        margin-top: 8mm !important;
+        font-family: "oldeng", "UnifrakturMaguntia", "Times New Roman", serif !important;
+        font-size: 17.1mm !important;
+        font-weight: 400 !important;
+        letter-spacing: .01em !important;
     }
 
     .internship-presented {
@@ -922,16 +943,30 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     }
 
     .internship-body h2 {
-        font-size: 9mm !important;
+        font-size: 9.2mm !important;
     }
 
     .internship-description {
-        max-width: 220mm !important;
-        font-size: 6mm !important;
+        max-width: 250mm !important;
+        font-size: 5.3mm !important;
+        font-weight: 400 !important;
+    }
+
+    .internship-description strong {
+        font-weight: 900 !important;
     }
 
     .internship-granted {
         font-size: 4.6mm !important;
+    }
+
+    .internship-signature strong,
+    .internship-signature span {
+        font-size: 4.6mm !important;
+    }
+
+    .internship-id {
+        font-size: 2.55mm !important;
     }
 }
 </style>

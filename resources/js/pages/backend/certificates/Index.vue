@@ -66,15 +66,19 @@ const categoryPages = reactive({})
 const selectedClass = ref(null)
 const activeCertificateType = computed(() => isReport.value ? selectedClass.value?.certificate_type : certificateType.value)
 const classCertificatePreview = computed(() => activeCertificateType.value === 'free' ? FreeCertificatePreview : RealCertificatePreview)
+const isSinglePrintOnlyType = computed(() => ['free', 'internship'].includes(activeCertificateType.value))
 const selectedStudent = ref(null)
 const students = ref([])
 const studentsLoading = ref(false)
 const modalMode = ref(null)
 const isPrintAllMode = ref(false)
+const isBatchPrinting = ref(false)
+const isPrintRootReady = ref(false)
 const printSaving = ref(false)
 const normalCertificateId = ref(props.generatedIds.normal)
 const savedCourses = ref([...props.normalCourses])
 const studentDrafts = ref([])
+const printQueue = ref([])
 
 const freeForm = reactive({
     student_name: '',
@@ -173,24 +177,32 @@ const currentCertificate = computed(() => ({
     team_lead_title: printForm.team_lead_title || 'Team Leader, KRU IT Solution',
 }))
 
-const normalPrintCertificates = computed(() => {
-    if (isPrintAllMode.value && studentDrafts.value.length) {
-        return studentDrafts.value.map((student) => ({
-            certificate_type: activeCertificateType.value,
-            student_name: selectedStudent.value?.id === student.id
-                ? printForm.student_name
-                : student.draft_name || student.name,
-            course: printForm.course || selectedClass.value?.course || 'COURSE NAME',
-            granted_date: formatReadableDate(printForm.granted_date),
-            certificate_id: student.certificate_id || normalCertificateId.value || '0000000 ETEC',
-            director: printForm.director,
-            team_lead_name: printForm.team_lead_name,
-            team_lead_title: printForm.team_lead_title,
-        }))
+function certificateFromStudent(student) {
+    return {
+        certificate_type: activeCertificateType.value,
+        student_name: selectedStudent.value?.id === student.id
+            ? printForm.student_name
+            : student.draft_name || student.name,
+        course: printForm.course || selectedClass.value?.course || 'COURSE NAME',
+        granted_date: formatReadableDate(printForm.granted_date),
+        certificate_id: student.certificate_id || normalCertificateId.value || '0000000 ETEC',
+        director: printForm.director,
+        team_lead_name: printForm.team_lead_name,
+        team_lead_title: printForm.team_lead_title,
     }
+}
 
-    return [currentCertificate.value]
-})
+function setPrintQueue(certificates, batch = false) {
+    printQueue.value = certificates
+    isBatchPrinting.value = batch
+    isPrintRootReady.value = true
+}
+
+function clearPrintQueue() {
+    printQueue.value = []
+    isPrintRootReady.value = false
+    isBatchPrinting.value = false
+}
 
 watch(() => props.type, () => {
     closeModal()
@@ -226,11 +238,10 @@ watchEffect(() => {
                     overflow: hidden !important;
                     background: #fff !important;
                 }
-                body.free-certificate-print > *:not(#class-free-cert-print) { display: none !important; }
-                body.free-certificate-print #app { display: none !important; }
-                body.free-certificate-print #class-free-cert-print,
-                body.free-certificate-print #class-free-cert-print * { visibility: visible !important; }
-                body.free-certificate-print #class-free-cert-print {
+                body.free-certificate-print * { visibility: hidden !important; }
+                body.free-certificate-print #class-free-cert,
+                body.free-certificate-print #class-free-cert * { visibility: visible !important; }
+                body.free-certificate-print #class-free-cert {
                     position: fixed !important;
                     inset: 0 !important;
                     z-index: 999999 !important;
@@ -246,39 +257,64 @@ watchEffect(() => {
                     padding: 0 !important;
                     box-shadow: none !important;
                     overflow: hidden !important;
+                    page-break-after: avoid !important;
+                    break-after: avoid !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
                 }
-                body.free-certificate-print #class-free-cert-print .certificate-free-wrap {
+                body.free-certificate-print #class-free-cert .certificate-free-wrap {
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
                     width: 297mm !important;
                     height: 210mm !important;
+                    max-height: 210mm !important;
+                    overflow: hidden !important;
                 }
-                body.free-certificate-print #class-free-cert-print .certificate-free {
+                body.free-certificate-print #class-free-cert .certificate-free {
                     box-sizing: border-box !important;
                     width: 297mm !important;
                     height: 210mm !important;
                     min-height: 210mm !important;
+                    max-height: 210mm !important;
                     padding: 5mm !important;
+                    overflow: hidden !important;
                 }
-                body.free-certificate-print #class-free-cert-print .cert-free-logo-box {
-                    width: 110px !important;
-                    height: 110px !important;
+                body.free-certificate-print #class-free-cert .cert-free-outer-border {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    box-sizing: border-box !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    min-height: 0 !important;
                 }
-                body.free-certificate-print #class-free-cert-print .cert-free-motto { margin-top: 4px !important; font-size: 19px !important; }
-                body.free-certificate-print #class-free-cert-print .cert-free-kingdom { font-size: 19px !important; line-height: 1.5 !important; }
-                body.free-certificate-print #class-free-cert-print .cert-free-kingdom img { max-width: 150px !important; margin-top: 4px !important; }
-                body.free-certificate-print #class-free-cert-print .cert-free-title { margin-top: 18px !important; font-size: 56px !important; line-height: 1 !important; }
-                body.free-certificate-print #class-free-cert-print .cert-free-certify { margin-top: 20px !important; font-size: 29px !important; }
-                body.free-certificate-print #class-free-cert-print .cert-free-student-name { margin: 18px 0 16px !important; font-size: 34px !important; -webkit-text-stroke: 1px #000 !important; }
-                body.free-certificate-print #class-free-cert-print .cert-free-desc { font-size: 24px !important; line-height: 1.45 !important; }
-                body.free-certificate-print #class-free-cert-print .cert-free-course { width: 500px !important; min-height: 40px !important; margin: 10px auto !important; font-size: 24px !important; }
-                body.free-certificate-print #class-free-cert-print .cert-free-granted { margin-bottom: 20px !important; font-size: 18px !important; }
-                body.free-certificate-print #class-free-cert-print .cert-free-bottom { margin-top: 5px !important; }
-                body.free-certificate-print #class-free-cert-print .cert-free-id-bottom { font-size: 16px !important; }
-                body.free-certificate-print #class-free-cert-print .cert-free-sig-line { width: 200px !important; }
-                body.free-certificate-print #class-free-cert-print .cert-free-sig-name,
-                body.free-certificate-print #class-free-cert-print .cert-free-sig-role { font-size: 18px !important; }
+                body.free-certificate-print #class-free-cert .cert-free-inner-border {
+                    display: flex !important;
+                    flex: 1 !important;
+                    flex-direction: column !important;
+                    justify-content: space-between !important;
+                    box-sizing: border-box !important;
+                    min-height: 0 !important;
+                    height: auto !important;
+                }
+                body.free-certificate-print #class-free-cert .cert-free-logo-box {
+                    width: 138px !important;
+                    height: 138px !important;
+                }
+                body.free-certificate-print #class-free-cert .cert-free-motto { margin-top: 4px !important; font-size: 19px !important; }
+                body.free-certificate-print #class-free-cert .cert-free-kingdom { font-size: 19px !important; line-height: 1.5 !important; }
+                body.free-certificate-print #class-free-cert .cert-free-kingdom img { max-width: 150px !important; margin-top: 4px !important; }
+                body.free-certificate-print #class-free-cert .cert-free-title { margin-top: 18px !important; font-size: 56px !important; line-height: 1 !important; }
+                body.free-certificate-print #class-free-cert .cert-free-certify { margin-top: 20px !important; font-size: 29px !important; }
+                body.free-certificate-print #class-free-cert .cert-free-student-name { margin: 18px 0 16px !important; font-size: 34px !important; -webkit-text-stroke: 1px #000 !important; }
+                body.free-certificate-print #class-free-cert .cert-free-desc { font-size: 24px !important; line-height: 1.45 !important; }
+                body.free-certificate-print #class-free-cert .cert-free-course { width: 500px !important; min-height: 54px !important; margin: 6px auto !important; font-size: 34px !important; }
+                body.free-certificate-print #class-free-cert .cert-free-granted { margin-bottom: 20px !important; font-size: 18px !important; }
+                body.free-certificate-print #class-free-cert .cert-free-bottom { margin-top: 5px !important; }
+                body.free-certificate-print #class-free-cert .cert-free-id-bottom { font-size: 16px !important; }
+                body.free-certificate-print #class-free-cert .cert-free-sig-line { width: 200px !important; }
+                body.free-certificate-print #class-free-cert .cert-free-sig-name,
+                body.free-certificate-print #class-free-cert .cert-free-sig-role { font-size: 18px !important; }
             }
         `
         document.head.appendChild(freePrintStyleElement)
@@ -364,30 +400,18 @@ async function loadClasses() {
     }
 }
 
-async function openStudents(studyClass, openBulkModal = false) {
+async function openStudents(studyClass) {
     selectedClass.value = studyClass
     students.value = []
     studentsLoading.value = true
-
-    if (openBulkModal) {
-        openBlankCertificateModal(studyClass)
-    }
 
     try {
         const { data } = await axios.get(`/dashboard/certificates/classes/${studyClass.id}/students`, {
             params: { type: studyClass.certificate_type || certificateType.value },
         })
         students.value = data.data || []
-
-        if (openBulkModal) {
-            if (students.value.length) {
-                await openPrintModal(students.value[0], true)
-            }
-        }
     } catch (error) {
-        if (!openBulkModal) {
-            openBlankCertificateModal(studyClass)
-        }
+        openBlankCertificateModal(studyClass)
     } finally {
         studentsLoading.value = false
     }
@@ -400,7 +424,7 @@ async function openFirstClassForCreate() {
         return
     }
 
-    await openStudents(firstClass, true)
+    await openClassCertificateModal(firstClass)
 }
 
 function openBlankCertificateModal(studyClass = null) {
@@ -420,7 +444,14 @@ function openBlankCertificateModal(studyClass = null) {
 }
 
 async function openClassCertificateModal(studyClass) {
-    await openStudents(studyClass, true)
+    await openStudents(studyClass)
+
+    const student = students.value.find((item) => !item.is_printed) || students.value[0]
+    if (student) {
+        await openPrintModal(student)
+    } else {
+        openBlankCertificateModal(studyClass)
+    }
 }
 
 function backToClasses() {
@@ -442,9 +473,10 @@ function openCreateModal() {
 }
 
 async function openPrintModal(student, printAll = false) {
+    const shouldPrintAll = printAll && !isSinglePrintOnlyType.value
     selectedStudent.value = student
-    isPrintAllMode.value = printAll
-    studentDrafts.value = printAll
+    isPrintAllMode.value = shouldPrintAll
+    studentDrafts.value = shouldPrintAll
         ? students.value.map((item) => ({
             ...item,
             draft_name: item.id === student.id ? printForm.student_name || item.name : item.name,
@@ -523,8 +555,9 @@ async function saveDraftStudent(student) {
     await savePrintedStudent(student, student.draft_name)
 }
 
-function beginNormalPrint() {
+function beginNormalPrint(batch = false) {
     document.body.classList.add('normal-certificate-print')
+    document.body.classList.toggle('batch-certificate-print', batch)
 
     if (normalPrintStyleElement) {
         normalPrintStyleElement.remove()
@@ -579,6 +612,14 @@ function beginNormalPrint() {
                 padding: 0 !important;
                 overflow: hidden !important;
                 background: #fff !important;
+            }
+            body.normal-certificate-print:not(.batch-certificate-print) #normal-cert-print > :nth-child(n+2) {
+                display: none !important;
+                visibility: hidden !important;
+            }
+            body.normal-certificate-print:not(.batch-certificate-print) #normal-cert-print > :first-child {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
             }
             body.normal-certificate-print #normal-cert-print .printable-certificate {
                 box-sizing: border-box !important;
@@ -663,6 +704,10 @@ function beginNormalPrint() {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
             }
+            body.normal-certificate-print:not(.batch-certificate-print) #normal-cert-print .certificate-free-wrapper {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
             body.normal-certificate-print #normal-cert-print .certificate-free-wrapper:last-child {
                 page-break-after: avoid !important;
                 break-after: avoid !important;
@@ -699,8 +744,8 @@ function beginNormalPrint() {
                 height: auto !important;
             }
             body.normal-certificate-print #normal-cert-print .cert-free-logo-box {
-                width: 110px !important;
-                height: 110px !important;
+                width: 138px !important;
+                height: 138px !important;
             }
             body.normal-certificate-print #normal-cert-print .cert-free-motto {
                 margin-top: 4px !important;
@@ -734,9 +779,9 @@ function beginNormalPrint() {
             }
             body.normal-certificate-print #normal-cert-print .cert-free-course {
                 width: 500px !important;
-                min-height: 40px !important;
-                margin: 10px auto !important;
-                font-size: 24px !important;
+                min-height: 54px !important;
+                margin: 6px auto !important;
+                font-size: 34px !important;
             }
             body.normal-certificate-print #normal-cert-print .cert-free-granted {
                 margin-bottom: 20px !important;
@@ -766,6 +811,8 @@ function beginNormalPrint() {
 
 function endNormalPrint() {
     document.body.classList.remove('normal-certificate-print')
+    document.body.classList.remove('batch-certificate-print')
+    clearPrintQueue()
     normalPrintStyleElement?.remove()
     normalPrintStyleElement = null
 }
@@ -788,6 +835,15 @@ async function waitForPrintStyles() {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
 }
 
+function enforceSinglePrintRoot() {
+    if (isBatchPrinting.value) return
+
+    const printRoot = document.getElementById('normal-cert-print')
+    if (!printRoot) return
+
+    Array.from(printRoot.children).slice(1).forEach((element) => element.remove())
+}
+
 function safePrintFileName(value, fallback = 'Certificate') {
     const name = String(value || fallback)
         .trim()
@@ -808,13 +864,518 @@ function printWithTitle(title) {
     }
 }
 
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;',
+    }[character]))
+}
+
+async function waitForImages(documentContext) {
+    const images = Array.from(documentContext.images || [])
+    await Promise.all(images.map((image) => {
+        if (image.complete) return Promise.resolve()
+
+        return new Promise((resolve) => {
+            image.onload = resolve
+            image.onerror = resolve
+        })
+    }))
+}
+
+async function printSingleFreeCertificate(title) {
+    await waitForPrintStyles()
+
+    const source = document.querySelector('#normal-cert-print #class-free-cert')
+        || document.querySelector('.free-certificate-page #class-free-cert')
+        || document.querySelector('#class-free-cert')
+
+    if (!source) {
+        printWithTitle(title)
+        return
+    }
+
+    const iframe = document.createElement('iframe')
+    iframe.setAttribute('aria-hidden', 'true')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    iframe.style.opacity = '0'
+    document.body.appendChild(iframe)
+
+    const iframeWindow = iframe.contentWindow
+    const iframeDocument = iframe.contentDocument || iframeWindow?.document
+    if (!iframeWindow || !iframeDocument) {
+        iframe.remove()
+        printWithTitle(title)
+        return
+    }
+
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map((element) => element.outerHTML)
+        .join('\n')
+    const certificateHtml = source.cloneNode(true).outerHTML
+    const safeTitle = escapeHtml(safePrintFileName(title))
+
+    iframeDocument.open()
+    iframeDocument.write(`
+        <!doctype html>
+        <html>
+            <head>
+                <meta charset="utf-8">
+                <title>${safeTitle}</title>
+                ${styles}
+                <style>
+                    @page { size: A4 landscape; margin: 0; }
+                    html,
+                    body {
+                        width: 297mm !important;
+                        height: 210mm !important;
+                        min-width: 297mm !important;
+                        min-height: 210mm !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        overflow: hidden !important;
+                        background: #fff !important;
+                    }
+                    *,
+                    *::before,
+                    *::after {
+                        box-sizing: border-box !important;
+                        print-color-adjust: exact !important;
+                        -webkit-print-color-adjust: exact !important;
+                    }
+                    body {
+                        display: block !important;
+                    }
+                    .free-iframe-print-root {
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        width: 297mm !important;
+                        height: 210mm !important;
+                        min-height: 210mm !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        overflow: hidden !important;
+                        background: #fff !important;
+                    }
+                    #class-free-cert {
+                        position: static !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        width: 297mm !important;
+                        height: 210mm !important;
+                        min-height: 210mm !important;
+                        max-height: 210mm !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        overflow: hidden !important;
+                        border: 0 !important;
+                        border-radius: 0 !important;
+                        box-shadow: none !important;
+                        background: #fff !important;
+                        color-scheme: light !important;
+                        break-after: avoid !important;
+                        break-before: avoid !important;
+                        break-inside: avoid !important;
+                        page-break-after: avoid !important;
+                        page-break-before: avoid !important;
+                        page-break-inside: avoid !important;
+                    }
+                    #class-free-cert .certificate-free-wrap {
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        width: 297mm !important;
+                        height: 210mm !important;
+                        max-height: 210mm !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        overflow: hidden !important;
+                        background: #fff !important;
+                    }
+                    #class-free-cert .certificate-free {
+                        position: relative !important;
+                        width: 297mm !important;
+                        height: 210mm !important;
+                        min-height: 210mm !important;
+                        max-height: 210mm !important;
+                        margin: 0 !important;
+                        padding: 5mm !important;
+                        overflow: hidden !important;
+                        background: #fff !important;
+                        box-shadow: none !important;
+                    }
+                    #class-free-cert .cert-free-outer-border {
+                        display: flex !important;
+                        flex-direction: column !important;
+                        box-sizing: border-box !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        min-height: 0 !important;
+                    }
+                    #class-free-cert .cert-free-inner-border {
+                        display: flex !important;
+                        flex: 1 !important;
+                        flex-direction: column !important;
+                        justify-content: space-between !important;
+                        box-sizing: border-box !important;
+                        min-height: 0 !important;
+                        height: auto !important;
+                    }
+                    #class-free-cert .cert-free-logo-box {
+                        width: 138px !important;
+                        height: 138px !important;
+                    }
+                    #class-free-cert .cert-free-motto {
+                        margin-top: 4px !important;
+                        font-size: 19px !important;
+                    }
+                    #class-free-cert .cert-free-kingdom {
+                        font-size: 19px !important;
+                        line-height: 1.5 !important;
+                    }
+                    #class-free-cert .cert-free-kingdom img {
+                        max-width: 150px !important;
+                        margin-top: 4px !important;
+                    }
+                    #class-free-cert .cert-free-title {
+                        margin-top: 18px !important;
+                        font-size: 56px !important;
+                        line-height: 1 !important;
+                    }
+                    #class-free-cert .cert-free-certify {
+                        margin-top: 20px !important;
+                        font-size: 29px !important;
+                    }
+                    #class-free-cert .cert-free-student-name {
+                        margin: 18px 0 16px !important;
+                        font-size: 34px !important;
+                        -webkit-text-stroke: 1px #000 !important;
+                    }
+                    #class-free-cert .cert-free-desc {
+                        font-size: 24px !important;
+                        line-height: 1.45 !important;
+                    }
+                    #class-free-cert .cert-free-course {
+                        width: 500px !important;
+                        min-height: 54px !important;
+                        margin: 6px auto !important;
+                        font-size: 34px !important;
+                    }
+                    #class-free-cert .cert-free-granted {
+                        margin-bottom: 20px !important;
+                        font-size: 18px !important;
+                    }
+                    #class-free-cert .cert-free-bottom {
+                        margin-top: 5px !important;
+                    }
+                    #class-free-cert .cert-free-id-bottom {
+                        font-size: 16px !important;
+                    }
+                    #class-free-cert .cert-free-sig-line {
+                        width: 200px !important;
+                    }
+                    #class-free-cert .cert-free-sig-name,
+                    #class-free-cert .cert-free-sig-role {
+                        font-size: 18px !important;
+                    }
+                </style>
+            </head>
+            <body>
+                <main class="free-iframe-print-root">${certificateHtml}</main>
+            </body>
+        </html>
+    `)
+    iframeDocument.close()
+
+    await waitForImages(iframeDocument)
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    iframeWindow.focus()
+    iframeWindow.print()
+    setTimeout(() => iframe.remove(), 1000)
+}
+
+async function printSingleInternshipCertificate(title) {
+    await waitForPrintStyles()
+
+    const source = document.querySelector('#normal-cert-print .internship-certificate-preview')
+        || document.querySelector('.print-modal .internship-certificate-preview')
+        || document.querySelector('.internship-certificate-preview')
+
+    if (!source) {
+        printWithTitle(title)
+        return
+    }
+
+    const iframe = document.createElement('iframe')
+    iframe.setAttribute('aria-hidden', 'true')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    iframe.style.opacity = '0'
+    document.body.appendChild(iframe)
+
+    const iframeWindow = iframe.contentWindow
+    const iframeDocument = iframe.contentDocument || iframeWindow?.document
+    if (!iframeWindow || !iframeDocument) {
+        iframe.remove()
+        printWithTitle(title)
+        return
+    }
+
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map((element) => element.outerHTML)
+        .join('\n')
+    const certificateHtml = source.cloneNode(true).outerHTML
+    const safeTitle = escapeHtml(safePrintFileName(title))
+
+    iframeDocument.open()
+    iframeDocument.write(`
+        <!doctype html>
+        <html>
+            <head>
+                <meta charset="utf-8">
+                <title>${safeTitle}</title>
+                ${styles}
+                <style>
+                    @page { size: A4 landscape; margin: 0; }
+                    html,
+                    body {
+                        width: 297mm !important;
+                        height: 210mm !important;
+                        min-width: 297mm !important;
+                        min-height: 210mm !important;
+                        max-width: 297mm !important;
+                        max-height: 210mm !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        overflow: hidden !important;
+                        background: #fff !important;
+                    }
+                    *,
+                    *::before,
+                    *::after {
+                        box-sizing: border-box !important;
+                        print-color-adjust: exact !important;
+                        -webkit-print-color-adjust: exact !important;
+                    }
+                    body {
+                        display: block !important;
+                    }
+                    .internship-iframe-print-root {
+                        display: block !important;
+                        width: 297mm !important;
+                        height: 210mm !important;
+                        min-height: 210mm !important;
+                        max-height: 210mm !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        overflow: hidden !important;
+                        background: #fff !important;
+                    }
+                    .internship-certificate-preview {
+                        display: flex !important;
+                        width: 297mm !important;
+                        min-width: 297mm !important;
+                        max-width: 297mm !important;
+                        height: 210mm !important;
+                        min-height: 210mm !important;
+                        max-height: 210mm !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        border: 0 !important;
+                        border-radius: 0 !important;
+                        background: #fff !important;
+                        overflow: hidden !important;
+                        aspect-ratio: auto !important;
+                        break-after: avoid !important;
+                        break-before: avoid !important;
+                        break-inside: avoid !important;
+                        page-break-after: avoid !important;
+                        page-break-before: avoid !important;
+                        page-break-inside: avoid !important;
+                    }
+                    .internship-certificate-preview .internship-certificate {
+                        width: 297mm !important;
+                        height: 210mm !important;
+                        min-height: 210mm !important;
+                        max-height: 210mm !important;
+                        margin: 0 !important;
+                        border-width: 1.2mm !important;
+                        border-radius: 0 !important;
+                        padding: 8mm !important;
+                        overflow: hidden !important;
+                        box-shadow: none !important;
+                        aspect-ratio: auto !important;
+                    }
+                    .internship-certificate-preview .internship-paper {
+                        display: flex !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        min-height: 0 !important;
+                        padding: 4mm !important;
+                    }
+                    .internship-certificate-preview .internship-border {
+                        display: flex !important;
+                        flex: 1 1 auto !important;
+                        flex-direction: column !important;
+                        min-height: 0 !important;
+                        padding: 7.6mm 17.5mm 4.8mm !important;
+                    }
+                    .internship-certificate-preview .circuit-top {
+                        top: 3mm !important;
+                        left: 3mm !important;
+                    }
+                    .internship-certificate-preview .circuit-bottom {
+                        right: 3mm !important;
+                        bottom: 3mm !important;
+                    }
+                    .internship-certificate-preview .internship-circuit-svg {
+                        width: 42mm !important;
+                    }
+                    .internship-certificate-preview .internship-logos {
+                        gap: 3mm !important;
+                    }
+                    .internship-certificate-preview .internship-etec-logo {
+                        width: 27mm !important;
+                        height: 27mm !important;
+                    }
+                    .internship-certificate-preview .internship-kru-logo {
+                        width: 47.5mm !important;
+                        height: 28.6mm !important;
+                    }
+                    .internship-certificate-preview .internship-khmer-caption {
+                        display: block !important;
+                        margin-top: 0.2mm !important;
+                        font-size: 4.7mm !important;
+                        font-weight: 700 !important;
+                    }
+                    .internship-certificate-preview .internship-kingdom {
+                        font-size: 6mm !important;
+                    }
+                    .internship-certificate-preview .internship-kingdom img {
+                        width: 51mm !important;
+                        margin-top: 2.6mm !important;
+                    }
+                    .internship-certificate-preview .internship-header {
+                        min-height: 39mm !important;
+                    }
+                    .internship-certificate-preview .internship-body h1 {
+                        margin: 4.9mm 0 8.2mm !important;
+                        font-family: "oldeng", "UnifrakturMaguntia", "Times New Roman", serif !important;
+                        font-size: 17.1mm !important;
+                        font-weight: 400 !important;
+                        letter-spacing: .01em !important;
+                    }
+                    .internship-certificate-preview .internship-presented {
+                        margin-bottom: 9.3mm !important;
+                        font-size: 5.9mm !important;
+                    }
+                    .internship-certificate-preview .internship-body h2 {
+                        margin-bottom: 15.3mm !important;
+                        padding: 0 6.5mm 1.9mm !important;
+                        font-size: 9.65mm !important;
+                    }
+                    .internship-certificate-preview .internship-description {
+                        max-width: 232mm !important;
+                        font-size: 5.3mm !important;
+                        font-weight: 400 !important;
+                        line-height: 1.22 !important;
+                    }
+                    .internship-certificate-preview .internship-description strong {
+                        font-weight: 900 !important;
+                    }
+                    .internship-certificate-preview .internship-granted {
+                        margin-top: 11.7mm !important;
+                        font-size: 4.5mm !important;
+                    }
+                    .internship-certificate-preview .internship-signature {
+                        min-width: 83mm !important;
+                    }
+                    .internship-certificate-preview .internship-sig-line {
+                        width: 70mm !important;
+                    }
+                    .internship-certificate-preview .internship-signature strong,
+                    .internship-certificate-preview .internship-signature span {
+                        font-size: 4.6mm !important;
+                    }
+                    .internship-certificate-preview .internship-id {
+                        margin-bottom: 0.8mm !important;
+                        font-size: 2.55mm !important;
+                    }
+                </style>
+            </head>
+            <body>
+                <main class="internship-iframe-print-root">${certificateHtml}</main>
+            </body>
+        </html>
+    `)
+    iframeDocument.close()
+
+    await waitForImages(iframeDocument)
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    iframeWindow.focus()
+    iframeWindow.print()
+    setTimeout(() => iframe.remove(), 1000)
+}
+
 async function printSingle() {
     const student = selectedStudent.value
     if (!printForm.course.trim()) return
 
-    beginNormalPrint()
+    if (activeCertificateType.value === 'free') {
+        setPrintQueue([currentCertificate.value], false)
+        await printSingleFreeCertificate(printForm.student_name || student?.name)
+        const printed = window.confirm('Printed successfully?')
+        clearPrintQueue()
+        if (!printed || !student) return
+
+        printSaving.value = true
+        try {
+            await savePrintedStudent(student, printForm.student_name)
+            await loadClasses()
+        } finally {
+            printSaving.value = false
+        }
+        return
+    }
+
+    if (activeCertificateType.value === 'internship') {
+        setPrintQueue([currentCertificate.value], false)
+        await printSingleInternshipCertificate(printForm.student_name || student?.name)
+        const printed = window.confirm('Printed successfully?')
+        clearPrintQueue()
+        if (!printed || !student) return
+
+        printSaving.value = true
+        try {
+            await savePrintedStudent(student, printForm.student_name)
+            await loadClasses()
+        } finally {
+            printSaving.value = false
+        }
+        return
+    }
+
+    setPrintQueue([currentCertificate.value], false)
+    beginNormalPrint(false)
     const cleanupPrint = scheduleNormalPrintCleanup()
     await waitForPrintStyles()
+    enforceSinglePrintRoot()
     printWithTitle(printForm.student_name || student?.name)
     const printed = window.confirm('Printed successfully?')
     cleanupPrint()
@@ -832,6 +1393,11 @@ async function printSingle() {
 }
 
 async function printAllDrafts() {
+    if (isSinglePrintOnlyType.value) {
+        await printSingle()
+        return
+    }
+
     if (!studentDrafts.value.length || !printForm.course.trim()) return
 
     studentDrafts.value = studentDrafts.value.map((student) => ({
@@ -840,7 +1406,8 @@ async function printAllDrafts() {
     }))
     await assignDraftCertificateIds()
 
-    beginNormalPrint()
+    setPrintQueue(studentDrafts.value.map((student) => certificateFromStudent(student)), true)
+    beginNormalPrint(true)
     const cleanupPrint = scheduleNormalPrintCleanup()
     await waitForPrintStyles()
     printWithTitle(studentDrafts.value[0]?.draft_name || printForm.student_name)
@@ -925,21 +1492,21 @@ function saveFreeAfterPrint() {
     if (!freeForm.end_date) freeErrors.value.end_date = t('certificatePage.validation.endDateRequired')
     if (Object.keys(freeErrors.value).length) return
 
-    document.body.classList.add('free-certificate-print')
-    printWithTitle(freeForm.student_name)
-    if (!window.confirm('Printed successfully?')) return
+    printSingleFreeCertificate(freeForm.student_name).then(() => {
+        if (!window.confirm('Printed successfully?')) return
 
-    freeSaving.value = true
-    router.post('/dashboard/certificates/free', {
-        student_name: freeForm.student_name,
-        course: freeForm.course,
-        end_date: freeForm.end_date,
-    }, {
-        preserveScroll: true,
-        onFinish: () => {
-            freeSaving.value = false
-            refreshId('free')
-        },
+        freeSaving.value = true
+        router.post('/dashboard/certificates/free', {
+            student_name: freeForm.student_name,
+            course: freeForm.course,
+            end_date: freeForm.end_date,
+        }, {
+            preserveScroll: true,
+            onFinish: () => {
+                freeSaving.value = false
+                refreshId('free')
+            },
+        })
     })
 }
 </script>
@@ -1097,11 +1664,11 @@ function saveFreeAfterPrint() {
                     </button>
 
                     <div v-if="!isReport" class="detail-buttons">
-                        <button class="green-action" type="button" :disabled="studentsLoading || !students.length" @click="openPrintModal(students[0], true)">
+                        <button class="green-action" type="button" :disabled="studentsLoading || !students.length" @click="openPrintModal(students[0], !isSinglePrintOnlyType)">
                             <Printer class="h-5 w-5" />
                             {{ t('certificatePage.actions.printAll') }}
                         </button>
-                        <button class="purple-action" type="button" :disabled="studentsLoading || !students.length" @click="openPrintModal(students[0], true)">
+                        <button class="purple-action" type="button" :disabled="studentsLoading || !students.length" @click="openCreateModal">
                             <Award class="h-5 w-5" />
                             {{ t('certificatePage.actions.createCertificate') }}
                         </button>
@@ -1268,31 +1835,13 @@ function saveFreeAfterPrint() {
                         </section>
                     </div>
 
-                    <div class="print-batch">
-                        <component
-                            :is="classCertificatePreview"
-                            v-for="student in studentDrafts"
-                            :key="student.id"
-                            :certificate="{
-                                student_name: student.draft_name || student.name,
-                                course: printForm.course || selectedClass?.course || 'COURSE NAME',
-                                granted_date: formatReadableDate(printForm.granted_date),
-                                certificate_id: student.certificate_id || normalCertificateId || '0000000 ETEC',
-                                certificate_type: activeCertificateType,
-                                director: printForm.director,
-                                team_lead_name: printForm.team_lead_name,
-                                team_lead_title: printForm.team_lead_title,
-                            }"
-                        />
-                    </div>
-
                     <footer class="modal-footer">
                         <button class="light-action" type="button" @click="closeModal"><X class="h-4 w-4" /> {{ t('certificatePage.actions.close') }}</button>
                         <button class="outline-action" type="button" @click="saveCourse"><Bookmark class="h-5 w-5" /> {{ t('certificatePage.actions.saveCourse') }}</button>
-                        <button class="green-action" type="button" :disabled="printSaving" @click="printAllDrafts">
+                        <button class="green-action" type="button" :disabled="printSaving" @click="isSinglePrintOnlyType && students.length ? openPrintModal(students[0]) : printAllDrafts()">
                             <Loader2 v-if="printSaving" class="h-5 w-5 animate-spin" />
                             <Printer v-else class="h-5 w-5" />
-                            {{ t('certificatePage.actions.printAll') }}
+                            {{ isSinglePrintOnlyType ? t('certificatePage.actions.startPrint') : t('certificatePage.actions.printAll') }}
                         </button>
                     </footer>
                 </div>
@@ -1347,33 +1896,15 @@ function saveFreeAfterPrint() {
                         </section>
                     </div>
 
-                    <div v-if="isPrintAllMode" class="print-batch">
-                        <component
-                            :is="classCertificatePreview"
-                            v-for="student in studentDrafts"
-                            :key="student.id"
-                            :certificate="{
-                                student_name: selectedStudent?.id === student.id ? printForm.student_name : student.draft_name || student.name,
-                                course: printForm.course || selectedClass?.course || 'COURSE NAME',
-                                granted_date: formatReadableDate(printForm.granted_date),
-                                certificate_id: student.certificate_id || normalCertificateId || '0000000 ETEC',
-                                certificate_type: activeCertificateType,
-                                director: printForm.director,
-                                team_lead_name: printForm.team_lead_name,
-                                team_lead_title: printForm.team_lead_title,
-                            }"
-                        />
-                    </div>
-
                     <footer class="modal-footer no-print">
                         <button class="light-action" type="button" @click="closeModal"><X class="h-4 w-4" /> {{ t('certificatePage.actions.close') }}</button>
-                        <button class="green-action" type="button" :disabled="printSaving" @click="isPrintAllMode ? printAllDrafts() : printSingle()">
+                        <button class="green-action" type="button" :disabled="printSaving" @click="isPrintAllMode && !isSinglePrintOnlyType ? printAllDrafts() : printSingle()">
                             <Loader2 v-if="printSaving" class="h-5 w-5 animate-spin" />
                             <Printer v-else class="h-5 w-5" />
-                            {{ isPrintAllMode ? t('certificatePage.actions.startPrintAll') : t('certificatePage.actions.startPrint') }}
+                            {{ isPrintAllMode && !isSinglePrintOnlyType ? t('certificatePage.actions.startPrintAll') : t('certificatePage.actions.startPrint') }}
                         </button>
                         <button class="outline-action" type="button" @click="saveCourse"><Save class="h-5 w-5" /> {{ t('certificatePage.actions.saveCourse') }}</button>
-                        <button class="purple-action" type="button" :disabled="printSaving" @click="isPrintAllMode ? printAllDrafts() : printSingle()">
+                        <button class="purple-action" type="button" :disabled="printSaving" @click="printSingle">
                             <Printer class="h-5 w-5" />
                             {{ t('certificatePage.actions.print') }}
                         </button>
@@ -1480,13 +2011,13 @@ function saveFreeAfterPrint() {
 
         <Teleport to="body">
             <div
-                v-if="isClassListPage && modalMode"
+                v-if="isPrintRootReady"
                 id="normal-cert-print"
                 class="normal-print-root"
             >
                 <component
                     :is="classCertificatePreview"
-                    v-for="(certificate, index) in normalPrintCertificates"
+                    v-for="(certificate, index) in printQueue"
                     :key="`${certificate.certificate_id}-${index}`"
                     :certificate="certificate"
                 />
@@ -1626,7 +2157,13 @@ const LegacyCertificatePreview = {
 .saved-course-row {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
+}
+
+.row-actions {
+    justify-content: center;
+    flex-wrap: nowrap;
 }
 
 .normal-actions {
@@ -1907,7 +2444,8 @@ table {
 }
 
 .class-table {
-    min-width: 960px;
+    width: 100%;
+    min-width: 0;
     table-layout: fixed;
 }
 
@@ -1917,17 +2455,17 @@ table {
 
 .class-table th:nth-child(1),
 .class-table td:nth-child(1) {
-    width: 56px;
+    width: 6%;
 }
 
 .class-table th:nth-child(2),
 .class-table td:nth-child(2) {
-    width: 26%;
+    width: 24%;
 }
 
 .class-table th:nth-child(3),
 .class-table td:nth-child(3) {
-    width: 28%;
+    width: 30%;
 }
 
 .class-table th:nth-child(4),
@@ -1937,12 +2475,12 @@ table {
 
 .class-table th:nth-child(5),
 .class-table td:nth-child(5) {
-    width: 13%;
+    width: 9%;
 }
 
 .class-table th:nth-child(6),
 .class-table td:nth-child(6) {
-    width: 18%;
+    width: 16%;
 }
 
 .report-table th:nth-child(1),
@@ -2057,8 +2595,8 @@ table {
 }
 
 .class-table td {
-    font-size: 14px;
-    line-height: 1.35;
+    font-size: 13px;
+    line-height: 1.3;
 }
 
 .count-badge {
@@ -2110,12 +2648,18 @@ table {
     min-height: 30px;
     background: #1832a3;
     color: #fff;
-    padding: 0 10px;
-    font-size: 13px;
+    padding: 0 8px;
+    font-size: 12px;
+    line-height: 1.1;
+    white-space: nowrap;
 }
 
 .view-students.make-cert {
     background: #2d2e83;
+}
+
+.report-table .row-actions {
+    flex-wrap: wrap;
 }
 
 .complete-mark {
@@ -3155,8 +3699,8 @@ table {
 
 .cert-logo-img {
     display: inline-block;
-    width: 98px;
-    height: 98px;
+    width: 112px;
+    height: 112px;
     border-radius: 13px;
     object-fit: contain;
 }
@@ -3165,8 +3709,8 @@ table {
     display: none;
     align-items: center;
     justify-content: center;
-    width: 88px;
-    height: 88px;
+    width: 102px;
+    height: 102px;
     margin: 0 auto;
     border-radius: 12px;
     background: linear-gradient(135deg, #2d2e81, #1f2060);
@@ -3242,9 +3786,9 @@ table {
     margin: 0 0 10px;
     color: #000;
     font-family: "Simp", "Courier New", monospace;
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 900;
-    line-height: 28px;
+    line-height: 34px;
     text-align: center;
     text-shadow: 0 0 2px #000;
     white-space: pre-line;
@@ -3710,6 +4254,16 @@ table {
         padding: 0 !important;
         overflow: hidden !important;
         background: #fff !important;
+    }
+
+    :global(body.normal-certificate-print:not(.batch-certificate-print) #normal-cert-print > :nth-child(n+2)) {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    :global(body.normal-certificate-print:not(.batch-certificate-print) #normal-cert-print > :first-child) {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
     }
 
     :global(body.normal-certificate-print #normal-cert-print .printable-certificate) {
