@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from "vue";
 import {
   UserRound, BookOpen, CalendarDays, Clock3, DollarSign, GraduationCap,
   UserPlus, UserCheck, Printer, Pencil, ArrowRightLeft, X, Check,
@@ -34,17 +35,22 @@ function total(row) {
   return (Number(row.fee_amount) + Number(row.document_fee_amount)).toFixed(2);
 }
 
-function statusPill(row) {
-  if (isPendingRegistration(row)) {
-    return { label: "Pending Approval", dot: "bg-amber-500", classes: "bg-amber-50 text-amber-700 ring-amber-600/20" };
-  }
-  if (row.payment_status === "Paid") {
-    return { label: "Paid", dot: "bg-emerald-500", classes: "bg-emerald-50 text-emerald-700 ring-emerald-600/20" };
-  }
-  if (row.payment_status === "Partial") {
-    return { label: "Partial", dot: "bg-amber-500", classes: "bg-amber-50 text-amber-700 ring-amber-600/20" };
-  }
-  return { label: "Unpaid", dot: "bg-rose-500", classes: "bg-rose-50 text-rose-700 ring-rose-600/20" };
+function paidState(row) {
+  if (isPendingRegistration(row)) return "pending";
+  if (row.payment_status === "Paid") return "paid";
+  if (row.payment_status === "Partial") return "partial";
+  return "unpaid";
+}
+
+const STATE_STYLES = {
+  paid: { card: "border-emerald-200 hover:border-emerald-300 dark:border-emerald-500/20", pill: "bg-emerald-50 text-emerald-700 ring-emerald-600/20", dot: "bg-emerald-500", label: "Paid" },
+  partial: { card: "border-amber-200 hover:border-amber-300 dark:border-amber-500/20", pill: "bg-amber-50 text-amber-700 ring-amber-600/20", dot: "bg-amber-500", label: "Partial" },
+  pending: { card: "border-amber-200 hover:border-amber-300 dark:border-amber-500/20", pill: "bg-amber-50 text-amber-700 ring-amber-600/20", dot: "bg-amber-500", label: "Pending Approval" },
+  unpaid: { card: "border-rose-200 hover:border-rose-300 dark:border-rose-500/20", pill: "bg-rose-50 text-rose-700 ring-rose-600/20", dot: "bg-rose-500", label: "Unpaid" },
+};
+
+function style(row) {
+  return STATE_STYLES[paidState(row)];
 }
 
 const rowLabel = "flex items-center gap-2 text-slate-500 dark:text-gray-400 text-xs sm:text-sm";
@@ -60,11 +66,14 @@ const rowValue = "text-xs sm:text-sm font-medium text-slate-800 text-right trunc
       {{ loading ? $t('Loading...') : $t('No public registrations yet.') }}
     </div>
 
-    <div v-else class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+    <div v-else class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       <div
         v-for="row in registrations"
         :key="row.enrollment_id"
-        class="group relative flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl dark:border-gray-800 dark:bg-gray-900"
+        :class="[
+          'group relative flex flex-col rounded-2xl border bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl dark:bg-gray-900',
+          style(row).card,
+        ]"
       >
         <div class="flex flex-1 flex-col p-5 sm:p-6">
           <!-- Header -->
@@ -87,20 +96,35 @@ const rowValue = "text-xs sm:text-sm font-medium text-slate-800 text-right trunc
                   <h3 class="truncate text-sm font-semibold text-slate-900 transition-colors group-hover:text-indigo-600 dark:text-gray-100 dark:group-hover:text-indigo-400 sm:text-base">
                     {{ row.name }}
                   </h3>
-                  <p class="mt-1 truncate text-[11px] font-medium text-slate-500 dark:text-gray-400">{{ row.phone }}</p>
+                  <div class="mt-1.5 flex items-center gap-2">
+                    <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-gray-500">{{ $t('Phone') }}</span>
+                    <span class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold leading-none text-slate-600 tabular-nums dark:bg-gray-800 dark:text-gray-400">{{ row.phone || '—' }}</span>
+                  </div>
                 </template>
               </div>
             </div>
 
-            <span
-              :class="[
-                'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset',
-                statusPill(row).classes,
-              ]"
-            >
-              <span class="h-1.5 w-1.5 rounded-full" :class="statusPill(row).dot"></span>
-              {{ $t(statusPill(row).label) }}
-            </span>
+            <div class="flex shrink-0 items-center gap-1">
+              <button
+                v-if="!isEditing(row) && !isPendingRegistration(row)"
+                type="button"
+                class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                :title="$t('Edit')"
+                @click="startEdit(row)"
+              >
+                <Pencil class="h-3.5 w-3.5" />
+              </button>
+              <button
+                v-if="!isEditing(row) && !isPendingRegistration(row) && !needsManualScheduling(row)"
+                type="button"
+                class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                :disabled="row.payment_status !== 'Paid'"
+                :title="row.payment_status === 'Paid' ? $t('Move to Another Class') : $t('Record payment first.')"
+                @click="openMoveModal(row)"
+              >
+                <ArrowRightLeft class="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
 
           <!-- Information -->
@@ -117,7 +141,7 @@ const rowValue = "text-xs sm:text-sm font-medium text-slate-800 text-right trunc
             </div>
 
             <div v-if="isEditing(row)" class="flex items-center justify-between gap-2">
-              <span :class="rowLabel">Phone</span>
+              <span :class="rowLabel">{{ $t('Phone') }}</span>
               <input v-model="editDraft.phone" type="text" class="w-40 rounded-lg border border-slate-300 px-2 py-1 text-xs outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
             </div>
 
@@ -134,6 +158,14 @@ const rowValue = "text-xs sm:text-sm font-medium text-slate-800 text-right trunc
             <div class="flex items-center justify-between gap-2">
               <span :class="rowLabel"><CalendarDays class="h-3.5 w-3.5 shrink-0" /> {{ $t('Schedule') }}</span>
               <span :class="rowValue">{{ needsManualScheduling(row) ? requestedScheduleLabel(row) : scheduleLabel(row) }}</span>
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
+              <span :class="rowLabel"><Clock3 class="h-3.5 w-3.5 shrink-0" /> {{ $t('Status') }}</span>
+              <span :class="['inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset', style(row).pill]">
+                <span class="h-1.5 w-1.5 rounded-full" :class="style(row).dot"></span>
+                {{ $t(style(row).label) }}
+              </span>
             </div>
 
             <div class="flex items-center justify-between gap-2">
@@ -156,82 +188,57 @@ const rowValue = "text-xs sm:text-sm font-medium text-slate-800 text-right trunc
             </span>
           </div>
 
-          <!-- Footer -->
-          <div class="mt-4 flex items-center gap-2 sm:mt-5">
-            <template v-if="isEditing(row)">
-              <button
-                type="button"
-                :disabled="editSaving || !!editNameLiveError"
-                class="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                @click="saveEdit(row)"
-              >
-                <Check class="h-4 w-4" />
-                {{ editSaving ? $t('Saving...') : $t('Save') }}
-              </button>
-              <button
-                type="button"
-                :disabled="editSaving"
-                class="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                @click="cancelEdit"
-              >
-                <X class="h-4 w-4" />
-              </button>
-            </template>
-
-            <template v-else-if="isPendingRegistration(row)">
-              <button
-                type="button"
-                class="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
-                @click="approveRegistration(row)"
-              >
-                <UserCheck class="h-4 w-4" />
-                {{ $t('Approve') }}
-              </button>
-            </template>
-
-            <template v-else>
-              <button
-                type="button"
-                class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                :title="$t('Edit')"
-                @click="startEdit(row)"
-              >
-                <Pencil class="h-4 w-4" />
-              </button>
-
-              <button
-                v-if="needsManualScheduling(row)"
-                type="button"
-                class="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
-                :title="$t('Assign to Class')"
-                @click="openMoveModal(row)"
-              >
-                <UserPlus class="h-4 w-4" />
-                {{ $t('Assign to Class') }}
-              </button>
-              <button
-                v-else
-                type="button"
-                class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                :disabled="row.payment_status !== 'Paid'"
-                :title="row.payment_status === 'Paid' ? $t('Move to Another Class') : $t('Record payment first.')"
-                @click="openMoveModal(row)"
-              >
-                <ArrowRightLeft class="h-4 w-4" />
-              </button>
-
-              <button
-                v-if="!needsManualScheduling(row)"
-                type="button"
-                class="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-500"
-                :disabled="printingId === row.enrollment_id"
-                @click="row.payment_status === 'Paid' ? printReceipt(row) : openPartialPaymentModal(row)"
-              >
-                <Printer class="h-4 w-4" />
-                {{ row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record Payment') }}
-              </button>
-            </template>
+          <!-- Footer: one clean primary action (matches the class card) -->
+          <div v-if="isEditing(row)" class="mt-4 flex items-center gap-2 sm:mt-5">
+            <button
+              type="button"
+              :disabled="editSaving || !!editNameLiveError"
+              class="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              @click="saveEdit(row)"
+            >
+              <Check class="h-4 w-4" />
+              {{ editSaving ? $t('Saving...') : $t('Save') }}
+            </button>
+            <button
+              type="button"
+              :disabled="editSaving"
+              class="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+              @click="cancelEdit"
+            >
+              <X class="h-4 w-4" />
+            </button>
           </div>
+
+          <button
+            v-else-if="isPendingRegistration(row)"
+            type="button"
+            class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 sm:mt-5"
+            @click="approveRegistration(row)"
+          >
+            <UserCheck class="h-4 w-4" />
+            {{ $t('Approve Registration') }}
+          </button>
+
+          <button
+            v-else-if="needsManualScheduling(row)"
+            type="button"
+            class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:mt-5"
+            @click="openMoveModal(row)"
+          >
+            <UserPlus class="h-4 w-4" />
+            {{ $t('Assign to Class') }}
+          </button>
+
+          <button
+            v-else
+            type="button"
+            :disabled="printingId === row.enrollment_id"
+            class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-500 sm:mt-5"
+            @click="row.payment_status === 'Paid' ? printReceipt(row) : openPartialPaymentModal(row)"
+          >
+            <Printer class="h-4 w-4" />
+            {{ row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record Payment') }}
+          </button>
         </div>
       </div>
     </div>
