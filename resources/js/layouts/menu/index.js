@@ -1,4 +1,5 @@
 import * as accessLocation from "./accessLocation";
+import * as studentManagement from "./studentManagement";
 import * as building from "./building";
 import * as classes from "./classes";
 import * as classHistory from "./classHistory";
@@ -42,4 +43,5 @@ export const menuDomains = [
   officialLeave,
   absenceBlock,
   accessLocation,
+  studentManagement,
 ];

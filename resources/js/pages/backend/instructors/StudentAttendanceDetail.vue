@@ -13,6 +13,10 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  backUrl: {
+    type: String,
+    default: '',
+  },
 });
 
 const statusClasses = {
@@ -31,7 +35,7 @@ const displayStatus = (status) => statusClasses[status] ? status : "absent";
     <section class="space-y-5">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <Link :href="`/dashboard/instructor/classes/${classData.id}/attendance`" class="inline-flex h-9 items-center gap-2 rounded-lg bg-slate-700 px-3 text-xs font-semibold text-white transition hover:bg-slate-800 sm:text-sm">
+          <Link :href="backUrl || `/dashboard/instructor/classes/${classData.id}/attendance`" class="inline-flex h-9 items-center gap-2 rounded-lg bg-slate-700 px-3 text-xs font-semibold text-white transition hover:bg-slate-800 sm:text-sm">
             <ArrowLeft class="h-4 w-4" />
             Back to Attendance
           </Link>

@@ -391,6 +391,7 @@ class InstructorClassController extends Controller
 
         return Inertia::render('backend/instructors/StudentAttendanceDetail', [
             'classData' => $this->instructorClasses->presentClass($class),
+            'backUrl' => "/dashboard/instructor/classes/{$class->id}/attendance",
             'student' => $this->instructorClasses->studentAttendanceDetail($class->id, (int) $student),
         ]);
     }
