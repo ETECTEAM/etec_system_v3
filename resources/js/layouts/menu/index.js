@@ -6,7 +6,6 @@ import * as classHistory from "./classHistory";
 import * as enroll from "./enroll";
 import * as certificate from "./certificate";
 import * as enrollConfig from "./enrollConfig";
-import * as registerStudent from "./registerStudent";
 import * as course from "./course";
 import * as profile from "./profile";
 import * as preAttendance from "./preAttendance";
@@ -28,7 +27,6 @@ export const menuDomains = [
   enroll,
   certificate,
   enrollConfig,
-  registerStudent,
   course,
   profile,
   preAttendance,
