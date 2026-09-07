@@ -1,5 +1,4 @@
 <script setup>
-import { computed } from "vue";
 import { Head, Link } from "@inertiajs/vue3";
 import { ArrowLeft, CalendarDays, Clock, Mars, User, Venus } from "@lucide/vue";
 
@@ -20,15 +19,9 @@ const statusClasses = {
   present: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300",
   permission: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300",
   absent: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300",
+  late: "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-300",
 };
 const displayStatus = (status) => statusClasses[status] ? status : "absent";
-
-const attendanceScore = computed(() => {
-  const total = Number(props.student.attendance?.total ?? 0);
-  const present = Number(props.student.attendance?.present ?? 0);
-
-  return total > 0 ? Math.round((present / total) * 100) : 0;
-});
 </script>
 
 <template>
@@ -76,9 +69,9 @@ const attendanceScore = computed(() => {
           <p class="text-sm font-bold">Absent</p>
           <p class="mt-1 text-3xl font-black">{{ student.attendance?.absent ?? 0 }}</p>
         </div>
-        <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
-          <p class="text-sm font-bold">Attendance Score</p>
-          <p class="mt-1 text-3xl font-black">{{ attendanceScore }}%</p>
+        <div class="rounded-xl border border-orange-200 bg-orange-50 p-4 text-orange-700 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-300">
+          <p class="text-sm font-bold">Late</p>
+          <p class="mt-1 text-3xl font-black">{{ student.attendance?.late ?? 0 }}</p>
         </div>
       </div>
 

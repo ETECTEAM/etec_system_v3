@@ -27,6 +27,14 @@ class InstructorClassService
 {
     public const ATTENDANCE_STATUSES = ['absent', 'present', 'permission'];
 
+    private const ATTENDANCE_SCORE_DEFAULT = 40.0;
+
+    private const ABSENT_ATTENDANCE_DEDUCTION = 1.0;
+
+    private const PERMISSION_ATTENDANCE_DEDUCTION = 0.5;
+
+    private const LATE_ATTENDANCE_DEDUCTION = 0.3;
+
     public const ATTENDANCE_WINDOW_REASON_NO_SESSION = 'no_session';
 
     public const ATTENDANCE_WINDOW_REASON_BEFORE_START = 'before_start';
@@ -1044,6 +1052,7 @@ class InstructorClassService
                 DB::raw("sum(case when status = 'present' then 1 else 0 end) as present"),
                 DB::raw("sum(case when status = 'permission' then 1 else 0 end) as permission_count"),
                 DB::raw("sum(case when status = 'absent' then 1 else 0 end) as absent"),
+                DB::raw("sum(case when status = 'late' then 1 else 0 end) as late"),
             ])
             ->groupBy('student_id')
             ->get()
@@ -1075,6 +1084,7 @@ class InstructorClassService
                 'present' => (int) ($attendanceStats->present ?? 0),
                 'permission' => (int) ($attendanceStats->permission_count ?? 0),
                 'absent' => (int) ($attendanceStats->absent ?? 0),
+                'late' => (int) ($attendanceStats->late ?? 0),
                 'current_status' => $todayAttendance->status ?? null,
                 'is_tracked' => $todayAttendance !== null,
                 'note' => $todayAttendance->note ?? '',
@@ -1085,11 +1095,31 @@ class InstructorClassService
                 'lock_phase' => $lockState?->phase ?? 'none',
             ],
             'scores' => [
-                'attendance' => (float) ($student->attendance_score ?? 0),
+                'attendance' => $this->attendanceScoreFromStats($attendanceStats),
                 'activity' => (float) ($student->activity_score ?? 0),
                 'exam' => (float) ($student->exam_score ?? 0),
             ],
         ];
+    }
+
+    private function attendanceScoreFromStats(?stdClass $attendanceStats): float
+    {
+        $absent = (int) ($attendanceStats->absent ?? 0);
+        $permission = (int) ($attendanceStats->permission_count ?? 0);
+        $late = (int) ($attendanceStats->late ?? 0);
+
+        $score = self::ATTENDANCE_SCORE_DEFAULT
+            - ($absent * self::ABSENT_ATTENDANCE_DEDUCTION)
+            - ($permission * self::PERMISSION_ATTENDANCE_DEDUCTION)
+            - ($late * self::LATE_ATTENDANCE_DEDUCTION);
+
+        return round(max(0, $score), 2);
+    }
+
+    private function attendanceScoresForClass(int $studyClassId): Collection
+    {
+        return $this->attendanceStats($studyClassId)
+            ->map(fn (stdClass $attendanceStats): float => $this->attendanceScoreFromStats($attendanceStats));
     }
 
     public function saveScores(int $studyClassId, array $records): void
@@ -1099,8 +1129,9 @@ class InstructorClassService
             ->where('enrollment_status', 'active')
             ->get(['id', 'student_id'])
             ->keyBy('id');
+        $attendanceScores = $this->attendanceScoresForClass($studyClassId);
 
-        DB::transaction(function () use ($records, $enrollments, $studyClassId): void {
+        DB::transaction(function () use ($records, $enrollments, $attendanceScores, $studyClassId): void {
             foreach ($records as $record) {
                 $enrollmentId = (int) $record['enrollment_id'];
                 $studentId = (int) $record['student_id'];
@@ -1120,7 +1151,7 @@ class InstructorClassService
                 $payload = [
                     'study_class_id' => $studyClassId,
                     'student_id' => $studentId,
-                    'attendance_score' => $record['attendance_score'],
+                    'attendance_score' => $attendanceScores->get($studentId, self::ATTENDANCE_SCORE_DEFAULT),
                     'activity_score' => $record['activity_score'],
                     'exam_score' => $record['exam_score'],
                     'updated_at' => $now,
@@ -1138,7 +1169,7 @@ class InstructorClassService
                     'student_enrollment_id' => $enrollmentId,
                     'study_class_id' => $studyClassId,
                     'student_id' => $studentId,
-                    'attendance_score' => $record['attendance_score'],
+                    'attendance_score' => $attendanceScores->get($studentId, self::ATTENDANCE_SCORE_DEFAULT),
                     'activity_score' => $record['activity_score'],
                     'exam_score' => $record['exam_score'],
                     'created_at' => $now,

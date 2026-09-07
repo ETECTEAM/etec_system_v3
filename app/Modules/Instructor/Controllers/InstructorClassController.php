@@ -428,9 +428,9 @@ class InstructorClassController extends Controller
             'scores' => ['required', 'array', 'min:1'],
             'scores.*.enrollment_id' => ['required', 'integer', 'exists:student_enrollments,id'],
             'scores.*.student_id' => ['required', 'integer', 'exists:students,id'],
-            'scores.*.attendance_score' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'scores.*.activity_score' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'scores.*.exam_score' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'scores.*.attendance_score' => ['nullable', 'numeric', 'min:0', 'max:40'],
+            'scores.*.activity_score' => ['nullable', 'numeric', 'min:0', 'max:30'],
+            'scores.*.exam_score' => ['nullable', 'numeric', 'min:0', 'max:30'],
         ]);
 
         $records = collect($validated['scores'])
