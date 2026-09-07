@@ -13,6 +13,7 @@ import {
 } from '@lucide/vue'
 
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import { useConfirm } from '../../../composables/useConfirm'
 
 const props = defineProps({
     enrollments: Object,
@@ -48,6 +49,7 @@ const transferForm = useForm({
 })
 
 const availableClasses = computed(() => props.classes || [])
+const { confirm } = useConfirm()
 
 function emptyValue(value) {
     return value === '-' ? '' : (value ?? '')
@@ -195,11 +197,17 @@ function markLate(row) {
     )
 }
 
-function remove(row) {
-    if (window.confirm(`Remove ${row.name} from this class?`)) {
-        router.delete(
-            `/dashboard/student-management/enrollments/${row.enrollment_id}`,
-        )
+async function remove(row) {
+    const confirmed = await confirm({
+        title: 'Remove student from class?',
+        message: `This will remove ${row.name} from ${row.class}.`,
+        confirmText: 'Remove',
+        cancelText: 'Cancel',
+        danger: true,
+    })
+
+    if (confirmed) {
+        router.delete(`/dashboard/student-management/enrollments/${row.enrollment_id}`)
     }
 }
 

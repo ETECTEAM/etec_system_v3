@@ -35,10 +35,12 @@ class MoveStudentEnrollment
                 return $this->assignUnassigned($enrollment, $targetClass, $force);
             }
 
-            // A real move re-prices the enrollment to the target class, so the
-            // student's receipt for the current class must be settled first -
-            // the "Move" button in the UI is disabled until then too.
-            if ($enrollment->payment_status !== 'paid') {
+            // A same-course class change keeps the current enrollment's
+            // payment context, so require its receipt to be settled first.
+            // Moving to another course starts a new course enrollment and may
+            // proceed even when the source enrollment is still unpaid.
+            if ((int) $enrollment->course_id === (int) $targetClass->course_id
+                && $enrollment->payment_status !== 'paid') {
                 throw ValidationException::withMessages([
                     'study_class_id' => 'Record the payment and print the receipt for this student before moving them to another class.',
                 ]);
@@ -56,6 +58,16 @@ class MoveStudentEnrollment
                 'paid_at' => $enrollment->paid_at,
                 'enrolled_at' => $enrollment->enrolled_at,
             ]);
+
+            // Keep the student's attendance history continuous when the
+            // enrollment is recreated for the destination class. The record
+            // IDs stay unchanged, so audit-log references remain valid.
+            DB::table('student_attendances')
+                ->where('student_enrollment_id', $enrollment->id)
+                ->update([
+                    'student_enrollment_id' => $moved->id,
+                    'study_class_id' => $targetClass->id,
+                ]);
 
             $enrollment->update(['enrollment_status' => 'cancelled']);
 
