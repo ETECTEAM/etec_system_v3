@@ -2141,32 +2141,26 @@ const LegacyCertificatePreview = {
 }
 
 .normal-certificate-page {
-    min-height: 100vh;
-    padding: 30px 36px 64px;
-    background: #f5f6fa;
-    color: #101126;
+    min-height: 100%;
+    padding: 0 0 24px;
+    background: transparent;
+    color: #0f172a;
 }
 
 :global(.dark) .normal-certificate-page {
-    background:
-        radial-gradient(circle at 18% 0%, rgba(37, 99, 235, .14), transparent 30%),
-        linear-gradient(180deg, #0b1120 0%, #111827 100%);
+    background: transparent;
     color: #e5e7eb;
 }
 
 .normal-certificate-page.is-dark-theme,
 .legacy-certificate-page.is-dark-theme {
-    background:
-        radial-gradient(circle at 18% 0%, rgba(37, 99, 235, .16), transparent 30%),
-        linear-gradient(180deg, #0b1120 0%, #111827 100%) !important;
+    background: transparent !important;
     color: #e5e7eb !important;
 }
 
 .certificate-dark-ui.normal-certificate-page,
 .certificate-dark-ui.legacy-certificate-page {
-    background:
-        radial-gradient(circle at 18% 0%, rgba(37, 99, 235, .16), transparent 30%),
-        linear-gradient(180deg, #0b1120 0%, #111827 100%) !important;
+    background: transparent !important;
     color: #e5e7eb !important;
 }
 
@@ -2185,7 +2179,7 @@ const LegacyCertificatePreview = {
     font-family: var(--font-khmer), "Khmer OS Muol Light", "Noto Serif Khmer", "Poppins", "Segoe UI", Arial, sans-serif;
     font-size: clamp(22px, 2vw, 28px);
     font-weight: 800;
-    color: #050505;
+    color: #0f172a;
 }
 
 :global(.dark) .normal-toolbar h1 {
@@ -2229,9 +2223,10 @@ const LegacyCertificatePreview = {
     flex: 0 0 250px;
     width: 250px;
     height: 38px;
-    border: 1px solid #d7dbe7;
-    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
     background: #fff;
+    color: #334155;
     padding: 0 12px;
     font-size: 14px;
     outline: none;
@@ -2366,8 +2361,8 @@ button:disabled {
 .is-dark-theme .students-card,
 .is-dark-theme .loading-card {
     border-color: #263244 !important;
-    background: linear-gradient(180deg, #172033 0%, #111827 100%) !important;
-    box-shadow: 0 18px 42px rgba(0, 0, 0, .3) !important;
+    background: #111827 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .28) !important;
 }
 
 .normal-summary span,
@@ -2440,10 +2435,10 @@ button:disabled {
 .info-card,
 .students-card {
     overflow: hidden;
-    border: 1px solid #d9deeb;
-    border-radius: 5px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
     background: #fff;
-    box-shadow: 0 3px 9px rgba(18, 18, 60, .12);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
 }
 
 :global(.dark) .category-card,
@@ -2451,14 +2446,14 @@ button:disabled {
 :global(.dark) .students-card {
     border-color: #263244;
     background: #111827;
-    box-shadow: 0 18px 42px rgba(0, 0, 0, .3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .28);
 }
 
 .category-card h2,
 .info-card header,
 .students-card header {
     margin: 0;
-    background: #2d2e83;
+    background: #1e3a8a;
     color: #fff;
 }
 
@@ -2471,7 +2466,7 @@ button:disabled {
 .is-dark-theme .category-card h2,
 .is-dark-theme .info-card header,
 .is-dark-theme .students-card header {
-    background: linear-gradient(135deg, #1e3a8a, #312e81) !important;
+    background: #1e3a8a !important;
 }
 
 .category-card h2 {
@@ -2609,8 +2604,8 @@ table {
 
 .class-table th,
 .student-table th {
-    background: #cfe2fb;
-    color: #030714;
+    background: #f8fafc;
+    color: #475569;
     font-size: 14px;
     font-weight: 900;
     line-height: 1.25;
@@ -2618,15 +2613,15 @@ table {
 
 :global(.dark) .class-table th,
 :global(.dark) .student-table th {
-    background: #1f2a44;
-    color: #f8fafc;
+    background: #1e293b;
+    color: #cbd5e1;
 }
 
 .is-dark-theme .class-table th,
 .is-dark-theme .student-table th,
 .is-dark-theme .draft-table th {
-    background: #1f2a44 !important;
-    color: #f8fafc !important;
+    background: #1e293b !important;
+    color: #cbd5e1 !important;
 }
 
 :global(.dark) .class-table td,
