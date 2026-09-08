@@ -1146,7 +1146,6 @@ async function printSingleInternshipCertificate(title) {
         .map((element) => element.outerHTML)
         .join('\n')
     const certificateHtml = source.cloneNode(true).outerHTML
-    const safeTitle = escapeHtml(safePrintFileName(title))
 
     iframeDocument.open()
     iframeDocument.write(`
@@ -1154,7 +1153,7 @@ async function printSingleInternshipCertificate(title) {
         <html>
             <head>
                 <meta charset="utf-8">
-                <title>${safeTitle}</title>
+                <title></title>
                 ${styles}
                 <style>
                     @page { size: A4 landscape; margin: 0; }
@@ -1259,15 +1258,16 @@ async function printSingleInternshipCertificate(title) {
                         flex: 1 1 auto !important;
                         flex-direction: column !important;
                         min-height: 0 !important;
+                        border: 1.19mm solid #e8f000 !important;
                         padding: 6.68mm 16.63mm 4.9mm !important;
                     }
                     .internship-certificate-preview .circuit-top {
-                        top: -0.89mm !important;
-                        left: 1.04mm !important;
+                        top: 0 !important;
+                        left: 0.2mm !important;
                     }
                     .internship-certificate-preview .circuit-bottom {
-                        right: 1.04mm !important;
-                        bottom: -0.89mm !important;
+                        right: 0.2mm !important;
+                        bottom: 0.2mm !important;
                     }
                     .internship-certificate-preview .internship-circuit-svg {
                         width: 43.96mm !important;
@@ -1356,26 +1356,6 @@ async function printSingleInternshipCertificate(title) {
                         margin-bottom: 0.8mm !important;
                         font-size: 2.55mm !important;
                     }
-                    @media print {
-                        .internship-iframe-print-root {
-                            position: fixed !important;
-                            top: -5.5mm !important;
-                            left: 0 !important;
-                            width: 297mm !important;
-                            height: 221mm !important;
-                            min-height: 221mm !important;
-                            max-height: none !important;
-                            align-items: stretch !important;
-                            justify-content: stretch !important;
-                        }
-                        .internship-certificate-preview,
-                        .internship-certificate-preview .internship-certificate {
-                            width: 297mm !important;
-                            height: 221mm !important;
-                            min-height: 221mm !important;
-                            max-height: none !important;
-                        }
-                    }
                 </style>
             </head>
             <body>
@@ -1388,9 +1368,16 @@ async function printSingleInternshipCertificate(title) {
     await waitForImages(iframeDocument)
     await new Promise((resolve) => setTimeout(resolve, 100))
 
+    const originalTitle = document.title
+    document.title = ''
+    iframeDocument.title = ''
+
     iframeWindow.focus()
     iframeWindow.print()
-    setTimeout(() => iframe.remove(), 1000)
+    setTimeout(() => {
+        document.title = originalTitle
+        iframe.remove()
+    }, 1000)
 }
 
 async function printSingle() {

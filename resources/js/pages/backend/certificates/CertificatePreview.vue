@@ -530,7 +530,7 @@ const internshipCourseName = computed(() => {
     display: flex;
     flex: 1;
     flex-direction: column;
-    border: 0.18cqw solid #e8f000;
+    border: 0.4cqw solid #e8f000;
     border-radius: 0.62cqw;
     padding: 2.25cqw 5.6cqw 1.65cqw;
 }
@@ -935,17 +935,17 @@ const internshipCourseName = computed(() => {
     }
 
     .internship-circuit-svg {
-        width: 37mm !important;
+        width: 43.96mm !important;
     }
 
     .circuit-top {
-        top: 3mm !important;
-        left: 3mm !important;
+        top: 0 !important;
+        left: 0.2mm !important;
     }
 
     .circuit-bottom {
-        right: 3mm !important;
-        bottom: 3mm !important;
+        right: 0.2mm !important;
+        bottom: 0.2mm !important;
     }
 
     .internship-certificate-preview {
@@ -961,45 +961,65 @@ const internshipCourseName = computed(() => {
         width: 297mm !important;
         height: 210mm !important;
         aspect-ratio: auto !important;
-        border-width: 1.2mm !important;
+        border-width: 2.97mm !important;
         border-radius: 0 !important;
-        padding: 8mm !important;
+        padding: 6.25mm !important;
         box-shadow: none !important;
         background: #08216d !important;
     }
 
     .internship-paper {
-        padding: 4mm !important;
+        padding: 3.27mm !important;
     }
 
     .internship-border {
-        padding: 7mm 15mm 4mm !important;
+        border: 1.19mm solid #e8f000 !important;
+        padding: 6.68mm 16.63mm 4.9mm !important;
     }
 
     .internship-etec-logo {
-        width: 23.5mm !important;
-        height: 23.5mm !important;
+        width: 24.5mm !important;
+        height: 24.5mm !important;
     }
 
     .internship-kru-logo {
         width: auto !important;
-        height: 23.5mm !important;
+        height: 24.5mm !important;
     }
 
     .internship-khmer-caption {
         display: block !important;
-        font-size: 4.2mm !important;
-        font-weight: 700 !important;
+        margin-top: 1.3mm !important;
+        font-size: 4.9mm !important;
+        font-weight: 400 !important;
     }
 
     .certificate-title {
-        transform: translateY(-9mm) !important;
-        margin-bottom: -9mm !important;
+        transform: translateY(-7.43mm) !important;
+        margin-bottom: -7.43mm !important;
+    }
+
+    .internship-body textPath {
+        font-size: 23.03mm !important;
     }
 
     .internship-body-content {
-        transform: translateY(-10mm) !important;
-        margin-bottom: -10mm !important;
+        transform: translateY(-8.32mm) !important;
+        margin-bottom: -8.32mm !important;
+    }
+
+    .internship-kingdom {
+        font-size: 4.75mm !important;
+        line-height: 2 !important;
+    }
+
+    .internship-kingdom img {
+        width: 46mm !important;
+        margin-top: 0 !important;
+    }
+
+    .internship-header {
+        min-height: 39mm !important;
     }
 
     .internship-body h1 {
@@ -1011,18 +1031,22 @@ const internshipCourseName = computed(() => {
     }
 
     .internship-presented {
-        font-size: 5.3mm !important;
+        margin-bottom: 9.3mm !important;
+        font-size: 5.9mm !important;
     }
 
     .internship-body h2 {
-        font-size: 8.3mm !important;
+        margin-bottom: 15.3mm !important;
+        padding: 0 6.53mm 1.78mm !important;
+        font-size: 8.76mm !important;
     }
 
     .internship-description {
-        max-width: 250mm !important;
+        max-width: 232mm !important;
         font-size: 4.7mm !important;
         font-weight: 400 !important;
-        transform: translateY(-3mm) !important;
+        line-height: 1.22 !important;
+        transform: translateY(-2.38mm) !important;
     }
 
     .internship-description strong {
@@ -1030,9 +1054,17 @@ const internshipCourseName = computed(() => {
     }
 
     .internship-granted {
-        margin-top: 8mm !important;
-        font-size: 4.1mm !important;
-        transform: translateY(-3mm) !important;
+        margin-top: 9.36mm !important;
+        font-size: 4.16mm !important;
+        transform: translateY(-2.38mm) !important;
+    }
+
+    .internship-signature {
+        min-width: 83mm !important;
+    }
+
+    .internship-sig-line {
+        width: 70mm !important;
     }
 
     .internship-signature strong,
