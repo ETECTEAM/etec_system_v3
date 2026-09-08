@@ -670,17 +670,34 @@ function beginNormalPrint(batch = false) {
             }
             body.normal-certificate-print #normal-cert-print .cert-outer-border {
                 box-sizing: border-box !important;
+                position: relative !important;
                 display: flex !important;
                 flex: 1 1 auto !important;
                 min-height: 0 !important;
                 border-width: 8mm !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-outer-border::before {
+                position: absolute !important;
+                z-index: 3 !important;
+                inset: 0 !important;
+                content: "" !important;
+                pointer-events: none !important;
+                background:
+                    radial-gradient(circle at 2mm 2mm, #d99d12 0 1.5mm, transparent 1.8mm),
+                    radial-gradient(circle at calc(100% - 2mm) 2mm, #d99d12 0 1.5mm, transparent 1.8mm),
+                    radial-gradient(circle at 2mm calc(100% - 2mm), #d99d12 0 1.5mm, transparent 1.8mm),
+                    radial-gradient(circle at calc(100% - 2mm) calc(100% - 2mm), #d99d12 0 1.5mm, transparent 1.8mm),
+                    radial-gradient(circle at 2mm 2mm, #08216d 0 4.6mm, transparent 4.9mm),
+                    radial-gradient(circle at calc(100% - 2mm) 2mm, #08216d 0 4.6mm, transparent 4.9mm),
+                    radial-gradient(circle at 2mm calc(100% - 2mm), #08216d 0 4.6mm, transparent 4.9mm),
+                    radial-gradient(circle at calc(100% - 2mm) calc(100% - 2mm), #08216d 0 4.6mm, transparent 4.9mm) !important;
             }
             body.normal-certificate-print #normal-cert-print .cert-inner-border {
                 box-sizing: border-box !important;
                 display: flex !important;
                 flex: 1 1 auto !important;
                 min-height: 0 !important;
-                border-width: 5mm !important;
+                border: 1mm solid #d99d12 !important;
             }
             body.normal-certificate-print #normal-cert-print .certificate-free-wrapper {
                 box-sizing: border-box !important;
@@ -3697,18 +3714,36 @@ table {
 }
 
 .cert-outer-border {
+    position: relative;
     border: 15px solid #2d2e81;
     border-radius: 10px;
     padding: 4px;
 }
 
+.cert-outer-border::before {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    content: "";
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 5px 5px, #d99d12 0 4px, transparent 5px),
+        radial-gradient(circle at calc(100% - 5px) 5px, #d99d12 0 4px, transparent 5px),
+        radial-gradient(circle at 5px calc(100% - 5px), #d99d12 0 4px, transparent 5px),
+        radial-gradient(circle at calc(100% - 5px) calc(100% - 5px), #d99d12 0 4px, transparent 5px),
+        radial-gradient(circle at 5px 5px, #08216d 0 12px, transparent 13px),
+        radial-gradient(circle at calc(100% - 5px) 5px, #08216d 0 12px, transparent 13px),
+        radial-gradient(circle at 5px calc(100% - 5px), #08216d 0 12px, transparent 13px),
+        radial-gradient(circle at calc(100% - 5px) calc(100% - 5px), #08216d 0 12px, transparent 13px);
+}
+
 .cert-inner-border {
     position: relative;
     min-height: 624px;
-    border: 8px solid #a6a6a6;
+    border: 2px solid #d99d12;
     border-radius: 8px;
     background: #fff;
-    padding: 15px 15px 3px;
+    padding: 21px 21px 9px;
 }
 
 .cert-kingdom {
@@ -3741,8 +3776,8 @@ table {
 
 .cert-logo-img {
     display: inline-block;
-    width: 112px;
-    height: 112px;
+    width: 98px;
+    height: 98px;
     border-radius: 13px;
     object-fit: contain;
 }
@@ -3770,7 +3805,7 @@ table {
 }
 
 .cert-school-kh span {
-    color: #000;
+    color: #d99d12;
 }
 
 .cert-school-en {
@@ -3783,7 +3818,7 @@ table {
 }
 
 .cert-school-en span {
-    color: #000;
+    color: #d99d12;
 }
 
 .cert-title {
