@@ -23,9 +23,13 @@ const registerClass = ref(null);
 const search = ref("");
 const courseFilter = ref("");
 const instructorFilter = ref("");
+const dayFilter = ref("");
+const timeFilter = ref("");
 
 const courseOptions = computed(() => toOptions(props.classes.map((c) => c.course)));
 const instructorOptions = computed(() => toOptions(props.classes.map((c) => c.teacher)));
+const dayOptions = computed(() => toOptions(props.classes.map((c) => c.term)));
+const timeOptions = computed(() => toOptions(props.classes.map((c) => c.time)));
 
 function toOptions(values) {
   return [...new Set(values.filter(Boolean))]
@@ -39,6 +43,8 @@ const filteredClasses = computed(() => {
   return props.classes.filter((item) => {
     if (courseFilter.value && item.course !== courseFilter.value) return false;
     if (instructorFilter.value && item.teacher !== instructorFilter.value) return false;
+    if (dayFilter.value && item.term !== dayFilter.value) return false;
+    if (timeFilter.value && item.time !== timeFilter.value) return false;
     if (!q) return true;
 
     return [item.title, item.course, item.teacher, item.room, item.floor, item.term, item.time]
@@ -47,12 +53,16 @@ const filteredClasses = computed(() => {
   });
 });
 
-const hasActiveFilter = computed(() => !!(search.value || courseFilter.value || instructorFilter.value));
+const hasActiveFilter = computed(
+  () => !!(search.value || courseFilter.value || instructorFilter.value || dayFilter.value || timeFilter.value),
+);
 
 function clearFilters() {
   search.value = "";
   courseFilter.value = "";
   instructorFilter.value = "";
+  dayFilter.value = "";
+  timeFilter.value = "";
 }
 
 function formatDate(dateStr) {
@@ -107,8 +117,8 @@ const inputClass = "w-full rounded-xl border border-slate-300 bg-white px-4 py-2
   <div class="space-y-5">
     <!-- Search + filters -->
     <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <div class="relative">
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div class="relative sm:col-span-2 lg:col-span-3 xl:col-span-1">
           <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             v-model="search"
@@ -119,6 +129,8 @@ const inputClass = "w-full rounded-xl border border-slate-300 bg-white px-4 py-2
         </div>
         <SelectSearch v-model="courseFilter" :options="courseOptions" placeholder="All Courses" empty-text="No courses" />
         <SelectSearch v-model="instructorFilter" :options="instructorOptions" placeholder="All Instructors" empty-text="No instructors" />
+        <SelectSearch v-model="dayFilter" :options="dayOptions" placeholder="All Days" empty-text="No days" />
+        <SelectSearch v-model="timeFilter" :options="timeOptions" placeholder="All Times" empty-text="No times" />
       </div>
       <div v-if="hasActiveFilter" class="mt-3 flex items-center justify-between gap-3 text-xs text-slate-500 dark:text-gray-400">
         <span>{{ $t(':count of :total eligible classes', { count: filteredClasses.length, total: classes.length }) }}</span>

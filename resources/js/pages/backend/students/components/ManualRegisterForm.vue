@@ -46,7 +46,11 @@ function triggerClass(hasError) {
   }`;
 }
 
-const paymentMethods = ["Cash", "ABA", "Bank Transfer", "Wing", "Other"];
+const genderOptions = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+];
+const methodOptions = ["Cash", "ABA", "Bank Transfer", "Wing", "Other"].map((m) => ({ value: m, label: m }));
 
 const form = reactive(blankForm());
 const errors = reactive({});
@@ -211,16 +215,16 @@ const errorClass = "border-red-300 focus:border-red-500 focus:ring-red-100 dark:
         <h3 class="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-gray-500">
           {{ $t('Student Information') }}
         </h3>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           <div>
             <label :class="labelClass">{{ $t('Full Name') }} <span class="text-red-500">*</span></label>
             <input v-model="form.full_name" type="text" :class="[controlClass, (errors.full_name || nameLiveError) && errorClass]" :placeholder="$t('Enter full name')" />
             <p v-if="errors.full_name" class="mt-1 text-xs text-red-600">{{ errors.full_name }}</p>
           </div>
-          <div>
+          <!-- <div>
             <label :class="labelClass">{{ $t('Khmer Name') }}</label>
             <input v-model="form.khmer_name" type="text" :class="controlClass" :placeholder="$t('ឈ្មោះជាភាសាខ្មែរ')" />
-          </div>
+          </div> -->
           <div>
             <label :class="labelClass">{{ $t('Phone Number') }} <span class="text-red-500">*</span></label>
             <input v-model="form.phone" type="text" inputmode="numeric" maxlength="12" :class="[controlClass, errors.phone && errorClass]" :placeholder="$t('Enter phone number')" @input="normalizePhone" />
@@ -228,11 +232,7 @@ const errorClass = "border-red-300 focus:border-red-500 focus:ring-red-100 dark:
           </div>
           <div>
             <label :class="labelClass">{{ $t('Gender') }} <span class="text-red-500">*</span></label>
-            <select v-model="form.gender" :class="[controlClass, errors.gender && errorClass]">
-              <option value="">{{ $t('Select gender') }}</option>
-              <option value="male">{{ $t('Male') }}</option>
-              <option value="female">{{ $t('Female') }}</option>
-            </select>
+            <SelectSearch v-model="form.gender" :options="genderOptions" placeholder="Select gender" :button-class="triggerClass(!!errors.gender)" />
             <p v-if="errors.gender" class="mt-1 text-xs text-red-600">{{ errors.gender }}</p>
           </div>
         </div>
@@ -243,7 +243,7 @@ const errorClass = "border-red-300 focus:border-red-500 focus:ring-red-100 dark:
         <h3 class="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-gray-500">
           {{ $t('Course Information') }}
         </h3>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           <div>
             <label :class="labelClass">{{ $t('Course') }} <span class="text-red-500">*</span></label>
             <SelectSearch v-model="form.course" :options="courseOptions" placeholder="Select a course" empty-text="No courses" :button-class="triggerClass(!!errors.course)" />
@@ -277,7 +277,7 @@ const errorClass = "border-red-300 focus:border-red-500 focus:ring-red-100 dark:
         <h3 class="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-gray-500">
           {{ $t('Payment Information') }}
         </h3>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           <div>
             <label :class="labelClass">{{ $t('Course Price') }} <span class="text-red-500">*</span></label>
             <input v-model="form.course_price" type="number" min="0" step="0.01" :class="[controlClass, errors.course_price && errorClass]" placeholder="0.00" />
@@ -298,9 +298,7 @@ const errorClass = "border-red-300 focus:border-red-500 focus:ring-red-100 dark:
           </div>
           <div>
             <label :class="labelClass">{{ $t('Payment Method') }}</label>
-            <select v-model="form.payment_method" :class="controlClass">
-              <option v-for="method in paymentMethods" :key="method" :value="method">{{ $t(method) }}</option>
-            </select>
+            <SelectSearch v-model="form.payment_method" :options="methodOptions" :clearable="false" placeholder="Select method" :button-class="triggerClass(false)" />
           </div>
           <div>
             <label :class="labelClass">{{ $t('Payment Date') }}</label>
