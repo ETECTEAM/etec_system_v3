@@ -17,6 +17,7 @@ const {
   isPendingRegistration,
   scheduleLabel,
   requestedScheduleLabel,
+  registrationTypeBadge,
   registrationPageLabel,
   goRegistrationPage,
   printReceipt,
@@ -38,6 +39,7 @@ const {
             <TableHead class="h-8 px-3 text-[11px]">Phone</TableHead>
             <TableHead class="h-8 px-3 text-[11px]">{{ $t('Class') }}</TableHead>
             <TableHead class="h-8 px-3 text-[11px]">{{ $t('Schedule') }}</TableHead>
+            <TableHead class="h-8 px-3 text-[11px]">{{ $t('Type') }}</TableHead>
             <TableHead class="h-8 px-3 text-[11px]">{{ $t('Price') }}</TableHead>
             <TableHead class="h-8 px-3 text-[11px]">{{ $t('Payment Status') }}</TableHead>
             <TableHead class="h-8 px-3 text-[11px]">{{ $t('Registered') }}</TableHead>
@@ -63,6 +65,12 @@ const {
 
             <TableCell class="whitespace-nowrap px-3 py-1.5 text-sm">
               {{ needsManualScheduling(row) ? requestedScheduleLabel(row) : scheduleLabel(row) }}
+            </TableCell>
+
+            <TableCell class="px-3 py-1.5 text-sm">
+              <span :class="['inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold', registrationTypeBadge(row).classes]">
+                {{ $t(registrationTypeBadge(row).label) }}
+              </span>
             </TableCell>
 
             <TableCell class="whitespace-nowrap px-3 py-1.5 text-sm">
@@ -153,7 +161,7 @@ const {
           </TableRow>
 
           <TableRow v-if="registrations.length === 0">
-            <TableCell colspan="9">
+            <TableCell colspan="10">
               <div class="py-10 text-center text-slate-500 dark:text-gray-400">
                 {{ loading ? $t('Loading...') : $t('No public registrations yet.') }}
               </div>

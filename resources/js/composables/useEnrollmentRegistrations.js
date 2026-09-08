@@ -68,6 +68,18 @@ function remainingBalance(row) {
   return Number(row.fee_amount) + Number(row.document_fee_amount) - Number(row.amount_paid);
 }
 
+// Additive "how was this created" marker — separate from the Class / course_id
+// column. Value comes from GetPublicRegistrations (derived from `source`).
+const REGISTRATION_TYPE_BADGES = {
+  normal: { label: "Normal", classes: "bg-slate-100 text-slate-600 dark:bg-gray-700 dark:text-gray-300" },
+  vip: { label: "VIP", classes: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400" },
+  manual: { label: "Manual", classes: "bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400" },
+};
+
+function registrationTypeBadge(row) {
+  return REGISTRATION_TYPE_BADGES[row.registration_type ?? "normal"] ?? REGISTRATION_TYPE_BADGES.normal;
+}
+
 function capitalizeStatus(status) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
@@ -295,6 +307,7 @@ export function useEnrollmentRegistrations() {
     scheduleLabel,
     requestedScheduleLabel,
     remainingBalance,
+    registrationTypeBadge,
 
     fetchRegistrations,
     registrationPageLabel,

@@ -127,7 +127,6 @@ onBeforeUnmount(() => {
         v-if="activeTab === 'registrations'"
         v-model:view="registrationView"
         :deposit-summary="depositSummary"
-        :classes="classes"
       />
       <VipClassForm
         v-else-if="activeTab === 'vip'"

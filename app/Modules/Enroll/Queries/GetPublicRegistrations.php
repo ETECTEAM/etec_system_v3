@@ -39,7 +39,7 @@ class GetPublicRegistrations
     private function baseQuery(string $search = ''): Builder
     {
         return StudentEnrollment::query()
-            ->whereIn('source', ['public_website', 'qr_code', 'admin_register'])
+            ->whereIn('source', ['public_website', 'qr_code', 'admin_register', 'vip', 'manual'])
             ->whereIn('enrollment_status', ['active', 'pending', 'unassigned'])
             ->with([
                 'student:id,full_name,gender,phone',
@@ -119,6 +119,11 @@ class GetPublicRegistrations
             'payment_status' => ucfirst($enrollment->payment_status),
             'enrollment_status' => ucfirst($enrollment->enrollment_status),
             'source' => $enrollment->source,
+            // Additive marker for HOW the registration was created — derived from
+            // the existing `source` column, entirely separate from course_id /
+            // the Class column. 'normal' unless the row was created through the
+            // VIP or Manual Register flows.
+            'registration_type' => $this->registrationType($enrollment),
             'enrolled_at' => $enrollment->enrolled_at?->format('Y-m-d h:i A'),
             // RegisterStudentForSchedule couldn't slot this into a class (no
             // room/instructor free at the time) - the Registrations tab shows
@@ -131,5 +136,16 @@ class GetPublicRegistrations
     private function formatTime(?string $time): ?string
     {
         return $time ? substr($time, 0, 5) : null;
+    }
+
+    // Registration source -> display marker. Anything not created through the
+    // VIP or Manual Register flows is a "normal" registration.
+    private function registrationType(StudentEnrollment $enrollment): string
+    {
+        return match ($enrollment->source) {
+            'vip' => 'vip',
+            'manual' => 'manual',
+            default => 'normal',
+        };
     }
 }

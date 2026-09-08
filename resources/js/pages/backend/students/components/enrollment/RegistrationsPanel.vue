@@ -3,18 +3,13 @@ import { onBeforeUnmount, ref, watch } from "vue";
 import { Search, LayoutGrid, Table2, X } from "@lucide/vue";
 import DepositSummaryCard from "../DepositSummaryCard.vue";
 import RegistrationTableView from "./RegistrationTableView.vue";
-import RegistrationClassCards from "./RegistrationClassCards.vue";
+import RegistrationCardView from "./RegistrationCardView.vue";
 import { useEnrollmentRegistrations } from "@/composables/useEnrollmentRegistrations";
 
-const props = defineProps({
+defineProps({
   depositSummary: {
     type: Object,
     default: null,
-  },
-  // Paginated class list — used by the Card view (existing ClassCrad grid).
-  classes: {
-    type: Object,
-    default: () => ({ data: [], links: [] }),
   },
   view: {
     type: String,
@@ -24,31 +19,20 @@ const props = defineProps({
 
 const emit = defineEmits(["update:view"]);
 
-const { search: registrationSearch, fetchRegistrations } = useEnrollmentRegistrations();
+const { search, fetchRegistrations } = useEnrollmentRegistrations();
 
-// One toolbar search box; its meaning follows the active view.
-const search = ref("");
+// Table and Card show the SAME registration dataset — one debounced search.
 let searchTimer = null;
-
-watch([search, () => props.view], ([term, view]) => {
+watch(search, () => {
   clearTimeout(searchTimer);
-  if (view !== "table") return; // Card view filters client-side via the prop.
-
-  searchTimer = setTimeout(() => {
-    registrationSearch.value = term;
-    fetchRegistrations(1);
-  }, 350);
+  searchTimer = setTimeout(() => fetchRegistrations(1), 350);
 });
-
 onBeforeUnmount(() => clearTimeout(searchTimer));
 
 function clearSearch() {
   clearTimeout(searchTimer);
   search.value = "";
-  if (props.view === "table") {
-    registrationSearch.value = "";
-    fetchRegistrations(1);
-  }
+  fetchRegistrations(1);
 }
 </script>
 
@@ -63,7 +47,7 @@ function clearSearch() {
         <input
           v-model="search"
           type="text"
-          :placeholder="view === 'card' ? $t('Search class, course, instructor...') : $t('Search student...')"
+          :placeholder="$t('Search student...')"
           class="h-10 w-full rounded-xl border border-slate-300 bg-white py-2 pl-10 pr-10 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
         />
         <button
@@ -104,7 +88,7 @@ function clearSearch() {
       </div>
     </div>
 
-    <RegistrationClassCards v-if="view === 'card'" :classes="classes" :search="search" />
+    <RegistrationCardView v-if="view === 'card'" />
     <RegistrationTableView v-else />
   </div>
 </template>
