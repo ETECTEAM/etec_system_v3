@@ -9,6 +9,7 @@ import MoveEnrollmentModal from "./components/MoveEnrollmentModal.vue";
 import EnrollmentTabs from "./components/enrollment/EnrollmentTabs.vue";
 import RegistrationsPanel from "./components/enrollment/RegistrationsPanel.vue";
 import ConfirmPaymentModal from "./components/enrollment/ConfirmPaymentModal.vue";
+import EditRegistrationModal from "./components/enrollment/EditRegistrationModal.vue";
 import ClassBrowser from "./components/enrollment/ClassBrowser.vue";
 import VipClassForm from "./components/VipClassForm.vue";
 import ManualRegisterForm from "./components/ManualRegisterForm.vue";
@@ -140,6 +141,7 @@ onBeforeUnmount(() => {
       <!-- Shared, tab-independent overlays -->
       <ReceiptPrint :class-data="receiptClassData" :student="receiptStudent" />
       <ConfirmPaymentModal />
+      <EditRegistrationModal />
       <MoveEnrollmentModal
         :show="moveModalOpen"
         :enrollment="movingRow"

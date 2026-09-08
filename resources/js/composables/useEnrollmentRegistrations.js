@@ -218,30 +218,30 @@ async function confirmMarkPaidAndPrint() {
   await printReceipt(row);
 }
 
-// --- Inline edit (name / gender / phone) ---
-const editingId = ref(null);
+// --- Edit (name / gender / phone) — shown in a modal ---
+const editModalOpen = ref(false);
+const editingRow = ref(null);
 const editDraft = ref({ name: "", gender: "", phone: "" });
 const editErrors = ref({});
 const editSaving = ref(false);
 const editNameLiveError = computed(() => latinNameError(editDraft.value.name));
 
-function isEditing(row) {
-  return editingId.value === row.enrollment_id;
-}
-
 function startEdit(row) {
-  editingId.value = row.enrollment_id;
+  editingRow.value = row;
   editDraft.value = { name: row.name, gender: row.gender, phone: row.phone };
   editErrors.value = {};
+  editModalOpen.value = true;
 }
 
 function cancelEdit() {
-  editingId.value = null;
+  editModalOpen.value = false;
+  editingRow.value = null;
   editErrors.value = {};
 }
 
-async function saveEdit(row) {
-  if (!isEditing(row) || editNameLiveError.value) return;
+async function saveEdit() {
+  const row = editingRow.value;
+  if (!row || editNameLiveError.value) return;
 
   editSaving.value = true;
   editErrors.value = {};
@@ -249,7 +249,8 @@ async function saveEdit(row) {
   try {
     await axios.put(`/dashboard/enroll/registrations/${row.enrollment_id}`, editDraft.value);
     Object.assign(row, editDraft.value);
-    editingId.value = null;
+    editModalOpen.value = false;
+    editingRow.value = null;
   } catch (error) {
     editErrors.value = error.response?.data?.errors ?? {};
   } finally {
@@ -310,12 +311,12 @@ export function useEnrollmentRegistrations() {
     cancelMarkPaid,
     confirmMarkPaidAndPrint,
 
-    editingId,
+    editModalOpen,
+    editingRow,
     editDraft,
     editErrors,
     editSaving,
     editNameLiveError,
-    isEditing,
     startEdit,
     cancelEdit,
     saveEdit,

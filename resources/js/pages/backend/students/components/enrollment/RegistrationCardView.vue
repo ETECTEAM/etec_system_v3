@@ -1,8 +1,7 @@
 <script setup>
-import { computed } from "vue";
 import {
   UserRound, BookOpen, CalendarDays, Clock3, DollarSign, GraduationCap,
-  UserPlus, UserCheck, Printer, Pencil, ArrowRightLeft, X, Check,
+  UserPlus, UserCheck, Printer, Pencil, ArrowRightLeft,
 } from "@lucide/vue";
 import { useEnrollmentRegistrations } from "@/composables/useEnrollmentRegistrations";
 
@@ -21,14 +20,7 @@ const {
   approveRegistration,
   openPartialPaymentModal,
   openMoveModal,
-  editDraft,
-  editErrors,
-  editSaving,
-  editNameLiveError,
-  isEditing,
   startEdit,
-  cancelEdit,
-  saveEdit,
 } = useEnrollmentRegistrations();
 
 function total(row) {
@@ -83,30 +75,19 @@ const rowValue = "text-xs sm:text-sm font-medium text-slate-800 text-right trunc
                 <UserRound class="h-5 w-5" />
               </div>
               <div class="min-w-0">
-                <template v-if="isEditing(row)">
-                  <input
-                    v-model="editDraft.name"
-                    type="text"
-                    class="w-full rounded-lg border px-2 py-1 text-sm font-semibold outline-none transition focus:ring-2"
-                    :class="editNameLiveError || editErrors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 focus:border-blue-600 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200'"
-                  >
-                  <p v-if="editNameLiveError || editErrors.name" class="mt-1 text-[11px] font-semibold text-red-600">{{ editNameLiveError || editErrors.name[0] }}</p>
-                </template>
-                <template v-else>
-                  <h3 class="truncate text-sm font-semibold text-slate-900 transition-colors group-hover:text-indigo-600 dark:text-gray-100 dark:group-hover:text-indigo-400 sm:text-base">
-                    {{ row.name }}
-                  </h3>
-                  <div class="mt-1.5 flex items-center gap-2">
-                    <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-gray-500">{{ $t('Phone') }}</span>
-                    <span class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold leading-none text-slate-600 tabular-nums dark:bg-gray-800 dark:text-gray-400">{{ row.phone || '—' }}</span>
-                  </div>
-                </template>
+                <h3 class="truncate text-sm font-semibold text-slate-900 transition-colors group-hover:text-indigo-600 dark:text-gray-100 dark:group-hover:text-indigo-400 sm:text-base">
+                  {{ row.name }}
+                </h3>
+                <div class="mt-1.5 flex items-center gap-2">
+                  <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-gray-500">{{ $t('Phone') }}</span>
+                  <span class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold leading-none text-slate-600 tabular-nums dark:bg-gray-800 dark:text-gray-400">{{ row.phone || '—' }}</span>
+                </div>
               </div>
             </div>
 
             <div class="flex shrink-0 items-center gap-1">
               <button
-                v-if="!isEditing(row) && !isPendingRegistration(row)"
+                v-if="!isPendingRegistration(row)"
                 type="button"
                 class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
                 :title="$t('Edit')"
@@ -115,7 +96,7 @@ const rowValue = "text-xs sm:text-sm font-medium text-slate-800 text-right trunc
                 <Pencil class="h-3.5 w-3.5" />
               </button>
               <button
-                v-if="!isEditing(row) && !isPendingRegistration(row) && !needsManualScheduling(row)"
+                v-if="!isPendingRegistration(row) && !needsManualScheduling(row)"
                 type="button"
                 class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-200"
                 :disabled="row.payment_status !== 'Paid'"
@@ -131,18 +112,7 @@ const rowValue = "text-xs sm:text-sm font-medium text-slate-800 text-right trunc
           <div class="mt-4 flex-1 space-y-3 sm:mt-5">
             <div class="flex items-center justify-between gap-2">
               <span :class="rowLabel"><UserRound class="h-3.5 w-3.5 shrink-0" /> {{ $t('Gender') }}</span>
-              <template v-if="isEditing(row)">
-                <div class="inline-flex overflow-hidden rounded-lg border border-slate-300 dark:border-gray-600">
-                  <button type="button" class="px-2.5 py-0.5 text-[11px] font-semibold transition" :class="editDraft.gender === 'male' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 dark:bg-gray-800 dark:text-gray-300'" @click="editDraft.gender = 'male'">{{ $t('Male') }}</button>
-                  <button type="button" class="border-l border-slate-300 px-2.5 py-0.5 text-[11px] font-semibold transition dark:border-gray-600" :class="editDraft.gender === 'female' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 dark:bg-gray-800 dark:text-gray-300'" @click="editDraft.gender = 'female'">{{ $t('Female') }}</button>
-                </div>
-              </template>
-              <span v-else :class="rowValue">{{ row.gender }}</span>
-            </div>
-
-            <div v-if="isEditing(row)" class="flex items-center justify-between gap-2">
-              <span :class="rowLabel">{{ $t('Phone') }}</span>
-              <input v-model="editDraft.phone" type="text" class="w-40 rounded-lg border border-slate-300 px-2 py-1 text-xs outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
+              <span :class="rowValue">{{ row.gender }}</span>
             </div>
 
             <div class="flex items-center justify-between gap-2">
@@ -189,28 +159,8 @@ const rowValue = "text-xs sm:text-sm font-medium text-slate-800 text-right trunc
           </div>
 
           <!-- Footer: one clean primary action (matches the class card) -->
-          <div v-if="isEditing(row)" class="mt-4 flex items-center gap-2 sm:mt-5">
-            <button
-              type="button"
-              :disabled="editSaving || !!editNameLiveError"
-              class="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="saveEdit(row)"
-            >
-              <Check class="h-4 w-4" />
-              {{ editSaving ? $t('Saving...') : $t('Save') }}
-            </button>
-            <button
-              type="button"
-              :disabled="editSaving"
-              class="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-              @click="cancelEdit"
-            >
-              <X class="h-4 w-4" />
-            </button>
-          </div>
-
           <button
-            v-else-if="isPendingRegistration(row)"
+            v-if="isPendingRegistration(row)"
             type="button"
             class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 sm:mt-5"
             @click="approveRegistration(row)"
