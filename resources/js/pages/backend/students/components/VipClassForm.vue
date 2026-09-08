@@ -40,7 +40,36 @@ const TERM_DAYS = ["Mon & Thu", "Sat & Sun", "Sunday", "Saturday"];
 const courseOptions = computed(() => optionList(props.options.courses, props.classes.map((c) => c.course)));
 const instructorOptions = computed(() => optionList(props.options.instructors, props.classes.map((c) => c.teacher)));
 const termOptions = computed(() => TERM_DAYS.map((v) => ({ value: v, label: v })));
-const timeOptions = computed(() => optionList(props.options.times, props.classes.map((c) => c.time)));
+
+// --- Time (native <input type="time">, admin picks any time) ---
+function toMinutes(value) {
+  if (!value) return null;
+  const [h, m] = value.split(":").map(Number);
+  return h * 60 + m;
+}
+function to12h(value) {
+  if (!value) return "";
+  const [h, m] = value.split(":").map(Number);
+  return `${String(((h + 11) % 12) + 1).padStart(2, "0")}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+}
+const timeError = computed(() => {
+  const s = toMinutes(form.time_start);
+  const e = toMinutes(form.time_end);
+  if (s == null || e == null) return "";
+  return e <= s ? t("End time must be later than start time.") : "";
+});
+const durationLabel = computed(() => {
+  const s = toMinutes(form.time_start);
+  const e = toMinutes(form.time_end);
+  if (s == null || e == null || e <= s) return "";
+  const h = Math.floor((e - s) / 60);
+  const m = (e - s) % 60;
+  return [h ? `${h}h` : "", m ? `${m}m` : ""].filter(Boolean).join(" ");
+});
+const timeRange = computed(() =>
+  form.time_start && form.time_end && !timeError.value ? `${to12h(form.time_start)} - ${to12h(form.time_end)}` : "",
+);
+
 const roomOptions = computed(() =>
   optionList(props.options.rooms, props.classes.map((c) => [c.floor, c.room].filter(Boolean).join(" ").trim())),
 );
@@ -67,7 +96,8 @@ const form = reactive({
   course: "",
   instructor: "",
   term: "",
-  time: "",
+  time_start: "",
+  time_end: "",
   start_date: "",
   room: "",
   duration: "",
@@ -108,7 +138,8 @@ function validate() {
   if (!form.course) errors.course = t("Course is required.");
   if (!form.instructor) errors.instructor = t("Instructor is required.");
   if (!form.term) errors.term = t("Term / Days is required.");
-  if (!form.time) errors.time = t("Time is required.");
+  if (!form.time_start || !form.time_end) errors.time = t("Time is required.");
+  else if (timeError.value) errors.time = timeError.value;
   if (!form.start_date) errors.start_date = t("Start date is required.");
   if (form.course_price === "" || Number(form.course_price) < 0) errors.course_price = t("Course price is required.");
 
@@ -120,7 +151,7 @@ const emit = defineEmits(["cancel", "submitted"]);
 function resetForm() {
   Object.assign(form, {
     full_name: "", khmer_name: "", phone: "", gender: "",
-    course: "", instructor: "", term: "", time: "", start_date: "", room: "", duration: "", capacity: "",
+    course: "", instructor: "", term: "", time_start: "", time_end: "", start_date: "", room: "", duration: "", capacity: "",
     course_price: "", discount: "", document_price: "", amount_paid: "", payment_method: "Cash",
     note: "", status: "Active",
   });
@@ -137,6 +168,7 @@ async function submit() {
   saving.value = true;
   const payload = {
     ...form,
+    time: timeRange.value,
     remaining_balance: remainingBalance.value,
   };
 
@@ -238,10 +270,21 @@ const errorClass = "border-red-300 focus:border-red-500 focus:ring-red-100 dark:
             <SelectSearch v-model="form.term" :options="termOptions" placeholder="Select term / days" empty-text="No terms" :button-class="triggerClass(!!errors.term)" />
             <p v-if="errors.term" class="mt-1 text-xs text-red-600">{{ errors.term }}</p>
           </div>
-          <div>
+          <div class="md:col-span-2">
             <label :class="labelClass">{{ $t('Time') }} <span class="text-red-500">*</span></label>
-            <SelectSearch v-model="form.time" :options="timeOptions" placeholder="Select time" empty-text="No times" :button-class="triggerClass(!!errors.time)" />
-            <p v-if="errors.time" class="mt-1 text-xs text-red-600">{{ errors.time }}</p>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div class="flex-1">
+                <span class="mb-1 block text-[11px] font-medium text-slate-500 dark:text-gray-400">{{ $t('Start Time') }}</span>
+                <input v-model="form.time_start" type="time" step="900" :class="[controlClass, errors.time && errorClass]" :aria-label="$t('Start Time')" />
+              </div>
+              <span class="hidden shrink-0 pb-2.5 text-slate-400 sm:block">→</span>
+              <div class="flex-1">
+                <span class="mb-1 block text-[11px] font-medium text-slate-500 dark:text-gray-400">{{ $t('End Time') }}</span>
+                <input v-model="form.time_end" type="time" step="900" :class="[controlClass, errors.time && errorClass]" :aria-label="$t('End Time')" />
+              </div>
+            </div>
+            <p v-if="errors.time || timeError" class="mt-1 text-xs text-red-600">{{ errors.time || timeError }}</p>
+            <p v-else-if="durationLabel" class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ $t('Duration') }}: {{ durationLabel }}</p>
           </div>
           <div>
             <label :class="labelClass">{{ $t('Start Date') }} <span class="text-red-500">*</span></label>
