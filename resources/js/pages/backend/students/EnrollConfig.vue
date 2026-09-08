@@ -45,8 +45,8 @@ const collapsed = ref(new Set())
 const pendingKey = ref(null)
 
 const breadcrumbItems = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Enroll Config', current: true },
+  { label: t('Dashboard'), href: '/dashboard' },
+  { label: t('Enroll Config'), current: true },
 ]
 
 async function fetchCategories() {
@@ -445,7 +445,7 @@ async function applyStartDateToAll() {
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Enrollment Management" :title="$t('Course Enroll Config')" :description="$t('Set when each course opens for enrollment.')" />
+      <PageHero :eyebrow="$t('Enrollment Management')" :title="$t('Course Enroll Config')" :description="$t('Set when each course opens for enrollment.')" />
 
       <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="mb-5 flex flex-col gap-3 rounded-xl border border-dashed border-slate-300 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700">

@@ -33,8 +33,8 @@ const WEEK_DAYS = [
 ]
 
 const breadcrumbItems = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Instructor Busy Time', current: true },
+  { label: t('Dashboard'), href: '/dashboard' },
+  { label: t('Instructor Busy Time'), current: true },
 ]
 
 const instructors = ref(props.instructors ?? [])
@@ -296,7 +296,7 @@ async function toggleInstructor(instructor) {
       <Breadcrumbs :items="breadcrumbItems" class="mb-4" />
 
       <PageHero
-        eyebrow="Instructor"
+        :eyebrow="$t('Instructor')"
         :title="$t('Instructor Busy Time')"
         :description="$t('Weekly grid of every time slot per instructor. Click a slot to block, unblock, open or close it.')"
         class="mb-6"

@@ -31,8 +31,8 @@ const blockReason = ref('')
 const isBlocking = ref(false)
 
 const breadcrumbItems = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'My Availability', current: true },
+  { label: t('Dashboard'), href: '/dashboard' },
+  { label: t('My Availability'), current: true },
 ]
 
 // Bulk block/unblock groupings only - a "weekday" course term like "Mon &
@@ -259,7 +259,7 @@ async function unblockRow(rowIndex, group) {
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
       <PageHero
-        eyebrow="My Availability"
+        :eyebrow="$t('My Availability')"
         :title="$t('My Availability')"
         :description="$t('View your weekly schedule and block time slots when you are not available for class assignment.')"
       />
@@ -299,7 +299,7 @@ async function unblockRow(rowIndex, group) {
                   class="border-b border-slate-200 px-3 py-3 text-center dark:border-gray-800"
                 >
                   <span class="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-gray-300">
-                    {{ day.day_label }}
+                    {{ $t(day.day_label) }}
                   </span>
                 </th>
               </tr>

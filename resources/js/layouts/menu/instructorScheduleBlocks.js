@@ -3,7 +3,7 @@ export function build(ctx) {
 
   return {
     label: "Busy Time",
-    labelKey: "Busy Time",
+    labelKey: "navigation.myAvailability",
     href: "/dashboard/instructor-schedule-blocks",
     match: ["/dashboard/instructor-schedule-blocks"],
     exact: false,

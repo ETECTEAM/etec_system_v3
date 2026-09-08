@@ -58,23 +58,23 @@ const displayStatus = (status) => statusClasses[status] ? status : "absent";
 
       <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <p class="text-sm font-bold text-slate-500 dark:text-gray-400">Total</p>
+          <p class="text-sm font-bold text-slate-500 dark:text-gray-400">{{ $t('Total') }}</p>
           <p class="mt-1 text-3xl font-black text-slate-950 dark:text-gray-100">{{ student.attendance?.total ?? 0 }}</p>
         </div>
         <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
-          <p class="text-sm font-bold">Present</p>
+          <p class="text-sm font-bold">{{ $t('Present') }}</p>
           <p class="mt-1 text-3xl font-black">{{ student.attendance?.present ?? 0 }}</p>
         </div>
         <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
-          <p class="text-sm font-bold">Permission</p>
+          <p class="text-sm font-bold">{{ $t('Permission') }}</p>
           <p class="mt-1 text-3xl font-black">{{ student.attendance?.permission ?? 0 }}</p>
         </div>
         <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
-          <p class="text-sm font-bold">Absent</p>
+          <p class="text-sm font-bold">{{ $t('Absent') }}</p>
           <p class="mt-1 text-3xl font-black">{{ student.attendance?.absent ?? 0 }}</p>
         </div>
         <div class="rounded-xl border border-orange-200 bg-orange-50 p-4 text-orange-700 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-300">
-          <p class="text-sm font-bold">Late</p>
+          <p class="text-sm font-bold">{{ $t('Late') }}</p>
           <p class="mt-1 text-3xl font-black">{{ student.attendance?.late ?? 0 }}</p>
         </div>
       </div>
@@ -88,11 +88,11 @@ const displayStatus = (status) => statusClasses[status] ? status : "absent";
           <table class="min-w-[760px] w-full border-collapse text-sm">
             <thead>
               <tr class="bg-slate-50 text-left text-xs font-black uppercase tracking-[0.08em] text-slate-500 dark:bg-gray-950 dark:text-gray-400">
-                <th class="border-b border-slate-200 px-4 py-3 dark:border-gray-800">Date</th>
-                <th class="border-b border-slate-200 px-4 py-3 dark:border-gray-800">Status</th>
-                <th class="border-b border-slate-200 px-4 py-3 dark:border-gray-800">Note</th>
-                <th class="border-b border-slate-200 px-4 py-3 dark:border-gray-800">Tracked By</th>
-                <th class="border-b border-slate-200 px-4 py-3 dark:border-gray-800">Updated</th>
+                <th class="border-b border-slate-200 px-4 py-3 dark:border-gray-800">{{ $t('Date') }}</th>
+                <th class="border-b border-slate-200 px-4 py-3 dark:border-gray-800">{{ $t('Status') }}</th>
+                <th class="border-b border-slate-200 px-4 py-3 dark:border-gray-800">{{ $t('Note') }}</th>
+                <th class="border-b border-slate-200 px-4 py-3 dark:border-gray-800">{{ $t('Tracked By') }}</th>
+                <th class="border-b border-slate-200 px-4 py-3 dark:border-gray-800">{{ $t('Updated') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -106,7 +106,7 @@ const displayStatus = (status) => statusClasses[status] ? status : "absent";
                 <td class="border-b border-slate-100 px-4 py-4 font-mono text-xs font-bold text-slate-500 dark:border-gray-800 dark:text-gray-400">{{ record.updated_at }}</td>
               </tr>
               <tr v-if="!student.records.length">
-                <td colspan="5" class="px-4 py-12 text-center text-sm font-semibold text-slate-500 dark:text-gray-400">No attendance has been saved for this student yet.</td>
+                <td colspan="5" class="px-4 py-12 text-center text-sm font-semibold text-slate-500 dark:text-gray-400">{{ $t('No attendance has been saved for this student yet.') }}</td>
               </tr>
             </tbody>
           </table>

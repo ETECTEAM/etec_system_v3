@@ -342,7 +342,7 @@ async function saveCapacity() {
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <BookOpen class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Lesson</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Lesson') }}</span>
                 </div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">
                     {{ classData.lesson }}
@@ -352,7 +352,7 @@ async function saveCapacity() {
             <div v-if="showInstructor" class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <UserRound class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Instructor</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Instructor') }}</span>
                 </div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">
                     {{ classData.teacher }}
@@ -362,7 +362,7 @@ async function saveCapacity() {
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <Building2 class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Building</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Building') }}</span>
                 </div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">
                     {{ classData.building }}
@@ -372,7 +372,7 @@ async function saveCapacity() {
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <DoorOpen class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Room</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Room') }}</span>
                 </div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">
                     {{ classData.floor }} {{ classData.room }}
@@ -380,7 +380,7 @@ async function saveCapacity() {
             </div>
 
             <div class="flex items-center justify-between gap-2">
-                <span class="text-xs sm:text-sm text-slate-500 dark:text-gray-400">Status</span>
+                <span class="text-xs sm:text-sm text-slate-500 dark:text-gray-400">{{ $t('Status') }}</span>
                 <span
                     :class="[
                         'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0',
@@ -405,7 +405,7 @@ async function saveCapacity() {
             </div>
 
             <div class="flex items-center justify-between gap-2">
-                <span class="text-xs sm:text-sm text-slate-500 dark:text-gray-400">Enrollment</span>
+                <span class="text-xs sm:text-sm text-slate-500 dark:text-gray-400">{{ $t('Enrollment') }}</span>
                 <span
                     :class="[
                         'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ring-1 ring-inset',
@@ -427,7 +427,7 @@ async function saveCapacity() {
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <CalendarDays class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Days</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Days') }}</span>
                 </div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">
                     {{ classData.term }}
@@ -437,7 +437,7 @@ async function saveCapacity() {
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <Clock3 class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Time</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Time') }}</span>
                 </div>
                 <span class="text-xs sm:text-sm font-medium text-emerald-600 text-right truncate dark:text-emerald-400">
                     {{ classData.time }}
@@ -450,7 +450,7 @@ async function saveCapacity() {
             <div class="flex items-center justify-between gap-2 mb-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <Users class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Students</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Students') }}</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <span class="text-xs sm:text-sm font-semibold text-slate-800 tabular-nums dark:text-gray-200">
@@ -481,8 +481,8 @@ async function saveCapacity() {
                     >
                         {{ capacity }}
                     </span>
-                    <span v-if="savingCapacity" class="text-[10px] text-blue-600 dark:text-blue-400">Saving...</span>
-                    <span v-else-if="savedCapacity" class="text-[10px] text-emerald-600 dark:text-emerald-400">&#10003; Saved</span>
+                    <span v-if="savingCapacity" class="text-[10px] text-blue-600 dark:text-blue-400">{{ $t('Saving...') }}</span>
+                    <span v-else-if="savedCapacity" class="text-[10px] text-emerald-600 dark:text-emerald-400">&#10003; {{ $t('Saved') }}</span>
                 </div>
             </div>
 

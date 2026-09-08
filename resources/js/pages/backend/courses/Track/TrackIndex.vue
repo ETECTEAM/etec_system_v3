@@ -12,7 +12,7 @@
             </nav>
 
             <PageHero
-                eyebrow="Course Management"
+                :eyebrow="$t('Course Management')"
                 :title="$t('Tracks')"
                 :description="$t('Read, create, update, and delete track records')"
                 class="mb-6"

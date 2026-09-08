@@ -2,14 +2,14 @@ export function build(ctx) {
   if (ctx.isSuperAdmin || ctx.isAdmin) {
     return {
       label: "Pre Attendance",
-      labelKey: "Pre Attendance",
+      labelKey: "navigation.preAttendance",
       key: "pre_attendance",
       match: ["/dashboard/pre-attendance-requests", "/dashboard/pre-attendance-classes", "/dashboard/pre-attendance-counts"],
       icon: "pre_attendance",
       children: [
         {
           label: "Pre-Att Request",
-          labelKey: "Pre-Att Request",
+          labelKey: "navigation.preAttendanceRequest",
           href: "/dashboard/pre-attendance-requests",
           match: ["/dashboard/pre-attendance-requests"],
           exact: true,
@@ -17,7 +17,7 @@ export function build(ctx) {
         },
         {
           label: "Pre-Att Class",
-          labelKey: "Pre-Att Class",
+          labelKey: "navigation.preAttendanceClass",
           href: "/dashboard/pre-attendance-classes",
           match: ["/dashboard/pre-attendance-classes"],
           exact: false,
@@ -25,7 +25,7 @@ export function build(ctx) {
         },
         {
           label: "Pre-Att Count",
-          labelKey: "Pre-Att Count",
+          labelKey: "navigation.preAttendanceCount",
           href: "/dashboard/pre-attendance-counts",
           match: ["/dashboard/pre-attendance-counts"],
           exact: false,
@@ -37,7 +37,7 @@ export function build(ctx) {
 
   return {
     label: "Pre Attendance",
-    labelKey: "Pre Attendance",
+    labelKey: "navigation.preAttendance",
     href: "/dashboard/instructor/pre-attendance",
     match: ["/dashboard/instructor/pre-attendance"],
     exact: false,

@@ -5,7 +5,7 @@
             <Breadcrumbs :items="breadcrumbItems" />
 
             <PageHero
-                eyebrow="Course Management"
+                :eyebrow="$t('Course Management')"
                 :title="$t('Courses')"
                 :description="$t('Read, create, update, and delete course records')"
                 class="mb-6"

@@ -3,7 +3,7 @@
     <DashboardLayout>
         <section class="space-y-6">
             <Breadcrumbs :items="breadcrumbItems" />
-            <PageHero eyebrow="Course Management" :title="$t('Categories')" :description="$t('Manage your course categories.')" />
+            <PageHero :eyebrow="$t('Course Management')" :title="$t('Categories')" :description="$t('Manage your course categories.')" />
 
             <Card padding="p-0">
                 <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800 flex justify-between items-center">

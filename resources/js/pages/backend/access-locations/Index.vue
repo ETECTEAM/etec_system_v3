@@ -87,8 +87,8 @@ async function onToggle(event) {
 }
 
 const breadcrumbItems = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Location Lock', current: true },
+  { label: t('Dashboard'), href: '/dashboard' },
+  { label: t('Location Lock'), current: true },
 ]
 </script>
 
@@ -99,7 +99,7 @@ const breadcrumbItems = [
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
       <PageHero
-        eyebrow="Access Control"
+        :eyebrow="$t('Access Control')"
         :title="$t('Location Lock')"
         :description="$t('Restrict chosen dashboard routes to users physically inside your approved location.')"
       />

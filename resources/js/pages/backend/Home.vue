@@ -3,6 +3,9 @@ import { computed, reactive, watch } from "vue";
 import { Head, router } from "@inertiajs/vue3";
 import { Activity, BarChart3, CalendarDays, ChevronDown, DollarSign, GraduationCap, RotateCcw, Users } from "@lucide/vue";
 import DashboardLayout from "../../layouts/DashboardLayout.vue";
+import { useI18n } from "../../i18n";
+
+const { t } = useI18n();
 
 const props = defineProps({
   report: {
@@ -112,7 +115,7 @@ function moneyFormat(value) {
 }
 
 function changeLabel(value) {
-  if (value === null || value === undefined) return "No previous period";
+  if (value === null || value === undefined) return t("No previous period");
   return `${Number(value) >= 0 ? "+" : ""}${value}%`;
 }
 

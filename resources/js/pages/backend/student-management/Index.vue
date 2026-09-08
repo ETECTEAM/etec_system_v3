@@ -14,6 +14,7 @@ import {
 
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import { useConfirm } from '../../../composables/useConfirm'
+import { useI18n } from '../../../i18n'
 
 const props = defineProps({
     enrollments: Object,
@@ -50,6 +51,7 @@ const transferForm = useForm({
 
 const availableClasses = computed(() => props.classes || [])
 const { confirm } = useConfirm()
+const { t } = useI18n()
 
 function emptyValue(value) {
     return value === '-' ? '' : (value ?? '')
@@ -199,10 +201,10 @@ function markLate(row) {
 
 async function remove(row) {
     const confirmed = await confirm({
-        title: 'Remove student from class?',
-        message: `This will remove ${row.name} from ${row.class}.`,
-        confirmText: 'Remove',
-        cancelText: 'Cancel',
+        title: t('Remove student from class?'),
+        message: t('This will remove :name from :class.', { name: row.name, class: row.class }),
+        confirmText: t('Remove'),
+        cancelText: t('Cancel'),
         danger: true,
     })
 
@@ -241,11 +243,11 @@ function openAttendance(row) {
                         class="text-xl font-bold text-slate-900
                                dark:text-gray-100"
                     >
-                        Student Management
+                        {{ $t('Student Management') }}
                     </h1>
 
                     <p class="text-sm text-slate-500 dark:text-gray-400">
-                        Manage enrolled students and class attendance actions.
+                        {{ $t('Manage enrolled students and class attendance actions.') }}
                     </p>
                 </div>
             </div>
@@ -269,7 +271,7 @@ function openAttendance(row) {
                     <input
                         v-model="search"
                         type="text"
-                        placeholder="Search by student name..."
+                        :placeholder="$t('Search by student name...')"
                         class="h-10 w-full rounded-md border border-slate-200
                                bg-white pl-9 pr-3 text-sm
                                dark:border-gray-700 dark:bg-gray-800
@@ -287,7 +289,7 @@ function openAttendance(row) {
                     @change="filter"
                 >
                     <option value="">
-                        All Courses
+                        {{ $t('All Courses') }}
                     </option>
 
                     <option
@@ -309,7 +311,7 @@ function openAttendance(row) {
                     @change="filter"
                 >
                     <option value="">
-                        All Times
+                        {{ $t('All Times') }}
                     </option>
 
                     <option
@@ -340,15 +342,15 @@ function openAttendance(row) {
                         >
                             <tr>
                                 <th class="px-4 py-3">#</th>
-                                <th class="px-4 py-3">Name</th>
-                                <th class="px-4 py-3">Gender</th>
-                                <th class="px-4 py-3">Phone</th>
-                                <th class="px-4 py-3">Course</th>
-                                <th class="px-4 py-3">Instructor</th>
-                                <th class="px-4 py-3">Time</th>
-                                <th class="px-4 py-3">Created</th>
-                                <th class="px-4 py-3">Permission</th>
-                                <th class="px-4 py-3">Action</th>
+                                <th class="px-4 py-3">{{ $t('Name') }}</th>
+                                <th class="px-4 py-3">{{ $t('Gender') }}</th>
+                                <th class="px-4 py-3">{{ $t('Phone') }}</th>
+                                <th class="px-4 py-3">{{ $t('Course') }}</th>
+                                <th class="px-4 py-3">{{ $t('Instructor') }}</th>
+                                <th class="px-4 py-3">{{ $t('Time') }}</th>
+                                <th class="px-4 py-3">{{ $t('Created') }}</th>
+                                <th class="px-4 py-3">{{ $t('Permission') }}</th>
+                                <th class="px-4 py-3">{{ $t('Action') }}</th>
                             </tr>
                         </thead>
 
@@ -440,7 +442,7 @@ function openAttendance(row) {
                                 <!-- Permission -->
                                 <td class="px-4 py-4">
                                     <button
-                                        title="Grant permission"
+                                        :title="$t('Grant permission')"
                                         class="inline-flex items-center gap-1.5
                                                rounded-md bg-indigo-800
                                                px-3 py-2 text-xs font-semibold
@@ -448,7 +450,7 @@ function openAttendance(row) {
                                         @click.stop="open('permission', row)"
                                     >
                                         <CalendarDays class="h-3.5 w-3.5" />
-                                        Permission
+                                        {{ $t('Permission') }}
                                     </button>
                                 </td>
 
@@ -457,7 +459,7 @@ function openAttendance(row) {
                                     <div class="flex items-center gap-1">
                                         <!-- Delete -->
                                         <button
-                                            title="Remove from class"
+                                            :title="$t('Remove from class')"
                                             class="grid h-8 w-8 place-items-center
                                                    rounded-md text-red-500
                                                    hover:bg-red-50"
@@ -467,7 +469,7 @@ function openAttendance(row) {
                                         </button>
                                         <!-- Edit -->
                                         <button
-                                            title="Edit student"
+                                            :title="$t('Edit student')"
                                             class="grid h-8 w-8 place-items-center
                                                    rounded-md text-slate-500
                                                    hover:bg-slate-100"
@@ -478,7 +480,7 @@ function openAttendance(row) {
 
                                         <!-- Transfer -->
                                         <button
-                                            title="Transfer class"
+                                            :title="$t('Transfer class')"
                                             class="grid h-8 w-8 place-items-center
                                                    rounded-md text-slate-500
                                                    hover:bg-slate-100"
@@ -489,8 +491,8 @@ function openAttendance(row) {
 
                                         <!-- Late -->
                                         <button
-                                            title="Mark this student as late"
-                                            aria-label="Mark this student as late"
+                                            :title="$t('Mark this student as late')"
+                                            :aria-label="$t('Mark this student as late')"
                                             class="inline-flex items-center
                                                    gap-1.5 rounded-lg
                                                    bg-amber-100 px-3 py-2
@@ -503,7 +505,7 @@ function openAttendance(row) {
                                             @click.stop="markLate(row)"
                                         >
                                             <Clock3 class="h-3.5 w-3.5" />
-                                            Late
+                                            {{ $t('Late') }}
                                         </button>
 
                                       
@@ -518,7 +520,7 @@ function openAttendance(row) {
                                     class="px-4 py-12 text-center
                                            text-sm text-slate-500"
                                 >
-                                    No students found.
+                                    {{ $t('No students found.') }}
                                 </td>
                             </tr>
                         </tbody>
@@ -592,10 +594,10 @@ function openAttendance(row) {
                     >
                         {{
                             dialog === 'permission'
-                                ? 'Grant Permission'
+                                ? $t('Grant Permission')
                                 : dialog === 'transfer'
-                                  ? 'Transfer Student'
-                                  : 'Edit Student'
+                                  ? $t('Transfer Student')
+                                  : $t('Edit Student')
                         }}
                     </h2>
 
@@ -621,7 +623,7 @@ function openAttendance(row) {
                 >
                     <div>
                         <label class="label">
-                            Reason
+                            {{ $t('Reason') }}
                         </label>
 
                         <textarea
@@ -629,7 +631,7 @@ function openAttendance(row) {
                             required
                             rows="3"
                             class="input"
-                            placeholder="Reason for permission"
+                            :placeholder="$t('Reason for permission')"
                         />
                         <p v-if="permissionForm.errors.reason" class="error">
                             {{ permissionForm.errors.reason }}
@@ -639,7 +641,7 @@ function openAttendance(row) {
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
                             <label class="label">
-                                Start date
+                                {{ $t('Start date') }}
                             </label>
 
                             <input
@@ -655,7 +657,7 @@ function openAttendance(row) {
 
                         <div>
                             <label class="label">
-                                End date
+                                {{ $t('End date') }}
                             </label>
 
                             <input
@@ -674,7 +676,7 @@ function openAttendance(row) {
                         class="primary"
                         :disabled="permissionForm.processing"
                     >
-                        Save Permission
+                        {{ $t('Save Permission') }}
                     </button>
                 </form>
 
@@ -689,7 +691,7 @@ function openAttendance(row) {
                 >
                     <div>
                         <label class="label">
-                            New class
+                            {{ $t('New class') }}
                         </label>
 
                         <select
@@ -698,7 +700,7 @@ function openAttendance(row) {
                             class="input truncate"
                         >
                             <option value="">
-                                Select a class
+                                {{ $t('Select a class') }}
                             </option>
 
                             <option
@@ -724,14 +726,14 @@ function openAttendance(row) {
                             type="checkbox"
                         />
 
-                        Allow transfer into a full class
+                        {{ $t('Allow transfer into a full class') }}
                     </label>
 
                     <button
                         class="primary"
                         :disabled="transferForm.processing"
                     >
-                        Transfer Student
+                        {{ $t('Transfer Student') }}
                     </button>
                 </form>
 
@@ -746,7 +748,7 @@ function openAttendance(row) {
                 >
                     <div>
                         <label class="label">
-                            Full name
+                            {{ $t('Full name') }}
                         </label>
 
                         <input

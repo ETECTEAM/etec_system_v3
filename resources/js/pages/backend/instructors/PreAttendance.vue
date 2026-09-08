@@ -6,6 +6,9 @@ import { useToast } from "@/composables/useToast";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import { getEcho } from "../../../echo";
+import { useI18n } from "../../../i18n";
+
+const { t } = useI18n();
 
 const props = defineProps({
   classes: {
@@ -50,13 +53,13 @@ function handleRequestUpdated(payload) {
     return {
       ...classData,
       request_status: payload.status,
-      request_status_label: payload.status_label ?? "Approved",
+      request_status_label: payload.status_label ?? t("Approved"),
       can_request_retrack: false,
       can_retrack: true,
     };
   });
 
-  toast.success("Pre-attendance approved. You can re-track now.");
+  toast.success(t("Pre-attendance approved. You can re-track now."));
 }
 
 function openRequest(classData) {

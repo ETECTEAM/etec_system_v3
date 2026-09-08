@@ -321,8 +321,8 @@ const inputClass =
                 @change="toggleRoute(option.key)"
               />
               <span>
-                <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ option.label }}</span>
-                <span class="block text-xs text-slate-500 dark:text-gray-400">{{ option.description }}</span>
+                <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ $t(option.label) }}</span>
+                <span class="block text-xs text-slate-500 dark:text-gray-400">{{ $t(option.description) }}</span>
               </span>
             </label>
           </div>

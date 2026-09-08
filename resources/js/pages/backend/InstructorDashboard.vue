@@ -15,6 +15,9 @@ import {
 
 import DashboardLayout from "../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../components/ui/card/ClassCrad.vue";
+import { useI18n } from "../../i18n";
+
+const { t } = useI18n();
 
 const props = defineProps({
   instructorData: {
@@ -39,7 +42,7 @@ const props = defineProps({
 const page = usePage();
 const search = ref("");
 
-const instructorDisplayName = (name, fallback = "Instructor") => {
+const instructorDisplayName = (name, fallback = t("Instructor")) => {
   const displayName = String(name ?? "").split(/[·•]/u)[0].trim();
 
   return displayName || fallback;
@@ -67,28 +70,28 @@ const filteredClasses = computed(() => {
 
 const stats = computed(() => [
   {
-    label: "Total Class",
+    label: t("Total Class"),
     value: props.summary.total_classes ?? 0,
     icon: Presentation,
     color: "text-blue-600",
     bg: "bg-blue-50 dark:bg-blue-500/10",
   },
   {
-    label: "Total Student",
+    label: t("Total Student"),
     value: props.summary.total_students ?? 0,
     icon: Users,
     color: "text-emerald-600",
     bg: "bg-emerald-50 dark:bg-emerald-500/10",
   },
   {
-    label: "Male Student",
+    label: t("Male Student"),
     value: props.summary.male_students ?? 0,
     icon: Mars,
     color: "text-cyan-500",
     bg: "bg-cyan-50 dark:bg-cyan-500/10",
   },
   {
-    label: "Female Student",
+    label: t("Female Student"),
     value: props.summary.female_students ?? 0,
     icon: Venus,
     color: "text-rose-500",
@@ -126,7 +129,7 @@ function attendanceItem(classData) {
 
   return [
     {
-      label: "Attendance",
+      label: t("Attendance"),
       icon: Presentation,
       action: () => router.get(`/dashboard/instructor/classes/${classData.id}/attendance/track`),
     },
@@ -143,7 +146,7 @@ function certificateItem(classData) {
 
   return [
     {
-      label: hasRequest ? "Certificate Requested" : "Request Certificate",
+      label: hasRequest ? t("Certificate Requested") : t("Request Certificate"),
       icon: Award,
       disabled: hasRequest,
       action: () => openCertificateRequest(classData),
@@ -160,7 +163,7 @@ function actionItems(classData) {
 </script>
 
 <template>
-  <Head title="Instructor Dashboard" />
+  <Head :title="$t('Instructor Dashboard')" />
 
   <DashboardLayout>
     <section class="space-y-5 sm:space-y-6">
@@ -181,7 +184,7 @@ function actionItems(classData) {
           href="/dashboard/instructor/profile"
           class="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-800"
         >
-          Complete Profile
+          {{ $t("Complete Profile") }}
         </Link>
       </div>
 
@@ -189,13 +192,13 @@ function actionItems(classData) {
         <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-400">
-              Attendance System
+              {{ $t("Attendance System") }}
             </p>
             <h1 class="mt-1 text-xl font-black text-slate-950 dark:text-gray-100 sm:text-3xl">
-              Manage your classes
+              {{ $t("Manage your classes") }}
             </h1>
             <p class="mt-1 text-xs font-medium text-slate-500 dark:text-gray-400 sm:text-sm">
-              Name: {{ instructorName }} · ID: {{ instructorId }}
+              {{ $t('Name') }}: {{ instructorName }} · {{ $t('ID') }}: {{ instructorId }}
             </p>
           </div>
           <Link
@@ -203,7 +206,7 @@ function actionItems(classData) {
             class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-900 px-4 text-sm font-semibold text-white transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
           >
             <GraduationCap class="h-4 w-4" />
-            Add Class
+            {{ $t("Add Class") }}
           </Link>
         </div>
 
@@ -235,7 +238,7 @@ function actionItems(classData) {
                 <input
                   v-model="search"
                   type="search"
-                  placeholder="Search Class..."
+                  :placeholder="$t('Search Class...')"
                   class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 pr-10 text-sm outline-none transition focus:border-blue-700 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-blue-500/10"
                 />
               </label>
@@ -245,7 +248,7 @@ function actionItems(classData) {
                 @click="refresh"
               >
                 <RefreshCw class="h-4 w-4" />
-                Refresh
+                {{ $t("Refresh") }}
               </button>
             </div>
           </div>
@@ -265,8 +268,8 @@ function actionItems(classData) {
 
         <div v-else class="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-gray-700 dark:bg-gray-900">
           <BookOpen class="mx-auto h-10 w-10 text-slate-300 dark:text-gray-600" />
-          <h2 class="mt-3 text-base font-bold text-slate-900 dark:text-gray-100">No classes found</h2>
-          <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">Classes assigned to your instructor ID will show here.</p>
+          <h2 class="mt-3 text-base font-bold text-slate-900 dark:text-gray-100">{{ $t("No classes found") }}</h2>
+          <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t("Classes assigned to your instructor ID will show here.") }}</p>
         </div>
       </template>
     </section>

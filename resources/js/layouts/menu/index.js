@@ -18,7 +18,7 @@ import * as attendanceSettings from "./attendanceSettings";
 import * as holiday from "./holiday";
 import * as officialLeave from "./officialLeave";
 import * as absenceBlock from "./absenceBlock";
-import * as website from "./website";
+// import * as website from "./website";
 
 export const menuDomains = [
   building,
@@ -31,7 +31,7 @@ export const menuDomains = [
   profile,
   preAttendance,
   user,
-  website,
+  // website,
   instructorScheduleBlocks,
   instructorAvailability,
   schedule,
