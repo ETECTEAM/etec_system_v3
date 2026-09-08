@@ -9,6 +9,11 @@ const props = defineProps({
 })
 
 const isInternship = computed(() => props.certificate.certificate_type === 'internship')
+const internshipCourseName = computed(() => {
+    return String(props.certificate.course || '')
+        .toLowerCase()
+        .replace(/\b[a-z]/g, (letter) => letter.toUpperCase())
+})
 </script>
 
 <template>
@@ -72,14 +77,34 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
                     </header>
 
                     <section class="internship-body">
-                        <h1>Certificate of Completion</h1>
-                        <p class="internship-presented">is proudly presented to</p>
-                        <h2>{{ certificate.student_name }}</h2>
-                        <p class="internship-description">
-                            has successfully completed an internship in <strong>{{ certificate.course }}</strong> at <strong>KRU IT Solution</strong>,
-                            demonstrating dedication, teamwork, and commitment to professional growth.
-                        </p>
-                        <p class="internship-granted">Granted: {{ certificate.granted_date }}</p>
+                        <svg class="certificate-title" viewBox="0 0 1000 180">
+                            <defs>
+                                <path
+                                    id="titleCurve"
+                                    d="M 80 120 Q 500 80 920 120"
+                                />
+                            </defs>
+
+                            <text class="certificate-title-text">
+                                <textPath
+                                    href="#titleCurve"
+                                    startOffset="50%"
+                                    text-anchor="middle"
+                                >
+                                    Certificate of Completion
+                                </textPath>
+                            </text>
+                        </svg>
+                        <!-- <h1>Certificate of Completion</h1> -->
+                        <div class="internship-body-content">
+                            <p class="internship-presented">is proudly presented to</p>
+                            <h2>{{ certificate.student_name }}</h2>
+                            <p class="internship-description">
+                                Has successfully completed an internship in <strong class="internship-course-name">{{ internshipCourseName }}</strong> at <strong>KRU IT Solution</strong>,
+                                demonstrating dedication, teamwork, and commitment to professional growth.
+                            </p>
+                            <p class="internship-granted">Granted: {{ certificate.granted_date }}</p>
+                        </div>
                     </section>
 
                     <footer class="internship-footer">
@@ -180,8 +205,19 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 }
 
 @font-face {
-    font-family: "Battambang-Regular";
+    font-family: "Battambang";
     src: url("/assets/fonts/Battambang-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Koulen";
+    src: url("/assets/fonts/Koulen-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
 }
 
 .certificate-preview {
@@ -456,7 +492,9 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     display: block;
     width: 100%;
     max-width: 1040px;
-    margin: 0 auto;
+    margin: 0;
+    justify-self: start;
+    align-self: start;
     aspect-ratio: 1128 / 792;
     container-type: inline-size;
     border-radius: 8px;
@@ -469,10 +507,9 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     box-sizing: border-box;
     width: 100%;
     height: 100%;
-    border: 0.35cqw solid #f7f7f7;
-    border-radius: 0.7cqw;
+    border: 1cqw solid #f7f7f7;
     background: #08216d;
-    padding: 2.72cqw;
+    padding: 2.1cqw;
     color: #111;
     font-family: "Libre Baskerville", "Times New Roman", serif;
     overflow: hidden;
@@ -485,7 +522,7 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     height: 100%;
     border-radius: 0.62cqw;
     background: #fff;
-    padding: 1.35cqw;
+    padding: 1.1cqw;
 }
 
 .internship-border {
@@ -495,26 +532,26 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     flex-direction: column;
     border: 0.18cqw solid #e8f000;
     border-radius: 0.62cqw;
-    padding: 2.55cqw 5.9cqw 1.9cqw;
+    padding: 2.25cqw 5.6cqw 1.65cqw;
 }
 
 /* Corner circuit-trace decorations (dot -> line -> diagonal hash -> line -> dot) */
 .internship-circuit-svg {
     position: absolute;
     z-index: 2;
-    width: 18.17cqw;
+    width: 14.8cqw;
     height: auto;
     pointer-events: none;
 }
 
 .circuit-top {
-    top: 0.8cqw;
-    left: 0.8cqw;
+    top: -0.3cqw;
+    left: 0.35cqw;
 }
 
 .circuit-bottom {
-    right: 0.8cqw;
-    bottom: 0.8cqw;
+    right: 0.35cqw;
+    bottom: -0.3cqw;
     transform: rotate(180deg);
 }
 
@@ -543,15 +580,15 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 }
 
 .internship-etec-logo {
-    width: 9.05cqw;
-    height: 9.05cqw;
+    width: 8.25cqw;
+    height: 8.25cqw;
     border-radius: 0.53cqw;
     object-fit: cover;
 }
 
 .internship-kru-logo {
-    width: 16.05cqw;
-    height: 9.65cqw;
+    width: auto;
+    height: 8.25cqw;
     object-fit: contain;
 }
 
@@ -559,10 +596,14 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     display: block;
     margin-top: 0.05cqw;
     color: #111;
-    font-family: "KhmerUI", "Battambang-Regular", "Koulen", serif;
-    font-size: 1.62cqw;
-    font-weight: 700;
-    line-height: 1.1;
+    font-family: "Koulen", "KhmerUI", sans-serif;
+    font-size: 1.65cqw;
+    /* background-color: red; */
+    /* margin-right: 10px; */
+    /* font-weight: 700; */
+    font-weight: normal;
+    margin-top: 5px;
+    line-height: 1.2;
     text-align: center;
     white-space: nowrap;
 }
@@ -570,16 +611,16 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 .internship-kingdom {
     min-width: 29.79cqw;
     padding-top: 0.1cqw;
-    font-size: 2.02cqw;
+    font-size: 1.6cqw;
     font-weight: 900;
-    line-height: 1.42;
+    line-height: 2;
     text-align: center;
 }
 
 .internship-kingdom img {
     display: block;
-    width: 17.2cqw;
-    margin: 0.9cqw auto 0;
+    width: 15.5cqw;
+    margin:0 auto 0;
 }
 
 .internship-body {
@@ -588,13 +629,27 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     text-align: center;
 }
 
-.internship-body h1 {
-    margin: 1.65cqw 0 2.75cqw;
+.certificate-title {
+    display: block;
+    overflow: visible;
+    transform: translateY(-2.5cqw);
+    margin-bottom: -2.5cqw;
+}
+
+.internship-body textPath {
+    margin: 0 0 2.75cqw;
     font-family: "oldeng", "UnifrakturMaguntia", "Times New Roman", serif;
-    font-size: 5.75cqw;
+    font-size: 7.75cqw;
     font-weight: 400;
     letter-spacing: .01em;
     line-height: 1;
+}
+
+.internship-body-content {
+    display: grid;
+    justify-items: center;
+    transform: translateY(-2.8cqw);
+    margin-bottom: -2.8cqw;
 }
 
 .internship-presented {
@@ -606,11 +661,11 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 .internship-body h2 {
     min-width: 14.18cqw;
     margin: 0 0 5.15cqw;
-    border-bottom: 0.18cqw solid #e8f000;
+    border-bottom: 0.18cqw solid #d4dc00;
     color: #08216d;
     padding: 0 2.2cqw 0.6cqw;
     font-family: "Libre Baskerville", Georgia, "Times New Roman", serif;
-    font-size: 3.25cqw;
+    font-size: 2.95cqw;
     font-weight: 900;
     line-height: 1.1;
     text-transform: uppercase;
@@ -619,20 +674,26 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
 .internship-description {
     max-width: 78cqw;
     margin: 0;
-    font-size: 1.78cqw;
+    font-size: 1.58cqw;
     font-weight: 400;
     line-height: 1.22;
+    transform: translateY(-0.8cqw);
 }
 
 .internship-description strong {
     font-weight: 900;
 }
 
+.internship-course-name {
+    text-transform: capitalize;
+}
+
 .internship-granted {
-    margin: 3.95cqw 0 0;
+    margin: 3.15cqw 0 0;
     color: #08216d;
-    font-size: 1.6cqw;
+    font-size: 1.4cqw;
     font-weight: 900;
+    transform: translateY(-0.8cqw);
 }
 
 .internship-footer {
@@ -874,7 +935,7 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     }
 
     .internship-circuit-svg {
-        width: 42mm !important;
+        width: 37mm !important;
     }
 
     .circuit-top {
@@ -904,6 +965,7 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
         border-radius: 0 !important;
         padding: 8mm !important;
         box-shadow: none !important;
+        background: #08216d !important;
     }
 
     .internship-paper {
@@ -915,19 +977,29 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     }
 
     .internship-etec-logo {
-        width: 26mm !important;
-        height: 26mm !important;
+        width: 23.5mm !important;
+        height: 23.5mm !important;
     }
 
     .internship-kru-logo {
-        width: 43mm !important;
-        height: 27mm !important;
+        width: auto !important;
+        height: 23.5mm !important;
     }
 
     .internship-khmer-caption {
         display: block !important;
-        font-size: 4.7mm !important;
+        font-size: 4.2mm !important;
         font-weight: 700 !important;
+    }
+
+    .certificate-title {
+        transform: translateY(-9mm) !important;
+        margin-bottom: -9mm !important;
+    }
+
+    .internship-body-content {
+        transform: translateY(-10mm) !important;
+        margin-bottom: -10mm !important;
     }
 
     .internship-body h1 {
@@ -939,17 +1011,18 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     }
 
     .internship-presented {
-        font-size: 6mm !important;
+        font-size: 5.3mm !important;
     }
 
     .internship-body h2 {
-        font-size: 9.2mm !important;
+        font-size: 8.3mm !important;
     }
 
     .internship-description {
         max-width: 250mm !important;
-        font-size: 5.3mm !important;
+        font-size: 4.7mm !important;
         font-weight: 400 !important;
+        transform: translateY(-3mm) !important;
     }
 
     .internship-description strong {
@@ -957,7 +1030,9 @@ const isInternship = computed(() => props.certificate.certificate_type === 'inte
     }
 
     .internship-granted {
-        font-size: 4.6mm !important;
+        margin-top: 8mm !important;
+        font-size: 4.1mm !important;
+        transform: translateY(-3mm) !important;
     }
 
     .internship-signature strong,

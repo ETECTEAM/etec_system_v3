@@ -921,7 +921,6 @@ async function printSingleFreeCertificate(title) {
         .map((element) => element.outerHTML)
         .join('\n')
     const certificateHtml = source.cloneNode(true).outerHTML
-    const safeTitle = escapeHtml(safePrintFileName(title))
 
     iframeDocument.open()
     iframeDocument.write(`
@@ -929,7 +928,7 @@ async function printSingleFreeCertificate(title) {
         <html>
             <head>
                 <meta charset="utf-8">
-                <title>${safeTitle}</title>
+                <title></title>
                 ${styles}
                 <style>
                     @page { size: A4 landscape; margin: 0; }
@@ -1100,9 +1099,16 @@ async function printSingleFreeCertificate(title) {
     await waitForImages(iframeDocument)
     await new Promise((resolve) => setTimeout(resolve, 100))
 
+    const originalTitle = document.title
+    document.title = ''
+    iframeDocument.title = ''
+
     iframeWindow.focus()
     iframeWindow.print()
-    setTimeout(() => iframe.remove(), 1000)
+    setTimeout(() => {
+        document.title = originalTitle
+        iframe.remove()
+    }, 1000)
 }
 
 async function printSingleInternshipCertificate(title) {
@@ -1152,6 +1158,24 @@ async function printSingleInternshipCertificate(title) {
                 ${styles}
                 <style>
                     @page { size: A4 landscape; margin: 0; }
+                    @media print {
+                        @page { size: 297mm 210mm; margin: 0 !important; }
+                        html,
+                        body,
+                        .internship-iframe-print-root,
+                        .internship-certificate-preview {
+                            width: 297mm !important;
+                            height: 210mm !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            overflow: hidden !important;
+                        }
+                        .internship-iframe-print-root {
+                            position: absolute !important;
+                            top: 0 !important;
+                            left: 0 !important;
+                        }
+                    }
                     html,
                     body {
                         width: 297mm !important;
@@ -1176,7 +1200,9 @@ async function printSingleInternshipCertificate(title) {
                         display: block !important;
                     }
                     .internship-iframe-print-root {
-                        display: block !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
                         width: 297mm !important;
                         height: 210mm !important;
                         min-height: 210mm !important;
@@ -1214,9 +1240,9 @@ async function printSingleInternshipCertificate(title) {
                         min-height: 210mm !important;
                         max-height: 210mm !important;
                         margin: 0 !important;
-                        border-width: 1.2mm !important;
+                        border-width: 2.97mm !important;
                         border-radius: 0 !important;
-                        padding: 8mm !important;
+                        padding: 6.25mm !important;
                         overflow: hidden !important;
                         box-shadow: none !important;
                         aspect-ratio: auto !important;
@@ -1226,49 +1252,61 @@ async function printSingleInternshipCertificate(title) {
                         width: 100% !important;
                         height: 100% !important;
                         min-height: 0 !important;
-                        padding: 4mm !important;
+                        padding: 3.27mm !important;
                     }
                     .internship-certificate-preview .internship-border {
                         display: flex !important;
                         flex: 1 1 auto !important;
                         flex-direction: column !important;
                         min-height: 0 !important;
-                        padding: 7.6mm 17.5mm 4.8mm !important;
+                        padding: 6.68mm 16.63mm 4.9mm !important;
                     }
                     .internship-certificate-preview .circuit-top {
-                        top: 3mm !important;
-                        left: 3mm !important;
+                        top: -0.89mm !important;
+                        left: 1.04mm !important;
                     }
                     .internship-certificate-preview .circuit-bottom {
-                        right: 3mm !important;
-                        bottom: 3mm !important;
+                        right: 1.04mm !important;
+                        bottom: -0.89mm !important;
                     }
                     .internship-certificate-preview .internship-circuit-svg {
-                        width: 42mm !important;
+                        width: 43.96mm !important;
                     }
                     .internship-certificate-preview .internship-logos {
                         gap: 3mm !important;
                     }
                     .internship-certificate-preview .internship-etec-logo {
-                        width: 27mm !important;
-                        height: 27mm !important;
+                        width: 24.5mm !important;
+                        height: 24.5mm !important;
                     }
                     .internship-certificate-preview .internship-kru-logo {
-                        width: 47.5mm !important;
-                        height: 28.6mm !important;
+                        width: auto !important;
+                        height: 24.5mm !important;
                     }
                     .internship-certificate-preview .internship-khmer-caption {
                         display: block !important;
-                        margin-top: 0.2mm !important;
-                        font-size: 4.7mm !important;
-                        font-weight: 700 !important;
+                        margin-top: 1.3mm !important;
+                        font-size: 4.9mm !important;
+                        font-weight: 400 !important;
+                    }
+                    .internship-certificate-preview .certificate-title {
+                        transform: translateY(-7.43mm) !important;
+                        margin-bottom: -7.43mm !important;
+                    }
+                    .internship-certificate-preview .internship-body textPath {
+                        font-size: 23.03mm !important;
+                    }
+                    .internship-certificate-preview .internship-body-content {
+                        transform: translateY(-8.32mm) !important;
+                        margin-bottom: -8.32mm !important;
                     }
                     .internship-certificate-preview .internship-kingdom {
-                        font-size: 6mm !important;
+                        font-size: 4.75mm !important;
+                        line-height: 2 !important;
                     }
                     .internship-certificate-preview .internship-kingdom img {
-                        width: 51mm !important;
-                        margin-top: 2.6mm !important;
+                        width: 46mm !important;
+                        margin-top: 0 !important;
                     }
                     .internship-certificate-preview .internship-header {
                         min-height: 39mm !important;
@@ -1286,21 +1324,23 @@ async function printSingleInternshipCertificate(title) {
                     }
                     .internship-certificate-preview .internship-body h2 {
                         margin-bottom: 15.3mm !important;
-                        padding: 0 6.5mm 1.9mm !important;
-                        font-size: 9.65mm !important;
+                        padding: 0 6.53mm 1.78mm !important;
+                        font-size: 8.76mm !important;
                     }
                     .internship-certificate-preview .internship-description {
                         max-width: 232mm !important;
-                        font-size: 5.3mm !important;
+                        font-size: 4.7mm !important;
                         font-weight: 400 !important;
                         line-height: 1.22 !important;
+                        transform: translateY(-2.38mm) !important;
                     }
                     .internship-certificate-preview .internship-description strong {
                         font-weight: 900 !important;
                     }
                     .internship-certificate-preview .internship-granted {
-                        margin-top: 11.7mm !important;
-                        font-size: 4.5mm !important;
+                        margin-top: 9.36mm !important;
+                        font-size: 4.16mm !important;
+                        transform: translateY(-2.38mm) !important;
                     }
                     .internship-certificate-preview .internship-signature {
                         min-width: 83mm !important;
@@ -1315,6 +1355,26 @@ async function printSingleInternshipCertificate(title) {
                     .internship-certificate-preview .internship-id {
                         margin-bottom: 0.8mm !important;
                         font-size: 2.55mm !important;
+                    }
+                    @media print {
+                        .internship-iframe-print-root {
+                            position: fixed !important;
+                            top: -5.5mm !important;
+                            left: 0 !important;
+                            width: 297mm !important;
+                            height: 221mm !important;
+                            min-height: 221mm !important;
+                            max-height: none !important;
+                            align-items: stretch !important;
+                            justify-content: stretch !important;
+                        }
+                        .internship-certificate-preview,
+                        .internship-certificate-preview .internship-certificate {
+                            width: 297mm !important;
+                            height: 221mm !important;
+                            min-height: 221mm !important;
+                            max-height: none !important;
+                        }
                     }
                 </style>
             </head>
