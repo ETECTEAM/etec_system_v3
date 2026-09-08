@@ -11,11 +11,16 @@ const { t } = useI18n();
 const toast = useToast();
 
 const props = defineProps({
-  // Started classes (GetClassList::presentClass) — only used to fill the
-  // Course / Instructor / Room / Term / Time pickers with real values.
+  // Started classes (GetClassList::presentClass) — fallback source for the
+  // Term / Time pickers when full option lists aren't provided.
   classes: {
     type: Array,
     default: () => [],
+  },
+  // { courses, instructors, terms, times, rooms } — full lists from the server.
+  options: {
+    type: Object,
+    default: () => ({}),
   },
 });
 
@@ -27,13 +32,17 @@ function toOptions(values) {
     .map((value) => ({ value, label: value }));
 }
 
-const courseOptions = computed(() => toOptions(props.classes.map((c) => c.course)));
-const instructorOptions = computed(() => toOptions(props.classes.map((c) => c.teacher)));
-const roomOptions = computed(() =>
-  toOptions(props.classes.map((c) => [c.floor, c.room].filter(Boolean).join(" ").trim())),
-);
-const termOptions = computed(() => toOptions(props.classes.map((c) => c.term)));
-const timeOptions = computed(() => toOptions(props.classes.map((c) => c.time)));
+// Prefer the full server list; fall back to values seen on the loaded classes.
+function optionList(serverList, classValues) {
+  return toOptions(serverList && serverList.length ? serverList : classValues);
+}
+
+// Fixed term / days vocabulary — the only schedules ETEC runs.
+const TERM_DAYS = ["Mon & Thu", "Sat & Sun", "Sunday", "Saturday"];
+
+const courseOptions = computed(() => optionList(props.options.courses, props.classes.map((c) => c.course)));
+const termOptions = computed(() => TERM_DAYS.map((v) => ({ value: v, label: v })));
+const timeOptions = computed(() => optionList(props.options.times, props.classes.map((c) => c.time)));
 
 // SelectSearch trigger styling, red-bordered when the field has an error.
 const triggerBase =
@@ -63,9 +72,6 @@ function blankForm() {
     phone: "",
     gender: "",
     course: "",
-    class_group: "",
-    instructor: "",
-    room: "",
     term: "",
     time: "",
     course_price: "",
@@ -117,16 +123,16 @@ const receiptStudent = ref(null);
 
 function buildReceipt() {
   receiptClassData.value = {
-    course: form.course || form.class_group,
+    course: form.course,
     price: form.course_price,
     unit_price: null,
     document_price: form.document_price,
     term: form.term || "-",
     time: form.time || "-",
-    teacher: form.instructor || "-",
+    teacher: "-",
     building: "",
     floor: "",
-    room: form.room || "-",
+    room: "-",
     enroll_start_date: form.payment_date,
   };
   receiptStudent.value = {
@@ -248,18 +254,6 @@ const errorClass = "border-red-300 focus:border-red-500 focus:ring-red-100 dark:
             <label :class="labelClass">{{ $t('Course') }} <span class="text-red-500">*</span></label>
             <SelectSearch v-model="form.course" :options="courseOptions" placeholder="Select a course" empty-text="No courses" :button-class="triggerClass(!!errors.course)" />
             <p v-if="errors.course" class="mt-1 text-xs text-red-600">{{ errors.course }}</p>
-          </div>
-          <div>
-            <label :class="labelClass">{{ $t('Class / Group') }}</label>
-            <input v-model="form.class_group" type="text" :class="controlClass" :placeholder="$t('Optional')" />
-          </div>
-          <div>
-            <label :class="labelClass">{{ $t('Instructor') }}</label>
-            <SelectSearch v-model="form.instructor" :options="instructorOptions" placeholder="Select an instructor" empty-text="No instructors" :button-class="triggerClass(false)" />
-          </div>
-          <div>
-            <label :class="labelClass">{{ $t('Room') }}</label>
-            <SelectSearch v-model="form.room" :options="roomOptions" placeholder="Select a room" empty-text="No rooms" :button-class="triggerClass(false)" />
           </div>
           <div>
             <label :class="labelClass">{{ $t('Term / Days') }}</label>

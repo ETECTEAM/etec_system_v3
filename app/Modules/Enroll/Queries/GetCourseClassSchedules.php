@@ -73,7 +73,7 @@ class GetCourseClassSchedules
         $openConfigsByCourse = CourseEnrollConfig::query()
             ->whereIn('course_id', $courseIds)
             ->whereNotNull('schedule_id')
-            ->get(['course_id', 'schedule_id', 'time_id', 'max_classes'])
+            ->get(['course_id', 'schedule_id', 'time_id', 'max_classes', 'start_date'])
             ->groupBy('course_id')
             ->map(fn (Collection $rows) => $rows->keyBy(fn (CourseEnrollConfig $config) => "{$config->schedule_id}:{$config->time_id}"));
 
@@ -179,9 +179,20 @@ class GetCourseClassSchedules
 
                 $first = $group->first();
 
+                // The class type's current bulk start date: the one shared by
+                // all its open slots, or null when they disagree / none is set.
+                $scheduleIds = $group->pluck('id');
+                $startDates = $openConfigs
+                    ->filter(fn (CourseEnrollConfig $config) => $scheduleIds->contains($config->schedule_id))
+                    ->map(fn (CourseEnrollConfig $config) => optional($config->start_date)->format('Y-m-d'))
+                    ->filter()
+                    ->unique()
+                    ->values();
+
                 return [
                     'class_type_id' => $first->class_type_id,
                     'class_type_name' => $first->classType->type_name,
+                    'start_date' => $startDates->count() === 1 ? $startDates->first() : null,
                     'terms' => $terms,
                     'is_enabled' => collect($terms)->contains(
                         fn ($term) => collect($term['times'])->contains('is_open', true)

@@ -27,6 +27,12 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  // { courses, instructors, terms, times, rooms } — full option lists for the
+  // VIP / Manual Register forms.
+  registerOptions: {
+    type: Object,
+    default: () => ({}),
+  },
   filters: {
     type: Object,
     default: () => ({ search: "" }),
@@ -131,11 +137,13 @@ onBeforeUnmount(() => {
       <VipClassForm
         v-else-if="activeTab === 'vip'"
         :classes="classOptions"
+        :options="registerOptions"
         @cancel="activeTab = 'registrations'"
       />
       <ManualRegisterForm
         v-else-if="activeTab === 'manual'"
         :classes="classOptions"
+        :options="registerOptions"
         @cancel="activeTab = 'registrations'"
       />
       <RegisterToClass

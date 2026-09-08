@@ -7,6 +7,7 @@ use App\Models\Building;
 use App\Models\Course;
 use App\Models\CourseEnrollConfig;
 use App\Models\Floor;
+use App\Models\Room;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
@@ -46,13 +47,33 @@ use Inertia\Response;
 
 class EnrollmentClassController extends Controller
 {
-    public function index(Request $request, GetClassList $classes): Response
+    public function index(Request $request, GetClassList $classes, GetClassFormOptions $formOptions): Response
     {
+        $options = $formOptions->handle();
+
         return Inertia::render('backend/students/ClassList', [
             ...$classes->handle($request),
             // Feeds the "Register to Class" tab — only classes a new student may
             // still join (open seats + recently started / upcoming).
             'eligibleClasses' => $this->eligibleRegistrationClasses($classes),
+            // Full option lists for the VIP / Manual Register forms — every
+            // course / instructor / room / term / time, not only the ones that
+            // currently have a live class.
+            'registerOptions' => [
+                'courses' => collect($options['courses'])->pluck('title')->filter()->unique()->values()->all(),
+                'instructors' => collect($options['teachers'])->pluck('name')->filter()->unique()->values()->all(),
+                'terms' => collect($options['terms'])->pluck('term_name')->filter()->unique()->values()->all(),
+                'times' => collect($options['times'])->pluck('time_name')->filter()->unique()->values()->all(),
+                'rooms' => Room::query()
+                    ->with('floor:id,name')
+                    ->orderBy('room_number')
+                    ->get()
+                    ->map(fn (Room $room) => trim(($room->floor?->name ? $room->floor->name.' ' : '').$room->room_number))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all(),
+            ],
         ]);
     }
 

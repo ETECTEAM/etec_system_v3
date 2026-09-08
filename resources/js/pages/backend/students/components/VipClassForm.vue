@@ -10,11 +10,16 @@ const { t } = useI18n();
 const toast = useToast();
 
 const props = defineProps({
-  // Started classes (GetClassList::presentClass) — used only to pre-fill the
-  // Course / Instructor / Term / Time / Room pickers with real values.
+  // Started classes (GetClassList::presentClass) — fallback source for the
+  // pickers when full option lists aren't provided.
   classes: {
     type: Array,
     default: () => [],
+  },
+  // { courses, instructors, terms, times, rooms } — full lists from the server.
+  options: {
+    type: Object,
+    default: () => ({}),
   },
 });
 
@@ -24,12 +29,20 @@ function toOptions(values) {
     .map((value) => ({ value, label: value }));
 }
 
-const courseOptions = computed(() => toOptions(props.classes.map((c) => c.course)));
-const instructorOptions = computed(() => toOptions(props.classes.map((c) => c.teacher)));
-const termOptions = computed(() => toOptions(props.classes.map((c) => c.term)));
-const timeOptions = computed(() => toOptions(props.classes.map((c) => c.time)));
+// Prefer the full server list; fall back to values seen on the loaded classes.
+function optionList(serverList, classValues) {
+  return toOptions(serverList && serverList.length ? serverList : classValues);
+}
+
+// Fixed term / days vocabulary — the only schedules ETEC runs.
+const TERM_DAYS = ["Mon & Thu", "Sat & Sun", "Sunday", "Saturday"];
+
+const courseOptions = computed(() => optionList(props.options.courses, props.classes.map((c) => c.course)));
+const instructorOptions = computed(() => optionList(props.options.instructors, props.classes.map((c) => c.teacher)));
+const termOptions = computed(() => TERM_DAYS.map((v) => ({ value: v, label: v })));
+const timeOptions = computed(() => optionList(props.options.times, props.classes.map((c) => c.time)));
 const roomOptions = computed(() =>
-  toOptions(props.classes.map((c) => [c.floor, c.room].filter(Boolean).join(" ").trim())),
+  optionList(props.options.rooms, props.classes.map((c) => [c.floor, c.room].filter(Boolean).join(" ").trim())),
 );
 
 // SelectSearch trigger styling, red-bordered when the field has an error.

@@ -131,6 +131,23 @@ const statusOptions = [
   { value: 'closed', label: t('Closed') },
 ]
 
+const selectedClassTypeLabel = computed(
+  () => classTypeOptions.value.find((o) => o.value === selectedClassType.value)?.label ?? '',
+)
+
+// The start date currently shared by the selected class type across every
+// course (blank when they disagree or none is set).
+const selectedTypeStartDate = computed(() => {
+  const dates = new Set()
+  allCourses.value.forEach((course) => {
+    const sd = (course.class_schedules ?? []).find(
+      (ct) => String(ct.class_type_id) === selectedClassType.value,
+    )?.start_date
+    if (sd) dates.add(sd)
+  })
+  return dates.size === 1 ? [...dates][0] : ''
+})
+
 // Auto-pick the first class type once data is available; keep a valid one.
 watch(
   classTypeOptions,
@@ -141,6 +158,12 @@ watch(
   },
   { immediate: true },
 )
+
+// Preload the bulk field with the class type's current date when the tab
+// changes — never mid-edit from an unrelated filter change.
+watch(selectedClassType, () => {
+  bulkStartDate.value = selectedTypeStartDate.value
+}, { immediate: true })
 
 // The classType node of a course for the currently selected class type.
 function getCourseClassType(course) {
@@ -466,13 +489,23 @@ function setAllForCourse(course, open) {
   if (ct) setClassTypeAvailability(course, ct, open)
 }
 
-async function applyStartDateToAll() {
+function niceDate(value) {
+  if (!value) return ''
+  return new Date(`${value}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+// Scoped to the selected class type only — the backend enforces the same scope.
+async function applyClassTypeStartDate() {
+  if (!selectedClassType.value || isBulkSaving.value) return
+
+  const type = selectedClassTypeLabel.value
+
   const ok = await confirm({
-    title: t('Set start date for all courses?'),
+    title: t('Set start date for :type?', { type }),
     message: bulkStartDate.value
-      ? t('This overwrites the start date on every course with :date.', { date: bulkStartDate.value })
-      : t('This clears the start date on every course.'),
-    confirmText: t('Apply to All'),
+      ? t('This will apply :date to all applicable :type course enrollment configurations. It will NOT change other class types.', { date: niceDate(bulkStartDate.value), type })
+      : t('This will clear the start date on all :type course enrollment configurations. It will NOT change other class types.', { type }),
+    confirmText: t('Apply to :type', { type }),
   })
 
   if (!ok) return
@@ -480,12 +513,15 @@ async function applyStartDateToAll() {
   isBulkSaving.value = true
 
   try {
-    await axios.post('/dashboard/enroll/config/bulk-start-date', { start_date: bulkStartDate.value || null })
-    toast.success(t('Start date applied to every course.'))
+    await axios.post('/dashboard/enroll/config/bulk-start-date', {
+      class_type_id: Number(selectedClassType.value),
+      start_date: bulkStartDate.value || null,
+    })
+    toast.success(t('Start date applied to :type.', { type }))
     await fetchCategories()
   } catch (error) {
-    console.error('Failed to bulk-set course start dates', error)
-    toast.error(t('Failed to save. Please try again.'))
+    console.error('Failed to bulk-set class type start dates', error)
+    toast.error(t(error.response?.data?.message ?? 'Failed to save. Please try again.'))
   } finally {
     isBulkSaving.value = false
   }
@@ -507,34 +543,14 @@ const numCell =
 
       <!-- Toolbar -->
       <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div class="relative w-full lg:max-w-xs">
-            <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
-            <input
-              v-model="search"
-              type="search"
-              class="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-              :placeholder="$t('Search course, category, tech stack...')"
-            >
-          </div>
-
-          <div class="flex items-center gap-2">
-            <span class="hidden text-xs font-semibold uppercase tracking-wider text-slate-400 sm:inline dark:text-gray-500">{{ $t('Bulk Start Date') }}</span>
-            <input
-              v-model="bulkStartDate"
-              type="date"
-              :disabled="isBulkSaving"
-              class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-            >
-            <button
-              type="button"
-              :disabled="isBulkSaving"
-              class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
-              @click="applyStartDateToAll"
-            >
-              {{ $t('Apply to All') }}
-            </button>
-          </div>
+        <div class="relative w-full lg:max-w-xs">
+          <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
+          <input
+            v-model="search"
+            type="search"
+            class="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+            :placeholder="$t('Search course, category, tech stack...')"
+          >
         </div>
 
         <!-- Filters -->
@@ -554,24 +570,48 @@ const numCell =
           </button>
         </div>
 
-        <!-- Class type selector -->
-        <div v-if="classTypeOptions.length" class="mt-3 flex items-center gap-2 overflow-x-auto">
-          <span class="shrink-0 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-gray-500">{{ $t('Class Type') }}</span>
-          <div class="inline-flex shrink-0 gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 dark:border-gray-800 dark:bg-gray-800/60">
-            <button
-              v-for="ct in classTypeOptions"
-              :key="ct.value"
-              type="button"
-              @click="selectedClassType = ct.value"
-              :class="[
-                'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition',
-                selectedClassType === ct.value
-                  ? 'bg-white text-slate-900 shadow-sm dark:bg-gray-900 dark:text-gray-100'
-                  : 'text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-100',
-              ]"
+        <!-- Class type selector + scoped bulk start date -->
+        <div v-if="classTypeOptions.length" class="mt-3 flex flex-col gap-3 border-t border-slate-100 pt-3 dark:border-gray-800 xl:flex-row xl:items-center xl:justify-between">
+          <div class="flex items-center gap-2 overflow-x-auto">
+            <span class="shrink-0 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-gray-500">{{ $t('Class Type') }}</span>
+            <div class="inline-flex shrink-0 gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 dark:border-gray-800 dark:bg-gray-800/60">
+              <button
+                v-for="ct in classTypeOptions"
+                :key="ct.value"
+                type="button"
+                @click="selectedClassType = ct.value"
+                :class="[
+                  'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition',
+                  selectedClassType === ct.value
+                    ? 'bg-white text-slate-900 shadow-sm dark:bg-gray-900 dark:text-gray-100'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-100',
+                ]"
+              >
+                <span class="h-2 w-2 rounded-full" :class="accentDot(ct.label)" />
+                {{ ct.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Bulk start date — scoped to the selected class type only -->
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold text-slate-500 dark:text-gray-400">
+              {{ $t('Bulk Start Date') }} —
+              <span class="text-slate-800 dark:text-gray-200">{{ selectedClassTypeLabel }}</span>
+            </span>
+            <input
+              v-model="bulkStartDate"
+              type="date"
+              :disabled="isBulkSaving"
+              class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
             >
-              <span class="h-2 w-2 rounded-full" :class="accentDot(ct.label)" />
-              {{ ct.label }}
+            <button
+              type="button"
+              :disabled="isBulkSaving || !selectedClassType"
+              class="inline-flex items-center justify-center rounded-xl bg-blue-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
+              @click="applyClassTypeStartDate"
+            >
+              {{ $t('Apply to :type', { type: selectedClassTypeLabel }) }}
             </button>
           </div>
         </div>

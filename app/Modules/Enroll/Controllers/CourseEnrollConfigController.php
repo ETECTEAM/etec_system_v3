@@ -5,7 +5,7 @@ namespace App\Modules\Enroll\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseEnrollConfig;
-use App\Modules\Enroll\Actions\SetAllCourseStartDates;
+use App\Modules\Enroll\Actions\SetClassTypeStartDates;
 use App\Modules\Enroll\Actions\SetCourseEnrollConfig;
 use App\Modules\Enroll\Queries\GetCourseEnrollConfigs;
 use Illuminate\Http\JsonResponse;
@@ -74,15 +74,26 @@ class CourseEnrollConfigController extends Controller
         return response()->json(['deleted' => true]);
     }
 
-    public function bulkUpdateStartDate(Request $request, SetAllCourseStartDates $setAllStartDates): JsonResponse
+    // Scoped bulk start date: applies one date to every course's config for the
+    // selected class type only. Backend enforces the scope — a class type hidden
+    // in the UI is never touched.
+    public function bulkUpdateStartDate(Request $request, SetClassTypeStartDates $setStartDates): JsonResponse
     {
         $validated = $request->validate([
+            'class_type_id' => ['required', 'integer', 'exists:class_type,class_type_id'],
             'start_date' => ['nullable', 'date'],
         ]);
 
-        $updated = $setAllStartDates->handle($validated['start_date'] ?? null);
+        $updated = $setStartDates->handle(
+            (int) $validated['class_type_id'],
+            $validated['start_date'] ?? null,
+        );
 
-        return response()->json(['updated' => $updated]);
+        return response()->json([
+            'updated' => $updated,
+            'class_type_id' => (int) $validated['class_type_id'],
+            'start_date' => $validated['start_date'] ?? null,
+        ]);
     }
 
     // The course's display position on the public student-register list -
