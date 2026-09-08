@@ -40,6 +40,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -47,7 +48,48 @@ class EnrollmentClassController extends Controller
 {
     public function index(Request $request, GetClassList $classes): Response
     {
-        return Inertia::render('backend/students/ClassList', $classes->handle($request));
+        return Inertia::render('backend/students/ClassList', [
+            ...$classes->handle($request),
+            // Feeds the "Register to Class" tab — only classes a new student may
+            // still join (open seats + recently started / upcoming).
+            'eligibleClasses' => $this->eligibleRegistrationClasses($classes),
+        ]);
+    }
+
+    /**
+     * Classes a new student can still be registered into: upcoming or active,
+     * with a free seat, and — once started — within the last month. Mirrors the
+     * server-side guard in ensureClassAcceptsRegistration().
+     */
+    private function eligibleRegistrationClasses(GetClassList $classList): array
+    {
+        return StudyClass::query()
+            ->with([
+                'course:id,title',
+                'lesson:id,course_id,title',
+                'teacher:id,name',
+                'room:id,floor_id,room_number',
+                'room.floor:id,building_id,name,level',
+                'room.floor.building:id,name',
+                'classType:class_type_id,type_name',
+                'term:id,term_name',
+                'time:id,time_name',
+            ])
+            ->withCount([
+                'enrollments as current_students' => fn ($query) => $query->where('enrollment_status', 'active'),
+            ])
+            ->whereIn('status', ['upcoming', 'active'])
+            ->where(function ($query): void {
+                $query->whereNull('start_date')
+                    ->orWhere('start_date', '>=', now('Asia/Phnom_Penh')->subMonth()->startOfDay());
+            })
+            ->orderByDesc('start_date')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (StudyClass $studyClass) => $classList->presentClass($studyClass))
+            ->filter(fn (array $class) => ($class['available_seats'] ?? 0) > 0)
+            ->values()
+            ->all();
     }
 
     public function publicRegistrations(Request $request, GetPublicRegistrations $query): JsonResponse
@@ -435,6 +477,7 @@ class EnrollmentClassController extends Controller
     ): RedirectResponse {
         $this->ensureInstructorCanManageClassStudents($studyClass);
         $this->ensureClassAcceptsMutations($studyClass);
+        $this->ensureClassAcceptsRegistration($studyClass);
 
         $createClassStudent->handle($studyClass, $request->validated());
 
@@ -594,6 +637,27 @@ class EnrollmentClassController extends Controller
             422,
             'This class is no longer accepting student changes.',
         );
+    }
+
+    /**
+     * Extra guard for the "Register to Class" walk-in flow: the class must be
+     * upcoming or active and, once it has started, no older than one month —
+     * so an old/closed class can't be registered into via a direct request.
+     */
+    private function ensureClassAcceptsRegistration(StudyClass $studyClass): void
+    {
+        if (! in_array($this->normaliseClassStatus($studyClass->status), ['upcoming', 'active'], true)) {
+            throw ValidationException::withMessages([
+                'class' => 'This class is not open for new registrations.',
+            ]);
+        }
+
+        if ($studyClass->start_date !== null
+            && $studyClass->start_date->lt(now('Asia/Phnom_Penh')->subMonth()->startOfDay())) {
+            throw ValidationException::withMessages([
+                'class' => 'This class started more than a month ago and no longer accepts new registrations.',
+            ]);
+        }
     }
 
     private function normaliseClassStatus(?string $status): string

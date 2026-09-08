@@ -1,15 +1,20 @@
 <script setup>
-import { onBeforeUnmount, watch } from "vue";
+import { onBeforeUnmount, ref, watch } from "vue";
 import { Search, LayoutGrid, Table2, X } from "@lucide/vue";
 import DepositSummaryCard from "../DepositSummaryCard.vue";
 import RegistrationTableView from "./RegistrationTableView.vue";
-import RegistrationCardView from "./RegistrationCardView.vue";
+import RegistrationClassCards from "./RegistrationClassCards.vue";
 import { useEnrollmentRegistrations } from "@/composables/useEnrollmentRegistrations";
 
-defineProps({
+const props = defineProps({
   depositSummary: {
     type: Object,
     default: null,
+  },
+  // Paginated class list — used by the Card view (existing ClassCrad grid).
+  classes: {
+    type: Object,
+    default: () => ({ data: [], links: [] }),
   },
   view: {
     type: String,
@@ -19,19 +24,31 @@ defineProps({
 
 const emit = defineEmits(["update:view"]);
 
-const { search, fetchRegistrations } = useEnrollmentRegistrations();
+const { search: registrationSearch, fetchRegistrations } = useEnrollmentRegistrations();
 
+// One toolbar search box; its meaning follows the active view.
+const search = ref("");
 let searchTimer = null;
-watch(search, () => {
+
+watch([search, () => props.view], ([term, view]) => {
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => fetchRegistrations(1), 350);
+  if (view !== "table") return; // Card view filters client-side via the prop.
+
+  searchTimer = setTimeout(() => {
+    registrationSearch.value = term;
+    fetchRegistrations(1);
+  }, 350);
 });
+
 onBeforeUnmount(() => clearTimeout(searchTimer));
 
 function clearSearch() {
   clearTimeout(searchTimer);
   search.value = "";
-  fetchRegistrations(1);
+  if (props.view === "table") {
+    registrationSearch.value = "";
+    fetchRegistrations(1);
+  }
 }
 </script>
 
@@ -46,7 +63,7 @@ function clearSearch() {
         <input
           v-model="search"
           type="text"
-          :placeholder="$t('Search student...')"
+          :placeholder="view === 'card' ? $t('Search class, course, instructor...') : $t('Search student...')"
           class="h-10 w-full rounded-xl border border-slate-300 bg-white py-2 pl-10 pr-10 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
         />
         <button
@@ -60,38 +77,34 @@ function clearSearch() {
         </button>
       </div>
 
-      <!-- Card / Table view switch — deliberately smaller than the main tabs -->
+      <!-- Card / Table switch — lives only here, inside Registrations. -->
       <div class="inline-flex h-9 shrink-0 overflow-hidden rounded-lg border border-slate-300 bg-white p-0.5 dark:border-gray-600 dark:bg-gray-800">
-        <button
-          type="button"
-          @click="emit('update:view', 'table')"
-          :class="[
-            'inline-flex items-center justify-center gap-1.5 rounded-md px-3 text-xs font-semibold transition',
-            view === 'table'
-              ? 'bg-blue-900 text-white shadow-sm dark:bg-blue-600'
-              : 'text-slate-600 hover:bg-slate-100 dark:text-gray-300 dark:hover:bg-gray-700',
-          ]"
-        >
-          <Table2 class="h-3.5 w-3.5" />
-          {{ $t('Table') }}
-        </button>
         <button
           type="button"
           @click="emit('update:view', 'card')"
           :class="[
             'inline-flex items-center justify-center gap-1.5 rounded-md px-3 text-xs font-semibold transition',
-            view === 'card'
-              ? 'bg-blue-900 text-white shadow-sm dark:bg-blue-600'
-              : 'text-slate-600 hover:bg-slate-100 dark:text-gray-300 dark:hover:bg-gray-700',
+            view === 'card' ? 'bg-blue-900 text-white shadow-sm dark:bg-blue-600' : 'text-slate-600 hover:bg-slate-100 dark:text-gray-300 dark:hover:bg-gray-700',
           ]"
         >
           <LayoutGrid class="h-3.5 w-3.5" />
           {{ $t('Card') }}
         </button>
+        <button
+          type="button"
+          @click="emit('update:view', 'table')"
+          :class="[
+            'inline-flex items-center justify-center gap-1.5 rounded-md px-3 text-xs font-semibold transition',
+            view === 'table' ? 'bg-blue-900 text-white shadow-sm dark:bg-blue-600' : 'text-slate-600 hover:bg-slate-100 dark:text-gray-300 dark:hover:bg-gray-700',
+          ]"
+        >
+          <Table2 class="h-3.5 w-3.5" />
+          {{ $t('Table') }}
+        </button>
       </div>
     </div>
 
-    <RegistrationTableView v-if="view === 'table'" />
-    <RegistrationCardView v-else />
+    <RegistrationClassCards v-if="view === 'card'" :classes="classes" :search="search" />
+    <RegistrationTableView v-else />
   </div>
 </template>

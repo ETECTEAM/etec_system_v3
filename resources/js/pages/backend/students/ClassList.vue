@@ -10,7 +10,7 @@ import EnrollmentTabs from "./components/enrollment/EnrollmentTabs.vue";
 import RegistrationsPanel from "./components/enrollment/RegistrationsPanel.vue";
 import ConfirmPaymentModal from "./components/enrollment/ConfirmPaymentModal.vue";
 import EditRegistrationModal from "./components/enrollment/EditRegistrationModal.vue";
-import ClassBrowser from "./components/enrollment/ClassBrowser.vue";
+import RegisterToClass from "./components/RegisterToClass.vue";
 import VipClassForm from "./components/VipClassForm.vue";
 import ManualRegisterForm from "./components/ManualRegisterForm.vue";
 import { getEcho } from "@/echo";
@@ -20,6 +20,12 @@ const props = defineProps({
   classes: {
     type: Object,
     default: () => ({ data: [] }),
+  },
+  // Flat list of classes a new student may still be registered into
+  // (open seats + recently started / upcoming) — drives the "Register to Class" tab.
+  eligibleClasses: {
+    type: Array,
+    default: () => [],
   },
   filters: {
     type: Object,
@@ -121,6 +127,7 @@ onBeforeUnmount(() => {
         v-if="activeTab === 'registrations'"
         v-model:view="registrationView"
         :deposit-summary="depositSummary"
+        :classes="classes"
       />
       <VipClassForm
         v-else-if="activeTab === 'vip'"
@@ -132,10 +139,9 @@ onBeforeUnmount(() => {
         :classes="classOptions"
         @cancel="activeTab = 'registrations'"
       />
-      <ClassBrowser
+      <RegisterToClass
         v-else
-        :classes="classes"
-        :filters="filters"
+        :classes="eligibleClasses"
       />
 
       <!-- Shared, tab-independent overlays -->

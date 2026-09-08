@@ -21,6 +21,12 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  // Optional richer summary for the "Register to Class" flow — when set, a
+  // compact "Selected Class" panel replaces the one-line subtitle.
+  classInfo: {
+    type: Object,
+    default: null,
+  },
 });
 
 const emit = defineEmits(["close"]);
@@ -85,7 +91,7 @@ function submit() {
             <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">
               {{ $t('Register Student') }}
             </h3>
-            <p v-if="classTitle" class="text-xs text-slate-500 dark:text-gray-400">
+            <p v-if="classTitle && !classInfo" class="text-xs text-slate-500 dark:text-gray-400">
               {{ classTitle }}
               <span v-if="seatsLeft !== null"> &middot; {{ seatsLeft }} {{ $t('seats left') }}</span>
             </p>
@@ -101,7 +107,32 @@ function submit() {
         </button>
       </div>
 
+      <!-- Selected class summary (Register to Class flow) -->
+      <div v-if="classInfo" class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-gray-800 dark:bg-gray-800/50">
+        <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-gray-500">
+          {{ $t('Selected Class') }}
+        </p>
+        <p class="text-sm font-bold text-slate-900 dark:text-gray-100">{{ classInfo.title }}</p>
+        <div class="mt-1 space-y-0.5 text-xs text-slate-500 dark:text-gray-400">
+          <p v-if="classInfo.teacher">{{ classInfo.teacher }}</p>
+          <p v-if="classInfo.term || classInfo.time">{{ [classInfo.term, classInfo.time].filter(Boolean).join(' · ') }}</p>
+          <p v-if="classInfo.room">{{ classInfo.room }}</p>
+        </div>
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <span v-if="classInfo.startLabel" class="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700">
+            {{ classInfo.startLabel }}
+          </span>
+          <span v-if="classInfo.capacity" class="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 tabular-nums ring-1 ring-inset ring-slate-200 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700">
+            {{ classInfo.students }} / {{ classInfo.capacity }} {{ $t('Students') }}
+          </span>
+        </div>
+      </div>
+
       <form class="mt-5 space-y-4" @submit.prevent="submit">
+        <p v-if="form.errors.class" class="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 dark:bg-red-500/10 dark:text-red-400">
+          {{ form.errors.class }}
+        </p>
+
         <div>
           <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">
             {{ $t('Student Name') }}
