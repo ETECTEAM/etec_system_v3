@@ -16,9 +16,9 @@ const emit = defineEmits(["update:modelValue"]);
 
 const tabs = [
   { key: "registrations", label: "Registrations", icon: UserCheck },
+  { key: "register-class", label: "Register to Class", icon: Users },
   { key: "vip", label: "VIP Class", icon: Crown },
   { key: "manual", label: "Manual Register", icon: CreditCard },
-  { key: "register-class", label: "Register to Class", icon: Users },
 ];
 </script>
 
