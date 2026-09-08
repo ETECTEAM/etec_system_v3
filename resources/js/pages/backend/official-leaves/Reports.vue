@@ -27,7 +27,7 @@ const breadcrumbItems = [
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Super Admin" :title="$t('Reports & Statistics')" :description="$t('Official leave analytics and current leave status.')" />
+      <PageHero :eyebrow="$t('Super Admin')" :title="$t('Reports & Statistics')" :description="$t('Official leave analytics and current leave status.')" />
 
       <!-- Currently On Leave -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800 p-6">

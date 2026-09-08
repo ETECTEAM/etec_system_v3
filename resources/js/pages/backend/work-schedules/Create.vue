@@ -106,7 +106,7 @@ const breadcrumbItems = [
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Schedule Management" :title="$t('Create Work Schedule')" description="Define a new work schedule by selecting time slots for each day." />
+      <PageHero :eyebrow="$t('Schedule Management')" :title="$t('Create Work Schedule')" :description="$t('Define a new work schedule by selecting time slots for each day.')" />
 
       <div v-if="$page.props.flash?.success" class="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
         {{ $page.props.flash.success }}

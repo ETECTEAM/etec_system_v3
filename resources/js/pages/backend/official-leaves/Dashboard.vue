@@ -145,7 +145,7 @@ onUnmounted(() => { if (pollInterval) clearInterval(pollInterval); if (countdown
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Official Leave" :title="$t('Leave Request Desk')" :description="$t('Search students, generate QR codes, and review pending requests.')" />
+      <PageHero :eyebrow="$t('Official Leave')" :title="$t('Leave Request Desk')" :description="$t('Search students, generate QR codes, and review pending requests.')" />
 
       <!-- Student Search -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800 p-6">

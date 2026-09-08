@@ -71,8 +71,8 @@ const periodLabels = {
 }
 
 const breadcrumbItems = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Attendance Rules', current: true },
+  { label: t('Dashboard'), href: '/dashboard' },
+  { label: t('Attendance Rules'), current: true },
 ]
 </script>
 
@@ -81,7 +81,7 @@ const breadcrumbItems = [
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
       <div class="flex flex-wrap items-start justify-between gap-3">
-        <PageHero eyebrow="Attendance" :title="$t('Attendance Rules')" :description="$t('Numeric thresholds that drive the absence-block workflow. Newest active rule wins.')" />
+        <PageHero :eyebrow="$t('Attendance')" :title="$t('Attendance Rules')" :description="$t('Numeric thresholds that drive the absence-block workflow. Newest active rule wins.')" />
         <button v-if="canManage" @click="openCreate" class="mt-1 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
           + {{ $t('New rule') }}
         </button>

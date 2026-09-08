@@ -51,8 +51,8 @@ const actionOptions = [
 ]
 
 const breadcrumbItems = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Absence Block Audit', current: true },
+  { label: t('Dashboard'), href: '/dashboard' },
+  { label: t('Absence Block Audit'), current: true },
 ]
 </script>
 
@@ -60,7 +60,7 @@ const breadcrumbItems = [
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Attendance" :title="$t('Absence Block Audit')" :description="$t('Every rule and block change, newest first.')" />
+      <PageHero :eyebrow="$t('Attendance')" :title="$t('Absence Block Audit')" :description="$t('Every rule and block change, newest first.')" />
 
       <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 lg:flex-row lg:items-end dark:border-gray-800">

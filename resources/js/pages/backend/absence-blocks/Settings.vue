@@ -22,8 +22,8 @@ function save() {
 }
 
 const breadcrumbItems = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Attendance Rule Settings', current: true },
+  { label: t('Dashboard'), href: '/dashboard' },
+  { label: t('Attendance Rule Settings'), current: true },
 ]
 </script>
 
@@ -31,7 +31,7 @@ const breadcrumbItems = [
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Attendance" :title="$t('Attendance Rule Settings')" :description="$t('Fallback limits for auto-locking a student who misses too many sessions — used when no Attendance Rule matches.')" />
+      <PageHero :eyebrow="$t('Attendance')" :title="$t('Attendance Rule Settings')" :description="$t('Fallback limits for auto-locking a student who misses too many sessions — used when no Attendance Rule matches.')" />
 
       <form @submit.prevent="save" class="max-w-2xl space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div v-for="row in settings" :key="row.key">
