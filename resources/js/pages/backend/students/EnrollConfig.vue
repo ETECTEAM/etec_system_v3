@@ -38,8 +38,6 @@ const selectedCourse = ref('')
 
 // New matrix filters.
 const selectedClassType = ref('')
-const selectedTerm = ref('')
-const selectedTime = ref('')
 const selectedStatus = ref('')
 
 // "courseId:scheduleId:timeId" of the badge currently mid-request.
@@ -72,8 +70,6 @@ const hasActiveFilters = computed(
     selectedSubCategory.value !== '' ||
     selectedTrack.value !== '' ||
     selectedCourse.value !== '' ||
-    selectedTerm.value !== '' ||
-    selectedTime.value !== '' ||
     selectedStatus.value !== '',
 )
 
@@ -130,24 +126,6 @@ function termSort(a, b) {
   return String(a).localeCompare(String(b))
 }
 
-const termOptions = computed(() => {
-  const set = new Set()
-  allCourses.value.forEach((course) =>
-    (course.class_schedules ?? []).forEach((ct) => (ct.terms ?? []).forEach((term) => set.add(term.term_name))),
-  )
-  return [...set].sort(termSort).map((v) => ({ value: v, label: v }))
-})
-
-const timeOptions = computed(() => {
-  const set = new Set()
-  allCourses.value.forEach((course) =>
-    (course.class_schedules ?? []).forEach((ct) =>
-      (ct.terms ?? []).forEach((term) => (term.times ?? []).forEach((time) => set.add(time.time_name))),
-    ),
-  )
-  return [...set].sort().map((v) => ({ value: v, label: v }))
-})
-
 const statusOptions = [
   { value: 'open', label: t('Open') },
   { value: 'closed', label: t('Closed') },
@@ -176,17 +154,6 @@ function getCourseClassType(course) {
 function courseHasClassType(course) {
   if (selectedClassType.value === '') return true
   return (course.class_schedules ?? []).some((ct) => String(ct.class_type_id) === selectedClassType.value)
-}
-
-function courseMatchesSchedule(course) {
-  if (selectedTerm.value === '' && selectedTime.value === '') return true
-  const ct = getCourseClassType(course)
-  if (!ct) return false
-  return (ct.terms ?? []).some((term) => {
-    if (selectedTerm.value !== '' && term.term_name !== selectedTerm.value) return false
-    if (selectedTime.value === '') return true
-    return (term.times ?? []).some((time) => time.time_name === selectedTime.value)
-  })
 }
 
 function courseMatchesStatus(course) {
@@ -268,7 +235,7 @@ const filteredCategories = computed(() => {
       .filter((category) => category.subCategories.length > 0)
   }
 
-  // Class type / term / time / status.
+  // Class type / status.
   list = list
     .map((category) => ({
       ...category,
@@ -278,9 +245,7 @@ const filteredCategories = computed(() => {
           tracks: s.tracks
             .map((tr) => ({
               ...tr,
-              courses: tr.courses.filter(
-                (c) => courseHasClassType(c) && courseMatchesSchedule(c) && courseMatchesStatus(c),
-              ),
+              courses: tr.courses.filter((c) => courseHasClassType(c) && courseMatchesStatus(c)),
             }))
             .filter((tr) => tr.courses.length > 0),
         }))
@@ -295,10 +260,9 @@ const visibleCourses = computed(() =>
   filteredCategories.value.flatMap((c) => c.subCategories.flatMap((s) => s.tracks.flatMap((tr) => tr.courses))),
 )
 
-// Term columns for the matrix: the term filter pins a single column; otherwise
-// the union of terms across the visible courses for the selected class type.
+// Term columns for the matrix: the union of terms across the visible courses
+// for the selected class type.
 const matrixTerms = computed(() => {
-  if (selectedTerm.value !== '') return [selectedTerm.value]
   const set = new Set()
   visibleCourses.value.forEach((course) => {
     getCourseClassType(course)?.terms?.forEach((term) => set.add(term.term_name))
@@ -306,15 +270,12 @@ const matrixTerms = computed(() => {
   return [...set].sort(termSort)
 })
 
-// The (schedule) term node + its time slots for a course/column, honouring the
-// active time filter.
+// The (schedule) term node + its time slots for a course/column.
 function termSlots(course, termName) {
   const ct = getCourseClassType(course)
   const term = ct?.terms?.find((tm) => tm.term_name === termName)
   if (!term) return { term: null, times: [] }
-  let times = term.times ?? []
-  if (selectedTime.value !== '') times = times.filter((tm) => tm.time_name === selectedTime.value)
-  return { term, times }
+  return { term, times: term.times ?? [] }
 }
 
 function resetFilters() {
@@ -323,8 +284,6 @@ function resetFilters() {
   selectedSubCategory.value = ''
   selectedTrack.value = ''
   selectedCourse.value = ''
-  selectedTerm.value = ''
-  selectedTime.value = ''
   selectedStatus.value = ''
 }
 
@@ -579,13 +538,11 @@ const numCell =
         </div>
 
         <!-- Filters -->
-        <div class="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+        <div class="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <SelectSearch v-model="selectedCategory" :options="categoryOptions" :placeholder="t('All Categories')" :button-class="filterBtn" />
           <SelectSearch v-model="selectedSubCategory" :options="subCategoryOptions" :placeholder="t('All Sub Categories')" :button-class="filterBtn" />
           <SelectSearch v-model="selectedTrack" :options="trackOptions" :placeholder="t('All Tech Stacks')" :button-class="filterBtn" />
           <SelectSearch v-model="selectedCourse" :options="courseOptions" :placeholder="t('All Courses')" :button-class="filterBtn" />
-          <SelectSearch v-model="selectedTerm" :options="termOptions" :placeholder="t('All Terms')" :button-class="filterBtn" />
-          <SelectSearch v-model="selectedTime" :options="timeOptions" :placeholder="t('All Times')" :button-class="filterBtn" />
           <SelectSearch v-model="selectedStatus" :options="statusOptions" :placeholder="t('All Status')" :button-class="filterBtn" />
           <button
             v-if="hasActiveFilters"
@@ -651,7 +608,7 @@ const numCell =
                 <table class="w-full min-w-max border-collapse text-sm">
                   <thead>
                     <tr>
-                      <th class="sticky left-0 top-0 z-30 min-w-[248px] border-b border-r border-slate-200 bg-slate-50 px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-400">
+                      <th class="sticky left-0 top-0 z-30 w-[320px] min-w-[320px] max-w-[320px] border-b border-r border-slate-200 bg-slate-50 px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-400">
                         {{ $t('Course') }}
                       </th>
                       <th
@@ -670,8 +627,8 @@ const numCell =
                       class="border-b border-slate-200 last:border-b-0 dark:border-gray-800"
                     >
                       <!-- Sticky course column -->
-                      <td class="sticky left-0 z-10 border-r border-slate-200 bg-white p-0 align-top dark:border-gray-800 dark:bg-gray-900">
-                        <div class="w-[248px] space-y-2 p-3">
+                      <td class="sticky left-0 z-10 w-[320px] min-w-[320px] max-w-[320px] border-r border-slate-200 bg-white p-0 align-top dark:border-gray-800 dark:bg-gray-900">
+                        <div class="w-full space-y-2 p-3">
                           <p class="text-sm font-bold text-slate-900 dark:text-gray-100">{{ course.title }}</p>
 
                           <div class="space-y-1.5 text-xs">
