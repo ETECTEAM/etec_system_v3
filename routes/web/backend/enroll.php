@@ -39,6 +39,10 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         // Pre-register a student with no class yet — they're enrolled into one later.
         Route::get('/students/create', [EnrollmentClassController::class, 'createRegisteredStudent'])->name('enroll.students.create');
         Route::post('/students', [EnrollmentClassController::class, 'storeRegisteredStudent'])->name('enroll.students.store');
+        // "Manual Register" tab — hand-record an old registration + payment.
+        Route::post('/manual-registrations', [EnrollmentClassController::class, 'storeManualRegistration'])
+            ->middleware('throttle:20,1')
+            ->name('enroll.manual-registrations.store');
         Route::post('/{studyClass}/enrollments', [EnrollmentClassController::class, 'enroll'])->name('enroll.enrollments.store');
         Route::post('/enrollments/{enrollment}/deposit', [EnrollmentClassController::class, 'deposit'])->name('enroll.enrollments.deposit');
     });
@@ -83,5 +87,13 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         Route::post('/{studyClass}/students', [EnrollmentClassController::class, 'storeStudent'])
             ->middleware('throttle:20,1')
             ->name('enroll.class-students.store');
+
+        // "Add Existing Student" on the class card: list unassigned registrations
+        // (Manual Register + other parked ones) and pull one into this class.
+        Route::get('/{studyClass}/assignable-registrations', [EnrollmentClassController::class, 'assignableRegistrations'])
+            ->name('enroll.class-students.assignable');
+        Route::post('/{studyClass}/assign-registration', [EnrollmentClassController::class, 'assignRegistration'])
+            ->middleware('throttle:30,1')
+            ->name('enroll.class-students.assign');
     });
 });

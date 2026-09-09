@@ -10,6 +10,7 @@ import ClassActionMenu from "./ClassActionMenu.vue";
 import CollapseClassModal from "./CollapseClassModal.vue";
 import BarClass from "../../../pages/backend/students/components/BarClass.vue";
 import RegisterStudentModal from "../../../pages/backend/students/components/RegisterStudentModal.vue";
+import AssignRegistrationModal from "../../../pages/backend/students/components/AssignRegistrationModal.vue";
 import { useConfirm } from "@/composables/useConfirm";
 import { useI18n } from "@/i18n";
 
@@ -141,7 +142,14 @@ const showBarDialog = ref(false);
 const showQrDialog = ref(false);
 const showCollapseDialog = ref(false);
 const showRegisterModal = ref(false);
+const showAssignModal = ref(false);
 const { confirm } = useConfirm();
+
+// "Add Existing Student" pulled an unassigned registration into this class —
+// bump the local seat count so the card / progress bar update immediately.
+function onRegistrationAssigned() {
+    props.classData.students = (props.classData.students ?? 0) + 1;
+}
 
 // Inline capacity editing
 const editingCapacity = ref(false);
@@ -333,6 +341,7 @@ async function saveCapacity() {
                 :hiddenItems="hiddenItems"
                 @open-bar="showBarDialog = true"
                 @register-student="showRegisterModal = true"
+                @assign-registration="showAssignModal = true"
             />
         </div>
 
@@ -530,6 +539,15 @@ async function saveCapacity() {
     :class-title="classData.title"
     :seats-left="Math.max(0, (capacity ?? 0) - (classData.students ?? 0))"
     @close="showRegisterModal = false"
+/>
+
+<AssignRegistrationModal
+    :show="showAssignModal"
+    :class-id="classData.id"
+    :class-title="classData.title"
+    :seats-left="Math.max(0, (capacity ?? 0) - (classData.students ?? 0))"
+    @close="showAssignModal = false"
+    @assigned="onRegistrationAssigned"
 />
 
 <BarClass

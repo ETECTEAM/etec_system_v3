@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { Crown, Save, X } from "@lucide/vue";
 import { latinNameError } from "@/composables/useLatinNameValidation";
 import { useToast } from "@/composables/useToast";
@@ -52,12 +52,11 @@ function to12h(value) {
   const [h, m] = value.split(":").map(Number);
   return `${String(((h + 11) % 12) + 1).padStart(2, "0")}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
-const timeError = computed(() => {
-  const s = toMinutes(form.time_start);
-  const e = toMinutes(form.time_end);
-  if (s == null || e == null) return "";
-  return e <= s ? t("End time must be later than start time.") : "";
-});
+function hhmm(mins) {
+  // Clamp to end-of-day — a class time never rolls past midnight.
+  const total = Math.max(0, Math.min(mins, 23 * 60 + 59));
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
 const durationLabel = computed(() => {
   const s = toMinutes(form.time_start);
   const e = toMinutes(form.time_end);
@@ -67,7 +66,7 @@ const durationLabel = computed(() => {
   return [h ? `${h}h` : "", m ? `${m}m` : ""].filter(Boolean).join(" ");
 });
 const timeRange = computed(() =>
-  form.time_start && form.time_end && !timeError.value ? `${to12h(form.time_start)} - ${to12h(form.time_end)}` : "",
+  form.time_start && form.time_end ? `${to12h(form.time_start)} - ${to12h(form.time_end)}` : "",
 );
 
 const roomOptions = computed(() =>
@@ -111,6 +110,24 @@ const form = reactive({
   status: "Active",
 });
 
+// Start time drives the end: default to +1h when end is blank, otherwise keep
+// whatever duration the admin already picked (3h etc.) as the start moves.
+watch(
+  () => form.time_start,
+  (start, prevStart) => {
+    if (!start) return;
+    const startMin = toMinutes(start);
+    if (!form.time_end) {
+      form.time_end = hhmm(startMin + 60);
+      return;
+    }
+    const prevMin = toMinutes(prevStart);
+    if (prevMin == null) return;
+    const shifted = toMinutes(form.time_end) + (startMin - prevMin);
+    if (shifted > startMin) form.time_end = hhmm(shifted);
+  },
+);
+
 const errors = reactive({});
 const saving = ref(false);
 
@@ -139,7 +156,6 @@ function validate() {
   if (!form.instructor) errors.instructor = t("Instructor is required.");
   if (!form.term) errors.term = t("Term / Days is required.");
   if (!form.time_start || !form.time_end) errors.time = t("Time is required.");
-  else if (timeError.value) errors.time = timeError.value;
   if (!form.start_date) errors.start_date = t("Start date is required.");
   if (form.course_price === "" || Number(form.course_price) < 0) errors.course_price = t("Course price is required.");
 
@@ -179,16 +195,21 @@ async function submit() {
     resetForm();
   } catch (error) {
     const status = error?.response?.status;
+    console.error(
+      "[VIP Register] save failed:",
+      status ?? "(no server response)",
+      error?.response?.data ?? error?.message ?? error,
+      { url: "/dashboard/enroll/vip-students", payload },
+    );
+
     if (status === 422) {
       Object.assign(errors, error.response.data.errors ?? {});
-      toast.error(t("Please fix the highlighted fields."));
+      toast.error(error.response.data.message ?? t("Please fix the highlighted fields."));
     } else if (status === 404 || status === 405) {
-      // Backend endpoint not wired yet — surface the captured payload so it is
-      // not silently lost while the API is being built.
-      console.info("VIP registration payload (endpoint not connected):", payload);
       toast.info(t("Captured. The VIP registration endpoint is not connected yet."));
     } else {
-      toast.error(error?.response?.data?.message ?? t("Failed to register VIP student."));
+      const detail = status ? `HTTP ${status}` : t("no server response");
+      toast.error(`${error?.response?.data?.message ?? t("Failed to register VIP student.")} (${detail})`);
     }
   } finally {
     saving.value = false;
@@ -270,20 +291,17 @@ const errorClass = "border-red-300 focus:border-red-500 focus:ring-red-100 dark:
             <SelectSearch v-model="form.term" :options="termOptions" placeholder="Select term / days" empty-text="No terms" :button-class="triggerClass(!!errors.term)" />
             <p v-if="errors.term" class="mt-1 text-xs text-red-600">{{ errors.term }}</p>
           </div>
-          <div class="md:col-span-2">
-            <label :class="labelClass">{{ $t('Time') }} <span class="text-red-500">*</span></label>
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div class="flex-1">
-                <span class="mb-1 block text-[11px] font-medium text-slate-500 dark:text-gray-400">{{ $t('Start Time') }}</span>
-                <input v-model="form.time_start" type="time" step="900" :class="[controlClass, errors.time && errorClass]" :aria-label="$t('Start Time')" />
-              </div>
-              <span class="hidden shrink-0 pb-2.5 text-slate-400 sm:block">→</span>
-              <div class="flex-1">
-                <span class="mb-1 block text-[11px] font-medium text-slate-500 dark:text-gray-400">{{ $t('End Time') }}</span>
-                <input v-model="form.time_end" type="time" step="900" :class="[controlClass, errors.time && errorClass]" :aria-label="$t('End Time')" />
-              </div>
+          <div>
+            <label :class="labelClass">
+              {{ $t('Time') }} <span class="text-red-500">*</span>
+              <span class="text-[11px] font-normal text-slate-400">({{ $t('start – end') }})</span>
+            </label>
+            <div class="flex items-center gap-2">
+              <input v-model="form.time_start" type="time" step="900" :class="[controlClass, '!px-2.5', errors.time && errorClass]" :aria-label="$t('Start Time')" />
+              <span class="shrink-0 text-slate-400">→</span>
+              <input v-model="form.time_end" type="time" step="900" :class="[controlClass, '!px-2.5', errors.time && errorClass]" :aria-label="$t('End Time')" />
             </div>
-            <p v-if="errors.time || timeError" class="mt-1 text-xs text-red-600">{{ errors.time || timeError }}</p>
+            <p v-if="errors.time" class="mt-1 text-xs text-red-600">{{ errors.time }}</p>
             <p v-else-if="durationLabel" class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ $t('Duration') }}: {{ durationLabel }}</p>
           </div>
           <div>

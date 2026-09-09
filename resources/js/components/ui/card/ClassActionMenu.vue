@@ -9,6 +9,7 @@ import {
   SquarePen,
   Copy,
   UserPlus,
+  UserCheck,
   QrCode,
   UserCog,
   CirclePause,
@@ -34,7 +35,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["register-student"]);
+const emit = defineEmits(["register-student", "assign-registration"]);
 
 const open = ref(false);
 const showQr = ref(false);
@@ -115,6 +116,12 @@ const menus = computed(() => [
     label: "Register Student",
     icon: UserPlus,
     action: () => { emit("register-student"); open.value = false; },
+    disabled: lockedStudentActions.value,
+  },
+  {
+    label: "Add Existing Student",
+    icon: UserCheck,
+    action: () => { emit("assign-registration"); open.value = false; },
     disabled: lockedStudentActions.value,
   },
   {

@@ -17,6 +17,7 @@ use App\Modules\Enroll\Actions\CreateStudyClass;
 use App\Modules\Enroll\Actions\EnrollStudent;
 use App\Modules\Enroll\Actions\MoveStudentEnrollment;
 use App\Modules\Enroll\Actions\RecordEnrollmentDeposit;
+use App\Modules\Enroll\Actions\RecordManualRegistration;
 use App\Modules\Enroll\Actions\RegisterStudent;
 use App\Modules\Enroll\Actions\ShareClassWithInstructor;
 use App\Modules\Enroll\Actions\UpdatePublicRegistrationDetails;
@@ -32,11 +33,13 @@ use App\Modules\Enroll\Requests\RegisterStudentRequest;
 use App\Modules\Enroll\Requests\SaveStudyClassRequest;
 use App\Modules\Enroll\Requests\ShareClassInstructorRequest;
 use App\Modules\Enroll\Requests\StoreClassStudentRequest;
+use App\Modules\Enroll\Requests\StoreManualRegistrationRequest;
 use App\Modules\Enroll\Requests\UpdatePublicRegistrationRequest;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
 use App\Support\InstructorDisplayName;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -317,6 +320,21 @@ class EnrollmentClassController extends Controller
             ->with('success', 'Student registered successfully.');
     }
 
+    // "Manual Register" tab — hand-record an old registration (no class), stored
+    // as a class-less enrollment with source = manual. Returns JSON (the form
+    // posts with axios, not Inertia).
+    public function storeManualRegistration(
+        StoreManualRegistrationRequest $request,
+        RecordManualRegistration $record
+    ): JsonResponse {
+        $enrollment = $record->handle($request->validated());
+
+        return response()->json([
+            'success' => true,
+            'enrollment_id' => $enrollment->id,
+        ], 201);
+    }
+
     public function update(
         SaveStudyClassRequest $request,
         StudyClass $studyClass,
@@ -489,6 +507,80 @@ class EnrollmentClassController extends Controller
         );
 
         return back()->with('success', 'Student added to class successfully.');
+    }
+
+    /**
+     * "Add Existing Student" on the class card: unassigned registrations
+     * (Manual Register + other parked rows) that can be pulled into this class.
+     * Instructor-scoped to the class's own teachers.
+     */
+    public function assignableRegistrations(Request $request, StudyClass $studyClass): JsonResponse
+    {
+        $this->ensureInstructorCanManageClassStudents($studyClass);
+
+        $search = trim($request->string('search')->toString());
+
+        $rows = StudentEnrollment::query()
+            ->whereNull('study_class_id')
+            ->where('enrollment_status', 'unassigned')
+            ->with(['student:id,full_name,gender,phone', 'course:id,title', 'term:id,term_name'])
+            ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $query) use ($search): void {
+                $query->whereHas('student', fn (Builder $query) => $query
+                    ->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%"))
+                    ->orWhereHas('course', fn (Builder $query) => $query->where('title', 'like', "%{$search}%"));
+            }))
+            ->latest('id')
+            ->limit(30)
+            ->get()
+            ->map(fn (StudentEnrollment $enrollment) => [
+                'enrollment_id' => $enrollment->id,
+                'name' => $enrollment->student?->full_name ?? '-',
+                'phone' => $enrollment->student?->phone ?? '-',
+                'gender' => $enrollment->student?->gender ?? '-',
+                'course_title' => $enrollment->course?->title,
+                'term_name' => $enrollment->term?->term_name,
+                'amount_paid' => (float) $enrollment->amount_paid,
+                'payment_status' => ucfirst($enrollment->payment_status),
+                'registration_type' => match ($enrollment->source) {
+                    'vip' => 'vip',
+                    'manual' => 'manual',
+                    default => 'normal',
+                },
+            ])
+            ->all();
+
+        return response()->json(['data' => $rows]);
+    }
+
+    /**
+     * Pull one unassigned registration into this class — sets study_class_id on
+     * the existing enrollment, keeping its payment. Instructor-scoped.
+     */
+    public function assignRegistration(
+        Request $request,
+        StudyClass $studyClass,
+        MoveStudentEnrollment $move
+    ): JsonResponse {
+        $this->ensureInstructorCanManageClassStudents($studyClass);
+        $this->ensureClassAcceptsMutations($studyClass);
+
+        $validated = $request->validate([
+            'enrollment_id' => ['required', 'integer', 'exists:student_enrollments,id'],
+            'force' => ['sometimes', 'boolean'],
+        ]);
+
+        $enrollment = StudentEnrollment::query()->findOrFail($validated['enrollment_id']);
+
+        abort_unless(
+            $enrollment->study_class_id === null && $enrollment->enrollment_status === 'unassigned',
+            422,
+            'That registration is already assigned to a class.',
+        );
+
+        $move->handle($enrollment, $studyClass, (bool) ($validated['force'] ?? false));
+
+        return response()->json(['success' => true]);
     }
 
     public function storeStudent(
