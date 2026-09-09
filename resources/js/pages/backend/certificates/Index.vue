@@ -17,6 +17,8 @@ import {
     Users,
     X,
 } from '@lucide/vue'
+import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
+import { PageHero } from '../../../components/ui/page-hero'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import { useTheme } from '../../../composables/useTheme'
 import { useConfirm } from '../../../composables/useConfirm'
@@ -54,6 +56,20 @@ const pageTitle = computed(() => ({
     meal: t('certificatePage.titles.meal'),
     report: t('certificatePage.titles.report'),
 }[certificateType.value] ?? t('navigation.certificate')))
+
+const pageDescription = computed(() => ({
+    free: 'Create and print free course completion certificates.',
+    normal: 'Print and manage regular course completion certificates.',
+    scholarship: 'Print and manage scholarship training certificates.',
+    internship: 'Print and manage internship completion certificates.',
+    meal: 'Print and manage meal scholarship certificates.',
+    report: 'Review certificate print history and remaining students.',
+}[certificateType.value] ?? 'Manage certificate printing and student records.'))
+
+const breadcrumbItems = computed(() => [
+    { label: t('Dashboard'), href: '/dashboard' },
+    { label: pageTitle.value, current: true },
+])
 
 const classRows = ref([])
 const classLoading = ref(false)
@@ -1759,10 +1775,16 @@ function saveFreeAfterPrint() {
             class="normal-certificate-page"
             :class="{ 'is-dark-theme': isDarkTheme }"
         >
-            <template v-if="!selectedClass">
-                <header class="normal-toolbar no-print">
-                    <h1>{{ pageTitle }}</h1>
+            <Breadcrumbs class="no-print" :items="breadcrumbItems" />
+            <PageHero
+                class="no-print"
+                :eyebrow="t('Certificate Management')"
+                :title="pageTitle"
+                :description="pageDescription"
+            />
 
+            <template v-if="!selectedClass">
+                <header class="normal-toolbar normal-toolbar-actions no-print">
                     <div class="normal-actions" :class="{ 'report-actions': isReport }">
                         <select v-if="isReport" v-model="selectedReportType" class="filter-select report-filter-select">
                             <option v-for="type in certificateTypeOptions" :key="type.value" :value="type.value">
@@ -2157,6 +2179,14 @@ function saveFreeAfterPrint() {
             class="legacy-certificate-page"
             :class="{ 'is-dark-theme': isDarkTheme }"
         >
+            <Breadcrumbs class="no-print" :items="breadcrumbItems" />
+            <PageHero
+                class="no-print"
+                :eyebrow="t('Certificate Management')"
+                :title="pageTitle"
+                :description="pageDescription"
+            />
+
             <form v-if="isFree" class="free-form free-form-card" @submit.prevent="saveFreeAfterPrint">
                 <div class="free-form-grid">
                     <label class="free-field" :class="{ 'has-error': freeErrors.student_name }">
@@ -2343,6 +2373,11 @@ const LegacyCertificatePreview = {
     color: #0f172a;
 }
 
+.normal-certificate-page :deep(.page-hero),
+.legacy-certificate-page :deep(.page-hero) {
+    margin-bottom: 18px;
+}
+
 :global(.dark) .normal-certificate-page {
     background: transparent;
     color: #e5e7eb;
@@ -2368,6 +2403,10 @@ const LegacyCertificatePreview = {
     flex-wrap: wrap;
     gap: 14px;
     margin-bottom: 18px;
+}
+
+.normal-toolbar-actions {
+    justify-content: flex-end;
 }
 
 .normal-toolbar h1 {
