@@ -131,6 +131,10 @@ const internshipCourseName = computed(() => {
         <div class="certificate-wrap">
             <div class="certificate">
                 <div class="cert-outer-border">
+                    <span class="cert-corner-dot cert-corner-dot-tl" aria-hidden="true"></span>
+                    <span class="cert-corner-dot cert-corner-dot-tr" aria-hidden="true"></span>
+                    <span class="cert-corner-dot cert-corner-dot-bl" aria-hidden="true"></span>
+                    <span class="cert-corner-dot cert-corner-dot-br" aria-hidden="true"></span>
                     <div class="cert-inner-border">
                         <div class="cert-kingdom">
                             <div>KINGDOM OF CAMBODIA</div>
@@ -267,20 +271,61 @@ const internshipCourseName = computed(() => {
 }
 
 .cert-outer-border::before {
+    display: none;
     position: absolute;
     z-index: 99;
     inset: -15px;
     content: "";
     pointer-events: none;
     background:
-        radial-gradient(circle at 24px 24px, #d99d12 0 8px, transparent 9px),
-        radial-gradient(circle at calc(100% - 24px) 24px, #d99d12 0 8px, transparent 9px),
-        radial-gradient(circle at 24px calc(100% - 24px), #d99d12 0 8px, transparent 9px),
-        radial-gradient(circle at calc(100% - 24px) calc(100% - 24px), #d99d12 0 8px, transparent 9px),
-        radial-gradient(circle at 24px 24px, #08216d 0 18px, transparent 19px),
-        radial-gradient(circle at calc(100% - 24px) 24px, #08216d 0 18px, transparent 19px),
-        radial-gradient(circle at 24px calc(100% - 24px), #08216d 0 18px, transparent 19px),
-        radial-gradient(circle at calc(100% - 24px) calc(100% - 24px), #08216d 0 18px, transparent 19px);
+        radial-gradient(circle at 24px 24px, #d99d12 0 8px, rgba(217, 157, 18, 0) 9px),
+        radial-gradient(circle at calc(100% - 24px) 24px, #d99d12 0 8px, rgba(217, 157, 18, 0) 9px),
+        radial-gradient(circle at 24px calc(100% - 24px), #d99d12 0 8px, rgba(217, 157, 18, 0) 9px),
+        radial-gradient(circle at calc(100% - 24px) calc(100% - 24px), #d99d12 0 8px, rgba(217, 157, 18, 0) 9px),
+        radial-gradient(circle at 24px 24px, #2d2e81 0 18px, rgba(45, 46, 129, 0) 19px),
+        radial-gradient(circle at calc(100% - 24px) 24px, #2d2e81 0 18px, rgba(45, 46, 129, 0) 19px),
+        radial-gradient(circle at 24px calc(100% - 24px), #2d2e81 0 18px, rgba(45, 46, 129, 0) 19px),
+        radial-gradient(circle at calc(100% - 24px) calc(100% - 24px), #2d2e81 0 18px, rgba(45, 46, 129, 0) 19px);
+}
+
+.cert-corner-dot {
+    position: absolute;
+    z-index: 100;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: #2d2e81;
+    box-shadow: none;
+    pointer-events: none;
+}
+
+.cert-corner-dot::after {
+    position: absolute;
+    inset: 7px;
+    border-radius: 50%;
+    background: #d99d12;
+    content: "";
+}
+
+.cert-corner-dot-tl {
+    top: -6px;
+    left: -6px;
+}
+
+.cert-corner-dot-tr {
+    top: -6px;
+    right: -6px;
+}
+
+.cert-corner-dot-bl {
+    bottom: -6px;
+    left: -6px;
+}
+
+.cert-corner-dot-br {
+    right: -6px;
+    bottom: -6px;
 }
 
 .cert-inner-border {
@@ -805,20 +850,54 @@ const internshipCourseName = computed(() => {
     }
 
     .cert-outer-border::before {
+        display: none !important;
         position: absolute !important;
         z-index: 3 !important;
         inset: -8mm !important;
         content: "" !important;
         pointer-events: none !important;
         background:
-            radial-gradient(circle at 12.6mm 12.6mm, #d99d12 0 2.8mm, transparent 3.1mm),
-            radial-gradient(circle at calc(100% - 12.6mm) 12.6mm, #d99d12 0 2.8mm, transparent 3.1mm),
-            radial-gradient(circle at 12.6mm calc(100% - 12.6mm), #d99d12 0 2.8mm, transparent 3.1mm),
-            radial-gradient(circle at calc(100% - 12.6mm) calc(100% - 12.6mm), #d99d12 0 2.8mm, transparent 3.1mm),
-            radial-gradient(circle at 12.6mm 12.6mm, #08216d 0 5.8mm, transparent 6.1mm),
-            radial-gradient(circle at calc(100% - 12.6mm) 12.6mm, #08216d 0 5.8mm, transparent 6.1mm),
-            radial-gradient(circle at 12.6mm calc(100% - 12.6mm), #08216d 0 5.8mm, transparent 6.1mm),
-            radial-gradient(circle at calc(100% - 12.6mm) calc(100% - 12.6mm), #08216d 0 5.8mm, transparent 6.1mm) !important;
+            radial-gradient(circle at 13.2mm 13.2mm, #d99d12 0 3.9mm, #2d2e81 4mm 9.2mm, rgba(45, 46, 129, 0) 9.3mm),
+            radial-gradient(circle at calc(100% - 13.2mm) 13.2mm, #d99d12 0 3.9mm, #2d2e81 4mm 9.2mm, rgba(45, 46, 129, 0) 9.3mm),
+            radial-gradient(circle at 13.2mm calc(100% - 13.2mm), #d99d12 0 3.9mm, #2d2e81 4mm 9.2mm, rgba(45, 46, 129, 0) 9.3mm),
+            radial-gradient(circle at calc(100% - 13.2mm) calc(100% - 13.2mm), #d99d12 0 3.9mm, #2d2e81 4mm 9.2mm, rgba(45, 46, 129, 0) 9.3mm) !important;
+    }
+
+    .cert-corner-dot {
+        width: 15.5mm !important;
+        height: 15.5mm !important;
+        border: 0 !important;
+        background: #2d2e81 !important;
+        box-shadow: none !important;
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+    }
+
+    .cert-corner-dot::after {
+        inset: 4.25mm !important;
+        background: #d99d12 !important;
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+    }
+
+    .cert-corner-dot-tl {
+        top: -2.55mm !important;
+        left: -2.55mm !important;
+    }
+
+    .cert-corner-dot-tr {
+        top: -2.55mm !important;
+        right: -2.55mm !important;
+    }
+
+    .cert-corner-dot-bl {
+        bottom: -2.55mm !important;
+        left: -2.55mm !important;
+    }
+
+    .cert-corner-dot-br {
+        right: -2.55mm !important;
+        bottom: -2.55mm !important;
     }
 
     .cert-inner-border {

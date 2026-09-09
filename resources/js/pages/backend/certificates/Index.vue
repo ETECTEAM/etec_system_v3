@@ -19,6 +19,7 @@ import {
 } from '@lucide/vue'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import { useTheme } from '../../../composables/useTheme'
+import { useConfirm } from '../../../composables/useConfirm'
 import { useI18n } from '@/i18n'
 import RealCertificatePreview from './CertificatePreview.vue'
 import FreeCertificatePreview from './FreeCertificatePreview.vue'
@@ -41,6 +42,7 @@ const isClassCertificate = computed(() => ['free', 'normal', 'scholarship', 'mea
 const isReport = computed(() => certificateType.value === 'report')
 const isClassListPage = computed(() => isClassCertificate.value || isReport.value)
 const { resolvedTheme } = useTheme()
+const { confirm } = useConfirm()
 const { t } = useI18n()
 const isDarkTheme = computed(() => resolvedTheme.value === 'dark')
 
@@ -79,6 +81,15 @@ const normalCertificateId = ref(props.generatedIds.normal)
 const savedCourses = ref([...props.normalCourses])
 const studentDrafts = ref([])
 const printQueue = ref([])
+
+function confirmPrintedSuccessfully() {
+    return confirm({
+        title: 'Print Certificate',
+        message: 'Printed successfully?',
+        confirmText: 'Yes, saved',
+        cancelText: 'Not yet',
+    })
+}
 
 const freeForm = reactive({
     student_name: '',
@@ -677,20 +688,59 @@ function beginNormalPrint(batch = false) {
                 border-width: 8mm !important;
             }
             body.normal-certificate-print #normal-cert-print .cert-outer-border::before {
+                display: none !important;
                 position: absolute !important;
                 z-index: 3 !important;
                 inset: -8mm !important;
                 content: "" !important;
                 pointer-events: none !important;
                 background:
-                    radial-gradient(circle at 12.6mm 12.6mm, #d99d12 0 2.8mm, transparent 3.1mm),
-                    radial-gradient(circle at calc(100% - 12.6mm) 12.6mm, #d99d12 0 2.8mm, transparent 3.1mm),
-                    radial-gradient(circle at 12.6mm calc(100% - 12.6mm), #d99d12 0 2.8mm, transparent 3.1mm),
-                    radial-gradient(circle at calc(100% - 12.6mm) calc(100% - 12.6mm), #d99d12 0 2.8mm, transparent 3.1mm),
-                    radial-gradient(circle at 12.6mm 12.6mm, #08216d 0 5.8mm, transparent 6.1mm),
-                    radial-gradient(circle at calc(100% - 12.6mm) 12.6mm, #08216d 0 5.8mm, transparent 6.1mm),
-                    radial-gradient(circle at 12.6mm calc(100% - 12.6mm), #08216d 0 5.8mm, transparent 6.1mm),
-                    radial-gradient(circle at calc(100% - 12.6mm) calc(100% - 12.6mm), #08216d 0 5.8mm, transparent 6.1mm) !important;
+                    radial-gradient(circle at 13.2mm 13.2mm, #d99d12 0 3.9mm, #2d2e81 4mm 9.2mm, rgba(45, 46, 129, 0) 9.3mm),
+                    radial-gradient(circle at calc(100% - 13.2mm) 13.2mm, #d99d12 0 3.9mm, #2d2e81 4mm 9.2mm, rgba(45, 46, 129, 0) 9.3mm),
+                    radial-gradient(circle at 13.2mm calc(100% - 13.2mm), #d99d12 0 3.9mm, #2d2e81 4mm 9.2mm, rgba(45, 46, 129, 0) 9.3mm),
+                    radial-gradient(circle at calc(100% - 13.2mm) calc(100% - 13.2mm), #d99d12 0 3.9mm, #2d2e81 4mm 9.2mm, rgba(45, 46, 129, 0) 9.3mm) !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-corner-dot {
+                position: absolute !important;
+                z-index: 100 !important;
+                width: 15.5mm !important;
+                height: 15.5mm !important;
+                border: 0 !important;
+                border-radius: 50% !important;
+                background: #2d2e81 !important;
+                box-shadow: none !important;
+                outline: 0 !important;
+                pointer-events: none !important;
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-corner-dot::after {
+                position: absolute !important;
+                inset: 4.25mm !important;
+                border: 0 !important;
+                border-radius: 50% !important;
+                background: #d99d12 !important;
+                box-shadow: none !important;
+                outline: 0 !important;
+                content: "" !important;
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-corner-dot-tl {
+                top: -2.55mm !important;
+                left: -2.55mm !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-corner-dot-tr {
+                top: -2.55mm !important;
+                right: -2.55mm !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-corner-dot-bl {
+                bottom: -2.55mm !important;
+                left: -2.55mm !important;
+            }
+            body.normal-certificate-print #normal-cert-print .cert-corner-dot-br {
+                right: -2.55mm !important;
+                bottom: -2.55mm !important;
             }
             body.normal-certificate-print #normal-cert-print .cert-inner-border {
                 box-sizing: border-box !important;
@@ -1529,7 +1579,7 @@ async function printSingle() {
     if (activeCertificateType.value === 'free') {
         setPrintQueue([currentCertificate.value], false)
         await printSingleFreeCertificate(printForm.student_name || student?.name)
-        const printed = window.confirm('Printed successfully?')
+        const printed = await confirmPrintedSuccessfully()
         clearPrintQueue()
         if (!printed || !student) return
 
@@ -1546,7 +1596,7 @@ async function printSingle() {
     if (activeCertificateType.value === 'internship') {
         setPrintQueue([currentCertificate.value], false)
         await printSingleInternshipCertificate(printForm.student_name || student?.name)
-        const printed = window.confirm('Printed successfully?')
+        const printed = await confirmPrintedSuccessfully()
         clearPrintQueue()
         if (!printed || !student) return
 
@@ -1566,7 +1616,7 @@ async function printSingle() {
     await waitForPrintStyles()
     enforceSinglePrintRoot()
     printWithTitle(printForm.student_name || student?.name)
-    const printed = window.confirm('Printed successfully?')
+    const printed = await confirmPrintedSuccessfully()
     cleanupPrint()
     if (!printed) return
 
@@ -1600,7 +1650,7 @@ async function printAllDrafts() {
     const cleanupPrint = scheduleNormalPrintCleanup()
     await waitForPrintStyles()
     printWithTitle(studentDrafts.value[0]?.draft_name || printForm.student_name)
-    const printed = window.confirm('Printed successfully?')
+    const printed = await confirmPrintedSuccessfully()
     cleanupPrint()
     if (!printed) return
 
@@ -1681,8 +1731,8 @@ function saveFreeAfterPrint() {
     if (!freeForm.end_date) freeErrors.value.end_date = t('certificatePage.validation.endDateRequired')
     if (Object.keys(freeErrors.value).length) return
 
-    printSingleFreeCertificate(freeForm.student_name).then(() => {
-        if (!window.confirm('Printed successfully?')) return
+    printSingleFreeCertificate(freeForm.student_name).then(async () => {
+        if (!(await confirmPrintedSuccessfully())) return
 
         freeSaving.value = true
         router.post('/dashboard/certificates/free', {
@@ -2225,6 +2275,10 @@ const LegacyCertificatePreview = {
             <div class="certificate-wrap">
                 <div class="certificate">
                     <div class="cert-outer-border">
+                        <span class="cert-corner-dot cert-corner-dot-tl" aria-hidden="true"></span>
+                        <span class="cert-corner-dot cert-corner-dot-tr" aria-hidden="true"></span>
+                        <span class="cert-corner-dot cert-corner-dot-bl" aria-hidden="true"></span>
+                        <span class="cert-corner-dot cert-corner-dot-br" aria-hidden="true"></span>
                         <div class="cert-inner-border">
                             <div class="cert-kingdom">
                                 <div>KINGDOM OF CAMBODIA</div>
@@ -3846,20 +3900,65 @@ table {
 }
 
 .cert-outer-border::before {
+    display: none;
     position: absolute;
     z-index: 3;
     inset: -15px;
     content: "";
     pointer-events: none;
     background:
-        radial-gradient(circle at 24px 24px, #d99d12 0 8px, transparent 9px),
-        radial-gradient(circle at calc(100% - 24px) 24px, #d99d12 0 8px, transparent 9px),
-        radial-gradient(circle at 24px calc(100% - 24px), #d99d12 0 8px, transparent 9px),
-        radial-gradient(circle at calc(100% - 24px) calc(100% - 24px), #d99d12 0 8px, transparent 9px),
-        radial-gradient(circle at 24px 24px, #08216d 0 18px, transparent 19px),
-        radial-gradient(circle at calc(100% - 24px) 24px, #08216d 0 18px, transparent 19px),
-        radial-gradient(circle at 24px calc(100% - 24px), #08216d 0 18px, transparent 19px),
-        radial-gradient(circle at calc(100% - 24px) calc(100% - 24px), #08216d 0 18px, transparent 19px);
+        radial-gradient(circle at 24px 24px, #d99d12 0 8px, rgba(217, 157, 18, 0) 9px),
+        radial-gradient(circle at calc(100% - 24px) 24px, #d99d12 0 8px, rgba(217, 157, 18, 0) 9px),
+        radial-gradient(circle at 24px calc(100% - 24px), #d99d12 0 8px, rgba(217, 157, 18, 0) 9px),
+        radial-gradient(circle at calc(100% - 24px) calc(100% - 24px), #d99d12 0 8px, rgba(217, 157, 18, 0) 9px),
+        radial-gradient(circle at 24px 24px, #2d2e81 0 18px, rgba(45, 46, 129, 0) 19px),
+        radial-gradient(circle at calc(100% - 24px) 24px, #2d2e81 0 18px, rgba(45, 46, 129, 0) 19px),
+        radial-gradient(circle at 24px calc(100% - 24px), #2d2e81 0 18px, rgba(45, 46, 129, 0) 19px),
+        radial-gradient(circle at calc(100% - 24px) calc(100% - 24px), #2d2e81 0 18px, rgba(45, 46, 129, 0) 19px);
+}
+
+.cert-corner-dot {
+    position: absolute;
+    z-index: 100;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: #2d2e81;
+    box-shadow: none;
+    outline: 0;
+    pointer-events: none;
+}
+
+.cert-corner-dot::after {
+    position: absolute;
+    inset: 7px;
+    border: 0;
+    border-radius: 50%;
+    background: #d99d12;
+    box-shadow: none;
+    outline: 0;
+    content: "";
+}
+
+.cert-corner-dot-tl {
+    top: -6px;
+    left: -6px;
+}
+
+.cert-corner-dot-tr {
+    top: -6px;
+    right: -6px;
+}
+
+.cert-corner-dot-bl {
+    bottom: -6px;
+    left: -6px;
+}
+
+.cert-corner-dot-br {
+    right: -6px;
+    bottom: -6px;
 }
 
 .cert-inner-border {
