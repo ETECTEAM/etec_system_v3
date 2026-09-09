@@ -679,150 +679,25 @@ function beginNormalPrint(batch = false) {
             body.normal-certificate-print #normal-cert-print .cert-outer-border::before {
                 position: absolute !important;
                 z-index: 3 !important;
-                inset: -8mm !important;
+                inset: 0 !important;
                 content: "" !important;
                 pointer-events: none !important;
                 background:
-                    radial-gradient(circle at 12.6mm 12.6mm, #d99d12 0 2.8mm, transparent 3.1mm),
-                    radial-gradient(circle at calc(100% - 12.6mm) 12.6mm, #d99d12 0 2.8mm, transparent 3.1mm),
-                    radial-gradient(circle at 12.6mm calc(100% - 12.6mm), #d99d12 0 2.8mm, transparent 3.1mm),
-                    radial-gradient(circle at calc(100% - 12.6mm) calc(100% - 12.6mm), #d99d12 0 2.8mm, transparent 3.1mm),
-                    radial-gradient(circle at 12.6mm 12.6mm, #08216d 0 5.8mm, transparent 6.1mm),
-                    radial-gradient(circle at calc(100% - 12.6mm) 12.6mm, #08216d 0 5.8mm, transparent 6.1mm),
-                    radial-gradient(circle at 12.6mm calc(100% - 12.6mm), #08216d 0 5.8mm, transparent 6.1mm),
-                    radial-gradient(circle at calc(100% - 12.6mm) calc(100% - 12.6mm), #08216d 0 5.8mm, transparent 6.1mm) !important;
+                    radial-gradient(circle at 2mm 2mm, #d99d12 0 1.5mm, transparent 1.8mm),
+                    radial-gradient(circle at calc(100% - 2mm) 2mm, #d99d12 0 1.5mm, transparent 1.8mm),
+                    radial-gradient(circle at 2mm calc(100% - 2mm), #d99d12 0 1.5mm, transparent 1.8mm),
+                    radial-gradient(circle at calc(100% - 2mm) calc(100% - 2mm), #d99d12 0 1.5mm, transparent 1.8mm),
+                    radial-gradient(circle at 2mm 2mm, #08216d 0 4.6mm, transparent 4.9mm),
+                    radial-gradient(circle at calc(100% - 2mm) 2mm, #08216d 0 4.6mm, transparent 4.9mm),
+                    radial-gradient(circle at 2mm calc(100% - 2mm), #08216d 0 4.6mm, transparent 4.9mm),
+                    radial-gradient(circle at calc(100% - 2mm) calc(100% - 2mm), #08216d 0 4.6mm, transparent 4.9mm) !important;
             }
             body.normal-certificate-print #normal-cert-print .cert-inner-border {
                 box-sizing: border-box !important;
                 display: flex !important;
                 flex: 1 1 auto !important;
-                flex-direction: column !important;
                 min-height: 0 !important;
                 border: 1mm solid #d99d12 !important;
-                border-radius: 8px !important;
-                padding: 9mm 12mm 5mm !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-school-kh,
-            body.normal-certificate-print #normal-cert-print .cert-certify,
-            body.normal-certificate-print #normal-cert-print .cert-desc,
-            body.normal-certificate-print #normal-cert-print .cert-granted {
-                color: #2d2e81 !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-school-kh span,
-            body.normal-certificate-print #normal-cert-print .cert-school-en span {
-                color: #d99d12 !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-kingdom {
-                margin-bottom: 7mm !important;
-                font-size: 4.5mm !important;
-                line-height: 1.55 !important;
-                text-shadow: 0 0 .3px #2d2e81 !important;
-                -webkit-text-stroke: .3px #2d2e81 !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-kingdom img {
-                max-width: 32mm !important;
-                margin-top: 1.2mm !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-logo-area {
-                margin-bottom: 3mm !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-logo-img,
-            body.normal-certificate-print #normal-cert-print .cert-logo-fallback {
-                width: 38mm !important;
-                height: 38mm !important;
-                border-radius: 3mm !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-school-kh {
-                margin-bottom: 1.2mm !important;
-                font-size: 5.9mm !important;
-                line-height: 1.18 !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-school-en {
-                margin-bottom: 8mm !important;
-                font-size: 4.7mm !important;
-                line-height: 1.1 !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-title {
-                margin: 0 0 6mm !important;
-                font-size: 11mm !important;
-                line-height: 1 !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-certify {
-                margin-bottom: 8mm !important;
-                font-size: 6.4mm !important;
-                line-height: 1.1 !important;
-                letter-spacing: .08em !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-student-name {
-                margin: 0 0 11mm !important;
-                font-size: 8.1mm !important;
-                line-height: 1.1 !important;
-                font-weight: 950 !important;
-                letter-spacing: 0 !important;
-                text-shadow: 0 0 .45px #000 !important;
-                text-transform: uppercase !important;
-                -webkit-text-stroke: .25px #000 !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-desc {
-                margin-bottom: 9mm !important;
-                font-size: 4.5mm !important;
-                line-height: 1.45 !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-course {
-                margin: 0 0 9mm !important;
-                font-size: 7.8mm !important;
-                line-height: 1.35 !important;
-                -webkit-text-stroke: 1.2px #000 !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-granted {
-                margin-bottom: auto !important;
-                font-size: 6mm !important;
-                line-height: 1.2 !important;
-                font-weight: 700 !important;
-                letter-spacing: 0 !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-footer {
-                position: relative !important;
-                display: grid !important;
-                grid-template-columns: 1fr auto 1fr !important;
-                align-items: end !important;
-                margin-top: auto !important;
-                padding-top: 22mm !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-footer .cert-id {
-                display: none !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-id-print-only {
-                position: absolute !important;
-                bottom: 2.1mm !important;
-                left: 50% !important;
-                z-index: 3 !important;
-                display: block !important;
-                margin: 0 !important;
-                color: #cc0000 !important;
-                font-size: 2.1mm !important;
-                letter-spacing: .08em !important;
-                text-align: center !important;
-                transform: translateX(-50%) !important;
-                white-space: nowrap !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-signature {
-                grid-column: 3 !important;
-                justify-self: end !important;
-                margin-left: 0 !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-sig-line {
-                width: 46mm !important;
-            }
-            body.normal-certificate-print #normal-cert-print .cert-sig-name,
-            body.normal-certificate-print #normal-cert-print .cert-sig-role {
-                font-size: 4.1mm !important;
-                line-height: 1.2 !important;
-            }
-            body.normal-certificate-print #normal-cert-print .id_text {
-                color: #2d2e81 !important;
-                font-size: 2.2mm !important;
-                font-weight: 900 !important;
             }
             body.normal-certificate-print #normal-cert-print .certificate-free-wrapper {
                 box-sizing: border-box !important;
@@ -3848,18 +3723,18 @@ table {
 .cert-outer-border::before {
     position: absolute;
     z-index: 3;
-    inset: -15px;
+    inset: 0;
     content: "";
     pointer-events: none;
     background:
-        radial-gradient(circle at 24px 24px, #d99d12 0 8px, transparent 9px),
-        radial-gradient(circle at calc(100% - 24px) 24px, #d99d12 0 8px, transparent 9px),
-        radial-gradient(circle at 24px calc(100% - 24px), #d99d12 0 8px, transparent 9px),
-        radial-gradient(circle at calc(100% - 24px) calc(100% - 24px), #d99d12 0 8px, transparent 9px),
-        radial-gradient(circle at 24px 24px, #08216d 0 18px, transparent 19px),
-        radial-gradient(circle at calc(100% - 24px) 24px, #08216d 0 18px, transparent 19px),
-        radial-gradient(circle at 24px calc(100% - 24px), #08216d 0 18px, transparent 19px),
-        radial-gradient(circle at calc(100% - 24px) calc(100% - 24px), #08216d 0 18px, transparent 19px);
+        radial-gradient(circle at 5px 5px, #d99d12 0 4px, transparent 5px),
+        radial-gradient(circle at calc(100% - 5px) 5px, #d99d12 0 4px, transparent 5px),
+        radial-gradient(circle at 5px calc(100% - 5px), #d99d12 0 4px, transparent 5px),
+        radial-gradient(circle at calc(100% - 5px) calc(100% - 5px), #d99d12 0 4px, transparent 5px),
+        radial-gradient(circle at 5px 5px, #08216d 0 12px, transparent 13px),
+        radial-gradient(circle at calc(100% - 5px) 5px, #08216d 0 12px, transparent 13px),
+        radial-gradient(circle at 5px calc(100% - 5px), #08216d 0 12px, transparent 13px),
+        radial-gradient(circle at calc(100% - 5px) calc(100% - 5px), #08216d 0 12px, transparent 13px);
 }
 
 .cert-inner-border {

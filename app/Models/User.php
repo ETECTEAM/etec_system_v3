@@ -33,8 +33,6 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'recovery_email',
-        'recovery_verified',
         'password',
         'role',
         'status',
@@ -86,11 +84,6 @@ class User extends Authenticatable
     public function authAuditLogs(): HasMany
     {
         return $this->hasMany(AuthAuditLog::class);
-    }
-
-    public function oauthIdentities(): HasMany
-    {
-        return $this->hasMany(OauthIdentity::class);
     }
 
     public function student(): HasOne

@@ -5,7 +5,6 @@ namespace App\Modules\Auth\Controllers;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\InstructorData;
-use App\Models\OauthIdentity;
 use App\Models\User;
 use App\Modules\Auth\Events\PendingUserRegistered;
 use App\Modules\Auth\Notifications\PasswordChangedNotification;
@@ -32,7 +31,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
-use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -63,121 +61,6 @@ class AuthController extends Controller
     public function showRegister(): Response
     {
         return Inertia::render('auth/Register');
-    }
-
-    public function redirectToGoogle(): RedirectResponse
-    {
-        return Socialite::driver('google')->scopes(['openid', 'email', 'profile'])->redirect();
-    }
-
-    public function handleGoogleCallback(Request $request): RedirectResponse
-    {
-        try {
-            $googleUser = Socialite::driver('google')->user();
-        } catch (Throwable $e) {
-            report($e);
-
-            return redirect('/login')->with('error', 'Google sign-in was cancelled or could not be completed.');
-        }
-
-        $providerId = (string) $googleUser->getId();
-        $googleEmail = Str::lower((string) $googleUser->getEmail());
-
-        if ($providerId === '' || ! filter_var($googleEmail, FILTER_VALIDATE_EMAIL)) {
-            return redirect('/login')->with('error', 'Google did not provide a usable verified email address.');
-        }
-
-        $identity = OauthIdentity::query()
-            ->where('provider', 'google')
-            ->where('provider_id', $providerId)
-            ->first();
-        $user = $identity?->user;
-
-        if (! $user) {
-            $user = User::query()->whereRaw('LOWER(recovery_email) = ?', [$googleEmail])->first()
-                ?? User::query()->whereRaw('LOWER(email) = ?', [$googleEmail])->first();
-        }
-
-        if (! $user) {
-            $loginEmail = $this->googleLoginEmail($googleEmail);
-            $user = DB::transaction(function () use ($googleUser, $googleEmail, $loginEmail, $providerId): User {
-                $newUser = User::create([
-                    'name' => $googleUser->getName() ?: Str::before($googleEmail, '@'),
-                    'email' => $loginEmail,
-                    'recovery_email' => $googleEmail,
-                    'recovery_verified' => true,
-                    'email_verified_at' => now(),
-                    'password' => Str::random(64),
-                    'role' => 'instructor',
-                    // Google proves ownership of the recovery email, but the
-                    // application still requires the same OTP activation step
-                    // as password-based registration.
-                    'status' => UserStatus::Pending,
-                    'requires_onboarding' => true,
-                ]);
-
-                Role::findOrCreate('instructor', 'web');
-                $newUser->syncRoles(['instructor']);
-                InstructorData::create([
-                    'user_id' => $newUser->id,
-                    'full_name' => $newUser->name,
-                    'instructor_code' => InstructorService::generateInstructorCode(),
-                ]);
-                $newUser->oauthIdentities()->create([
-                    'provider' => 'google',
-                    'provider_id' => $providerId,
-                    'provider_email' => $googleEmail,
-                ]);
-
-                return $newUser;
-            });
-
-            [$otp, $plainCode] = $this->otpService->createForUser($user);
-            $request->session()->put('pending_verification_user_id', $user->id);
-
-            try {
-                PendingUserRegistered::dispatch($user, $otp, $plainCode, $request->ip());
-            } catch (Throwable $e) {
-                report($e);
-            }
-
-            return redirect('/code-verify')
-                ->with('success', 'Registration received. Enter your verification code to activate your account.');
-        } else {
-            $user->forceFill(['recovery_email' => $googleEmail, 'recovery_verified' => true])->save();
-            $user->oauthIdentities()->updateOrCreate(
-                ['provider' => 'google', 'provider_id' => $providerId],
-                ['provider_email' => $googleEmail],
-            );
-        }
-
-        if ($user->status !== UserStatus::Active) {
-            return redirect('/login')->with('error', 'Your account is not active. Please contact support.');
-        }
-
-        $this->applyAccessExpiration($user, $request->ip(), $googleEmail);
-        Auth::login($user);
-        $user->forceFill(['last_login_at' => now()])->save();
-        $request->session()->regenerate();
-        $this->auditService->log($user, 'login.google', $request->ip(), ['provider_email' => $googleEmail]);
-
-        return redirect($this->redirectPathFor($user));
-    }
-
-    private function googleLoginEmail(string $googleEmail): string
-    {
-        $local = Str::of(Str::before($googleEmail, '@'))
-            ->lower()
-            ->replaceMatches('/[^a-z0-9._-]+/', '-')
-            ->trim('-._')
-            ->value() ?: 'google-user';
-        $candidate = $local.'@etec.com';
-
-        if (! User::query()->where('email', $candidate)->exists()) {
-            return $candidate;
-        }
-
-        return $local.'-'.substr(sha1($googleEmail), 0, 8).'@etec.com';
     }
 
     public function registerWeb(RegisterWebRequest $request): RedirectResponse

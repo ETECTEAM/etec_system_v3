@@ -5,12 +5,13 @@ namespace App\Modules\Auth\Listeners;
 use App\Models\Notification;
 use App\Modules\Auth\Events\PendingUserRegistered;
 use App\Modules\Notification\Events\NotificationsUpdated;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
 /**
  * Queued listener that mirrors the Telegram admin approval request onto the
  * dashboard notification feed for super_admin/admin users.
  */
-class CreateAdminApprovalNotification
+class CreateAdminApprovalNotification implements ShouldQueue
 {
     public function handle(PendingUserRegistered $event): void
     {
