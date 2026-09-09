@@ -136,6 +136,15 @@ function submit() {
       </button>
     </form>
 
+    <div class="my-5 flex items-center gap-3 text-xs text-slate-400">
+      <span class="h-px flex-1 bg-slate-200 dark:bg-gray-700" />
+      OR
+      <span class="h-px flex-1 bg-slate-200 dark:bg-gray-700" />
+    </div>
+    <a href="/auth/google/redirect" class="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800">
+      Register with Google
+    </a>
+
     <p class="mt-6 text-center text-sm text-slate-600 dark:text-gray-400">
       Already have an account?
       <Link href="/login" class="font-semibold text-blue-900 hover:text-blue-950 dark:text-blue-400 dark:hover:text-blue-300">Sign in</Link>

@@ -13,6 +13,12 @@
 use App\Modules\Auth\Controllers\AuthController; // Handles backend authentication actions.
 use Illuminate\Support\Facades\Route; // Registers web routes for the application.
 
+// Route to start Google authentication for guest users.
+Route::middleware('guest')->get('/auth/google/redirect', [AuthController::class, 'redirectToGoogle'])->name('google.redirect');
+
+// Route to finish Google authentication and sign the user into the dashboard.
+Route::middleware('guest')->get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('google.callback');
+
 // Route to display the login page for guest users.
 Route::middleware('guest')->get('/login', [AuthController::class, 'showLogin'])->name('login');
 
