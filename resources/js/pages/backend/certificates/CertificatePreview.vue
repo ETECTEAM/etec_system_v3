@@ -269,18 +269,18 @@ const internshipCourseName = computed(() => {
 .cert-outer-border::before {
     position: absolute;
     z-index: 99;
-    inset: 0;
+    inset: -15px;
     content: "";
     pointer-events: none;
     background:
-        radial-gradient(circle at 5px 5px, #d99d12 0 4px, transparent 5px),
-        radial-gradient(circle at calc(100% - 5px) 5px, #d99d12 0 4px, transparent 5px),
-        radial-gradient(circle at 5px calc(100% - 5px), #d99d12 0 4px, transparent 5px),
-        radial-gradient(circle at calc(100% - 5px) calc(100% - 5px), #d99d12 0 4px, transparent 5px),
-        radial-gradient(circle at 5px 5px, #08216d 0 12px, transparent 13px),
-        radial-gradient(circle at calc(100% - 5px) 5px, #08216d 0 12px, transparent 13px),
-        radial-gradient(circle at 5px calc(100% - 5px), #08216d 0 12px, transparent 13px),
-        radial-gradient(circle at calc(100% - 5px) calc(100% - 5px), #08216d 0 12px, transparent 13px);
+        radial-gradient(circle at 24px 24px, #d99d12 0 8px, transparent 9px),
+        radial-gradient(circle at calc(100% - 24px) 24px, #d99d12 0 8px, transparent 9px),
+        radial-gradient(circle at 24px calc(100% - 24px), #d99d12 0 8px, transparent 9px),
+        radial-gradient(circle at calc(100% - 24px) calc(100% - 24px), #d99d12 0 8px, transparent 9px),
+        radial-gradient(circle at 24px 24px, #08216d 0 18px, transparent 19px),
+        radial-gradient(circle at calc(100% - 24px) 24px, #08216d 0 18px, transparent 19px),
+        radial-gradient(circle at 24px calc(100% - 24px), #08216d 0 18px, transparent 19px),
+        radial-gradient(circle at calc(100% - 24px) calc(100% - 24px), #08216d 0 18px, transparent 19px);
 }
 
 .cert-inner-border {
@@ -807,18 +807,18 @@ const internshipCourseName = computed(() => {
     .cert-outer-border::before {
         position: absolute !important;
         z-index: 3 !important;
-        inset: 0 !important;
+        inset: -8mm !important;
         content: "" !important;
         pointer-events: none !important;
         background:
-            radial-gradient(circle at 2mm 2mm, #d99d12 0 1.5mm, transparent 1.8mm),
-            radial-gradient(circle at calc(100% - 2mm) 2mm, #d99d12 0 1.5mm, transparent 1.8mm),
-            radial-gradient(circle at 2mm calc(100% - 2mm), #d99d12 0 1.5mm, transparent 1.8mm),
-            radial-gradient(circle at calc(100% - 2mm) calc(100% - 2mm), #d99d12 0 1.5mm, transparent 1.8mm),
-            radial-gradient(circle at 2mm 2mm, #08216d 0 4.6mm, transparent 4.9mm),
-            radial-gradient(circle at calc(100% - 2mm) 2mm, #08216d 0 4.6mm, transparent 4.9mm),
-            radial-gradient(circle at 2mm calc(100% - 2mm), #08216d 0 4.6mm, transparent 4.9mm),
-            radial-gradient(circle at calc(100% - 2mm) calc(100% - 2mm), #08216d 0 4.6mm, transparent 4.9mm) !important;
+            radial-gradient(circle at 12.6mm 12.6mm, #d99d12 0 2.8mm, transparent 3.1mm),
+            radial-gradient(circle at calc(100% - 12.6mm) 12.6mm, #d99d12 0 2.8mm, transparent 3.1mm),
+            radial-gradient(circle at 12.6mm calc(100% - 12.6mm), #d99d12 0 2.8mm, transparent 3.1mm),
+            radial-gradient(circle at calc(100% - 12.6mm) calc(100% - 12.6mm), #d99d12 0 2.8mm, transparent 3.1mm),
+            radial-gradient(circle at 12.6mm 12.6mm, #08216d 0 5.8mm, transparent 6.1mm),
+            radial-gradient(circle at calc(100% - 12.6mm) 12.6mm, #08216d 0 5.8mm, transparent 6.1mm),
+            radial-gradient(circle at 12.6mm calc(100% - 12.6mm), #08216d 0 5.8mm, transparent 6.1mm),
+            radial-gradient(circle at calc(100% - 12.6mm) calc(100% - 12.6mm), #08216d 0 5.8mm, transparent 6.1mm) !important;
     }
 
     .cert-inner-border {
@@ -829,6 +829,8 @@ const internshipCourseName = computed(() => {
         box-sizing: border-box !important;
         border: 1mm solid #d99d12 !important;
         border-radius: 8px !important;
+        min-height: 0 !important;
+        padding: 9mm 12mm 5mm !important;
         print-color-adjust: exact !important;
         -webkit-print-color-adjust: exact !important;
     }
@@ -849,25 +851,39 @@ const internshipCourseName = computed(() => {
     }
 
     .cert-kingdom {
-        font-size: 1.3rem !important;
+        margin-bottom: 7mm !important;
+        font-size: 4.5mm !important;
+        line-height: 1.55 !important;
         text-shadow: 0 0 .3px #2d2e81 !important;
         -webkit-text-stroke: .3px #2d2e81 !important;
     }
 
+    .cert-kingdom img {
+        max-width: 32mm !important;
+        margin-top: 1.2mm !important;
+    }
+
+    .cert-logo-area {
+        margin-bottom: 3mm !important;
+    }
+
     .cert-logo-img,
     .cert-logo-fallback {
-        width: 132px !important;
-        height: 132px !important;
+        width: 38mm !important;
+        height: 38mm !important;
+        border-radius: 3mm !important;
     }
 
     .cert-school-kh {
-        margin-bottom: 6px !important;
-        font-size: 21px !important;
+        margin-bottom: 1.2mm !important;
+        font-size: 5.9mm !important;
+        line-height: 1.18 !important;
     }
 
     .cert-school-en {
-        margin-bottom: 18px !important;
-        font-size: 20px !important;
+        margin-bottom: 8mm !important;
+        font-size: 4.7mm !important;
+        line-height: 1.1 !important;
     }
 
     .cert-school-kh span,
@@ -876,20 +892,22 @@ const internshipCourseName = computed(() => {
     }
 
     .cert-title {
-        margin: 0 7px 13px !important;
-        font-size: 2.6rem !important;
+        margin: 0 0 6mm !important;
+        font-size: 11mm !important;
+        line-height: 1 !important;
     }
 
     .cert-certify {
-        margin-bottom: 20px !important;
-        font-size: 1.5rem !important;
-        letter-spacing: .04em !important;
+        margin-bottom: 8mm !important;
+        font-size: 6.4mm !important;
+        line-height: 1.1 !important;
+        letter-spacing: .08em !important;
     }
 
     .cert-student-name {
-        margin-top: 15px !important;
-        margin-bottom: 25px !important;
-        font-size: 1.8rem !important;
+        margin: 0 0 11mm !important;
+        font-size: 8.1mm !important;
+        line-height: 1.1 !important;
         font-weight: 950 !important;
         letter-spacing: 0 !important;
         text-shadow: 0 0 .45px #000 !important;
@@ -897,21 +915,22 @@ const internshipCourseName = computed(() => {
     }
 
     .cert-desc {
-        margin-bottom: 22px !important;
-        font-size: 1.2rem !important;
+        margin-bottom: 9mm !important;
+        font-size: 4.5mm !important;
+        line-height: 1.45 !important;
     }
 
     .cert-course {
-        margin-top: 10px !important;
-        margin-bottom: 18px !important;
-        font-size: 1.9rem !important;
-        line-height: 48px !important;
+        margin: 0 0 9mm !important;
+        font-size: 7.8mm !important;
+        line-height: 1.35 !important;
         -webkit-text-stroke: 1.2px #000 !important;
     }
 
     .cert-granted {
         margin-bottom: auto !important;
-        font-size: 1.5rem !important;
+        font-size: 6mm !important;
+        line-height: 1.2 !important;
         font-weight: 700 !important;
         letter-spacing: 0 !important;
     }
@@ -922,7 +941,7 @@ const internshipCourseName = computed(() => {
         grid-template-columns: 1fr auto 1fr !important;
         align-items: end !important;
         margin-top: auto !important;
-        padding-top: 18mm !important;
+        padding-top: 22mm !important;
     }
 
     .cert-footer .cert-id {
@@ -950,6 +969,8 @@ const internshipCourseName = computed(() => {
         z-index: 3 !important;
         display: block !important;
         margin: 0 !important;
+        font-size: 2.1mm !important;
+        letter-spacing: .08em !important;
         text-align: center !important;
         transform: translateX(-50%) !important;
         white-space: nowrap !important;
@@ -962,17 +983,18 @@ const internshipCourseName = computed(() => {
     }
 
     .cert-sig-line {
-        width: 220px !important;
+        width: 46mm !important;
     }
 
     .cert-sig-name,
     .cert-sig-role {
-        font-size: 1.2rem !important;
+        font-size: 4.1mm !important;
+        line-height: 1.2 !important;
     }
 
     .id_text {
         color: #2d2e81 !important;
-        font-size: .7rem !important;
+        font-size: 2.2mm !important;
         font-weight: 900 !important;
     }
 
