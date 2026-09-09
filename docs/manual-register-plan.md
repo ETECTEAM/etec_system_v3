@@ -57,6 +57,118 @@ tab's **Assign to Class**.
 
 ---
 
+## Instructor side — exactly where it is
+
+**UI path:** Instructor logs in → **Dashboard** → a class card → **⋮ menu** →
+**"Add Existing Student"** → search modal → **Add**.
+
+**Files that make it work:**
+
+| # | File | Role |
+|---|---|---|
+| 1 | `resources/js/pages/backend/InstructorDashboard.vue` | Renders the instructor's class cards (`<ClassCrad>`). |
+| 2 | `resources/js/components/ui/card/ClassCrad.vue` | The card. Holds `showAssignModal`, renders `<AssignRegistrationModal>`, `onRegistrationAssigned()` bumps the seat count. |
+| 3 | `resources/js/components/ui/card/ClassActionMenu.vue` | The ⋮ menu. New item **"Add Existing Student"** → `emit("assign-registration")`. |
+| 4 | `resources/js/pages/backend/students/components/AssignRegistrationModal.vue` | **The modal** — debounced search + list + per-row **Add** button. |
+| 5 | `routes/web/backend/enroll.php` | Routes `enroll.class-students.assignable` (GET) + `enroll.class-students.assign` (POST), in the `role:super_admin\|admin\|instructor` group. |
+| 6 | `app/Modules/Enroll/Controllers/EnrollmentClassController.php` | `assignableRegistrations()` (list) + `assignRegistration()` (do it) — both call `ensureInstructorCanManageClassStudents()`. |
+| 7 | `app/Modules/Enroll/Actions/MoveStudentEnrollment.php` | `assignUnassigned()` — sets `study_class_id` on the existing enrollment, checks the seat. *(existing, reused)* |
+
+**Requests the browser makes:**
+
+```
+GET  /dashboard/enroll/{studyClass}/assignable-registrations?search=Dara
+POST /dashboard/enroll/{studyClass}/assign-registration   { "enrollment_id": 42 }
+```
+
+Nothing on the instructor dashboard hides this menu item — `hiddenItems()` in
+`InstructorDashboard.vue` only strips *Copy Class* / *Switch Teacher* /
+owner-only actions.
+
+---
+
+## User stories (step by step)
+
+### Story A — Record an off-system registration
+
+> **As a** front-desk admin
+> **I want to** enter a student who already paid in person for a course
+> **so that** they're on record with a receipt, even before their class exists.
+
+1. Admin opens **Enrollment Management** → clicks the **Manual Register** tab.
+2. The form opens immediately (no class picker).
+3. Admin fills **Student**: Full Name, Phone, Gender.
+4. Admin fills **Course info**: Course (dropdown of all courses), Term / Days
+   (Mon & Thu · Sat & Sun · Sunday · Saturday), Time — picks a Start; End
+   auto-fills to +1h and can be dragged to any length.
+5. Admin fills **Payment**: Amount Paid, Discount, Document Price (pre-filled 5),
+   Payment Method, Payment Date (the day money changed hands), optional Note.
+6. Admin clicks **Save & Print Receipt**.
+7. **System:** validates → `POST /dashboard/enroll/manual-registrations` →
+   creates the student + a class-less `student_enrollments` row
+   (`source = manual`, `payment_status = paid`, `study_class_id = null`) → returns
+   `201`.
+8. **System:** toast *"Registration saved successfully"*, receipt opens in the
+   print dialog, form resets.
+9. Admin can now see the student in **Registrations → Table / Card** with a
+   `[Manual]` badge, *Paid*, and a re-printable receipt. **Not in any class yet.**
+
+*Alt 6a:* Admin clicks **Save** (no print) → same, form just resets.
+*Alt 7a:* validation fails → red field errors, nothing saved.
+
+---
+
+### Story B — Instructor pulls that student into their class
+
+> **As an** instructor
+> **I want to** add an already-registered student to my class from a searchable list
+> **so that** I don't re-type them or create a duplicate, and their payment stays attached.
+
+1. Instructor logs in → lands on their **dashboard** (their classes as cards).
+2. On the right class card, instructor clicks the **⋮ (three-dot) menu**.
+3. Instructor clicks **Add Existing Student**.
+4. **System:** modal opens and calls
+   `GET /dashboard/enroll/{class}/assignable-registrations` → shows every
+   *unassigned* registration (Manual + other parked), newest first.
+5. Instructor types the student's **name / phone / course** in the search box.
+6. **System:** debounced (350 ms) re-query; list narrows. Each row shows: name,
+   `[Manual]` badge, phone · course, term · *Paid* · `$amount`.
+7. Instructor clicks **Add** on the matching row.
+8. **System:**
+   `POST /dashboard/enroll/{class}/assign-registration { enrollment_id }` →
+   `ensureInstructorCanManageClassStudents()` (must be their class) → checks the
+   row is still `unassigned` → checks the class has a free seat →
+   `MoveStudentEnrollment` sets `study_class_id` on the **existing** enrollment,
+   `enrollment_status → active`, payment untouched.
+9. **System:** toast *"Dara added to Basic IT"*, the row disappears from the list,
+   the card's **seat count / progress bar increments**.
+10. Instructor closes the modal. The student is now in the roster, attendance,
+    scoring, certificates — a normal enrolled student.
+
+*Alt 4a:* no unassigned registrations → *"No unassigned registrations right now."*
+*Alt 8a:* class is full → error toast, row stays; instructor bumps capacity first.
+*Alt 8b:* someone already assigned that row → *"That registration is already
+assigned to a class."*, list refreshes.
+*Alt (not their class):* instructor never sees other teachers' classes, and the
+endpoint 403s if forced.
+
+---
+
+### Story C — Admin assigns from the Registrations tab (equivalent path)
+
+> **As an** admin
+> **I want to** assign a parked registration to a class without opening the class card.
+
+1. Admin opens **Enrollment Management → Registrations**.
+2. Finds the `[Manual]` / unassigned row → clicks **Assign to Class**.
+3. Picks the target class → confirms.
+4. **System:** `PUT /dashboard/enroll/registrations/{enrollment}/move
+   { study_class_id }` → same `MoveStudentEnrollment` in-place assignment as
+   Story B step 8.
+5. Row now shows the class; payment kept.
+
+---
+
 ## Flowchart — the whole lifecycle
 
 ```mermaid
