@@ -257,9 +257,32 @@ class ManualRegistrationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.enrollment_id', $enrollment->id)
             ->assertJsonPath('data.0.name', 'Dara Kim')
+            ->assertJsonPath('data.0.gender', 'male')
             ->assertJsonPath('data.0.registration_type', 'manual')
-            ->assertJsonPath('data.0.payment_status', 'Paid')
-            ->assertJsonPath('data.0.amount_paid', 73);
+            // Instructors never see student personal / payment data in this list.
+            ->assertJsonMissingPath('data.0.phone')
+            ->assertJsonMissingPath('data.0.amount_paid')
+            ->assertJsonMissingPath('data.0.payment_status');
+    }
+
+    public function test_assignable_list_never_exposes_phone_or_payment_to_instructors(): void
+    {
+        $instructor = $this->instructor();
+        $studyClass = $this->createStudyClass(['teacher_id' => $instructor->id]);
+        $this->createManualRegistration();
+
+        $data = $this->actingAs($instructor)
+            ->getJson("/dashboard/enroll/{$studyClass->id}/assignable-registrations")
+            ->assertOk()
+            ->json('data.0');
+
+        $this->assertArrayNotHasKey('phone', $data);
+        $this->assertArrayNotHasKey('amount_paid', $data);
+        $this->assertArrayNotHasKey('payment_status', $data);
+
+        foreach (['name', 'gender', 'course_title', 'term_name', 'time_name'] as $key) {
+            $this->assertArrayHasKey($key, $data);
+        }
     }
 
     public function test_assignable_registrations_list_is_searchable_by_name(): void

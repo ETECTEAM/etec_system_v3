@@ -3,6 +3,12 @@ import { computed, nextTick, ref } from "vue";
 import { useForm } from "@inertiajs/vue3";
 import { X, UserPlus } from "@lucide/vue";
 import { latinNameError } from "@/composables/useLatinNameValidation";
+import SelectSearch from "@/components/ui/select-search/SelectSearch.vue";
+
+const genderOptions = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+];
 
 const props = defineProps({
   show: {
@@ -158,14 +164,14 @@ function submit() {
           <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">
             {{ $t('Gender') }}
           </label>
-          <select
+          <SelectSearch
             v-model="form.gender"
-            class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
-          >
-            <option value="">{{ $t('Select gender') }}</option>
-            <option value="male">{{ $t('Male') }}</option>
-            <option value="female">{{ $t('Female') }}</option>
-          </select>
+            :options="genderOptions"
+            :searchable="false"
+            :clearable="false"
+            :placeholder="$t('Select gender')"
+            button-class="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-3 text-left text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
+          />
           <p v-if="form.errors.gender" class="mt-1 text-xs text-red-600">
             {{ form.errors.gender }}
           </p>

@@ -523,9 +523,18 @@ class EnrollmentClassController extends Controller
 
         $search = trim($request->string('search')->toString());
 
-        // Students who already hold a seat in a class of this exact course +
-        // time (this section or another instructor's) — one such class only.
-        $takenStudentIds = StudentEnrollment::query()
+        // Students already in THIS class — kept in the list, flagged as added.
+        $inThisClassIds = StudentEnrollment::query()
+            ->where('study_class_id', $studyClass->id)
+            ->whereNotIn('enrollment_status', ['cancelled', 'rejected'])
+            ->pluck('student_id')
+            ->all();
+
+        // Students holding a seat in ANOTHER class of this same course + time
+        // (a parallel section) — a student belongs to one such class only, so
+        // they can't be added here and are dropped from the list.
+        $inParallelSectionIds = StudentEnrollment::query()
+            ->where('study_class_id', '!=', $studyClass->id)
             ->whereNotIn('enrollment_status', ['cancelled', 'rejected'])
             ->whereHas('studyClass', fn (Builder $query) => $query
                 ->where('course_id', $studyClass->course_id)
@@ -544,14 +553,25 @@ class EnrollmentClassController extends Controller
                     ->whereNotIn('enrollment_status', ['cancelled', 'rejected'])
                     ->groupBy('student_id');
             })
-            ->when($takenStudentIds !== [], fn (Builder $query) => $query->whereNotIn('student_id', $takenStudentIds))
-            ->with(['student:id,full_name,gender,phone', 'course:id,title', 'term:id,term_name', 'studyClass:id,title'])
+            ->when($inParallelSectionIds !== [], fn (Builder $query) => $query->whereNotIn('student_id', $inParallelSectionIds))
+            ->with([
+                'student:id,full_name,gender',
+                'course:id,title',
+                'term:id,term_name',
+                'time:id,time_name',
+                'studyClass:id,title,time_id',
+                'studyClass.time:id,time_name',
+            ])
             ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $query) use ($search): void {
                 $query->whereHas('student', fn (Builder $query) => $query
-                    ->where('full_name', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%"))
+                    ->where('full_name', 'like', "%{$search}%"))
                     ->orWhereHas('course', fn (Builder $query) => $query->where('title', 'like', "%{$search}%"));
             }))
+            // Students still addable first; those already in this class fall to the end.
+            ->when($inThisClassIds !== [], fn (Builder $query) => $query->orderByRaw(
+                'student_id IN ('.implode(',', array_fill(0, count($inThisClassIds), '?')).') asc',
+                $inThisClassIds,
+            ))
             ->latest('id')
             ->paginate($perPage)
             ->withQueryString();
@@ -560,19 +580,20 @@ class EnrollmentClassController extends Controller
             $paginator->through(fn (StudentEnrollment $enrollment) => [
                 'enrollment_id' => $enrollment->id,
                 'name' => $enrollment->student?->full_name ?? '-',
-                'phone' => $enrollment->student?->phone ?? '-',
                 'gender' => $enrollment->student?->gender ?? '-',
                 'course_title' => $enrollment->course?->title,
                 'term_name' => $enrollment->term?->term_name,
-                'amount_paid' => (float) $enrollment->amount_paid,
-                'payment_status' => ucfirst($enrollment->payment_status),
+                'time_name' => $enrollment->time?->time_name,
                 'registration_type' => match ($enrollment->source) {
                     'vip' => 'vip',
                     'manual' => 'manual',
                     default => 'normal',
                 },
+                // Already enrolled in this class — shown as "Added", not addable.
+                'in_this_class' => in_array($enrollment->student_id, $inThisClassIds, true),
                 // null when the student is still parked (no class yet).
                 'current_class' => $enrollment->studyClass?->title,
+                'current_class_time' => $enrollment->studyClass?->time?->time_name,
             ])
         );
     }

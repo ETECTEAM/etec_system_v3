@@ -1,6 +1,6 @@
 <script setup>
 import { router, usePage } from "@inertiajs/vue3";
-import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,Pencil,} from "@lucide/vue";
+import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,Pencil,X,} from "@lucide/vue";
 import { ref, computed } from "vue";
 import { QrcodeCanvas } from "qrcode.vue";
 import axios from "axios";
@@ -182,6 +182,15 @@ const menuItems = computed(() => [
         : []),
 ]);
 const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.slug ?? props.classData.id}`);
+const qrCopied = ref(false);
+
+function copyQrUrl() {
+    navigator.clipboard?.writeText(qrUrl.value).then(() => {
+        qrCopied.value = true;
+        setTimeout(() => { qrCopied.value = false; }, 1500);
+        toast.success(t("Link copied."));
+    });
+}
 
 function showViewClass () {
    router.get(props.viewUrl ?? `/dashboard/enroll/view/${props.classData.id}`);
@@ -568,26 +577,47 @@ async function saveCapacity() {
 />
 
 <Teleport to="body">
-    <div v-if="showQrDialog" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/50 px-4" @click.self="showQrDialog = false">
-        <div class="w-full max-w-xl rounded-2xl bg-white p-6 text-center shadow-xl dark:bg-gray-900">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">
-                Generate QR
-            </h3>
-            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">
-                {{ classData.title }}
-            </p>
-
-            <div class="mt-5 inline-flex rounded-2xl bg-white p-4 shadow-inner">
-                <QrcodeCanvas :value="qrUrl" :size="450" level="H" class="mx-auto block" />
+    <div v-if="showQrDialog" class="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4" @click.self="showQrDialog = false">
+        <div class="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-900/90">
+            <!-- Header -->
+            <div class="flex items-center justify-between gap-3 border-b border-slate-100 bg-white px-5 py-4 dark:border-gray-800 dark:bg-gray-900/90">
+                <div class="min-w-0">
+                    <p class="text-[11px] font-medium uppercase tracking-widest text-slate-400 dark:text-gray-500">{{ $t('Scan to join') }}</p>
+                    <p class="truncate text-base font-semibold text-slate-900 dark:text-gray-100">{{ classData.title }}</p>
+                </div>
+                <button type="button" :aria-label="$t('Close')" class="-mr-1.5 shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="showQrDialog = false">
+                    <X class="h-5 w-5" />
+                </button>
             </div>
 
-            <a :href="qrUrl" target="_blank" class="mt-4 block break-all text-xs text-blue-700 hover:underline dark:text-blue-400">
-                {{ qrUrl }}
-            </a>
+            <!-- QR -->
+            <div class="flex flex-col items-center px-6 py-6">
+                <div class="rounded-xl border border-slate-200 bg-white p-3 dark:border-gray-700">
+                    <QrcodeCanvas
+                        :value="qrUrl"
+                        :size="360"
+                        level="M"
+                        :margin="0"
+                        foreground="#1e3a8a"
+                        class="block h-[360px] w-[360px] max-w-full"
+                    />
+                </div>
+                <div class="mt-4 flex w-full flex-col items-center gap-2">
+                    <a :href="qrUrl" target="_blank" rel="noopener" class="block max-w-full truncate text-[11px] text-blue-600 hover:underline dark:text-blue-400">
+                        {{ qrUrl }}
+                    </a>
+                    <button type="button" @click="copyQrUrl" class="rounded-lg border border-slate-200 px-3 py-1 text-[11px] font-medium text-slate-600 transition hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
+                        {{ qrCopied ? $t('Copied') : $t('Copy') }}
+                    </button>
+                </div>
+            </div>
 
-            <button type="button" @click="showQrDialog = false" class="mt-5 w-full rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500">
-                Close
-            </button>
+            <!-- Footer -->
+            <div class="border-t border-slate-100 p-4 dark:border-gray-800">
+                <button type="button" @click="showQrDialog = false" class="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+                    {{ $t('Close') }}
+                </button>
+            </div>
         </div>
     </div>
 </Teleport>

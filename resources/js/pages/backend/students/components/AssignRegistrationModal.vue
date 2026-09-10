@@ -119,8 +119,18 @@ async function assign(row) {
   }
 }
 
+function isAdded(row) {
+  return row.in_this_class || addedIds.value.has(row.enrollment_id);
+}
+
 function close() {
   emit("close");
+}
+
+// This component keeps local state (added rows, current page) that a partial
+// HMR patch can leave stale — force a full page reload on every edit instead.
+if (import.meta.hot) {
+  import.meta.hot.decline();
 }
 </script>
 
@@ -151,7 +161,7 @@ function close() {
           <input
             v-model="query"
             type="text"
-            :placeholder="$t('Search by name, phone or course')"
+            :placeholder="$t('Search by name or course')"
             class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
           />
         </div>
@@ -186,17 +196,14 @@ function close() {
                 </span>
               </div>
               <p class="truncate text-xs text-slate-500 dark:text-gray-400">
-                {{ row.phone }}<span v-if="row.course_title"> &middot; {{ row.course_title }}</span>
-              </p>
-              <p class="text-[11px] text-slate-400 dark:text-gray-500">
-                <span v-if="row.term_name">{{ row.term_name }} &middot; </span>{{ row.payment_status }} · ${{ row.amount_paid.toFixed(2) }}
+                {{ [row.course_title, row.term_name, row.time_name, row.gender].filter(Boolean).join(' · ') }}
               </p>
               <p v-if="row.current_class" class="mt-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
-                {{ $t('Currently in') }}: {{ row.current_class }}
+                {{ $t('Currently in') }}: {{ row.current_class }}<span v-if="row.current_class_time"> &middot; {{ row.current_class_time }}</span>
               </p>
             </div>
             <span
-              v-if="addedIds.has(row.enrollment_id)"
+              v-if="isAdded(row)"
               class="inline-flex h-9 shrink-0 items-center justify-center gap-1 rounded-lg bg-emerald-100 px-3 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
             >
               <Check class="h-4 w-4" /> {{ $t('Added') }}
