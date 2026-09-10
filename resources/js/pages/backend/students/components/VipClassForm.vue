@@ -1,4 +1,5 @@
 <script setup>
+import axios from "axios";
 import { computed, reactive, ref, watch } from "vue";
 import { Crown, Save, X } from "@lucide/vue";
 import { latinNameError } from "@/composables/useLatinNameValidation";
@@ -189,7 +190,7 @@ async function submit() {
   };
 
   try {
-    await window.axios.post("/dashboard/enroll/vip-students", payload);
+    await axios.post("/dashboard/enroll/vip-students", payload);
     toast.success(t("VIP student registered successfully."));
     emit("submitted", payload);
     resetForm();

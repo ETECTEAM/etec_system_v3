@@ -18,7 +18,7 @@ function metaFor(type) {
 </script>
 
 <template>
-  <div class="pointer-events-none fixed bottom-4 right-4 z-[9999] flex w-full max-w-sm flex-col gap-3">
+  <div class="pointer-events-none fixed top-4 right-4 z-[9999] flex w-full max-w-sm flex-col gap-3">
     <TransitionGroup name="toast">
       <div v-for="toast in toasts" :key="toast.id" class="pointer-events-auto flex items-start gap-3 rounded-2xl border p-4 shadow-lg" :class="metaFor(toast.type).card" @mouseenter="pause(toast.id)" @mouseleave="resume(toast.id)">
         <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white" :class="metaFor(toast.type).badge">

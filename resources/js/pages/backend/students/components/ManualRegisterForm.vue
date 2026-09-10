@@ -1,4 +1,5 @@
 <script setup>
+import axios from "axios";
 import { computed, nextTick, reactive, ref, watch } from "vue";
 import { CreditCard, Printer, Save, X } from "@lucide/vue";
 import { latinNameError } from "@/composables/useLatinNameValidation";
@@ -196,7 +197,7 @@ async function submit({ print }) {
   const payload = { ...form, time: timeRange.value };
 
   try {
-    await window.axios.post("/dashboard/enroll/manual-registrations", payload);
+    await axios.post("/dashboard/enroll/manual-registrations", payload);
     toast.success(t("Registration saved successfully."));
     fetchRegistrations(1); // reflect the new row in the Registrations tab
     if (print) {
@@ -385,5 +386,5 @@ const errorClass = "border-red-300 focus:border-red-500 focus:ring-red-100 dark:
     </div>
   </form>
 
-  <ReceiptPrint :class-data="receiptClassData" :student="receiptStudent" />
+  <ReceiptPrint :class-data="receiptClassData" :student="receiptStudent" hide-class-info />
 </template>

@@ -59,6 +59,12 @@ const triggerButton = ref(null)
 const searchInput = ref(null)
 const panelStyle = ref({})
 const query = ref('')
+// The teleported panel mounts before its screen coords are known (that needs a
+// nextTick so it's in the DOM to measure). Until the first updatePanelPosition()
+// of an open cycle runs it's kept invisible, otherwise the very first open
+// flashes the panel at the bottom of <body> before it snaps into place - the
+// "bad on first click, fine after" glitch, since panelStyle keeps its last value.
+const positioned = ref(false)
 
 const selectedLabel = computed(() => {
   const found = props.options.find((option) => option.value === props.modelValue)
@@ -113,6 +119,8 @@ function updatePanelPosition() {
       ? { bottom: `${window.innerHeight - rect.top + offset}px` }
       : { top: `${rect.bottom + offset}px` }),
   }
+
+  positioned.value = true
 }
 
 async function toggleDropdown() {
@@ -124,6 +132,7 @@ async function toggleDropdown() {
 
   if (open.value) {
     query.value = ''
+    positioned.value = false
     await nextTick()
     updatePanelPosition()
 
@@ -136,6 +145,7 @@ async function toggleDropdown() {
 function closeDropdown() {
   open.value = false
   query.value = ''
+  positioned.value = false
 }
 
 function selectOption(option) {
@@ -228,7 +238,7 @@ onBeforeUnmount(() => {
       <div
         v-if="open"
         ref="panel"
-        :style="panelStyle"
+        :style="[panelStyle, positioned ? null : { opacity: 0, pointerEvents: 'none' }]"
         class="z-[130] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
       >
         <div v-if="showSearch" class="border-b border-slate-100 p-2 dark:border-gray-700">

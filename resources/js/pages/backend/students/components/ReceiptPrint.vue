@@ -13,6 +13,11 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  // Manual Register has no class yet — hide the Instructor/Building/Floor/Room block.
+  hideClassInfo: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const page = usePage();
@@ -206,7 +211,7 @@ function timeWithTerm() {
           <div class="note-left">
             <span>***ប្រាក់ដែលបានបង់រួច មិនអាចដកវិញបានទេ/None refundable***</span>
 
-            <div class="class-info">
+            <div v-if="!hideClassInfo" class="class-info">
               <p class="class-info-title">ព័ត៌មានថ្នាក់រៀន / Class Info</p>
               <div class="class-info-grid">
                 <div class="class-info-item">
