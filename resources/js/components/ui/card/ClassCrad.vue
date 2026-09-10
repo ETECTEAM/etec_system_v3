@@ -1,6 +1,6 @@
 <script setup>
 import { router, usePage } from "@inertiajs/vue3";
-import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,Pencil,X,Expand,} from "@lucide/vue";
+import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,Pencil,X,Maximize2,} from "@lucide/vue";
 import { ref, computed, watch } from "vue";
 import { QrcodeCanvas } from "qrcode.vue";
 import axios from "axios";
@@ -591,7 +591,7 @@ async function saveCapacity() {
                 </div>
                 <div class="-mr-1.5 flex shrink-0 items-center gap-0.5">
                     <button type="button" :aria-label="$t('Zoom')" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="qrZoomed = true">
-                        <Expand class="h-5 w-5" />
+                        <Maximize2 class="h-[18px] w-[18px]" />
                     </button>
                     <button type="button" :aria-label="$t('Close')" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="showQrDialog = false">
                         <X class="h-5 w-5" />

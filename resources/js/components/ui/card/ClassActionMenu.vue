@@ -15,7 +15,7 @@ import {
   CirclePause,
   CircleX,
   X,
-  Expand,
+  Maximize2,
 } from "@lucide/vue";
 
 const props = defineProps({
@@ -258,7 +258,7 @@ const actions = computed(() => [
             </div>
             <div class="-mr-1.5 flex shrink-0 items-center gap-0.5">
               <button type="button" :aria-label="t('Zoom')" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="qrZoomed = true">
-                <Expand class="h-5 w-5" />
+                <Maximize2 class="h-[18px] w-[18px]" />
               </button>
               <button type="button" :aria-label="t('Close')" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="showQr = false">
                 <X class="h-5 w-5" />
