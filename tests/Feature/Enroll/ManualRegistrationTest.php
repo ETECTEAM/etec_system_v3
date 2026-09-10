@@ -54,10 +54,10 @@ class ManualRegistrationTest extends TestCase
         return ClassType::firstOrCreate(['type_name' => 'Network'], ['is_active' => true]);
     }
 
-    private function createScheduleGrid(ClassType $classType): array
+    private function createScheduleGrid(ClassType $classType, string $timeName = '09:00 AM - 10:30 AM'): array
     {
         $term = Term::firstOrCreate(['term_name' => 'Mon & Thu']);
-        $time = Time::firstOrCreate(['time_name' => '09:00 AM - 10:30 AM']);
+        $time = Time::firstOrCreate(['time_name' => $timeName]);
 
         $schedule = Schedule::firstOrCreate([
             'class_type_id' => $classType->class_type_id,
@@ -66,6 +66,12 @@ class ManualRegistrationTest extends TestCase
         $schedule->times()->syncWithoutDetaching([$time->id]);
 
         return compact('term', 'time');
+    }
+
+    /** A second, distinct time slot for "same course, different section" cases. */
+    private function altTime(): Time
+    {
+        return $this->createScheduleGrid($this->createClassType(), '11:00 AM - 12:30 PM')['time'];
     }
 
     private function createStudyClass(array $attributes = []): StudyClass
@@ -315,22 +321,108 @@ class ManualRegistrationTest extends TestCase
         $this->assertNull($enrollment->fresh()->study_class_id);
     }
 
-    public function test_assign_rejects_a_registration_that_is_already_in_a_class(): void
+    public function test_list_only_shows_registrations_for_this_classes_course(): void
+    {
+        $instructor = $this->instructor();
+        $otherCourse = $this->createCourse('Graphic Design');
+        $studyClass = $this->createStudyClass(['teacher_id' => $instructor->id]);
+
+        $mine = $this->createManualRegistration(['phone' => '098000010']); // course = default (Adobe Photoshop)
+        $this->createManualRegistration(['full_name' => 'Off Course', 'phone' => '098000011'], [
+            'course_id' => $otherCourse->id,
+        ]);
+
+        $this->actingAs($instructor)
+            ->getJson("/dashboard/enroll/{$studyClass->id}/assignable-registrations")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.enrollment_id', $mine->id);
+    }
+
+    public function test_a_student_in_the_same_course_at_another_time_still_appears_and_can_be_added(): void
+    {
+        $instructor = $this->instructor();
+        $studyClass = $this->createStudyClass(['teacher_id' => $instructor->id, 'capacity' => 20]);
+        $earlierSlot = $this->createStudyClass([
+            'teacher_id' => $instructor->id,
+            'title' => 'Earlier Slot',
+            'time_id' => $this->altTime()->id,
+        ]);
+
+        $existing = $this->createManualRegistration([], [
+            'study_class_id' => $earlierSlot->id,
+            'enrollment_status' => 'active',
+        ]);
+
+        $this->actingAs($instructor)
+            ->getJson("/dashboard/enroll/{$studyClass->id}/assignable-registrations")
+            ->assertOk()
+            ->assertJsonPath('data.0.enrollment_id', $existing->id)
+            ->assertJsonPath('data.0.current_class', 'Earlier Slot');
+
+        $this->actingAs($instructor)
+            ->postJson("/dashboard/enroll/{$studyClass->id}/assign-registration", [
+                'enrollment_id' => $existing->id,
+            ])
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        // Original enrollment untouched; a fresh already-paid one sits in this class.
+        $this->assertSame($earlierSlot->id, $existing->fresh()->study_class_id);
+        $this->assertDatabaseCount('students', 1);
+        $this->assertDatabaseHas('student_enrollments', [
+            'study_class_id' => $studyClass->id,
+            'student_id' => $existing->student_id,
+            'enrollment_status' => 'active',
+            'payment_status' => 'paid',
+        ]);
+        $this->assertSame(2, StudentEnrollment::where('student_id', $existing->student_id)->count());
+    }
+
+    public function test_assign_rejects_a_student_already_in_a_class_of_this_course_and_time(): void
+    {
+        $instructor = $this->instructor();
+        $otherInstructor = $this->instructor();
+        // Same course + same time, different instructor = a parallel section.
+        $studyClass = $this->createStudyClass(['teacher_id' => $instructor->id]);
+        $parallel = $this->createStudyClass(['teacher_id' => $otherInstructor->id, 'title' => 'Parallel']);
+
+        $existing = $this->createManualRegistration([], [
+            'study_class_id' => $parallel->id,
+            'enrollment_status' => 'active',
+        ]);
+
+        $this->actingAs($instructor)
+            ->getJson("/dashboard/enroll/{$studyClass->id}/assignable-registrations")
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $this->actingAs($instructor)
+            ->postJson("/dashboard/enroll/{$studyClass->id}/assign-registration", [
+                'enrollment_id' => $existing->id,
+            ])
+            ->assertStatus(422);
+
+        $this->assertSame(1, StudentEnrollment::where('student_id', $existing->student_id)->count());
+    }
+
+    public function test_assign_rejects_a_student_already_in_this_class(): void
     {
         $instructor = $this->instructor();
         $studyClass = $this->createStudyClass(['teacher_id' => $instructor->id]);
-        $other = $this->createStudyClass(['teacher_id' => $instructor->id, 'title' => 'Other']);
 
-        $enrollment = $this->createManualRegistration([], [
-            'study_class_id' => $other->id,
+        $existing = $this->createManualRegistration([], [
+            'study_class_id' => $studyClass->id,
             'enrollment_status' => 'active',
         ]);
 
         $this->actingAs($instructor)
             ->postJson("/dashboard/enroll/{$studyClass->id}/assign-registration", [
-                'enrollment_id' => $enrollment->id,
+                'enrollment_id' => $existing->id,
             ])
             ->assertStatus(422);
+
+        $this->assertSame(1, StudentEnrollment::where('student_id', $existing->student_id)->count());
     }
 
     public function test_assign_is_blocked_when_the_class_no_longer_accepts_changes(): void

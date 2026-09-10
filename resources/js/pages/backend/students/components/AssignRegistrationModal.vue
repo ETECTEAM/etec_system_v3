@@ -1,7 +1,7 @@
 <script setup>
-import { onBeforeUnmount, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import axios from "axios";
-import { X, Search, UserRound, UserPlus } from "@lucide/vue";
+import { X, Search, UserRound, UserPlus, ChevronLeft, ChevronRight, Check } from "@lucide/vue";
 import { useToast } from "@/composables/useToast";
 import { useI18n } from "@/i18n";
 
@@ -22,6 +22,9 @@ const rows = ref([]);
 const loading = ref(false);
 const searched = ref(false);
 const assigningId = ref(null);
+const addedIds = ref(new Set());
+const page = ref(1);
+const meta = ref({ current_page: 1, last_page: 1, total: 0 });
 
 let timer = null;
 let reqId = 0;
@@ -32,17 +35,31 @@ const TYPE_BADGE = {
   normal: "bg-slate-100 text-slate-600 dark:bg-gray-700 dark:text-gray-300",
 };
 
-async function fetchRows(term) {
+const rangeLabel = computed(() => {
+  if (!meta.value.total) return "";
+  const start = (meta.value.current_page - 1) * (meta.value.per_page || rows.value.length || 20) + 1;
+  const end = start + rows.value.length - 1;
+  return t(":from–:to of :total", { from: start, to: end, total: meta.value.total });
+});
+
+async function fetchRows(term, toPage = 1) {
   if (!props.classId) return;
   const current = ++reqId;
   loading.value = true;
 
   try {
     const response = await axios.get(`/dashboard/enroll/${props.classId}/assignable-registrations`, {
-      params: { search: term || null },
+      params: { search: term || null, page: toPage },
     });
     if (current !== reqId) return;
     rows.value = response.data?.data ?? [];
+    meta.value = {
+      current_page: response.data?.current_page ?? 1,
+      last_page: response.data?.last_page ?? 1,
+      per_page: response.data?.per_page ?? 20,
+      total: response.data?.total ?? rows.value.length,
+    };
+    page.value = meta.value.current_page;
     searched.value = true;
   } catch (error) {
     if (current !== reqId) return;
@@ -53,6 +70,13 @@ async function fetchRows(term) {
   }
 }
 
+function goToPage(next) {
+  const target = Math.min(Math.max(next, 1), meta.value.last_page);
+  if (target === meta.value.current_page) return;
+  addedIds.value = new Set();
+  fetchRows(query.value.trim(), target);
+}
+
 watch(
   () => props.show,
   (open) => {
@@ -60,14 +84,18 @@ watch(
       query.value = "";
       rows.value = [];
       searched.value = false;
-      fetchRows("");
+      addedIds.value = new Set();
+      page.value = 1;
+      meta.value = { current_page: 1, last_page: 1, total: 0 };
+      fetchRows("", 1);
     }
   },
 );
 
 watch(query, (value) => {
   if (timer) clearTimeout(timer);
-  timer = setTimeout(() => fetchRows(value.trim()), 350);
+  addedIds.value = new Set();
+  timer = setTimeout(() => fetchRows(value.trim(), 1), 350);
 });
 
 onBeforeUnmount(() => timer && clearTimeout(timer));
@@ -81,7 +109,8 @@ async function assign(row) {
       enrollment_id: row.enrollment_id,
     });
     toast.success(t(":name added to :class.", { name: row.name, class: props.classTitle }));
-    rows.value = rows.value.filter((r) => r.enrollment_id !== row.enrollment_id);
+    // Keep the row in place, just flip its button to "Added".
+    addedIds.value = new Set(addedIds.value).add(row.enrollment_id);
     emit("assigned", row);
   } catch (error) {
     toast.error(error.response?.data?.message ?? t("Failed to add this student."));
@@ -97,7 +126,7 @@ function close() {
 
 <template>
   <div v-if="show" class="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 px-4" @click.self="close">
-    <div class="flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl bg-white shadow-xl dark:bg-gray-900">
+    <div class="flex h-[85vh] w-full max-w-3xl flex-col rounded-2xl bg-white shadow-xl dark:bg-gray-900">
       <div class="flex items-start justify-between gap-4 border-b border-slate-200 p-5 dark:border-gray-800">
         <div class="flex items-center gap-3">
           <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-100 dark:bg-indigo-500/10">
@@ -127,17 +156,17 @@ function close() {
           />
         </div>
         <p class="mt-1.5 text-[11px] text-slate-400 dark:text-gray-500">
-          {{ $t('Students who registered but are not in a class yet.') }}
+          {{ $t('Students registered for this course who are not already in a class for it at this time.') }}
         </p>
       </div>
 
-      <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
-        <div v-if="loading" class="space-y-2">
-          <div v-for="i in 4" :key="i" class="h-16 animate-pulse rounded-xl bg-slate-100 dark:bg-gray-800" />
-        </div>
+      <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-2">
+        <p v-if="loading" class="px-4 py-8 text-center text-sm text-slate-400 dark:text-gray-500">
+          {{ $t('Loading...') }}
+        </p>
 
         <p v-else-if="searched && rows.length === 0" class="rounded-xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-500 dark:bg-gray-800 dark:text-gray-400">
-          {{ query ? $t('No matching unassigned registrations.') : $t('No unassigned registrations right now.') }}
+          {{ query ? $t('No matching students.') : $t('No students available to add.') }}
         </p>
 
         <ul v-else class="space-y-2">
@@ -162,8 +191,18 @@ function close() {
               <p class="text-[11px] text-slate-400 dark:text-gray-500">
                 <span v-if="row.term_name">{{ row.term_name }} &middot; </span>{{ row.payment_status }} · ${{ row.amount_paid.toFixed(2) }}
               </p>
+              <p v-if="row.current_class" class="mt-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                {{ $t('Currently in') }}: {{ row.current_class }}
+              </p>
             </div>
+            <span
+              v-if="addedIds.has(row.enrollment_id)"
+              class="inline-flex h-9 shrink-0 items-center justify-center gap-1 rounded-lg bg-emerald-100 px-3 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+            >
+              <Check class="h-4 w-4" /> {{ $t('Added') }}
+            </span>
             <button
+              v-else
               type="button"
               :disabled="assigningId === row.enrollment_id || (seatsLeft !== null && seatsLeft <= 0)"
               class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-blue-900 px-3 text-xs font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
@@ -173,6 +212,31 @@ function close() {
             </button>
           </li>
         </ul>
+      </div>
+
+      <div class="flex items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 dark:border-gray-800">
+        <span class="text-[11px] text-slate-400 dark:text-gray-500">{{ rangeLabel }}</span>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            :disabled="loading || meta.current_page <= 1"
+            class="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-300 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            @click="goToPage(meta.current_page - 1)"
+          >
+            <ChevronLeft class="h-4 w-4" /> {{ $t('Prev') }}
+          </button>
+          <span class="text-xs text-slate-500 dark:text-gray-400">
+            {{ $t('Page :current / :last', { current: meta.current_page, last: meta.last_page }) }}
+          </span>
+          <button
+            type="button"
+            :disabled="loading || meta.current_page >= meta.last_page"
+            class="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-300 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            @click="goToPage(meta.current_page + 1)"
+          >
+            {{ $t('Next') }} <ChevronRight class="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   </div>

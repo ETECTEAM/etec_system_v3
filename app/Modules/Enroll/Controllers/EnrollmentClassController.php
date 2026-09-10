@@ -510,8 +510,11 @@ class EnrollmentClassController extends Controller
     }
 
     /**
-     * "Add Existing Student" on the class card: unassigned registrations
-     * (Manual Register + other parked rows) that can be pulled into this class.
+     * "Add Existing Student" on the class card. Lists registrations for THIS
+     * class's course — parked ones (Manual Register + other unassigned rows) and
+     * students already taking the same course in a different time slot — but
+     * never a student who already sits in a class of this course + time (any
+     * instructor's parallel section). One row per student.
      * Instructor-scoped to the class's own teachers.
      */
     public function assignableRegistrations(Request $request, StudyClass $studyClass): JsonResponse
@@ -520,10 +523,29 @@ class EnrollmentClassController extends Controller
 
         $search = trim($request->string('search')->toString());
 
-        $rows = StudentEnrollment::query()
-            ->whereNull('study_class_id')
-            ->where('enrollment_status', 'unassigned')
-            ->with(['student:id,full_name,gender,phone', 'course:id,title', 'term:id,term_name'])
+        // Students who already hold a seat in a class of this exact course +
+        // time (this section or another instructor's) — one such class only.
+        $takenStudentIds = StudentEnrollment::query()
+            ->whereNotIn('enrollment_status', ['cancelled', 'rejected'])
+            ->whereHas('studyClass', fn (Builder $query) => $query
+                ->where('course_id', $studyClass->course_id)
+                ->where('time_id', $studyClass->time_id))
+            ->pluck('student_id')
+            ->all();
+
+        $perPage = min(max((int) $request->integer('per_page', 20), 10), 100);
+
+        $paginator = StudentEnrollment::query()
+            // One representative (latest live) registration per student for this course.
+            ->whereIn('id', function ($sub) use ($studyClass): void {
+                $sub->from('student_enrollments')
+                    ->selectRaw('MAX(id)')
+                    ->where('course_id', $studyClass->course_id)
+                    ->whereNotIn('enrollment_status', ['cancelled', 'rejected'])
+                    ->groupBy('student_id');
+            })
+            ->when($takenStudentIds !== [], fn (Builder $query) => $query->whereNotIn('student_id', $takenStudentIds))
+            ->with(['student:id,full_name,gender,phone', 'course:id,title', 'term:id,term_name', 'studyClass:id,title'])
             ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $query) use ($search): void {
                 $query->whereHas('student', fn (Builder $query) => $query
                     ->where('full_name', 'like', "%{$search}%")
@@ -531,9 +553,11 @@ class EnrollmentClassController extends Controller
                     ->orWhereHas('course', fn (Builder $query) => $query->where('title', 'like', "%{$search}%"));
             }))
             ->latest('id')
-            ->limit(30)
-            ->get()
-            ->map(fn (StudentEnrollment $enrollment) => [
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return response()->json(
+            $paginator->through(fn (StudentEnrollment $enrollment) => [
                 'enrollment_id' => $enrollment->id,
                 'name' => $enrollment->student?->full_name ?? '-',
                 'phone' => $enrollment->student?->phone ?? '-',
@@ -547,20 +571,25 @@ class EnrollmentClassController extends Controller
                     'manual' => 'manual',
                     default => 'normal',
                 },
+                // null when the student is still parked (no class yet).
+                'current_class' => $enrollment->studyClass?->title,
             ])
-            ->all();
-
-        return response()->json(['data' => $rows]);
+        );
     }
 
     /**
-     * Pull one unassigned registration into this class — sets study_class_id on
-     * the existing enrollment, keeping its payment. Instructor-scoped.
+     * Add one existing student to this class. Rejected if the student already
+     * holds a seat in any class of this course + time (a student belongs to one
+     * such section only). A still-parked registration is moved in place (its
+     * payment / receipt stay on the same row); a student taking this course in
+     * another time slot gets a fresh, already-paid enrollment here — their other
+     * one is untouched. Instructor-scoped.
      */
     public function assignRegistration(
         Request $request,
         StudyClass $studyClass,
-        MoveStudentEnrollment $move
+        MoveStudentEnrollment $move,
+        EnrollStudent $enroll
     ): JsonResponse {
         $this->ensureInstructorCanManageClassStudents($studyClass);
         $this->ensureClassAcceptsMutations($studyClass);
@@ -571,14 +600,36 @@ class EnrollmentClassController extends Controller
         ]);
 
         $enrollment = StudentEnrollment::query()->findOrFail($validated['enrollment_id']);
+        $force = (bool) ($validated['force'] ?? false);
 
-        abort_unless(
-            $enrollment->study_class_id === null && $enrollment->enrollment_status === 'unassigned',
-            422,
-            'That registration is already assigned to a class.',
-        );
+        $alreadyInSection = StudentEnrollment::query()
+            ->where('student_id', $enrollment->student_id)
+            ->whereNotIn('enrollment_status', ['cancelled', 'rejected'])
+            ->whereHas('studyClass', fn (Builder $query) => $query
+                ->where('course_id', $studyClass->course_id)
+                ->where('time_id', $studyClass->time_id))
+            ->exists();
 
-        $move->handle($enrollment, $studyClass, (bool) ($validated['force'] ?? false));
+        abort_if($alreadyInSection, 422, 'This student is already in a class for this course and time.');
+
+        // Parked registration (never assigned): move the existing row in place.
+        if ($enrollment->study_class_id === null && $enrollment->enrollment_status === 'unassigned') {
+            $move->handle($enrollment, $studyClass, $force);
+
+            return response()->json(['success' => true]);
+        }
+
+        // Taking this course at another time: fresh, already-paid enrollment here.
+        // EnrollStudent::handle() also runs the seat check.
+        $enroll->handle($studyClass, (int) $enrollment->student_id, $force, [
+            'source' => $enrollment->source ?? 'manual',
+            'course_id' => $studyClass->course_id,
+            'term_id' => $studyClass->term_id,
+            'payment_status' => 'paid',
+            'amount_paid' => (float) $enrollment->amount_paid,
+            'paid_at' => $enrollment->paid_at ?? now(),
+            'enrolled_at' => now(),
+        ]);
 
         return response()->json(['success' => true]);
     }
