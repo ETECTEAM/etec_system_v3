@@ -768,6 +768,14 @@ function beginNormalPrint(batch = false) {
                 border-radius: 8px !important;
                 padding: 9mm 12mm 5mm !important;
             }
+            body.normal-certificate-print #normal-cert-print .regular-certificate-preview .cert-inner-border {
+                border: 2mm solid #a8a8a8 !important;
+                border-radius: 1.3mm !important;
+            }
+            body.normal-certificate-print #normal-cert-print .regular-certificate-preview .cert-school-kh span,
+            body.normal-certificate-print #normal-cert-print .regular-certificate-preview .cert-school-en span {
+                color: #111 !important;
+            }
             body.normal-certificate-print #normal-cert-print .cert-school-kh,
             body.normal-certificate-print #normal-cert-print .cert-certify,
             body.normal-certificate-print #normal-cert-print .cert-desc,
@@ -2301,14 +2309,20 @@ const LegacyCertificatePreview = {
         certificate: { type: Object, required: true },
     },
     template: `
-        <article class="certificate-preview printable-certificate">
+        <article
+            class="certificate-preview printable-certificate"
+            :class="{
+                'regular-certificate-preview': certificate.certificate_type !== 'scholarship',
+                'scholarship-certificate-preview': certificate.certificate_type === 'scholarship',
+            }"
+        >
             <div class="certificate-wrap">
                 <div class="certificate">
                     <div class="cert-outer-border">
-                        <span class="cert-corner-dot cert-corner-dot-tl" aria-hidden="true"></span>
-                        <span class="cert-corner-dot cert-corner-dot-tr" aria-hidden="true"></span>
-                        <span class="cert-corner-dot cert-corner-dot-bl" aria-hidden="true"></span>
-                        <span class="cert-corner-dot cert-corner-dot-br" aria-hidden="true"></span>
+                        <span v-if="certificate.certificate_type === 'scholarship'" class="cert-corner-dot cert-corner-dot-tl" aria-hidden="true"></span>
+                        <span v-if="certificate.certificate_type === 'scholarship'" class="cert-corner-dot cert-corner-dot-tr" aria-hidden="true"></span>
+                        <span v-if="certificate.certificate_type === 'scholarship'" class="cert-corner-dot cert-corner-dot-bl" aria-hidden="true"></span>
+                        <span v-if="certificate.certificate_type === 'scholarship'" class="cert-corner-dot cert-corner-dot-br" aria-hidden="true"></span>
                         <div class="cert-inner-border">
                             <div class="cert-kingdom">
                                 <div>KINGDOM OF CAMBODIA</div>
@@ -4007,6 +4021,16 @@ table {
     border-radius: 8px;
     background: #fff;
     padding: 21px 21px 9px;
+}
+
+.regular-certificate-preview .cert-inner-border {
+    border: 6px solid #a8a8a8;
+    border-radius: 4px;
+}
+
+.regular-certificate-preview .cert-school-kh span,
+.regular-certificate-preview .cert-school-en span {
+    color: #111;
 }
 
 .cert-kingdom {

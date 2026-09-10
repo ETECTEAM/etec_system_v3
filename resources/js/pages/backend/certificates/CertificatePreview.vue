@@ -9,6 +9,7 @@ const props = defineProps({
 })
 
 const isInternship = computed(() => props.certificate.certificate_type === 'internship')
+const isScholarship = computed(() => props.certificate.certificate_type === 'scholarship')
 const internshipCourseName = computed(() => {
     return String(props.certificate.course || '')
         .toLowerCase()
@@ -127,14 +128,21 @@ const internshipCourseName = computed(() => {
         </div>
     </article>
 
-    <article v-else class="certificate-preview printable-certificate">
+    <article
+        v-else
+        class="certificate-preview printable-certificate"
+        :class="{
+            'regular-certificate-preview': !isScholarship,
+            'scholarship-certificate-preview': isScholarship,
+        }"
+    >
         <div class="certificate-wrap">
             <div class="certificate">
                 <div class="cert-outer-border">
-                    <span class="cert-corner-dot cert-corner-dot-tl" aria-hidden="true"></span>
-                    <span class="cert-corner-dot cert-corner-dot-tr" aria-hidden="true"></span>
-                    <span class="cert-corner-dot cert-corner-dot-bl" aria-hidden="true"></span>
-                    <span class="cert-corner-dot cert-corner-dot-br" aria-hidden="true"></span>
+                    <span v-if="isScholarship" class="cert-corner-dot cert-corner-dot-tl" aria-hidden="true"></span>
+                    <span v-if="isScholarship" class="cert-corner-dot cert-corner-dot-tr" aria-hidden="true"></span>
+                    <span v-if="isScholarship" class="cert-corner-dot cert-corner-dot-bl" aria-hidden="true"></span>
+                    <span v-if="isScholarship" class="cert-corner-dot cert-corner-dot-br" aria-hidden="true"></span>
                     <div class="cert-inner-border">
                         <div class="cert-kingdom">
                             <div>KINGDOM OF CAMBODIA</div>
@@ -335,6 +343,16 @@ const internshipCourseName = computed(() => {
     border-radius: 8px;
     background: #fff;
     padding: 21px 21px 9px;
+}
+
+.regular-certificate-preview .cert-inner-border {
+    border: 6px solid #a8a8a8;
+    border-radius: 4px;
+}
+
+.regular-certificate-preview .cert-school-kh span,
+.regular-certificate-preview .cert-school-en span {
+    color: #111;
 }
 
 .cert-kingdom {
@@ -912,6 +930,16 @@ const internshipCourseName = computed(() => {
         padding: 9mm 12mm 5mm !important;
         print-color-adjust: exact !important;
         -webkit-print-color-adjust: exact !important;
+    }
+
+    .regular-certificate-preview .cert-inner-border {
+        border: 2mm solid #a8a8a8 !important;
+        border-radius: 1.3mm !important;
+    }
+
+    .regular-certificate-preview .cert-school-kh span,
+    .regular-certificate-preview .cert-school-en span {
+        color: #111 !important;
     }
 
     .cert-school-kh,
