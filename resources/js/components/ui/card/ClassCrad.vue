@@ -1,7 +1,7 @@
 <script setup>
 import { router, usePage } from "@inertiajs/vue3";
-import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,Pencil,X,} from "@lucide/vue";
-import { ref, computed } from "vue";
+import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,Pencil,X,Expand,} from "@lucide/vue";
+import { ref, computed, watch } from "vue";
 import { QrcodeCanvas } from "qrcode.vue";
 import axios from "axios";
 import { useToast } from "@/composables/useToast";
@@ -183,6 +183,10 @@ const menuItems = computed(() => [
 ]);
 const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.slug ?? props.classData.id}`);
 const qrCopied = ref(false);
+const qrZoomed = ref(false);
+
+// Leaving the QR dialog also drops the full-screen zoom.
+watch(showQrDialog, (open) => { if (!open) qrZoomed.value = false; });
 
 function copyQrUrl() {
     navigator.clipboard?.writeText(qrUrl.value).then(() => {
@@ -585,14 +589,19 @@ async function saveCapacity() {
                     <p class="text-[11px] font-medium uppercase tracking-widest text-slate-400 dark:text-gray-500">{{ $t('Scan to join') }}</p>
                     <p class="truncate text-base font-semibold text-slate-900 dark:text-gray-100">{{ classData.title }}</p>
                 </div>
-                <button type="button" :aria-label="$t('Close')" class="-mr-1.5 shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="showQrDialog = false">
-                    <X class="h-5 w-5" />
-                </button>
+                <div class="-mr-1.5 flex shrink-0 items-center gap-0.5">
+                    <button type="button" :aria-label="$t('Zoom')" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="qrZoomed = true">
+                        <Expand class="h-5 w-5" />
+                    </button>
+                    <button type="button" :aria-label="$t('Close')" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="showQrDialog = false">
+                        <X class="h-5 w-5" />
+                    </button>
+                </div>
             </div>
 
             <!-- QR -->
             <div class="flex flex-col items-center px-6 py-6">
-                <div class="rounded-xl border border-slate-200 bg-white p-3 dark:border-gray-700">
+                <button type="button" class="rounded-xl border border-slate-200 bg-white p-3 dark:border-gray-700" :aria-label="$t('Zoom')" @click="qrZoomed = true">
                     <QrcodeCanvas
                         :value="qrUrl"
                         :size="360"
@@ -601,7 +610,7 @@ async function saveCapacity() {
                         foreground="#1e3a8a"
                         class="block h-[360px] w-[360px] max-w-full"
                     />
-                </div>
+                </button>
                 <div class="mt-4 flex w-full flex-col items-center gap-2">
                     <a :href="qrUrl" target="_blank" rel="noopener" class="block max-w-full truncate text-[11px] text-blue-600 hover:underline dark:text-blue-400">
                         {{ qrUrl }}
@@ -620,5 +629,29 @@ async function saveCapacity() {
             </div>
         </div>
     </div>
+
+    <!-- Zoomed QR: full-screen for easy scanning -->
+    <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-to-class="opacity-0"
+    >
+        <div v-if="qrZoomed" class="fixed inset-0 z-[130] flex flex-col items-center justify-center gap-5 overflow-y-auto bg-white px-4 py-12 dark:bg-gray-950" @click="qrZoomed = false">
+            <button type="button" :aria-label="$t('Close')" class="absolute right-4 top-4 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 dark:text-gray-400 dark:hover:bg-gray-800" @click.stop="qrZoomed = false">
+                <X class="h-6 w-6" />
+            </button>
+            <QrcodeCanvas
+                :value="qrUrl"
+                :size="1000"
+                level="M"
+                :margin="0"
+                foreground="#1e3a8a"
+                class="qr-pop block h-auto w-[min(82vw,68vh)] max-w-none"
+                @click.stop
+            />
+            <p class="text-base font-semibold text-slate-900 dark:text-gray-100">{{ classData.title }}</p>
+        </div>
+    </Transition>
 </Teleport>
 </template>
