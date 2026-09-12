@@ -255,10 +255,10 @@ function timeWithTerm() {
 
 
       <footer class="receipt-contact">
-        <span>អាសយដ្ឋាន៖ ភ្នំពេញថ្មី រាជធានីភ្នំពេញ</span>
+        <span>អាសយដ្ឋាន៖ ផ្លូវលេខ ១៦០ សង្កាត់ ទឹកល្អក់២ ខណ្ឌ សែនសុខ រាជធានីភ្នំពេញ</span>
         <span>HP: +855 96 226 8884 / +855 77 368 884</span>
         <span>Email: info@eteccenter.info</span>
-        <span>Website: www.eteccenter.info</span>
+        <span>Website: www.etec.space</span>
       </footer>
     </section>
   </div>
