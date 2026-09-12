@@ -254,7 +254,7 @@ function actionItems(classData) {
           </div>
         </div>
 
-        <div v-if="filteredClasses.length" class="grid grid-cols-1 gap-5 md:grid-cols-3 xl:grid-cols-4">
+        <div v-if="filteredClasses.length" class="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-5">
           <ClassCrad
             v-for="classData in filteredClasses"
             :key="classData.id"
