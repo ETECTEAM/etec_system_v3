@@ -78,7 +78,7 @@ class AttendanceLockEnforcementTest extends TestCase
         $this->save($class->id, $class->teacher, $student->id, $enrollment->id, 'present', '2026-05-20');
 
         $row = StudentAttendance::firstOrFail();
-        $this->assertSame('absent', $row->status);
+        $this->assertSame('absent', $row->statusLabel());
         $this->assertTrue($row->locked);
         $this->assertSame(StudentAttendanceBlock::REASON_SOFT, $row->lock_reason);
     }
@@ -108,8 +108,8 @@ class AttendanceLockEnforcementTest extends TestCase
         $this->save($class->id, $class->teacher, $student->id, $enrollment->id, 'permission', '2026-05-20');
 
         $rows = StudentAttendance::orderBy('attendance_date')->get();
-        $this->assertSame('permission', $rows[0]->status);
-        $this->assertSame('absent', $rows[1]->status);
+        $this->assertSame('permission', $rows[0]->statusLabel());
+        $this->assertSame('absent', $rows[1]->statusLabel());
         $this->assertSame('Permission limit exceeded — counted as absence', $rows[1]->note);
     }
 }

@@ -36,7 +36,7 @@ class AbsenceCounter
             ->join('study_classes', 'study_classes.id', '=', 'student_attendances.study_class_id')
             ->where('students.phone', $tel)
             ->where('study_classes.course_id', $courseId)
-            ->where('student_attendances.status', $status)
+            ->where('student_attendances.'.$status, true)
             ->whereBetween('student_attendances.attendance_date', [$start->toDateString(), $end->toDateString()])
             ->whereNotExists(function ($q) {
                 $q->select(DB::raw(1))

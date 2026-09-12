@@ -118,7 +118,7 @@ class InstructorClassServiceTest extends TestCase
         $this->assertDatabaseHas('student_attendances', [
             'study_class_id' => $class->id,
             'student_enrollment_id' => $enrollment->id,
-            'status' => 'present',
+            'present' => true,
         ]);
     }
 
@@ -170,7 +170,7 @@ class InstructorClassServiceTest extends TestCase
             'study_class_id' => $class->id,
             'student_enrollment_id' => $enrollment->id,
             'student_id' => $student->id,
-            'status' => 'present',
+            'present' => true,
             'source' => StudentAttendance::SOURCE_MANUAL,
             'note' => 'On time',
         ]);
@@ -320,7 +320,7 @@ class InstructorClassServiceTest extends TestCase
             'student_enrollment_id' => $trackedEnrollment->id,
             'student_id' => $tracked->id,
             'attendance_date' => '2026-08-21',
-            'status' => 'present',
+            ...StudentAttendance::flagsFor(StudentAttendance::STATUS_PRESENT),
             'source' => StudentAttendance::SOURCE_QR,
         ]);
 
@@ -358,12 +358,12 @@ class InstructorClassServiceTest extends TestCase
         $this->assertDatabaseCount('student_attendances', 2);
         $this->assertDatabaseHas('student_attendances', [
             'student_enrollment_id' => $trackedEnrollment->id,
-            'status' => 'present',
+            'present' => true,
             'source' => StudentAttendance::SOURCE_QR,
         ]);
         $this->assertDatabaseHas('student_attendances', [
             'student_enrollment_id' => $unresolvedEnrollment->id,
-            'status' => 'absent',
+            'absent' => true,
             'source' => StudentAttendance::SOURCE_MANUAL,
         ]);
         $this->assertDatabaseHas('pre_attendance_requests', [
@@ -424,7 +424,7 @@ class InstructorClassServiceTest extends TestCase
             'student_id' => $tracked->id,
             'tracked_by' => $class->teacher_id,
             'attendance_date' => '2026-08-21',
-            'status' => 'present',
+            ...StudentAttendance::flagsFor(StudentAttendance::STATUS_PRESENT),
             'source' => StudentAttendance::SOURCE_MANUAL,
         ]);
 
@@ -434,14 +434,14 @@ class InstructorClassServiceTest extends TestCase
         $this->assertDatabaseHas('student_attendances', [
             'student_enrollment_id' => $trackedEnrollment->id,
             'student_id' => $tracked->id,
-            'status' => 'present',
+            'present' => true,
             'source' => StudentAttendance::SOURCE_MANUAL,
         ]);
         $this->assertDatabaseHas('student_attendances', [
             'study_class_id' => $class->id,
             'student_enrollment_id' => $missingEnrollment->id,
             'student_id' => $missing->id,
-            'status' => 'absent',
+            'absent' => true,
             'source' => StudentAttendance::SOURCE_AUTO,
         ]);
     }

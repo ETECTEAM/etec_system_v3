@@ -4,6 +4,7 @@ namespace App\Modules\AbsenceBlock\Actions;
 
 use App\Models\OfficialLeave;
 use App\Models\Student;
+use App\Models\StudentAttendance;
 use App\Models\StudentAttendanceBlock;
 use App\Models\StudyClass;
 use App\Models\User;
@@ -151,7 +152,7 @@ class AutoBlockStudent
 
         foreach ($rows as $row) {
             $row->update([
-                'status' => 'absent',
+                ...StudentAttendance::flagsFor('absent'),
                 'locked' => true,
                 'lock_reason' => $reason,
                 'locked_block_id' => $block->id,

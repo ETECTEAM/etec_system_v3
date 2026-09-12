@@ -80,7 +80,7 @@ trait BuildsAbsenceScenario
             'student_enrollment_id' => $enrollment->id,
             'student_id' => $student->id,
             'attendance_date' => $date,
-            'status' => $status,
+            ...StudentAttendance::flagsFor($status),
             'source' => StudentAttendance::SOURCE_MANUAL,
         ]);
     }

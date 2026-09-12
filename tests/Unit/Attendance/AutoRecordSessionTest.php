@@ -164,7 +164,7 @@ class AutoRecordSessionTest extends TestCase
             'student_enrollment_id' => $enrollment->id,
             'student_id' => $student->id,
             'attendance_date' => $session->session_date,
-            'status' => 'present',
+            ...StudentAttendance::flagsFor(StudentAttendance::STATUS_PRESENT),
             'source' => StudentAttendance::SOURCE_MANUAL,
         ]);
 
@@ -195,7 +195,7 @@ class AutoRecordSessionTest extends TestCase
             'student_enrollment_id' => $presentEnrollment->id,
             'student_id' => $present->id,
             'attendance_date' => $session->session_date,
-            'status' => 'present',
+            ...StudentAttendance::flagsFor(StudentAttendance::STATUS_PRESENT),
             'source' => StudentAttendance::SOURCE_QR,
         ]);
 
@@ -204,7 +204,7 @@ class AutoRecordSessionTest extends TestCase
             'student_enrollment_id' => $lateEnrollment->id,
             'student_id' => $late->id,
             'attendance_date' => $session->session_date,
-            'status' => 'permission',
+            ...StudentAttendance::flagsFor(StudentAttendance::STATUS_PERMISSION),
             'source' => StudentAttendance::SOURCE_MANUAL,
         ]);
 
@@ -214,12 +214,12 @@ class AutoRecordSessionTest extends TestCase
         $this->assertDatabaseCount('student_attendances', 2);
         $this->assertDatabaseHas('student_attendances', [
             'student_enrollment_id' => $presentEnrollment->id,
-            'status' => 'present',
+            'present' => true,
             'source' => StudentAttendance::SOURCE_QR,
         ]);
         $this->assertDatabaseHas('student_attendances', [
             'student_enrollment_id' => $lateEnrollment->id,
-            'status' => 'permission',
+            'permission' => true,
             'source' => StudentAttendance::SOURCE_MANUAL,
         ]);
     }
@@ -237,7 +237,7 @@ class AutoRecordSessionTest extends TestCase
             'student_enrollment_id' => $enrollment->id,
             'student_id' => $student->id,
             'attendance_date' => $session->session_date,
-            'status' => 'present',
+            ...StudentAttendance::flagsFor(StudentAttendance::STATUS_PRESENT),
             'source' => StudentAttendance::SOURCE_QR,
         ]);
 
@@ -332,7 +332,7 @@ class AutoRecordSessionTest extends TestCase
             'student_enrollment_id' => $enrollment->id,
             'student_id' => $student->id,
             'attendance_date' => $session->session_date,
-            'status' => 'present',
+            ...StudentAttendance::flagsFor(StudentAttendance::STATUS_PRESENT),
             'source' => StudentAttendance::SOURCE_MANUAL,
         ]);
 
@@ -342,7 +342,7 @@ class AutoRecordSessionTest extends TestCase
 
         $this->assertDatabaseHas('student_attendances', [
             'student_enrollment_id' => $enrollment->id,
-            'status' => 'present',
+            'present' => true,
             'source' => StudentAttendance::SOURCE_MANUAL,
         ]);
     }

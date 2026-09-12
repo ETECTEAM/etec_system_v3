@@ -77,7 +77,7 @@ class StudentManagementController extends Controller
         $date = $request->date('attendance_date') ?? now();
         StudentAttendance::updateOrCreate(
             ['study_class_id' => $enrollment->study_class_id, 'student_enrollment_id' => $enrollment->id, 'attendance_date' => $date->toDateString()],
-            ['student_id' => $enrollment->student_id, 'tracked_by' => $request->user()->id, 'status' => 'late', 'source' => StudentAttendance::SOURCE_ADMIN_EDIT]
+            ['student_id' => $enrollment->student_id, 'tracked_by' => $request->user()->id, ...StudentAttendance::flagsFor(StudentAttendance::STATUS_LATE), 'source' => StudentAttendance::SOURCE_ADMIN_EDIT]
         );
         return back()->with('success', 'Student marked late.');
     }

@@ -44,7 +44,7 @@ class AttendanceQrController extends Controller
             'class_id' => $attendance->study_class_id,
             'date' => $attendance->attendance_date->format('Y-m-d'),
             'time' => $attendance->created_at?->format('H:i'),
-            'status' => $attendance->status,
+            'status' => $attendance->statusLabel(),
             'verification_status' => $attendance->verification_status,
             'verification_reason' => $attendance->verification_reason,
         ];

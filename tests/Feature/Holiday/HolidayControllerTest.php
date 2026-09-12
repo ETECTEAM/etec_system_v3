@@ -85,7 +85,7 @@ class HolidayControllerTest extends TestCase
             'student_enrollment_id' => $enrollment->id,
             'student_id' => $student->id,
             'attendance_date' => '2026-09-10',
-            'status' => 'present',
+            ...\App\Models\StudentAttendance::flagsFor(\App\Models\StudentAttendance::STATUS_PRESENT),
             'source' => \App\Models\StudentAttendance::SOURCE_MANUAL,
         ]);
 
@@ -99,7 +99,7 @@ class HolidayControllerTest extends TestCase
         $this->assertSame(ClassSession::STATUS_SKIPPED, $session->fresh()->status);
         $this->assertDatabaseHas('student_attendances', [
             'student_enrollment_id' => $enrollment->id,
-            'status' => 'present',
+            'present' => true,
         ]);
     }
 }

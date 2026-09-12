@@ -575,7 +575,7 @@ class InstructorClassService
                     [
                         'student_id' => $studentId,
                         'tracked_by' => $instructor->id,
-                        'status' => $status,
+                        ...StudentAttendance::flagsFor($status),
                         'locked' => $lock->locked,
                         'lock_reason' => $lock->locked ? $lock->reason : null,
                         'locked_block_id' => $lock->blockId,
@@ -835,7 +835,10 @@ class InstructorClassService
             ->orderByDesc('student_attendances.attendance_date')
             ->select([
                 'student_attendances.attendance_date',
-                'student_attendances.status',
+                'student_attendances.present',
+                'student_attendances.absent',
+                'student_attendances.permission',
+                'student_attendances.late',
                 'student_attendances.note',
                 'student_attendances.locked',
                 'student_attendances.lock_reason',
@@ -845,7 +848,7 @@ class InstructorClassService
             ->get()
             ->map(fn (stdClass $record) => [
                 'date' => Carbon::parse($record->attendance_date)->format('Y-m-d'),
-                'status' => $record->status,
+                'status' => StudentAttendance::labelForFlags($record),
                 'note' => $record->note ?? '-',
                 'locked' => (bool) $record->locked,
                 'lock_reason' => $record->lock_reason,
@@ -1049,10 +1052,10 @@ class InstructorClassService
             ->select([
                 'student_id',
                 DB::raw('count(*) as total'),
-                DB::raw("sum(case when status = 'present' then 1 else 0 end) as present"),
-                DB::raw("sum(case when status = 'permission' then 1 else 0 end) as permission_count"),
-                DB::raw("sum(case when status = 'absent' then 1 else 0 end) as absent"),
-                DB::raw("sum(case when status = 'late' then 1 else 0 end) as late"),
+                DB::raw('sum(present) as present'),
+                DB::raw('sum(permission) as permission_count'),
+                DB::raw('sum(absent) as absent'),
+                DB::raw('sum(late) as late'),
             ])
             ->groupBy('student_id')
             ->get()
@@ -1064,7 +1067,7 @@ class InstructorClassService
         return DB::table('student_attendances')
             ->where('study_class_id', $studyClassId)
             ->whereDate('attendance_date', Carbon::today('Asia/Phnom_Penh'))
-            ->get(['student_id', 'status', 'note', 'locked', 'lock_reason'])
+            ->get(['student_id', 'present', 'absent', 'permission', 'late', 'note', 'locked', 'lock_reason'])
             ->keyBy('student_id');
     }
 
@@ -1085,7 +1088,7 @@ class InstructorClassService
                 'permission' => (int) ($attendanceStats->permission_count ?? 0),
                 'absent' => (int) ($attendanceStats->absent ?? 0),
                 'late' => (int) ($attendanceStats->late ?? 0),
-                'current_status' => $todayAttendance->status ?? null,
+                'current_status' => $todayAttendance ? StudentAttendance::labelForFlags($todayAttendance) : null,
                 'is_tracked' => $todayAttendance !== null,
                 'note' => $todayAttendance->note ?? '',
                 // Absence-block lock: when true the instructor cannot mark this

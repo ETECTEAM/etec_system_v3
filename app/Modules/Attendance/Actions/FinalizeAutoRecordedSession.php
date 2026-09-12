@@ -60,22 +60,28 @@ class FinalizeAutoRecordedSession
                 ->where('study_class_id', $session->study_class_id)
                 ->whereDate('attendance_date', $session->session_date)
                 ->whereIn('student_enrollment_id', $enrollments->pluck('id'))
-                ->get(['student_enrollment_id', 'status', 'source'])
+                ->get(['student_enrollment_id', 'present', 'absent', 'permission', 'late', 'source'])
                 ->keyBy('student_enrollment_id');
             $justAbsent = StudentAttendance::query()
                 ->where('study_class_id', $session->study_class_id)
                 ->whereDate('attendance_date', $session->session_date)
                 ->where('source', StudentAttendance::SOURCE_AUTO)
-                ->where('status', 'pending')
+                ->where('present', false)
+                ->where('absent', false)
+                ->where('permission', false)
+                ->where('late', false)
                 ->pluck('student_id');
 
             StudentAttendance::query()
                 ->where('study_class_id', $session->study_class_id)
                 ->whereDate('attendance_date', $session->session_date)
                 ->where('source', StudentAttendance::SOURCE_AUTO)
-                ->where('status', 'pending')
+                ->where('present', false)
+                ->where('absent', false)
+                ->where('permission', false)
+                ->where('late', false)
                 ->update([
-                    'status' => 'absent',
+                    ...StudentAttendance::flagsFor(StudentAttendance::STATUS_ABSENT),
                     'updated_at' => $now,
                 ]);
 
@@ -92,7 +98,7 @@ class FinalizeAutoRecordedSession
                             'student_id' => $enrollment->student_id,
                             'tracked_by' => null,
                             'attendance_date' => $session->session_date,
-                            'status' => 'absent',
+                            ...StudentAttendance::flagsFor(StudentAttendance::STATUS_ABSENT),
                             'source' => StudentAttendance::SOURCE_AUTO,
                             'note' => null,
                             'created_at' => $now,

@@ -289,7 +289,7 @@ class AttendanceQrService
                     'operating_system' => $device['operating_system'],
                     'device_type' => $device['device_type'],
                     'device_identifier' => $payload['device_identifier'],
-                    'status' => 'present',
+                    ...StudentAttendance::flagsFor(StudentAttendance::STATUS_PRESENT),
                     'verification_status' => $verification['status'],
                     'verification_reason' => $verification['reason'],
                     'source' => StudentAttendance::SOURCE_QR,
@@ -316,11 +316,11 @@ class AttendanceQrService
             ->get();
 
         return [
-            'present' => $records->count(fn (StudentAttendance $row) => $row->status === 'present'),
+            'present' => $records->count(fn (StudentAttendance $row) => $row->present),
             'total' => $studyClass->enrollments()->where('enrollment_status', 'active')->count(),
             'records' => $records->map(fn (StudentAttendance $row): array => [
                 'student_id' => $row->student_id,
-                'status' => $row->status,
+                'status' => $row->statusLabel(),
                 'verification_status' => $row->verification_status ?? 'verified',
                 'verification_reason' => $row->verification_reason,
                 'time' => $row->created_at?->format('H:i') ?? '-',

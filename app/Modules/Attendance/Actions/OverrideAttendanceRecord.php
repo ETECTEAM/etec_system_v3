@@ -68,15 +68,15 @@ class OverrideAttendanceRecord
                     continue;
                 }
 
-                $fromStatus = $row->status;
+                $fromStatus = $row->statusLabel();
                 $fromSource = $row->source;
 
                 // A locked student can't be overridden to present.
                 $lock = $lockEvaluator->evaluate((int) $row->student_id, $studyClassId, $sessionDate);
-                $status = $lock->locked ? 'absent' : $record['status'];
+                $status = $lock->locked ? StudentAttendance::STATUS_ABSENT : $record['status'];
 
                 $row->update([
-                    'status' => $status,
+                    ...StudentAttendance::flagsFor($status),
                     'locked' => $lock->locked,
                     'lock_reason' => $lock->locked ? $lock->reason : null,
                     'locked_block_id' => $lock->blockId,
@@ -94,7 +94,7 @@ class OverrideAttendanceRecord
                     'to_source' => StudentAttendance::SOURCE_MANUAL,
                 ]);
 
-                if ($status === 'absent') {
+                if ($status === StudentAttendance::STATUS_ABSENT) {
                     $settledAbsent[] = (int) $row->student_id;
                 }
             }

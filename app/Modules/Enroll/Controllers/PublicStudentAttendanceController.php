@@ -45,7 +45,7 @@ class PublicStudentAttendanceController extends Controller
                 ->where('student_id', $enrollment->student_id)
                 ->orderByDesc('attendance_date')
                 ->orderByDesc('id')
-                ->get(['attendance_date', 'status', 'verification_status'])
+                ->get(['attendance_date', 'present', 'absent', 'permission', 'late', 'verification_status'])
             : new Collection;
 
         return Inertia::render('frontend/student-attendance/Show', [
@@ -65,14 +65,14 @@ class PublicStudentAttendanceController extends Controller
             ],
             'attendances' => $records->map(fn (StudentAttendance $row): array => [
                 'date' => optional($row->attendance_date)->format('Y-m-d'),
-                'status' => $row->status,
+                'status' => $row->statusLabel(),
                 'verification_status' => $row->verification_status,
             ])->values(),
             'stats' => [
-                'present' => $records->where('status', 'present')->count(),
-                'absent' => $records->where('status', 'absent')->count(),
-                'late' => $records->where('status', 'late')->count(),
-                'permission' => $records->where('status', 'permission')->count(),
+                'present' => $records->where('present', true)->count(),
+                'absent' => $records->where('absent', true)->count(),
+                'late' => $records->where('late', true)->count(),
+                'permission' => $records->where('permission', true)->count(),
                 'total' => $records->count(),
             ],
         ]);

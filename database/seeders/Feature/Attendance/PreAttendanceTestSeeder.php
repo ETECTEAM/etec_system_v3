@@ -188,7 +188,7 @@ class PreAttendanceTestSeeder extends Seeder
                 'student_id' => $studentIds[$i],
                 'tracked_by' => $instructor->id,
                 'attendance_date' => $today->toDateString(),
-                'status' => 'present',
+                ...StudentAttendance::flagsFor(StudentAttendance::STATUS_PRESENT),
                 'source' => StudentAttendance::SOURCE_MANUAL,
                 'verification_status' => 'verified',
                 'created_at' => $now,
