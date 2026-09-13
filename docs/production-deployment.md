@@ -16,12 +16,11 @@ vCPU / 8 GB RAM / 75 GB NVMe, Ubuntu, Singapore region, Auto Backup add-on.
 
 ## 0. Before you start
 
-- **Push the `production` branch to GitHub first.** At the time this doc was
-  written, local `production` was 125 commits ahead of `origin/production` —
-  the deploy script pulls from `origin`, so nothing below works until you
-  `git push origin production`.
+- **Push the `production_v1` branch to GitHub first.** The deploy script
+  pulls from `origin`, so nothing below works until `origin/production_v1`
+  has the commits you want live.
 - **Rotate the Telegram bot token.** `.env.example` has a real bot token
-  committed in git history (pushed to `origin/production` and other
+  committed in git history (pushed to `origin/production_v1` and other
   branches). Generate a new one with @BotFather before going live and only
   ever put the new value in the server's `.env` (never commit it).
 - Have ready: your domain name (or skip SSL steps and use the bare IP
@@ -131,7 +130,7 @@ docker compose version
 ```bash
 sudo mkdir -p /opt/etec-system
 sudo chown deployer:deployer /opt/etec-system
-git clone -b production https://github.com/knr-smey/etec_system_v3.git /opt/etec-system
+git clone -b production_v1 https://github.com/knr-smey/etec_system_v3.git /opt/etec-system
 cd /opt/etec-system
 ```
 
