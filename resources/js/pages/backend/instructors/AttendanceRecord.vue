@@ -14,6 +14,7 @@ import {
   Pencil,
   RefreshCw,
   Save,
+  TriangleAlert,
   Users,
   Venus,
 } from "@lucide/vue";
@@ -58,7 +59,24 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  attendanceBlock: {
+    type: Object,
+    default: null,
+  },
 });
+
+const requestingUnblock = ref(false);
+
+function requestAttendanceUnblock() {
+  requestingUnblock.value = true;
+
+  router.post("/dashboard/instructor/attendance-block/request", {}, {
+    preserveScroll: true,
+    onFinish: () => {
+      requestingUnblock.value = false;
+    },
+  });
+}
 
 const rosterStudents = ref([]);
 const pendingRequests = ref([]);
@@ -486,6 +504,31 @@ async function approveAllPendingRegistrations() {
             {{ props.trackAttendanceLabel }}
           </button>
         </div>
+      </div>
+
+      <div
+        v-if="attendanceBlock"
+        class="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div class="flex items-start gap-2">
+          <TriangleAlert class="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p class="font-semibold">Your account is blocked from tracking attendance on every class.</p>
+            <p class="mt-0.5 text-red-700 dark:text-red-400">{{ attendanceBlock.reason }}</p>
+          </div>
+        </div>
+        <button
+          v-if="!attendanceBlock.pending_review"
+          type="button"
+          :disabled="requestingUnblock"
+          class="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-red-700 px-4 text-sm font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-red-600 dark:hover:bg-red-500"
+          @click="requestAttendanceUnblock"
+        >
+          Request to track again
+        </button>
+        <span v-else class="shrink-0 rounded-lg bg-red-100 px-4 py-2 text-sm font-semibold text-red-800 dark:bg-red-500/20 dark:text-red-300">
+          Request pending admin review
+        </span>
       </div>
 
       <div

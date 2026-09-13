@@ -12,19 +12,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PreAttendanceRequestController extends Controller
 {
-    public function index(): Response
-    {
-        return Inertia::render('backend/pre-attendance-requests/Index', [
-            'requests' => $this->requests(),
-        ]);
-    }
-
     public function classes(): Response
     {
         return Inertia::render('backend/pre-attendance-requests/Classes', [
@@ -48,33 +40,6 @@ class PreAttendanceRequestController extends Controller
             ],
             'sessions' => $this->instructorSessionDetails($instructor),
         ]);
-    }
-
-    public function update(Request $request, PreAttendanceRequest $preAttendanceRequest): RedirectResponse
-    {
-        $validated = $request->validate([
-            'status' => ['required', Rule::in([PreAttendanceRequest::STATUS_APPROVED, PreAttendanceRequest::STATUS_REJECTED])],
-        ]);
-
-        if (! in_array($preAttendanceRequest->status, [PreAttendanceRequest::STATUS_PENDING, PreAttendanceRequest::STATUS_APPROVED], true)) {
-            return back()->with('warning', 'This pre-attendance request has already been completed.');
-        }
-
-        $preAttendanceRequest->update([
-            'status' => $validated['status'],
-            'reviewed_by' => $request->user()->id,
-            'reviewed_at' => now(),
-        ]);
-
-        if ($preAttendanceRequest->status === PreAttendanceRequest::STATUS_APPROVED) {
-            PreAttendanceRequestUpdated::dispatch(
-                $preAttendanceRequest->study_class_id,
-                $preAttendanceRequest->id,
-                $preAttendanceRequest->status,
-            );
-        }
-
-        return back()->with('success', 'Pre-attendance request updated successfully.');
     }
 
     public function approveClass(Request $request, ClassSession $classSession): RedirectResponse
@@ -112,31 +77,6 @@ class PreAttendanceRequestController extends Controller
         );
 
         return back()->with('success', 'Pre-attendance class approved successfully.');
-    }
-
-    private function requests(): array
-    {
-        return PreAttendanceRequest::query()
-            ->with(['studyClass:id,title', 'requestedBy:id,name', 'reviewedBy:id,name'])
-            ->latest('requested_at')
-            ->limit(100)
-            ->get()
-            ->map(fn (PreAttendanceRequest $request): array => [
-                'id' => $request->id,
-                'class_id' => $request->study_class_id,
-                'class_title' => $request->studyClass?->title ?? '-',
-                'instructor' => InstructorDisplayName::format($request->requestedBy?->name),
-                'session_date' => $request->session_date?->format('Y-m-d'),
-                'session_status' => $request->session_status,
-                'status' => $request->status,
-                'status_label' => ucfirst(str_replace('_', ' ', $request->status)),
-                'note' => $request->note,
-                'requested_at' => $request->requested_at?->format('Y-m-d H:i'),
-                'reviewed_by' => $request->reviewedBy?->name,
-                'reviewed_at' => $request->reviewed_at?->format('Y-m-d H:i'),
-                'completed_at' => $request->completed_at?->format('Y-m-d H:i'),
-            ])
-            ->all();
     }
 
     private function preAttendanceClasses(): array

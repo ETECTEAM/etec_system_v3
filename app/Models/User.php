@@ -101,6 +101,14 @@ class User extends Authenticatable
         return $this->hasOne(Photo::class);
     }
 
+    /** The instructor's current attendance block, if any (see docs/instructor-attendance-block-proposal.md). */
+    public function activeAttendanceBlock(): HasOne
+    {
+        return $this->hasOne(InstructorAttendanceBlock::class, 'instructor_id')
+            ->whereIn('status', InstructorAttendanceBlock::BLOCKING_STATUSES)
+            ->latestOfMany('blocked_at');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

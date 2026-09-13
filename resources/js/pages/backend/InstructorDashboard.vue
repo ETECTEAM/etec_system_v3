@@ -9,6 +9,7 @@ import {
   Presentation,
   RefreshCw,
   Search,
+  TriangleAlert,
   Users,
   Venus,
 } from "@lucide/vue";
@@ -37,10 +38,26 @@ const props = defineProps({
       female_students: 0,
     }),
   },
+  attendanceBlock: {
+    type: Object,
+    default: null,
+  },
 });
 
 const page = usePage();
 const search = ref("");
+const requestingUnblock = ref(false);
+
+function requestAttendanceUnblock() {
+  requestingUnblock.value = true;
+
+  router.post("/dashboard/instructor/attendance-block/request", {}, {
+    preserveScroll: true,
+    onFinish: () => {
+      requestingUnblock.value = false;
+    },
+  });
+}
 
 const instructorDisplayName = (name, fallback = t("Instructor")) => {
   const displayName = String(name ?? "").split(/[·•]/u)[0].trim();
@@ -168,6 +185,31 @@ function actionItems(classData) {
   <DashboardLayout>
     <section class="space-y-5 sm:space-y-6">
       <div
+        v-if="attendanceBlock"
+        class="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div class="flex items-start gap-2">
+          <TriangleAlert class="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <p class="font-semibold">{{ $t("Your account is blocked from tracking attendance.") }}</p>
+            <p class="mt-0.5 text-red-700 dark:text-red-400">{{ attendanceBlock.reason }}</p>
+          </div>
+        </div>
+        <button
+          v-if="!attendanceBlock.pending_review"
+          type="button"
+          :disabled="requestingUnblock"
+          class="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-red-700 px-4 text-sm font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-red-600 dark:hover:bg-red-500"
+          @click="requestAttendanceUnblock"
+        >
+          {{ $t("Request to track again") }}
+        </button>
+        <span v-else class="shrink-0 rounded-lg bg-red-100 px-4 py-2 text-sm font-semibold text-red-800 dark:bg-red-500/20 dark:text-red-300">
+          {{ $t("Request pending admin review") }}
+        </span>
+      </div>
+
+      <div
         v-if="!instructorData"
         class="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-10"
       >
@@ -254,16 +296,28 @@ function actionItems(classData) {
           </div>
         </div>
 
-        <div v-if="filteredClasses.length" class="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-5">
-          <ClassCrad
+        <div v-if="filteredClasses.length" class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div
             v-for="classData in filteredClasses"
             :key="classData.id"
-            :classData="classData"
-            :viewUrl="viewUrl(classData)"
-            :extraItems="actionItems(classData)"
-            :showInstructor="false"
-            :hiddenItems="hiddenItems(classData)"
-          />
+            class="relative"
+            :class="{ 'rounded-2xl ring-2 ring-red-400 dark:ring-red-500/60': classData.id === attendanceBlock?.triggered_study_class_id }"
+          >
+            <span
+              v-if="classData.id === attendanceBlock?.triggered_study_class_id"
+              class="absolute -top-2 left-3 z-10 inline-flex items-center gap-1 rounded-full bg-red-600 px-2.5 py-0.5 text-[11px] font-semibold text-white shadow"
+            >
+              <TriangleAlert class="h-3 w-3" />
+              {{ $t("Caused the block") }}
+            </span>
+            <ClassCrad
+              :classData="classData"
+              :viewUrl="viewUrl(classData)"
+              :extraItems="actionItems(classData)"
+              :showInstructor="false"
+              :hiddenItems="hiddenItems(classData)"
+            />
+          </div>
         </div>
 
         <div v-else class="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-gray-700 dark:bg-gray-900">

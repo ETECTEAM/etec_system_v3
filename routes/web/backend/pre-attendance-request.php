@@ -3,15 +3,10 @@
 use App\Modules\Attendance\Controllers\PreAttendanceRequestController;
 use Illuminate\Support\Facades\Route;
 
-// Admin review desk for instructor pre-attendance recovery requests.
-Route::middleware(['auth', 'active', 'role:super_admin|admin'])
-    ->prefix('/dashboard/pre-attendance-requests')
-    ->name('pre-attendance-requests.')
-    ->group(function () {
-        Route::get('/', [PreAttendanceRequestController::class, 'index'])->name('index');
-        Route::put('/{preAttendanceRequest}', [PreAttendanceRequestController::class, 'update'])->middleware('throttle:20,1')->name('update');
-    });
-
+// Admin review desk for instructor pre-attendance recovery requests. No separate
+// "request queue" page: Pre-Att Class already lets an admin approve a class
+// directly (PreAttendanceRequestController::approveClass), so there's nothing
+// that flow adds beyond it.
 Route::middleware(['auth', 'active', 'role:super_admin|admin'])
     ->prefix('/dashboard/pre-attendance-classes')
     ->name('pre-attendance-classes.')
