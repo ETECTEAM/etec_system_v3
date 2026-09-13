@@ -41,23 +41,23 @@ ssh root@YOUR_SERVER_IP
 ### 1.1 Create a sudo user, don't stay on root
 
 ```bash
-adduser deploy
-usermod -aG sudo deploy
+adduser deployer
+usermod -aG sudo deployer
 ```
 
 ### 1.2 Set up SSH keys (from your local machine)
 
 ```bash
-ssh-copy-id deploy@YOUR_SERVER_IP
+ssh-copy-id deployer@YOUR_SERVER_IP
 # or manually: paste your ~/.ssh/id_ed25519.pub into
-# /home/deploy/.ssh/authorized_keys on the server
+# /home/deployer/.ssh/authorized_keys on the server
 ```
 
-Confirm you can log in as `deploy` with the key **before** touching root
+Confirm you can log in as `deployer` with the key **before** touching root
 login — don't lock yourself out.
 
 ```bash
-ssh deploy@YOUR_SERVER_IP
+ssh deployer@YOUR_SERVER_IP
 ```
 
 ### 1.3 Disable root SSH login and password auth
@@ -71,8 +71,12 @@ PubkeyAuthentication yes
 ```
 
 ```bash
-sudo systemctl restart sshd
+sudo systemctl restart ssh
 ```
+
+(Ubuntu/Debian names the service `ssh`, not `sshd` — that's the RHEL/CentOS
+name. Test logging in as `deployer` from a **second** terminal before
+closing this session, so you don't lock yourself out if something's wrong.)
 
 ### 1.4 UFW firewall
 
@@ -113,7 +117,7 @@ sudo dpkg-reconfigure --priority=low unattended-upgrades
 
 ```bash
 curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker deploy
+sudo usermod -aG docker deployer
 newgrp docker   # or log out/in for the group change to take effect
 
 docker --version
@@ -126,7 +130,7 @@ docker compose version
 
 ```bash
 sudo mkdir -p /opt/etec-system
-sudo chown deploy:deploy /opt/etec-system
+sudo chown deployer:deployer /opt/etec-system
 git clone -b production https://github.com/knr-smey/etec_system_v3.git /opt/etec-system
 cd /opt/etec-system
 ```
@@ -139,7 +143,7 @@ plain HTTPS clone will prompt for credentials interactively otherwise.)
 ## 4. Configure `.env`
 
 ```bash
-cp .env.production.example .env
+cp .env.example .env
 nano .env
 ```
 
@@ -150,6 +154,15 @@ Fill in every `CHANGE_ME_*` value:
 - `MAIL_*` — your SMTP provider
 - `TELEGRAM_BOT_TOKEN` / `TELEGRAM_ADMIN_CHAT_ID` / `TELEGRAM_WEBHOOK_SECRET`
   — the **rotated** token from step 0, not the leaked one
+- `REVERB_APP_ID` / `REVERB_APP_KEY` / `REVERB_APP_SECRET` — generate
+  per-environment (`docker compose -f docker-compose.prod.yml run --rm app
+  php artisan reverb:install` once the app container exists, or any random
+  strings), never copied from dev
+- `REVERB_HOST` / `VITE_REVERB_HOST` — your real domain
+- `REVERB_SCHEME` / `VITE_REVERB_SCHEME` — `https`
+- `REVERB_PORT` / `VITE_REVERB_PORT` — `443` (the browser connects to Reverb
+  directly using these values, so they must match the public URL, not just
+  `APP_URL`)
 
 Generate `APP_KEY` after the app container exists (step 6) — don't hand-roll
 it.
@@ -246,17 +259,39 @@ docker-compose.prod.yml logs -f app` (or `storage/logs` inside the
 
 ## 8. Deploying updates
 
+One-time only, right after step 3 (cloning the repo):
+
 ```bash
 cd /opt/etec-system
-./deploy/deploy.sh
+chmod +x deploy/hooks/post-merge
+git config core.hooksPath deploy/hooks
 ```
 
-This does: `git fetch` + hard-reset to `origin/production`, rebuild images
-(bakes in `composer install --no-dev` and `npm run build`), run migrations,
-recreate `app`/`queue`/`scheduler`/`nginx`, warm `config`/`route`/`view`
-caches, restart the queue worker so it picks up new code, prune old images.
+From then on, every deploy is just:
 
-Run it from `/opt/etec-system` on the server, not from your dev machine.
+```bash
+cd /opt/etec-system
+git pull
+```
+
+`git pull` merging new commits automatically triggers
+[deploy/hooks/post-merge](../deploy/hooks/post-merge), which runs
+`./deploy/deploy.sh` for you: rebuild images (bakes in `composer install
+--no-dev` and `npm run build`), recreate `app`/`queue`/`scheduler`/`nginx`,
+warm `config`/`route`/`view` caches, restart the queue worker so it picks up
+new code, prune old images. **Migrations are deliberately not run
+automatically** — after a pull that includes a schema change, run:
+
+```bash
+docker compose -f docker-compose.prod.yml exec app php artisan migrate --force
+```
+
+If nothing new was pulled (already up to date), the hook doesn't fire and
+nothing redeploys — that's expected. Note `git pull --rebase` doesn't trigger
+it either (only a real merge does); stick to a plain `git pull`.
+
+There is no GitHub Actions / CI-CD step for this project — deploys are
+purely `git pull` on the server, no push-triggered pipeline to keep in sync.
 
 ---
 
@@ -281,8 +316,8 @@ Run it from `/opt/etec-system` on the server, not from your dev machine.
   details > Network) if outbound mail matters (SMTP relay reputation,
   Telegram webhook calls don't need it). Point the PTR record at your
   domain if you're sending mail directly from the VPS; if you're using an
-  external SMTP provider (recommended — see `.env.production.example`'s
-  `MAIL_*` block), rDNS on the VPS itself is less critical.
+  external SMTP provider (recommended — see `.env.example`'s `MAIL_*`
+  block), rDNS on the VPS itself is less critical.
 
 ---
 
