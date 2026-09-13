@@ -1,13 +1,13 @@
 # Production Deployment — Contabo VPS
 
-Companion to [vps-deployment-specs.md](./vps-deployment-specs.md) (which
+Companion to [vps-deployment-specs.md](docs/vps-deployment-specs.md) (which
 covers *sizing/choosing* the VPS). This doc covers everything from a fresh
 `root@` login to a running production stack.
 
 Stack: Docker Compose (app = PHP-FPM, nginx = static/PHP proxy inside
 Docker, host Nginx = TLS termination + reverse proxy, MySQL 8, a dedicated
 queue-worker container, a scheduler container). See
-[docker-compose.prod.yml](../docker-compose.prod.yml).
+[docker-compose.prod.yml](docker-compose.prod.yml).
 
 Reference specs (from vps-deployment-specs.md): Contabo Cloud VPS 10 — 4
 vCPU / 8 GB RAM / 75 GB NVMe, Ubuntu, Singapore region, Auto Backup add-on.
@@ -235,7 +235,7 @@ and `mysql`. The host Nginx from step 5 fronts all of it on 443.
 | Scheduler (`scheduler`) | Docker (`restart: unless-stopped`), loops `schedule:run` every 60s |
 | In-container Nginx | Docker (`restart: unless-stopped`) |
 | MySQL | Docker (`restart: unless-stopped`) |
-| Whole stack on VPS reboot | systemd unit, [deploy/systemd/etec-system.service](../deploy/systemd/etec-system.service) |
+| Whole stack on VPS reboot | systemd unit, [deploy/systemd/etec-system.service](deploy/systemd/etec-system.service) |
 | Host Nginx (TLS) | systemd (`nginx.service`, enabled by the apt package) |
 
 Install the boot-resilience unit:
@@ -274,7 +274,7 @@ git pull
 ```
 
 `git pull` merging new commits automatically triggers
-[deploy/hooks/post-merge](../deploy/hooks/post-merge), which runs
+[deploy/hooks/post-merge](deploy/hooks/post-merge), which runs
 `./deploy/deploy.sh` for you: rebuild images (bakes in `composer install
 --no-dev` and `npm run build`), recreate `app`/`queue`/`scheduler`/`nginx`,
 warm `config`/`route`/`view` caches, restart the queue worker so it picks up
