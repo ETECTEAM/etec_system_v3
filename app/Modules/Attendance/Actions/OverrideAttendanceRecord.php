@@ -8,6 +8,7 @@ use App\Models\StudentAttendance;
 use App\Models\User;
 use App\Modules\AbsenceBlock\Actions\AutoBlockStudent;
 use App\Modules\AbsenceBlock\Services\AbsenceBlockEvaluator;
+use App\Modules\Attendance\Queries\FindActiveInstructorAttendanceBlock;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,8 +20,18 @@ use Illuminate\Validation\ValidationException;
  */
 class OverrideAttendanceRecord
 {
+    public function __construct(
+        private readonly FindActiveInstructorAttendanceBlock $findActiveBlock,
+    ) {}
+
     public function handle(User $instructor, int $studyClassId, string $sessionDate, array $records): void
     {
+        if ($this->findActiveBlock->handle($instructor->id)) {
+            throw ValidationException::withMessages([
+                'records' => 'Your account is blocked from tracking attendance. Submit a request to regain access.',
+            ]);
+        }
+
         DB::transaction(function () use ($instructor, $studyClassId, $sessionDate, $records): void {
             $session = ClassSession::query()
                 ->where('study_class_id', $studyClassId)

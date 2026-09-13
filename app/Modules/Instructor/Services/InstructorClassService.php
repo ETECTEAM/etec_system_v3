@@ -5,6 +5,7 @@ namespace App\Modules\Instructor\Services;
 use App\Models\AttendanceSession;
 use App\Models\ClassSession;
 use App\Models\Holiday;
+use App\Models\InstructorAttendanceBlock;
 use App\Models\PreAttendanceRequest;
 use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
@@ -14,6 +15,7 @@ use App\Modules\AbsenceBlock\Actions\AutoBlockStudent;
 use App\Modules\AbsenceBlock\Services\AbsenceBlockEvaluator;
 use App\Modules\AbsenceBlock\Services\PermissionLimitEvaluator;
 use App\Modules\AbsenceBlock\Support\LockState;
+use App\Modules\Attendance\Queries\FindActiveInstructorAttendanceBlock;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Support\InstructorDisplayName;
@@ -26,6 +28,10 @@ use stdClass;
 class InstructorClassService
 {
     public const ATTENDANCE_STATUSES = ['absent', 'present', 'permission'];
+
+    public function __construct(
+        private readonly FindActiveInstructorAttendanceBlock $findActiveBlock,
+    ) {}
 
     private const ATTENDANCE_SCORE_DEFAULT = 40.0;
 
@@ -236,6 +242,12 @@ class InstructorClassService
 
     public function requestPreAttendance(User $instructor, int $studyClassId, ?string $note = null): PreAttendanceRequest
     {
+        if ($this->findActiveBlock->handle($instructor->id)) {
+            throw ValidationException::withMessages([
+                'request' => 'Your account is blocked from tracking attendance. Submit a request to regain access.',
+            ]);
+        }
+
         $today = Carbon::today('Asia/Phnom_Penh')->toDateString();
         $session = ClassSession::query()
             ->where('study_class_id', $studyClassId)
@@ -269,6 +281,27 @@ class InstructorClassService
                 'completed_at' => null,
             ],
         );
+    }
+
+    /** Instructor's self-service "request to track again" - sends their current block to admin review. */
+    public function requestAttendanceUnblock(User $instructor): InstructorAttendanceBlock
+    {
+        $block = $this->findActiveBlock->handle($instructor->id);
+
+        if (! $block) {
+            throw ValidationException::withMessages([
+                'request' => 'You do not have an active attendance block.',
+            ]);
+        }
+
+        if ($block->status !== InstructorAttendanceBlock::STATUS_PENDING_REVIEW) {
+            $block->update([
+                'status' => InstructorAttendanceBlock::STATUS_PENDING_REVIEW,
+                'unblock_requested_at' => now(),
+            ]);
+        }
+
+        return $block;
     }
 
     public function findForInstructor(User $instructor, int $studyClassId): stdClass
@@ -448,6 +481,12 @@ class InstructorClassService
 
     public function saveAttendance(User $instructor, int $studyClassId, array $data): void
     {
+        if ($this->findActiveBlock->handle($instructor->id)) {
+            throw ValidationException::withMessages([
+                'records' => 'Your account is blocked from tracking attendance. Submit a request to regain access.',
+            ]);
+        }
+
         $attendanceDate = Carbon::parse($data['attendance_date'] ?? now())->toDateString();
 
         if (Holiday::isHoliday($attendanceDate)) {

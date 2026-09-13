@@ -8,13 +8,12 @@ import * as certificate from "./certificate";
 import * as enrollConfig from "./enrollConfig";
 import * as course from "./course";
 import * as profile from "./profile";
-import * as preAttendance from "./preAttendance";
+import * as attendance from "./attendance";
 import * as user from "./user";
 import * as instructorScheduleBlocks from "./instructorScheduleBlocks";
 import * as instructorAvailability from "./instructorAvailability";
 import * as schedule from "./schedule";
 import * as loginSecurity from "./loginSecurity";
-import * as attendanceSettings from "./attendanceSettings";
 import * as holiday from "./holiday";
 import * as officialLeave from "./officialLeave";
 import * as absenceBlock from "./absenceBlock";
@@ -29,14 +28,13 @@ export const menuDomains = [
   enrollConfig,
   course,
   profile,
-  preAttendance,
+  attendance,
   user,
   // website,
   instructorScheduleBlocks,
   instructorAvailability,
   schedule,
   loginSecurity,
-  attendanceSettings,
   holiday,
   officialLeave,
   absenceBlock,

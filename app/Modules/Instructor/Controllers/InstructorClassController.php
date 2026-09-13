@@ -8,8 +8,11 @@ use App\Models\AttendanceSession;
 use App\Models\ClassSession;
 use App\Models\Course;
 use App\Models\Holiday;
+use App\Models\InstructorAttendanceBlock;
 use App\Models\StudyClass;
+use App\Models\User;
 use App\Modules\Attendance\Actions\OverrideAttendanceRecord;
+use App\Modules\Attendance\Queries\FindActiveInstructorAttendanceBlock;
 use App\Modules\Attendance\Queries\GetSessionBanner;
 use App\Modules\Attendance\Services\AttendanceQrService;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
@@ -38,7 +41,24 @@ class InstructorClassController extends Controller
         private readonly GetSessionBanner $sessionBanner,
         private readonly AttendanceQrService $attendanceQr,
         private readonly ClassResultPdfGenerator $classResultPdfGenerator,
+        private readonly FindActiveInstructorAttendanceBlock $findActiveBlock,
     ) {}
+
+    /** Attendance-blocked banner payload for the instructor's attendance pages (see docs/instructor-attendance-block-proposal.md). */
+    private function attendanceBlockBanner(User $instructor): ?array
+    {
+        $block = $this->findActiveBlock->handle($instructor->id);
+
+        if (! $block) {
+            return null;
+        }
+
+        return [
+            'reason' => $block->reason,
+            'status' => $block->status,
+            'pending_review' => $block->status === InstructorAttendanceBlock::STATUS_PENDING_REVIEW,
+        ];
+    }
 
     public function create(Request $request): Response
     {
@@ -104,6 +124,7 @@ class InstructorClassController extends Controller
         $certificateRequest = $this->certificateRequestData($class->id);
         $requiresPreAttendanceApproval = (bool) ($todaySession['is_pre_attendance'] ?? false)
             && ! $this->instructorClasses->canUsePreAttendanceApproval($request->user(), $class->id);
+        $attendanceBlock = $this->attendanceBlockBanner($request->user());
 
         return Inertia::render('backend/instructors/AttendanceRecord', [
             'classData' => $this->instructorClasses->presentClass($class),
@@ -113,10 +134,12 @@ class InstructorClassController extends Controller
             'attendanceWindow' => $attendanceWindow,
             'todaySession' => $todaySession,
             'canTrackAttendance' => ! $requiresPreAttendanceApproval
+                && ! $attendanceBlock
                 && $this->instructorClasses->canTrackAttendance($class, $attendanceWindow, $todaySession),
             'trackAttendanceLabel' => $requiresPreAttendanceApproval
                 ? 'Request Admin'
                 : $this->instructorClasses->trackAttendanceLabel($class, $attendanceWindow, $todaySession),
+            'attendanceBlock' => $attendanceBlock,
         ]);
     }
 
@@ -142,6 +165,13 @@ class InstructorClassController extends Controller
         $this->instructorClasses->requestPreAttendance($request->user(), $class->id, $validated['note'] ?? null);
 
         return back()->with('success', 'Pre-attendance request sent to admin.');
+    }
+
+    public function requestAttendanceUnblock(Request $request): RedirectResponse
+    {
+        $this->instructorClasses->requestAttendanceUnblock($request->user());
+
+        return back()->with('success', 'Your request has been sent to the admin team for review.');
     }
 
     public function history(Request $request): Response
@@ -202,6 +232,12 @@ class InstructorClassController extends Controller
                 ->with('warning', 'Attendance cannot be tracked on a holiday.');
         }
 
+        if ($this->findActiveBlock->handle($request->user()->id)) {
+            return redirect()
+                ->route('instructor.classes.attendance', $class->id)
+                ->with('warning', 'Your account is blocked from tracking attendance. Submit a request to regain access.');
+        }
+
         $this->instructorClasses->ensureTodayAttendanceSession($class, $request->user());
         $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
         $todaySession = $this->sessionBanner->handle($class->id);
@@ -246,6 +282,7 @@ class InstructorClassController extends Controller
             'attendanceSummary' => $attendanceSummary,
             'qrAttendanceAvailable' => $qrAttendanceAvailable,
             'allowTrackAnytime' => $allowTrackAnytime,
+            'attendanceBlock' => $this->attendanceBlockBanner($request->user()),
         ]);
     }
 

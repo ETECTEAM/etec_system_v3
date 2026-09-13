@@ -14,7 +14,10 @@ use Illuminate\Support\Facades\DB;
  */
 class AutoRecordSession
 {
-    public function __construct(private readonly HolidayService $holidays) {}
+    public function __construct(
+        private readonly HolidayService $holidays,
+        private readonly BlockInstructorForMissedAttendance $blockInstructor,
+    ) {}
 
     public function handle(int $sessionId): void
     {
@@ -58,15 +61,24 @@ class AutoRecordSession
                 ->whereIn('student_enrollment_id', $enrollments->pluck('id'))
                 ->count();
 
+            $status = match (true) {
+                $trackedCount === 0 => ClassSession::STATUS_PRE_ATTENDANCE,
+                $trackedCount < $enrollments->count() => ClassSession::STATUS_PARTIAL,
+                default => ClassSession::STATUS_AUTO_RECORDED,
+            };
+
             $session->update([
-                'status' => match (true) {
-                    $trackedCount === 0 => ClassSession::STATUS_PRE_ATTENDANCE,
-                    $trackedCount < $enrollments->count() => ClassSession::STATUS_PARTIAL,
-                    default => ClassSession::STATUS_AUTO_RECORDED,
-                },
+                'status' => $status,
                 'recorded_at' => $now,
                 'grace_minutes_used' => $graceMinutes,
             ]);
+
+            // Case 1 (docs/instructor-attendance-block-proposal.md): a complete no-show
+            // blocks the instructor from tracking attendance on every class, not just this
+            // one. Case 2 (partial) is intentionally not wired up yet.
+            if ($status === ClassSession::STATUS_PRE_ATTENDANCE) {
+                $this->blockInstructor->handle($session);
+            }
         });
     }
 }

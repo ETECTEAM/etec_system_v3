@@ -50,7 +50,7 @@ class UserService
 
     public function queryVisibleUsers(User $authUser): Builder
     {
-        $query = User::query()->latest('id')->with(['student', 'instructorData', 'creator']);
+        $query = User::query()->latest('id')->with(['student', 'instructorData', 'creator', 'activeAttendanceBlock']);
 
         // Visibility mirrors the same hierarchy as assignment permissions.
         if ($authUser->hasRole('super_admin')) {
@@ -187,6 +187,11 @@ class UserService
             'roles' => $user->getRoleNames()->values(),
             'student' => $user->student,
             'instructor_data' => $user->instructorData,
+            // Flags an instructor row that's currently blocked from tracking attendance
+            // (see docs/instructor-attendance-block-proposal.md). Always false/null for
+            // non-instructors since the relation just won't match any row.
+            'attendance_blocked' => $user->activeAttendanceBlock !== null,
+            'attendance_block_reason' => $user->activeAttendanceBlock?->reason,
             // ISO 8601 (UTC) — the frontend renders it in the viewer's own timezone.
             'created_at' => $user->created_at?->toIso8601String(),
             'created_by' => $user->creator?->name,

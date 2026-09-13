@@ -5,11 +5,15 @@ import { useToastStore } from "@/composables/useToast";
 const { toasts, remove, pause, resume } = useToastStore();
 
 // Icon + colour per toast type. Falls back to the "info" look for anything else.
+// Solid (non-translucent) card backgrounds — a tinted-opacity background lets
+// whatever's behind the toast (e.g. another floating panel) bleed through and
+// muddy the text, so dark mode uses a solid dark surface with a colored
+// left-border accent instead of a colored, see-through fill.
 const META = {
-  success: { icon: Check, title: "Success", card: "bg-emerald-50 border-emerald-100 dark:bg-emerald-500/10 dark:border-emerald-500/25", badge: "bg-emerald-500" },
-  error: { icon: TriangleAlert, title: "Error", card: "bg-rose-50 border-rose-100 dark:bg-rose-500/10 dark:border-rose-500/25", badge: "bg-rose-500" },
-  warning: { icon: Info, title: "Warning", card: "bg-amber-50 border-amber-100 dark:bg-amber-500/10 dark:border-amber-500/25", badge: "bg-amber-400" },
-  info: { icon: Info, title: "Notice", card: "bg-blue-50 border-blue-100 dark:bg-blue-500/10 dark:border-blue-500/25", badge: "bg-blue-500" },
+  success: { icon: Check, title: "Success", card: "bg-emerald-50 border-emerald-100 border-l-4 border-l-emerald-500 dark:bg-gray-900 dark:border-gray-800 dark:border-l-emerald-500", badge: "bg-emerald-500" },
+  error: { icon: TriangleAlert, title: "Error", card: "bg-rose-50 border-rose-100 border-l-4 border-l-rose-500 dark:bg-gray-900 dark:border-gray-800 dark:border-l-rose-500", badge: "bg-rose-500" },
+  warning: { icon: Info, title: "Warning", card: "bg-amber-50 border-amber-100 border-l-4 border-l-amber-400 dark:bg-gray-900 dark:border-gray-800 dark:border-l-amber-400", badge: "bg-amber-400" },
+  info: { icon: Info, title: "Notice", card: "bg-blue-50 border-blue-100 border-l-4 border-l-blue-500 dark:bg-gray-900 dark:border-gray-800 dark:border-l-blue-500", badge: "bg-blue-500" },
 };
 
 function metaFor(type) {
