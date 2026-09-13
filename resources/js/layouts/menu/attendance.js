@@ -54,13 +54,9 @@ export function build(ctx) {
     };
   }
 
-  return {
-    label: "Pre Attendance",
-    labelKey: "navigation.preAttendance",
-    href: "/dashboard/instructor/pre-attendance",
-    match: ["/dashboard/instructor/pre-attendance"],
-    exact: false,
-    icon: "pre_attendance",
-    isActive: (path) => path.startsWith("/dashboard/instructor/pre-attendance"),
-  };
+  // Instructors have no self-service pre-attendance page anymore: admin already
+  // sees every stuck class via Pre-Att Class and can approve it directly, and a
+  // full no-show blocks the instructor outright (see the Attendance Block banner
+  // on their dashboard/class pages) rather than asking them to request review.
+  return null;
 }

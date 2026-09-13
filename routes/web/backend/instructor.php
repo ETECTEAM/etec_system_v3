@@ -23,8 +23,6 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
 
     // Everything below this point requires onboarding to be complete first.
     Route::middleware('onboarding')->group(function () {
-        Route::get('/pre-attendance', [InstructorClassController::class, 'preAttendance'])->name('instructor.pre-attendance');
-        Route::post('/pre-attendance/classes/{studyClass}/request', [InstructorClassController::class, 'requestPreAttendance'])->middleware('throttle:10,1')->name('instructor.pre-attendance.request');
         // Self-service request to lift an instructor's attendance-tracking block (see docs/instructor-attendance-block-proposal.md).
         Route::post('/attendance-block/request', [InstructorClassController::class, 'requestAttendanceUnblock'])->middleware('throttle:10,1')->name('instructor.attendance-block.request');
         // Route to list this instructor's ended classes so they can re-open a finished class's result sheet / re-download its PDF.
