@@ -51,7 +51,7 @@ class AutoRecordSession
                 return;
             }
 
-            $graceMinutes = (int) setting('attendance.auto_record_grace_minutes', 15);
+            $graceMinutes = (int) setting('attendance.auto_record_grace_minutes', 20);
             $trackedCount = DB::table('student_attendances')
                 ->where('study_class_id', $session->study_class_id)
                 ->whereDate('attendance_date', $session->session_date)

@@ -27,7 +27,7 @@ class AutoRecordAttendanceCommand extends Command
         }
 
         $now = Carbon::now('Asia/Phnom_Penh');
-        $graceMinutes = (int) setting('attendance.auto_record_grace_minutes', 15);
+        $graceMinutes = (int) setting('attendance.auto_record_grace_minutes', 20);
 
         $sessionIds = $dueSessions->handle($now, $graceMinutes)->unique();
 

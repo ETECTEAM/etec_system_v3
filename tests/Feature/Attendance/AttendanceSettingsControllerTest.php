@@ -62,7 +62,7 @@ class AttendanceSettingsControllerTest extends TestCase
             ]);
 
         $response->assertSessionHasErrors('auto_record_grace_minutes');
-        $this->assertSame('15', GradingSetting::where('key', 'attendance.auto_record_grace_minutes')->value('value'));
+        $this->assertSame('20', GradingSetting::where('key', 'attendance.auto_record_grace_minutes')->value('value'));
     }
 
     public function test_default_status_cannot_be_set_to_absent(): void

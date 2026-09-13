@@ -779,7 +779,7 @@ class InstructorClassService
 
     private function windowForSession(ClassSession $session): array
     {
-        $graceMinutes = (int) setting('attendance.auto_record_grace_minutes', 15);
+        $graceMinutes = (int) setting('attendance.auto_record_grace_minutes', 20);
         $startsAt = $session->scheduled_start->copy();
         $endsAt = $session->scheduled_start->copy()->addMinutes($graceMinutes);
 

@@ -20,7 +20,7 @@ class GradingSettingSeeder extends Seeder
             ],
             [
                 'key' => 'attendance.auto_record_grace_minutes',
-                'value' => '15',
+                'value' => '20',
                 'type' => 'number',
                 'label' => 'Grace minutes',
                 'description' => 'Minutes after a class starts before the system records attendance on the instructor\'s behalf.',

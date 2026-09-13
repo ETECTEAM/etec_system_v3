@@ -24,7 +24,7 @@ class AttendanceSettingsController extends Controller
         return Inertia::render('backend/attendance-settings/Edit', [
             'settings' => [
                 'enabled' => $this->boolValue($rows, 'enabled', true),
-                'graceMinutes' => $this->numValue($rows, 'grace_minutes', 15),
+                'graceMinutes' => $this->numValue($rows, 'grace_minutes', 20),
                 'defaultStatus' => $this->stringValue($rows, 'default_status', 'present'),
                 'notifyInstructor' => $this->boolValue($rows, 'notify_instructor', true),
                 'allowOverride' => $this->boolValue($rows, 'allow_override', true),
