@@ -5,7 +5,7 @@ import PageHero from '@/components/ui/page-hero/PageHero.vue'
 import { router, useForm } from '@inertiajs/vue3'
 import { CalendarOff, ChevronLeft, ChevronRight, Pencil, Plus, Trash2, X } from '@lucide/vue'
 import { computed, ref } from 'vue'
-import { useToast } from 'vue-toastification'
+import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { useI18n } from '@/i18n'
 

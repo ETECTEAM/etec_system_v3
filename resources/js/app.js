@@ -9,16 +9,8 @@ import { ZiggyVue } from 'ziggy-js';
 import '../css/app.css'
 import { createI18n } from './i18n'
 import FlashToasts from './components/FlashToasts.vue'
+import ToastHost from './components/ToastHost.vue'
 import { initializeAntiInspect } from './utils/antiInspect'
-
-const toastOptions = {
-    position: 'bottom-right',
-    timeout: 3000,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    icon: true,
-}
 
 if (import.meta.env.PROD || import.meta.env.VITE_ANTI_INSPECT === 'true') {
     initializeAntiInspect()
@@ -35,11 +27,10 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         const initialLocale = props.initialPage?.props?.locale?.current ?? 'en'
 
-        const app = createApp({ render: () => h(Fragment, [h(App, props), h(FlashToasts)]) })
+        const app = createApp({ render: () => h(Fragment, [h(App, props), h(FlashToasts), h(ToastHost)]) })
             .use(plugin)
             .use(createI18n(initialLocale))
             .use(ZiggyVue)
-            .use(Toast, toastOptions)
 
         app.mount(el)
         document.documentElement.classList.remove('js-loading')
