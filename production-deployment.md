@@ -209,6 +209,18 @@ docker compose -f docker-compose.prod.yml build
 docker compose -f docker-compose.prod.yml up -d mysql
 # wait for mysql healthcheck to pass
 docker compose -f docker-compose.prod.yml ps
+```
+
+The app/queue/scheduler/reverb services bind-mount the repo (`.:/var/www` —
+see the comment in `docker-compose.prod.yml`) so `git pull` alone updates
+what's served without an image rebuild. That also means the image's own
+build-time `vendor/`/`public/build` get shadowed by the (currently empty)
+host directory — `composer install` and `npm run build` must be run once
+against the bind-mounted path before any `artisan` command will work:
+
+```bash
+docker compose -f docker-compose.prod.yml run --rm --no-deps app sh -c \
+  "composer install --no-dev --optimize-autoloader --no-interaction && npm ci && npm run build"
 
 docker compose -f docker-compose.prod.yml run --rm app php artisan key:generate
 docker compose -f docker-compose.prod.yml run --rm app php artisan migrate --force

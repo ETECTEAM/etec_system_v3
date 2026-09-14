@@ -81,7 +81,7 @@ class ProductionSeeder extends Seeder
         //    instructor accounts, flat course pricing. Never seeded on a real
         //    production database - APP_ENV=production skips it entirely so a
         //    live deploy only ever gets the two real logins seeded above.
-        if (! app()->environment('production')) {
+        if (! app()->environment('production_live')) {
             $this->call(DevSeeder::class);
         }
     }
