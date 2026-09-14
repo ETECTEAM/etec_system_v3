@@ -20,6 +20,7 @@
                 document.documentElement.classList.toggle('dark', isDark);
             })();
         </script>
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
