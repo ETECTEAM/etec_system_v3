@@ -127,6 +127,13 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
+        <div v-else-if="state === 'disabled'" class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm font-semibold text-amber-800">
+          <div class="flex items-center gap-2">
+            <ShieldAlert class="h-4 w-4" />
+            QR attendance is currently disabled by the administrator.
+          </div>
+        </div>
+
         <div v-else-if="state === 'expired'" class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm font-semibold text-amber-800">
           <div class="flex items-center gap-2">
             <Clock3 class="h-4 w-4" />

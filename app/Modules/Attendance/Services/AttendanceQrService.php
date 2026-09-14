@@ -50,6 +50,12 @@ class AttendanceQrService
 
     public function startSession(StudyClass $studyClass, User $creator): AttendanceSession
     {
+        if (! $this->allowsQrAttendance()) {
+            throw ValidationException::withMessages([
+                'attendance' => 'QR attendance is currently disabled by the administrator.',
+            ]);
+        }
+
         $now = Carbon::now('Asia/Phnom_Penh');
         $date = $now->toDateString();
 
@@ -111,13 +117,9 @@ class AttendanceQrService
         return filter_var(setting('attendance.auto_record_allow_track_anytime', false), FILTER_VALIDATE_BOOLEAN);
     }
 
-    public function allowsQrAttendance(StudyClass $studyClass): bool
+    public function allowsQrAttendance(): bool
     {
-        if (filter_var(setting('attendance.auto_record_allow_qr_attendance', false), FILTER_VALIDATE_BOOLEAN)) {
-            return true;
-        }
-
-        return str_contains(strtolower((string) $studyClass->classType?->type_name), 'internship');
+        return filter_var(setting('attendance.auto_record_allow_qr_attendance', false), FILTER_VALIDATE_BOOLEAN);
     }
 
     public function stopSession(AttendanceSession $session, User $user): AttendanceSession
@@ -204,6 +206,10 @@ class AttendanceQrService
 
     public function publicViewData(string $token): array
     {
+        if (! $this->allowsQrAttendance()) {
+            return ['state' => 'disabled'];
+        }
+
         $session = $this->resolveSession($token);
 
         if (! $session) {
@@ -233,6 +239,12 @@ class AttendanceQrService
 
     public function recordAttendanceFromQr(Request $request, array $sessionData, array $payload): StudentAttendance
     {
+        if (! $this->allowsQrAttendance()) {
+            throw ValidationException::withMessages([
+                'qr' => 'QR attendance is currently disabled by the administrator.',
+            ]);
+        }
+
         $studentId = (int) $payload['student_id'];
         $enrollment = DB::table('student_enrollments')
             ->where('student_id', $studentId)
