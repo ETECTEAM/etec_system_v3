@@ -19,6 +19,7 @@ use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Instructor\Services\ClassResultPdfGenerator;
 use App\Modules\Instructor\Services\InstructorClassService;
+use App\Modules\Instructor\Services\ImportInstructorAttendanceCsv;
 use App\Support\InstructorDisplayName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -42,6 +43,7 @@ class InstructorClassController extends Controller
         private readonly AttendanceQrService $attendanceQr,
         private readonly ClassResultPdfGenerator $classResultPdfGenerator,
         private readonly FindActiveInstructorAttendanceBlock $findActiveBlock,
+        private readonly ImportInstructorAttendanceCsv $importAttendanceCsv,
     ) {}
 
     /** Attendance-blocked banner payload for the instructor's attendance pages (see docs/instructor-attendance-block-proposal.md). */
@@ -407,6 +409,13 @@ class InstructorClassController extends Controller
             'backUrl' => "/dashboard/instructor/classes/{$class->id}/attendance",
             'student' => $this->instructorClasses->studentAttendanceDetail($class->id, (int) $student),
         ]);
+    }
+
+    public function importAttendanceCsv(Request $request, string $studyClass): JsonResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $request->validate(['file' => ['required', 'file', 'mimes:csv,txt', 'max:10240']]);
+        return response()->json(['message' => 'Legacy students and attendance imported successfully.', 'summary' => $this->importAttendanceCsv->handle($class, $request->file('file'), (int) $request->user()->id)]);
     }
 
     public function groups(Request $request, string $studyClass): Response
