@@ -15,6 +15,10 @@ class ClassSession extends Model
 
     public const STATUS_AUTO_RECORDED = 'auto_recorded';
 
+    public const STATUS_PRE_ATTENDANCE = 'pre_attendance';
+
+    public const STATUS_PARTIAL = 'partial';
+
     public const STATUS_SKIPPED = 'skipped';
 
     public const STATUS_MISSED = 'missed';

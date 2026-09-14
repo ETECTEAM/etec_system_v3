@@ -13,6 +13,7 @@ use App\Models\StudyClass;
 use App\Models\Term;
 use App\Models\Time;
 use App\Models\User;
+use App\Support\InstructorDisplayName;
 
 class GetClassFormOptions
 {
@@ -35,7 +36,14 @@ class GetClassFormOptions
 
         return [
             'courses' => Course::query()->select('id', 'title')->orderBy('title')->get(),
-            'teachers' => User::role('instructor')->select('id', 'name')->orderBy('name')->get(),
+            'teachers' => User::role('instructor')
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (User $teacher) => [
+                    'id' => $teacher->id,
+                    'name' => InstructorDisplayName::format($teacher->name, 'Unknown'),
+                ]),
             'buildings' => Building::query()->select('id', 'name')->orderBy('name')->get(),
             'floors' => $buildingId ? $this->floors($buildingId) : [],
             'rooms' => $floorId ? $this->rooms($floorId) : [],
@@ -70,10 +78,15 @@ class GetClassFormOptions
                         ->map(fn (Schedule $schedule) => [
                             'term_id' => $schedule->term_id,
                             'term_name' => $schedule->term?->term_name ?? '-',
-                            'times' => $schedule->times->map(fn (Time $time) => [
-                                'id' => $time->id,
-                                'time_name' => $time->time_name,
-                            ])->values(),
+                            // Chronological, not the string sort the DB returns:
+                            // "02:00 PM" must come after "09:00", which alphabetical order gets wrong.
+                            'times' => $schedule->times
+                                ->sortBy(fn (Time $time) => StudyClass::parseTimeRange($time->time_name)['start'] ?? '99:99')
+                                ->values()
+                                ->map(fn (Time $time) => [
+                                    'id' => $time->id,
+                                    'time_name' => $time->time_name,
+                                ])->values(),
                         ]),
                 ];
             })

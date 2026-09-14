@@ -25,7 +25,14 @@
     "km": "Khmer"
   },
   "navigation": {
+    "absenceBlockAudit": "Audit Log",
+    "absenceBlocklist": "Blocklist",
+    "absenceBlocks": "Absence Blocks",
+    "accessLocations": "Location Lock",
     "accountSecurity": "Account Security",
+    "attendance": "Attendance",
+    "attendanceRuleSettings": "Rule Settings",
+    "attendanceRules": "Attendance Rules",
     "attendanceSettings": "Attendance Settings",
     "blockedAccounts": "Blocked Accounts",
     "buildingManagement": "Building Management",
@@ -37,9 +44,24 @@
     "courseManagement": "Course Management",
     "courses": "Courses",
     "dashboard": "Dashboard",
+    "holiday": "Holiday",
+    "certificate": "Certificate",
+    "certificateFree": "Free Certificate",
+    "certificateNormal": "Regular Certificate",
+    "certificateMeal": "Meal Certificate",
+    "certificateScholarship": "Scholarship Certificate",
+    "certificateInternship": "Internship Certificate",
+    "certificateReport": "Certificate Report",
     "enrollConfig": "Enroll Config",
     "enrollManagement": "Enrollment Management",
     "floors": "Floors",
+    "instructorAvailability": "Instructor Busy Time",
+    "instructorAttendanceBlocks": "Attendance Blocks",
+    "preAttendance": "Pre Attendance",
+    "preAttendanceRequest": "Pre-Att Request",
+    "preAttendanceClass": "Pre-Att Class",
+    "preAttendanceCount": "Pre-Att Count",
+    "myAvailability": "My Availability",
     "lessons": "Lessons",
     "lockoutSettings": "Lockout Settings",
     "loginSecurity": "Login Security",
@@ -48,6 +70,12 @@
     "navigation": "Navigation",
     "newsManagement": "News Management",
     "notifications": "Notifications",
+    "officialLeave": "Official Leave",
+    "officialLeaveActivityLog": "Activity Log",
+    "officialLeaveDesk": "Request Desk",
+    "officialLeaveHistory": "Leave History",
+    "officialLeaveReports": "Reports & Stats",
+    "officialLeaveSettings": "Leave Settings",
     "pageManagement": "Page Management",
     "registerStudent": "Register Student",
     "rolePermission": "Role & Permission",
@@ -55,6 +83,7 @@
     "scheduleManagement": "Schedule Management",
     "schedules": "Schedules",
     "schoolSettings": "School Settings",
+    "students": "Students",
     "subCategories": "Sub Categories",
     "terms": "Terms",
     "times": "Times",
@@ -65,6 +94,123 @@
     "videoManagement": "Video Management",
     "websiteManagement": "Website Management",
     "workSchedules": "Work Schedules"
+  },
+  "certificatePage": {
+    "actions": {
+      "back": "Back",
+      "close": "Close",
+      "create": "Create",
+      "createCertificate": "Create Certificate",
+      "next": "Next",
+      "print": "Print",
+      "printAll": "Print All",
+      "saveCourse": "Save Course",
+      "startPrint": "Start Print",
+      "startPrintAll": "Start Print All",
+      "viewStudents": "View"
+    },
+    "filters": {
+      "all": "All",
+      "allMonth": "All months",
+      "allStatus": "All status",
+      "allTypes": "All types",
+      "select": "Select"
+    },
+    "months": {
+      "1": "January",
+      "2": "February",
+      "3": "March",
+      "4": "April",
+      "5": "May",
+      "6": "June",
+      "7": "July",
+      "8": "August",
+      "9": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December"
+    },
+    "form": {
+      "course": "Course / COURSE",
+      "grantedDate": "Granted Date / GRANTED DATE",
+      "savedCourses": "Saved Courses",
+      "selectCourse": "Select Course",
+      "studentName": "Student Name / STUDENT NAME"
+    },
+    "free": {
+      "course": "Course",
+      "endDate": "Course End Date",
+      "selectCourse": "Select Course",
+      "studentNameEnglish": "Student Name in English"
+    },
+    "modal": {
+      "certificatesReady": ":count certificates ready",
+      "editHint": "Change only name, course and granted date.",
+      "editInfo": "Edit Information",
+      "preview": "Preview",
+      "printCertificate": "Print Certificate",
+      "singleCertificate": "Single certificate",
+      "studentsReady": "All students ready to print certificates"
+    },
+    "sections": {
+      "classInfo": "Class Information",
+      "classInfoKh": "Class Information",
+      "courseType": ":category",
+      "studentList": "Student List",
+      "studentListKh": "Student List"
+    },
+    "states": {
+      "loadingData": "Loading data...",
+      "loadingStudents": "Loading students...",
+      "noClasses": "No classes found for this certificate type.",
+      "openRegularPage": "Please open Regular Certificate for the completed dynamic page."
+    },
+    "stats": {
+      "totalCourseFinish": "Total Course Finish",
+      "totalDone": "Total Certificate Done",
+      "totalRequested": "Total Student Request Certificate"
+    },
+    "status": {
+      "notPrinted": "Not yet",
+      "printed": "Printed"
+    },
+    "studentsCount": ":count students",
+    "table": {
+      "actions": "Actions",
+      "course": "Course",
+      "gender": "Gender",
+      "no": "No",
+      "phone": "Phone",
+      "printedStudents": "Printed",
+      "remainingStudents": "Remaining",
+      "requestedAt": "Requested",
+      "status": "Status",
+      "studentName": "Student Name",
+      "students": "Students",
+      "teacher": "Instructor",
+      "time": "Time",
+      "type": "Type"
+    },
+    "titles": {
+      "free": "Free Certificate",
+      "internship": "Internship Certificate",
+      "meal": "Meal Certificate",
+      "normal": "Regular Certificate",
+      "report": "Certificate Report",
+      "scholarship": "Scholarship Certificate"
+    },
+    "types": {
+      "free": "Free",
+      "internship": "Internship",
+      "meal": "Meal",
+      "normal": "Regular",
+      "scholarship": "Scholarship"
+    },
+    "validation": {
+      "courseRequired": "Course is required!",
+      "endDateRequired": "End date is required!",
+      "fullNameRequired": "Full Name is required!"
+    }
   },
   "notifications": {
     "empty": "No notifications yet.",

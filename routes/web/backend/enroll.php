@@ -39,6 +39,10 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         // Pre-register a student with no class yet — they're enrolled into one later.
         Route::get('/students/create', [EnrollmentClassController::class, 'createRegisteredStudent'])->name('enroll.students.create');
         Route::post('/students', [EnrollmentClassController::class, 'storeRegisteredStudent'])->name('enroll.students.store');
+        // "Manual Register" tab — hand-record an old registration + payment.
+        Route::post('/manual-registrations', [EnrollmentClassController::class, 'storeManualRegistration'])
+            ->middleware('throttle:20,1')
+            ->name('enroll.manual-registrations.store');
         Route::post('/{studyClass}/enrollments', [EnrollmentClassController::class, 'enroll'])->name('enroll.enrollments.store');
         Route::post('/enrollments/{enrollment}/deposit', [EnrollmentClassController::class, 'deposit'])->name('enroll.enrollments.deposit');
     });
@@ -47,7 +51,7 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
     // lookups its form needs): admins, or the instructor the class is assigned to — ownership
     // enforced in EnrollmentClassController::ensureInstructorOwnsClass(). These back the class
     // action menu, which instructors get on their dashboard for their own classes.
-    Route::middleware(['auth', 'role:super_admin|admin|instructor'])->group(function (): void {
+    Route::middleware(['auth', 'active', 'role:super_admin|admin|instructor'])->group(function (): void {
         // An instructor only reaches this by copying one of their own classes, so the
         // controller pins the copy to them rather than letting them assign a teacher.
         Route::post('/', [EnrollmentClassController::class, 'store'])->name('enroll.store');
@@ -57,6 +61,8 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         Route::put('/{studyClass}', [EnrollmentClassController::class, 'update'])->name('enroll.update');
         // Pre-End / End from the class action menu.
         Route::post('/{studyClass}/status', [EnrollmentClassController::class, 'updateStatus'])->name('enroll.status');
+        // Inline capacity edit from the class card.
+        Route::patch('/{studyClass}/capacity', [EnrollmentClassController::class, 'updateCapacity'])->name('enroll.capacity');
 
         // "Collapse Class": split one class between two instructors, each teaching their
         // own days (e.g. Code on Mon & Tue, Network on Wed & Thu).
@@ -72,11 +78,22 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         // on the class-management screens, not only super admins.
         Route::post('/enrollments/{enrollment}/approve', [EnrollmentClassController::class, 'approveEnrollment'])->name('enroll.enrollments.approve');
         Route::post('/enrollments/approve', [EnrollmentClassController::class, 'approveEnrollments'])->name('enroll.enrollments.approve-bulk');
-    });
 
-    // Self-registration via the "Generate QR" link an instructor shares with a prospective
-    // student: no ETEC account or login required — the student fills this in themselves,
-    // whenever they choose, and CreateClassStudent creates their student row + enrollment.
-    Route::get('/{studyClass}/students/create', [EnrollmentClassController::class, 'createStudent'])->name('enroll.class-students.create');
-    Route::post('/{studyClass}/students', [EnrollmentClassController::class, 'storeStudent'])->name('enroll.class-students.store');
+        // Hand-register a walk-in student straight into a class (name/gender/phone
+        // only) from the class list's action menu. Admins are unrestricted;
+        // instructors are limited to their own classes in the controller. The
+        // public QR self-registration flow is a separate path (frontend.class-join.*).
+        Route::get('/{studyClass}/students/create', [EnrollmentClassController::class, 'createStudent'])->name('enroll.class-students.create');
+        Route::post('/{studyClass}/students', [EnrollmentClassController::class, 'storeStudent'])
+            ->middleware('throttle:20,1')
+            ->name('enroll.class-students.store');
+
+        // "Add Existing Student" on the class card: list unassigned registrations
+        // (Manual Register + other parked ones) and pull one into this class.
+        Route::get('/{studyClass}/assignable-registrations', [EnrollmentClassController::class, 'assignableRegistrations'])
+            ->name('enroll.class-students.assignable');
+        Route::post('/{studyClass}/assign-registration', [EnrollmentClassController::class, 'assignRegistration'])
+            ->middleware('throttle:30,1')
+            ->name('enroll.class-students.assign');
+    });
 });

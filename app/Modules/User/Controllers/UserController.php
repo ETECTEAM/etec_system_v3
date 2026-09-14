@@ -95,7 +95,7 @@ class UserController extends Controller
 
         return Inertia::render('backend/users/UserShow', [
             // Eager-load role/student/instructor relations so presentUser() can build the full profile in one pass.
-            'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData', 'creator'])),
+            'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData', 'creator', 'activeAttendanceBlock'])),
         ]);
     }
 
@@ -111,7 +111,7 @@ class UserController extends Controller
         $this->authorize('manage', $user);
 
         return Inertia::render('backend/users/UserEdit', [
-            'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData', 'creator'])),
+            'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData', 'creator', 'activeAttendanceBlock'])),
             'roleOptions' => $this->userService->roleOptions($request->user()),
             // Instructor specialization picklist - see InstructorProfileController::edit().
             'subCategories' => SubCategory::where('status', 'active')->orderBy('name')->pluck('name'),

@@ -43,8 +43,9 @@ class NewsRequest extends FormRequest
             'sort_order' => ['required', 'integer', 'min:0', 'max:999999'],
             'is_featured' => ['boolean'],
             'is_active' => ['boolean'],
-            'images' => ['nullable', 'array', 'max:'.self::MAX_IMAGES],
-            'images.*' => ['file', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            // FILE: disabled - not using file uploads
+            // 'images' => ['nullable', 'array', 'max:'.self::MAX_IMAGES],
+            // 'images.*' => ['file', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'image_states' => ['nullable', 'array'],
             'image_states.*' => ['boolean'],
             'remove_images' => ['nullable', 'array'],
@@ -52,17 +53,18 @@ class NewsRequest extends FormRequest
         ];
     }
 
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $validator): void {
-            $news = $this->route('news');
-            $existingCount = $news?->images()->count() ?? 0;
-            $removeCount = count($this->input('remove_images', []));
-            $newCount = count($this->file('images', []));
-
-            if (($existingCount - $removeCount + $newCount) > self::MAX_IMAGES) {
-                $validator->errors()->add('images', 'News can have a maximum of '.self::MAX_IMAGES.' images.');
-            }
-        });
-    }
+    // FILE: disabled - not using file uploads
+    // public function withValidator(Validator $validator): void
+    // {
+    //     $validator->after(function (Validator $validator): void {
+    //         $news = $this->route('news');
+    //         $existingCount = $news?->images()->count() ?? 0;
+    //         $removeCount = count($this->input('remove_images', []));
+    //         $newCount = count($this->file('images', []));
+    //
+    //         if (($existingCount - $removeCount + $newCount) > self::MAX_IMAGES) {
+    //             $validator->errors()->add('images', 'News can have a maximum of '.self::MAX_IMAGES.' images.');
+    //         }
+    //     });
+    // }
 }

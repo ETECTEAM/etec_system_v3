@@ -52,6 +52,7 @@ class GetClassDetails
             'id' => $enrollment->student_id,
             'roster_no' => $rosterNo,
             'enrollment_id' => $enrollment->id,
+            'public_token' => $enrollment->public_token,
             'name' => $enrollment->student?->full_name ?? '-',
             'gender' => $enrollment->student?->gender ?? '-',
             'phone' => $enrollment->student?->phone,

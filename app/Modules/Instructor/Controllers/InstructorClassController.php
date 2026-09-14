@@ -3,18 +3,36 @@
 namespace App\Modules\Instructor\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Attendance\Actions\OverrideAttendanceRecord;
-use App\Modules\Attendance\Queries\GetSessionBanner;
-use App\Modules\Enroll\Queries\GetClassFormOptions;
+use App\Models\ClassCertificateRequest;
+use App\Models\AttendanceSession;
+use App\Models\ClassSession;
+use App\Models\Course;
+use App\Models\Holiday;
+use App\Models\InstructorAttendanceBlock;
 use App\Models\StudyClass;
+use App\Models\User;
+use App\Modules\Attendance\Actions\OverrideAttendanceRecord;
+use App\Modules\Attendance\Queries\FindActiveInstructorAttendanceBlock;
+use App\Modules\Attendance\Queries\GetSessionBanner;
+use App\Modules\Attendance\Services\AttendanceQrService;
+use App\Modules\Enroll\Queries\GetClassFormOptions;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Modules\Instructor\Services\ClassResultPdfGenerator;
 use App\Modules\Instructor\Services\InstructorClassService;
+use App\Modules\Instructor\Services\ImportInstructorAttendanceCsv;
+use App\Support\InstructorDisplayName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use stdClass;
 
 class InstructorClassController extends Controller
 {
@@ -22,26 +40,70 @@ class InstructorClassController extends Controller
         private readonly InstructorClassService $instructorClasses,
         private readonly OverrideAttendanceRecord $overrideAttendance,
         private readonly GetSessionBanner $sessionBanner,
+        private readonly AttendanceQrService $attendanceQr,
+        private readonly ClassResultPdfGenerator $classResultPdfGenerator,
+        private readonly FindActiveInstructorAttendanceBlock $findActiveBlock,
+        private readonly ImportInstructorAttendanceCsv $importAttendanceCsv,
     ) {}
 
-    public function create(): Response
+    /** Attendance-blocked banner payload for the instructor's attendance pages (see docs/instructor-attendance-block-proposal.md). */
+    private function attendanceBlockBanner(User $instructor): ?array
     {
-        return Inertia::render('backend/instructors/CreateClass', $this->instructorClasses->formOptions());
+        $block = $this->findActiveBlock->handle($instructor->id);
+
+        if (! $block) {
+            return null;
+        }
+
+        return [
+            'reason' => $block->reason,
+            'status' => $block->status,
+            'pending_review' => $block->status === InstructorAttendanceBlock::STATUS_PENDING_REVIEW,
+        ];
     }
 
-    public function store(Request $request): RedirectResponse
+    public function create(Request $request): Response
+    {
+        return Inertia::render(
+            'backend/instructors/CreateClass',
+            $this->instructorClasses->formOptions((int) $request->user()->id),
+        );
+    }
+
+    public function store(Request $request, InstructorAssignmentAvailability $availability): RedirectResponse
     {
         $validated = $request->validate([
-            'title'         => ['required', 'string', 'max:255'],
-            'course_id'     => ['required', 'exists:courses,id'],
-            'lesson_id'     => ['nullable', 'exists:course_lessons,id'],
-            'term_id'       => ['nullable', 'exists:terms,id'],
-            'time_id'       => ['nullable', 'exists:times,id'],
-            'room_id'       => ['nullable', 'exists:rooms,id'],
+            // Not asked for on the form - the class title is the course title.
+            'title' => ['nullable', 'string', 'max:255'],
+            'course_id' => ['required', 'exists:courses,id'],
+            'lesson_id' => ['nullable', 'exists:course_lessons,id'],
+            'term_id' => ['required', 'exists:terms,id'],
+            'time_id' => ['required', 'exists:times,id'],
+            'room_id' => ['nullable', 'exists:rooms,id'],
             'class_type_id' => ['nullable', 'exists:class_type,class_type_id'],
-            'capacity'      => ['nullable', 'integer', 'min:0'],
-            'status'        => ['nullable', 'string', Rule::in(GetClassFormOptions::STATUSES)],
+            'capacity' => ['nullable', 'integer', 'min:1'],
+            'status' => ['nullable', 'string', Rule::in(GetClassFormOptions::STATUSES)],
+            'attendance_latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'attendance_longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'attendance_radius_meters' => ['nullable', 'integer', 'min:1', 'max:5000'],
         ]);
+
+        // The form only offers slots the instructor is free for; re-check here so a
+        // stale form or a direct POST can't book an overlapping / unavailable slot.
+        $reason = $availability->unavailableReason(
+            (int) $request->user()->id,
+            (int) $validated['term_id'],
+            (int) $validated['time_id'],
+        );
+
+        if ($reason !== null) {
+            throw ValidationException::withMessages(['time_id' => $reason]);
+        }
+
+        // Title always mirrors the course title (like SaveStudyClassRequest does
+        // for the admin class form).
+        $validated['title'] = Course::query()->whereKey($validated['course_id'])->value('title')
+            ?? ($validated['title'] ?: 'New Class');
 
         $this->instructorClasses->createClass($request->user(), $validated);
 
@@ -58,20 +120,83 @@ class InstructorClassController extends Controller
     public function attendance(Request $request, string $studyClass): Response
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $this->instructorClasses->ensureTodayAttendanceSession($class, $request->user());
         $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
+        $todaySession = $this->sessionBanner->handle($class->id);
+        $certificateRequest = $this->certificateRequestData($class->id);
+        $requiresPreAttendanceApproval = (bool) ($todaySession['is_pre_attendance'] ?? false)
+            && ! $this->instructorClasses->canUsePreAttendanceApproval($request->user(), $class->id);
+        $attendanceBlock = $this->attendanceBlockBanner($request->user());
 
         return Inertia::render('backend/instructors/AttendanceRecord', [
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
             'pendingRegistrations' => $this->instructorClasses->pendingRegistrations($class->id),
+            'certificateRequest' => $certificateRequest,
             'attendanceWindow' => $attendanceWindow,
-            'todaySession' => $this->sessionBanner->handle($class->id),
+            'todaySession' => $todaySession,
+            'canTrackAttendance' => ! $requiresPreAttendanceApproval
+                && ! $attendanceBlock
+                && $this->instructorClasses->canTrackAttendance($class, $attendanceWindow, $todaySession),
+            'trackAttendanceLabel' => $requiresPreAttendanceApproval
+                ? 'Awaiting Admin Approval'
+                : $this->instructorClasses->trackAttendanceLabel($class, $attendanceWindow, $todaySession),
+            'attendanceBlock' => $attendanceBlock,
         ]);
+    }
+
+    public function requestAttendanceUnblock(Request $request): RedirectResponse
+    {
+        $this->instructorClasses->requestAttendanceUnblock($request->user());
+
+        return back()->with('success', 'Your request has been sent to the admin team for review.');
+    }
+
+    public function history(Request $request): Response
+    {
+        return Inertia::render('backend/instructors/ClassHistory', [
+            'classes' => $this->instructorClasses->endedClasses($request->user()),
+        ]);
+    }
+
+    public function result(Request $request, string $studyClass): Response|HttpResponse
+    {
+        $class = $this->instructorClasses->findResultForInstructor($request->user(), (int) $studyClass);
+        $students = $this->instructorClasses->students($class->id);
+
+        if ($request->boolean('download', false)) {
+            return $this->downloadResultPdf($class, $students);
+        }
+
+        return Inertia::render('backend/instructors/ClassResult', [
+            'classData' => $this->instructorClasses->presentClass($class),
+            'students' => $students,
+            'autoDownload' => $request->boolean('download', false),
+        ]);
+    }
+
+    public function requestCertificate(Request $request, string $studyClass): RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return back()->with('warning', 'Certificates can only be requested while the class is active.');
+        }
+
+        $types = $this->instructorClasses->requestCertificates($class, $request->user());
+        $label = in_array('internship', $types, true)
+            ? 'Internship and meal certificate request sent successfully.'
+            : 'Regular certificate request sent successfully.';
+
+        return back()->with('success', $label);
     }
 
     public function trackAttendance(Request $request, string $studyClass): Response|RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $studyClassModel = StudyClass::query()->findOrFail($class->id);
+        $qrAttendanceAvailable = $this->attendanceQr->allowsQrAttendance($studyClassModel);
+        $allowTrackAnytime = $this->attendanceQr->allowsTrackAnytime();
 
         if (($class->class_status ?? null) !== 'active') {
             return redirect()
@@ -79,23 +204,200 @@ class InstructorClassController extends Controller
                 ->with('warning', 'Attendance can only be tracked while the class is active.');
         }
 
-        $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
-        $todaySession = $this->sessionBanner->handle($class->id);
-
-        if (! $attendanceWindow['can_submit'] && ($todaySession['status'] ?? null) !== 'auto_recorded') {
+        if (Holiday::isHoliday(Carbon::today('Asia/Phnom_Penh'))) {
             return redirect()
                 ->route('instructor.classes.attendance', $class->id)
-                ->with('warning', 'Attendance can only be tracked during the class start window.');
+                ->with('warning', 'Attendance cannot be tracked on a holiday.');
         }
+
+        if ($this->findActiveBlock->handle($request->user()->id)) {
+            return redirect()
+                ->route('instructor.classes.attendance', $class->id)
+                ->with('warning', 'Your account is blocked from tracking attendance. Submit a request to regain access.');
+        }
+
+        $this->instructorClasses->ensureTodayAttendanceSession($class, $request->user());
+        $attendanceWindow = $this->instructorClasses->attendanceWindow($class->id, Carbon::today('Asia/Phnom_Penh'));
+        $todaySession = $this->sessionBanner->handle($class->id);
+        $hasAttendance = $this->instructorClasses->hasAttendanceForDate($class->id, Carbon::today('Asia/Phnom_Penh'));
+        $canCompletePreAttendance = (bool) ($todaySession['is_pre_attendance'] ?? false);
+        $hasPreAttendanceApproval = ! $canCompletePreAttendance
+            || $this->instructorClasses->canUsePreAttendanceApproval($request->user(), $class->id);
+
+        if ($canCompletePreAttendance && ! $hasPreAttendanceApproval) {
+            return redirect()
+                ->route('instructor.classes.attendance', $class->id)
+                ->with('warning', 'This class needs admin approval before you can re-track it.');
+        }
+
+        $isAutoRecorded = ($todaySession['status'] ?? null) === 'auto_recorded';
+        $canOpenAttendance = ! $isAutoRecorded && ($allowTrackAnytime || $canCompletePreAttendance || (bool) ($attendanceWindow['can_submit'] ?? false));
+        $attendanceSession = $qrAttendanceAvailable && $canOpenAttendance
+            ? $this->attendanceQr->getOrCreateTodaySession($studyClassModel, $request->user())
+            : AttendanceSession::query()
+                ->where('study_class_id', $class->id)
+                ->whereDate('attendance_date', Carbon::today('Asia/Phnom_Penh'))
+                ->first();
+        $presentedAttendanceSession = $attendanceSession
+            ? $this->attendanceQr->presentSession($attendanceSession, $studyClassModel)
+            : null;
+        $attendanceSummary = $attendanceSession
+            ? $this->attendanceQr->teacherSummary($attendanceSession, $studyClassModel)
+            : null;
+        $canCorrectQrAttendance = ($presentedAttendanceSession['status'] ?? null) === AttendanceSession::STATUS_ACTIVE;
 
         return Inertia::render('backend/instructors/TrackAttendance', [
             'classData' => $this->instructorClasses->presentClass($class),
             'students' => $this->instructorClasses->students($class->id),
-            'attendanceLocked' => $this->instructorClasses->hasAttendanceForDate($class->id, Carbon::today('Asia/Phnom_Penh'))
-                || ! $attendanceWindow['can_submit'],
+            'attendanceLocked' => $isAutoRecorded || (! $canCorrectQrAttendance
+                && (! $canCompletePreAttendance || ! $hasPreAttendanceApproval)
+                && ($hasAttendance
+                    || ! ($attendanceWindow['can_submit'] ?? false)
+                    || ($presentedAttendanceSession['status'] ?? null) === AttendanceSession::STATUS_STOPPED)),
             'attendanceWindow' => $attendanceWindow,
             'todaySession' => $todaySession,
+            'attendanceSession' => $presentedAttendanceSession,
+            'attendanceSummary' => $attendanceSummary,
+            'qrAttendanceAvailable' => $qrAttendanceAvailable,
+            'allowTrackAnytime' => $allowTrackAnytime,
+            'attendanceBlock' => $this->attendanceBlockBanner($request->user()),
         ]);
+    }
+
+    public function certificateRequest(Request $request, string $studyClass): Response
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $certificateType = $this->certificateTypeForClass($class);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return Inertia::render('backend/instructors/CertificateRequest', [
+                'classData' => $this->instructorClasses->presentClass($class),
+                'students' => collect(),
+                'studentCount' => 0,
+                'certificateType' => $certificateType,
+                'certificateTypeLabel' => ucfirst($certificateType),
+                'certificateRequest' => $this->certificateRequestData($class->id),
+                'canRequestCertificate' => false,
+                'requestUnavailableReason' => 'Certificates can only be requested while the class is active.',
+            ]);
+        }
+
+        $students = $this->instructorClasses->students($class->id);
+
+        return Inertia::render('backend/instructors/CertificateRequest', [
+            'classData' => $this->instructorClasses->presentClass($class),
+            'students' => $students,
+            'studentCount' => $students->count(),
+            'certificateType' => $certificateType,
+            'certificateTypeLabel' => ucfirst($certificateType),
+            'certificateRequest' => $this->certificateRequestData($class->id),
+            'canRequestCertificate' => true,
+            'requestUnavailableReason' => null,
+        ]);
+    }
+
+    public function storeCertificateRequest(Request $request, string $studyClass): RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return back()->with('warning', 'Certificates can only be requested while the class is active.');
+        }
+
+        $students = $this->instructorClasses->students($class->id);
+        $certificateType = $this->certificateTypeForClass($class);
+
+        $validated = $request->validate([
+            'confirm_request' => ['accepted'],
+            'student_ids' => ['required', 'array', 'min:1'],
+            'student_ids.*' => ['required', 'integer'],
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        if ($students->isEmpty()) {
+            return back()->with('warning', 'This class does not have any active students to request a certificate for.');
+        }
+
+        $activeStudentIds = $students->pluck('id')->map(fn ($id): int => (int) $id);
+        $requestedStudentIds = collect($validated['student_ids'])
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($requestedStudentIds->isEmpty()) {
+            return back()->with('warning', 'Please approve at least one student before requesting certificates.');
+        }
+
+        if ($requestedStudentIds->diff($activeStudentIds)->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'student_ids' => 'Certificate requests can only include active students from this class.',
+            ]);
+        }
+
+        ClassCertificateRequest::query()->updateOrCreate(
+            ['study_class_id' => $class->id],
+            [
+                'requested_by' => $request->user()->id,
+                'certificate_type' => $certificateType,
+                'status' => 'pending',
+                'student_count' => $requestedStudentIds->count(),
+                'requested_student_ids' => $requestedStudentIds->all(),
+                'note' => $validated['note'] ?? null,
+                'requested_at' => now(),
+                'reviewed_by' => null,
+                'reviewed_at' => null,
+            ]
+        );
+
+        return redirect()
+            ->route('instructor.classes.attendance', $class->id)
+            ->with('success', 'Certificate request submitted successfully.');
+    }
+
+    public function startAttendanceSession(Request $request, string $studyClass): RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $studyClassModel = StudyClass::query()->findOrFail($class->id);
+
+        if (($class->class_status ?? null) !== 'active') {
+            return back()->with('warning', 'Attendance can only be tracked while the class is active.');
+        }
+
+        if (Holiday::isHoliday(Carbon::today('Asia/Phnom_Penh'))) {
+            return back()->with('warning', 'Attendance cannot be tracked on a holiday.');
+        }
+
+        $preAttendanceSession = ClassSession::query()
+            ->where('study_class_id', $class->id)
+            ->whereDate('session_date', Carbon::today('Asia/Phnom_Penh'))
+            ->whereIn('status', [ClassSession::STATUS_PRE_ATTENDANCE, ClassSession::STATUS_PARTIAL])
+            ->exists();
+
+        if ($preAttendanceSession && ! $this->instructorClasses->canUsePreAttendanceApproval($request->user(), $class->id)) {
+            return back()->with('warning', 'Please request admin approval before starting pre-attendance re-track.');
+        }
+
+        $this->attendanceQr->startSession($studyClassModel, $request->user());
+
+        return back()->with('success', 'Attendance session started successfully.');
+    }
+
+    public function stopAttendanceSession(Request $request, string $studyClass): RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $studyClassModel = StudyClass::query()->findOrFail($class->id);
+        $session = AttendanceSession::query()
+            ->where('study_class_id', $studyClassModel->id)
+            ->whereDate('attendance_date', Carbon::today('Asia/Phnom_Penh'))
+            ->first();
+
+        if (! $session) {
+            return back()->with('warning', 'No attendance session is available to stop.');
+        }
+
+        $this->attendanceQr->stopSession($session, $request->user());
+
+        return back()->with('success', 'Attendance session stopped successfully.');
     }
 
     public function studentAttendance(Request $request, string $studyClass, string $student): Response
@@ -104,8 +406,16 @@ class InstructorClassController extends Controller
 
         return Inertia::render('backend/instructors/StudentAttendanceDetail', [
             'classData' => $this->instructorClasses->presentClass($class),
+            'backUrl' => "/dashboard/instructor/classes/{$class->id}/attendance",
             'student' => $this->instructorClasses->studentAttendanceDetail($class->id, (int) $student),
         ]);
+    }
+
+    public function importAttendanceCsv(Request $request, string $studyClass): JsonResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $request->validate(['file' => ['required', 'file', 'mimes:csv,txt', 'max:10240']]);
+        return response()->json(['message' => 'Legacy students and attendance imported successfully.', 'summary' => $this->importAttendanceCsv->handle($class, $request->file('file'), (int) $request->user()->id)]);
     }
 
     public function groups(Request $request, string $studyClass): Response
@@ -119,6 +429,20 @@ class InstructorClassController extends Controller
         ]);
     }
 
+    private function downloadResultPdf(stdClass $class, Collection $students): HttpResponse
+    {
+        $classData = $this->instructorClasses->presentClass($class);
+        $pdf = $this->classResultPdfGenerator->generate($classData, $students);
+        $filename = Str::slug($classData['title'] ?? 'class-result').'.pdf';
+
+        // Streamed from memory - the generator leaves no file on the server.
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Length' => (string) strlen($pdf),
+        ]);
+    }
+
     public function saveScores(Request $request, string $studyClass): JsonResponse|RedirectResponse
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
@@ -127,9 +451,9 @@ class InstructorClassController extends Controller
             'scores' => ['required', 'array', 'min:1'],
             'scores.*.enrollment_id' => ['required', 'integer', 'exists:student_enrollments,id'],
             'scores.*.student_id' => ['required', 'integer', 'exists:students,id'],
-            'scores.*.attendance_score' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'scores.*.activity_score' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'scores.*.exam_score' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'scores.*.attendance_score' => ['nullable', 'numeric', 'min:0', 'max:40'],
+            'scores.*.activity_score' => ['nullable', 'numeric', 'min:0', 'max:30'],
+            'scores.*.exam_score' => ['nullable', 'numeric', 'min:0', 'max:30'],
         ]);
 
         $records = collect($validated['scores'])
@@ -252,6 +576,7 @@ class InstructorClassController extends Controller
             'records.*.enrollment_id' => ['required', 'integer', 'exists:student_enrollments,id'],
             'records.*.status' => ['required', 'string', Rule::in(InstructorClassService::ATTENDANCE_STATUSES)],
             'records.*.note' => ['nullable', 'string', 'max:255'],
+            'stop_session' => ['nullable', 'boolean'],
         ]);
 
         $this->instructorClasses->saveAttendance($request->user(), $class->id, $validated);
@@ -280,6 +605,12 @@ class InstructorClassController extends Controller
             'records.*.note' => ['nullable', 'string', 'max:255'],
         ]);
 
+        if (Holiday::isHoliday($validated['attendance_date'])) {
+            return redirect()
+                ->route('instructor.classes.attendance', $class->id)
+                ->with('warning', 'Attendance cannot be tracked on a holiday.');
+        }
+
         $this->overrideAttendance->handle(
             $request->user(),
             $class->id,
@@ -290,5 +621,45 @@ class InstructorClassController extends Controller
         return redirect()
             ->route('instructor.classes.attendance', $class->id)
             ->with('success', 'Attendance correction saved successfully.');
+    }
+
+    private function certificateTypeForClass(stdClass $class): string
+    {
+        $text = strtolower(collect([
+            $class->class_type_name ?? null,
+            $class->course_title ?? null,
+            $class->lesson_title ?? null,
+            $class->title ?? null,
+        ])->filter()->implode(' '));
+
+        if (str_contains($text, 'internship') || str_contains($text, 'intership')) {
+            return 'internship';
+        }
+
+        return 'normal';
+    }
+
+    private function certificateRequestData(int $studyClassId): ?array
+    {
+        $request = ClassCertificateRequest::query()
+            ->with(['requestedBy:id,name'])
+            ->where('study_class_id', $studyClassId)
+            ->first();
+
+        if (! $request) {
+            return null;
+        }
+
+        return [
+            'id' => $request->id,
+            'certificate_type' => $request->certificate_type,
+            'status' => $request->status,
+            'status_label' => ucfirst(str_replace('_', ' ', $request->status)),
+            'student_count' => (int) $request->student_count,
+            'student_ids' => collect($request->requested_student_ids ?? [])->map(fn ($id): int => (int) $id)->values()->all(),
+            'note' => $request->note,
+            'requested_at' => $request->requested_at?->format('Y-m-d h:i A'),
+            'requested_by' => InstructorDisplayName::format($request->requestedBy?->name, ''),
+        ];
     }
 }

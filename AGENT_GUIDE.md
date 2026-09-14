@@ -13,11 +13,14 @@ traps that will break things if you "fix" them.
 
 ## 1. Project Overview
 
-Laravel 12 + Inertia.js v3 + Vue 3 school/enrollment management system (students, classes,
-courses, instructors, terms, schedules, buildings/floors/rooms, registration, notifications,
-QR-based attendance, public class registration). Tailwind CSS v4, real-time via Laravel
-Reverb + Echo, permissions via `spatie/laravel-permission`, Telegram auth/notifications via
-`irazasyed/telegram-bot-sdk`, i18n English + Khmer.
+Laravel 12 + Inertia.js v3 + Vue 3 school/enrollment management system: students, classes
+(`study_classes`), courses (category → sub-category → track → course), instructors, terms,
+schedules, buildings/floors/rooms, enrollment + per-course open/pricing config, QR-based
+attendance (with auto-record, pre-attendance recovery, geo/IP policy), instructor work
+schedules + availability grid, absence blocks / attendance rules, official leave requests,
+certificates, notifications, a public class-registration site + CMS. Tailwind CSS v4,
+real-time via Laravel Reverb + Echo, permissions via `spatie/laravel-permission`, Telegram
+auth/notifications via `irazasyed/telegram-bot-sdk`, i18n English + Khmer. See §7 for the DB map.
 
 ### Tech stack
 
@@ -72,15 +75,19 @@ nearly empty (only `Controller.php` base + `LocaleController.php`) and is not th
 
 | Module dir | Status | Quirk |
 |---|---|---|
+| `AbsenceBlock` | live | `/dashboard/absence-blocks`. `Controllers/` (`AbsenceBlockController`, `AttendanceRuleController`, `AttendanceRuleSettingController`, `BlacklistController`, `AbsenceBlockAuditController`), `Actions/`, `Services/`, `Support/`, `Policies/`. Route file `absence-block.php`. **"Rule Settings"** page = `attendance_rule_settings` (distinct from Official Leave's "Leave Settings"). |
+| `AccessLocation` | live | IP / geo "Location Lock". Route file `access-location.php`; tables `access_locations` / `access_location_routes` / `location_access_logs`. |
 | `Account` | live | standard |
 | `Auth` | live | `Controllers/Telegram/`, `Data/Permissions/`, `Requests/Permissions/`, `Responses/Permissions/` subfolders |
+| `Certificate` | live | route file `certificate.php` (also has inline Inertia renders); `student_certificate_*` / `course_custom*` tables. |
 | `Class` | live | only `Controllers/` (ClassType + ClassList) |
 | `Course` | live | **controllers at module ROOT** (`CourseController.php`, `CategoryController.php`, …) — no `Controllers/` folder |
 | `EnRoll` | **DEAD/legacy** | 3 files, imported by nothing; redirects to non-existent `students.*` routes; uses old `ScheduleClass`/`Enrollment` models |
 | `Enroll` | **LIVE** | route-wired via `routes/web/backend/enroll.php`; `Actions/` + `Queries/` pattern; uses `StudyClass`/`StudentEnrollment` |
 | `Floor` | live | **`Controller/` (singular)** folder — differs from every other module |
-| `Instructor` | live | standard; includes `InstructorScheduleBlockController` for instructors to self-block unavailable time slots |
+| `Instructor` | live | standard; owns the attendance-recording UI (`InstructorClassController` → `AttendanceRecord.vue` / `TrackAttendance.vue`), instructor self-block (`InstructorScheduleBlockController`, `role:instructor`), **and the admin-facing "Instructor Busy Time" grid** (`InstructorAvailabilityController` + `InstructorAvailabilityAdminService` + `InstructorAvailabilityOverviewService`, route `instructor-availability.php`, `role:super_admin\|admin`) — admins block/unblock a slot, open/close a non-working slot, toggle `available_for_class`. |
 | `Notification` | live | standard |
+| `OfficialLeave` | live | `/dashboard/official-leaves` — student leave/permission requests (QR-based phone form), approve/reject/revoke, reports, activity log. `Controllers/`, `Queries/`, `Services/`, `Policies/`. Route file `official-leave.php` + public `/leave/form/{token}` + `/leave/request`. **"Leave Settings"** page = `official_leave_settings` (distinct from AbsenceBlock's "Rule Settings"). |
 | `Registration` | live | standard |
 | `Room` | live | standard (`Controllers/`, `Data/`, `Requests/`, `Services/`) |
 | `Schedules` | live | plural name; route file is the misspelled `schdule.php` |
@@ -323,20 +330,52 @@ npm run build                 # production assets
 ### Migrations & seeding
 
 ```bash
-php artisan migrate            # apply new migrations
+php artisan migrate            # apply new migrations (142 as of writing)
 php artisan migrate:fresh --seed   # DESTRUCTIVE — wipes and reseeds all data
 ```
+
+**Seeder architecture** (see `database/seeders/README.md`):
+
+- `DatabaseSeeder` always runs `Production\ProductionSeeder`, then runs
+  `Dev\DevSeeder` **only when `! app()->isProduction()`**.
+- **`Production\ProductionSeeder`** — the real deploy seed: permissions/roles +
+  `DashboardPermissionSeeder` (`dashboard.view` etc. — omit it and every
+  instructor 403s), `SuperAdminSeeder`, settings, catalog + scheduling
+  reference data, `InstructorWorkScheduleSeeder`. `CourseEnrollConfigSeeder` and
+  `WebsiteMenuSeeder` are currently **commented out** in it.
+- **`Dev\DevSeeder`** — `DevAdminSeeder` (`admin@etec.com`) +
+  `InstructorWorkScheduleSeeder` + `CourseEnrollConfigSeeder`.
+- Both `InstructorWorkScheduleSeeder` and `CourseEnrollConfigSeeder` live in the
+  `Database\Seeders\Dev` namespace but are `use`-imported by `ProductionSeeder`
+  too — the folder name is not a hard boundary. All are idempotent
+  (`updateOrCreate`) **except `CourseEnrollConfigSeeder`**, which overwrites
+  every course's prices/start-dates and deletes non-Physical enroll config on
+  each run — do not re-run a full seed against a hand-tuned prod DB.
+- `Feature/*` seeders are one-off, manual, `Feature/` namespace, **not** in
+  `db:seed`; several are mutually exclusive (`FullClassSeeder` vs
+  `RestoreClassAvailabilitySeeder`). `Feature/Attendance/TrackAttendanceTestSeeder`
+  and `PreAttendanceTestSeeder` build a "Basic IT" class + students + today's
+  `class_session` for exercising Track / Pre attendance.
+- The old `Core\*` and `Permission\*` seeder families still exist and still
+  truncate + recreate, but are **no longer in the default chain** — only via the
+  composer scripts below.
 
 Composer seed shortcuts (`composer run …`):
 
 | Script | Runs |
 |---|---|
-| `seed` | `php artisan db:seed` |
-| `seed-core` | `Database\Seeders\Core\CoreSeeder` |
+| `seed` | `php artisan db:seed` (= `DatabaseSeeder`) |
+| `seed-prod` | `Database\Seeders\Production\ProductionSeeder` |
+| `seed-dev` | `Database\Seeders\Dev\DevSeeder` |
+| `seed-core` | `Database\Seeders\Core\CoreSeeder` (legacy, truncates) |
 | `seed-permission` | `Database\Seeders\Core\CoreSeeder` (**name is misleading** — points at Core) |
 | `seed-class` | `Database\Seeders\Class\ClassSeeder` |
 | `seed-report` / `seed-landrent` / `seed-invoice-test` | `Feature\Report\…`, `Feature\Invoice\…` stubs |
 | `sync-env` | `php artisan app:sync-env-example` |
+
+**Seeded logins** (all password `password`, overridable via `SEEDER_SUPERADMIN_*` /
+`SEEDER_ADMIN_*` env vars): `superadmin@etec.com`, `admin@etec.com`,
+`instructor1@etec.com` … `instructor10@etec.com` (one per work schedule).
 
 ### Scheduled commands (`bootstrap/app.php` → `withSchedule()`, not `routes/console.php`)
 
@@ -401,15 +440,21 @@ Don't delete the scratch files without asking. `database/seeders/Feature/Report/
 
 ### Seeders are destructive
 
-- `migrate:fresh --seed` (and several `db:seed` classes) **truncate** tables: `users`,
-  roles/permissions pivots, courses, categories, tracks, lessons, class_list, terms, times,
-  buildings. Any manually-entered rows in those tables are wiped.
+- `migrate:fresh --seed` (and several `db:seed` classes) **truncate** tables: courses,
+  categories, sub_categories, tracks, lessons, terms, times, buildings, plus the
+  `Core\*` family truncates `users` + roles/permissions pivots. Any manually-entered
+  rows are wiped.
+- `CourseEnrollConfigSeeder` is **not idempotent** — every run overwrites all course
+  prices/start-dates and deletes non-Physical `course_enroll_configs` rows.
 - `Database\Seeders\Core\TruncateSeeder` truncates **every table except `migrations`**
   (nuclear reset, not called by `DatabaseSeeder`).
-- Two parallel permission/user families exist: `Database\Seeders\Permission\*` and
-  `Database\Seeders\Core\*` (both truncate + recreate).
-- Demo credentials from `Core\UserSeeder`: `teststudent@etec.com` / `password`
-  (also `superadmin@etec.com`, `admin@etec.com`, `instructor@etec.com`, `student@etec.com`).
+- Legacy parallel families still exist (`Database\Seeders\Permission\*`,
+  `Database\Seeders\Core\*` — both truncate + recreate) but are no longer in the
+  default chain; the live path is `Production\` / `Dev\` (§5).
+- Seeded logins (all `password`): `superadmin@etec.com`, `admin@etec.com`,
+  `instructor1@etec.com`…`instructor10@etec.com`. The old `Core\UserSeeder` demo
+  accounts (`teststudent@etec.com`, `instructor@etec.com`, `student@etec.com`) only
+  exist if you run `composer seed-core`.
 
 ### Other gotchas
 
@@ -441,9 +486,17 @@ Don't delete the scratch files without asking. `database/seeders/Feature/Report/
   `instructor.classes.groups*` / `instructor.classes.scores.update`), backed by the `teams`/
   `team_members` tables (see Module traps above) and the `student_scores` table
   (`app/Models/StudentScore.php`, one row per `student_enrollment_id`).
-- Migrations are **flat** in `database/migrations/` (111 files, no feature folders) and mix two
+- Migrations are **flat** in `database/migrations/` (142 files, no feature folders) and mix two
   timestamp styles (`YYYY_MM_DD_HHMMSS` and `YYYY_MM_DD_00000N`). One non-standard name:
   `2026_07_05_000001_enrich_classes_table.php`.
+- **Date-only strings from the client must be local, not UTC.** `new Date().toISOString().slice(0,10)`
+  is a UTC date — in `Asia/Phnom_Penh` (UTC+7) it rolls back a day near midnight, so a payload
+  like `attendance_date` then misses today's `class_session` and the request 422s. Use
+  `new Date().toLocaleDateString("en-CA")` (as `RegisterStudent.vue` does). `ReceiptPrint.vue`
+  still has the UTC form but it's display-only.
+- **`ValidationException` (422) is not reported** to the Telegram error bot / log error channel —
+  only real 5xx exceptions are. A "Failed to save" toast with nothing in Telegram usually means
+  a 422, not a crash.
 - `DashboardLayout.vue` renders route-specific skeletons during navigation (`/dashboard/users*`)
   and mounts the single shared `<ConfirmDialog />`. Lines 1–47 contain a commented-out older
   layout (dead code).
@@ -455,7 +508,124 @@ Don't delete the scratch files without asking. `database/seeders/Feature/Report/
 
 ---
 
-## 7. Existing Documentation
+## 7. Database Structure
+
+MySQL, timezone `Asia/Phnom_Penh`. **~80 tables, 142 migrations** — flat in
+`database/migrations/` (no feature folders), two timestamp styles
+(`YYYY_MM_DD_HHMMSS` and `YYYY_MM_DD_00000N`). All Eloquent models are flat in
+`app/Models/` (one file per table, `StudyClass`, `StudentEnrollment`, …). A few
+tables have **no model** and are used via `DB::table()` only: `teams`,
+`team_members`, `schedule_time`, most CMS pivots.
+
+### Catalog hierarchy (course taxonomy)
+
+```
+categories ─< sub_categories ─< course_tracks ─< courses ─< course_enroll_configs
+ (Category)   (SubCategory)     (CourseTrack)    (Course)   (CourseEnrollConfig)
+```
+
+- `courses.enroll_order` orders courses on the public register list.
+- **`course_enroll_configs`** is dual-purpose per `(course_id, schedule_id, time_id)`:
+  - `schedule_id` **NULL** + `time_id` NULL → the *course-wide* row: the open/closed
+    master switch + the charged `unit_price` / `course_price` / `document_price` +
+    `start_date`. `Course::enrollConfig` / `enrollConfigForTime()`.
+  - `schedule_id` **set** → an *availability toggle*: this course is open for that
+    `(schedule, time)` slot. Always $0. Carries `max_classes`. Row exists ⇒ slot open.
+  - `CourseEnrollConfig::forCourseTime()` / `::forClassSlot()` resolve which row applies.
+
+### Scheduling reference data ("Schedule Management")
+
+| Table | Model | Notes |
+|---|---|---|
+| `terms` | `Term` | `term_name` is domain language: `"Mon & Thu"`, `"Sat & Sun"`. Parsed by `StudyClass::parseTermDays()`. |
+| `times` | `Time` | `time_name` e.g. `"09:00 am - 10:30 am"`. Parsed by `StudyClass::parseTimeRange()` → 24h `HH:MM`. **Overlapping rows are normal** (class types slice the day differently); sort/dedupe by parsed start, never by `id` or string. |
+| `class_type` | `ClassType` | **PK is `class_type_id`, not `id`.** `type_name` = `Physical Class` / `Online Class` / `Scholarship Class` / `Hybrid Class` / `Basic`. |
+| `schedules` | `Schedule` | a `(class_type_id, term_id)` pair. |
+| `schedule_time` | *(none)* | pivot `schedules` ↔ `times`. `Schedule::times()` belongsToMany. |
+
+### Classes & enrollment
+
+| Table | Model | Notes |
+|---|---|---|
+| `study_classes` | `StudyClass` | **the real class entity.** `teacher_id` → `users`. Has geo/IP attendance-policy columns (`attendance_latitude/longitude/radius_meters`, `allowed_ip_ranges`, `attendance_ip_policy`). |
+| `study_class_instructors` | *(pivot on `StudyClass::instructors()`)* | **"Collapse Class"** — a class split between owner + one other instructor, each with own `term_id` / `time_id` / `subject`. Written by `Enroll\Actions\ShareClassWithInstructor`. |
+| `students` | `Student` | may or may not have a `user_id`. `attendance_pin_hash` for QR check-in. `student_status`. |
+| `student_enrollments` | `StudentEnrollment` | `StudyClass` ↔ `Student`. **Active-only uniqueness** via the generated `active_enrollment_key` column (NULL for non-active rows) — see §6, do not replace with a plain composite unique. `enrollment_status`, `payment_status`, price snapshot columns. |
+| `student_scores` | `StudentScore` | one row per `student_enrollment_id` (attendance / activity / exam score). |
+| `teams` / `team_members` | *(none — `DB::table()` only)* | instructor "class groups" feature (`InstructorClassController::groups/saveTeams`). `group_id` on both = the class id. |
+| `classes` / `enrollments` | `ScheduleClass` / `Enrollment` | **legacy, empty.** Used only by the dead `EnRoll` module. Don't touch. |
+
+### Attendance
+
+| Table | Model | Notes |
+|---|---|---|
+| `class_sessions` | `ClassSession` | one per class per day. `status`: `pending` → `pre_attendance` / `partial` → `recorded` / `auto_recorded` / `skipped` / `missed`. `pre_attendance` is the "grace period elapsed, complete the missing students" state that powers the instructor **Pre Attendance** recovery screen. |
+| `student_attendances` | `StudentAttendance` | per student per `attendance_date`. Heavy forensic columns (lat/long, distance, `ip_address`, `browser`, `device_identifier`), `verification_status`, and lock columns (`locked`, `locked_block_id` → `student_attendance_block`). `source` = `manual` / QR. |
+| `attendance_sessions` | `AttendanceSession` | a live QR check-in window (`qr_token`, `expires_at`, `status`). |
+| `attendance_audit_logs` | `AttendanceAuditLog` | override/correction trail. |
+| `holidays` | `Holiday` | skip-session dates for `GenerateClassSessions`. |
+| settings | `GradingSetting` | key/value — `attendance.auto_record_enabled`, `attendance.auto_record_grace_minutes`, `attendance.auto_record_allow_track_anytime`, `attendance.auto_record_allow_qr_attendance`, `attendance.auto_record_override_hours`. Read via `setting('attendance.*', default)`. |
+
+### Instructor availability
+
+| Table | Model | Notes |
+|---|---|---|
+| `instructor_data` | `InstructorData` | instructor profile (1:1 with `users` via `user_id`). `work_schedule_id`, `available_for_class`, `specialization` (JSON array), `employment_type`. |
+| `work_schedules` / `work_schedule_times` | `WorkSchedule` / `WorkScheduleTime` | **source of truth** for shift shapes: `(day_of_week, time_id)` grid per schedule `code`. Replaced the deleted `ShiftTemplate`. Weekends deliberately use wide time blocks, weekdays the 90-min slots. |
+| `instructor_availabilities` | `InstructorAvailability` | derived working windows per `(instructor, day_of_week)`. **`source`** column: `schedule` (regenerated from the work schedule on every profile save — `InstructorProfileService::generateInstructorAvailabilities`) vs `admin` (opened manually from the Instructor Busy Time grid; survives regeneration). |
+| `instructor_schedule_blocks` | `InstructorScheduleBlock` | manual "I'm unavailable" blocks per `(instructor, day_of_week, time_id)`. **`created_by`** NULL = instructor blocked their own slot; a user id = an admin blocked it from the Instructor Busy Time grid. `status = 'active'`. |
+| `instructor_attachments` | `InstructorAttachment` | profile photo / CV / other (file uploads currently disabled in code). |
+
+### Absence Blocks & Attendance Rules (`AbsenceBlock` module, `/dashboard/absence-blocks`)
+
+| Table | Model | Notes |
+|---|---|---|
+| `attendance_rules` | `AttendanceRule` | admin-defined limits: `rule_type`, `limit_count`, `period_type`. |
+| `attendance_rule_settings` | `AttendanceRuleSetting` | key/value **fallback defaults** used when no rule matches (cached, `CACHE_KEY`). This is the **"Rule Settings"** page. |
+| `student_attendance_block` | `StudentAttendanceBlock` | a student auto-blocked for too many absences/permissions; `is_approved`, `block_type`, admin approve/reject workflow, `cycle_start_date`. |
+
+### Official Leave (`OfficialLeave` module, `/dashboard/official-leaves`)
+
+| Table | Model | Notes |
+|---|---|---|
+| `official_leaves` | `OfficialLeave` | student leave/permission requests. Full workflow columns: `status`, `approved_by/at`, `rejected_by/rejection_note`, `revoked_by/at/note`. **Soft-deletes** (`deleted_at`). |
+| `official_leave_settings` | `OfficialLeaveSetting` | key/value — this is the **"Leave Settings"** page: absence-block threshold, monthly permission quota, permissions-per-absence conversion, QR token lifetime. Distinct from `attendance_rule_settings` above. |
+| `leave_request_sessions` | `LeaveRequestSession` | the signed-QR session a student's phone submits the public leave form through. |
+| `student_permissions` | `StudentPermission` | per-student permission usage ledger. |
+
+### Auth, permissions & security
+
+| Table(s) | Notes |
+|---|---|
+| `users` | has **both** a `role` string column **and** spatie roles (`model_has_roles`). `status` is the only account-active gate (`is_active` was removed — §6). `requires_onboarding` (default `false`) + `onboarding_completed_at` gate the instructor onboarding wizard. `recovery_email`, `access_expires_at`. |
+| `roles` / `permissions` / `model_has_roles` / `model_has_permissions` / `role_has_permissions` | spatie, `web` + `sanctum` guards. `dashboard.view` + `instructor_profile.*` + `work_schedule.*` perms come from `Permission\DashboardPermissionSeeder` — **without it every instructor 403s on `/dashboard`**. |
+| `login_lockouts` / `login_lockout_tiers` / `login_lockout_settings` | custom two-layer lockout (see `app/Modules/Auth/LOGIN_SECURITY.md`). |
+| `otp_verifications` | `OtpVerification` — replaced the dropped `verification_codes` table (§6). |
+| `auth_audit_logs` / `activity_logs` / `audit_logs` | three separate trails (`AuthAuditLog`, `ActivityLog`, `AuditLog`). |
+| `access_locations` / `access_location_routes` / `location_access_logs` | IP / geo "Location Lock" feature (`AccessLocation` module). |
+| `sessions`, `password_reset_tokens`, `personal_access_tokens` | stock. |
+
+### Buildings, CMS, notifications, misc
+
+- **Buildings**: `buildings` ─< `floors` ─< `rooms` (`Building`/`Floor`/`Room`).
+- **Public website / CMS**: `pages` / `page_heroes` / `page_hero_images`, `news` / `news_images`,
+  `photos`, `menus`, `website_videos`, `school_settings` (key/value).
+- **Notifications**: **`dashboard_notifications`** (model `Notification`, `$table` overridden) —
+  NOT the `notifications` table Laravel's `Notifiable` trait expects. `$user->notifications`
+  (trait) and the dashboard bell are different data (§6).
+- **Certificates**: `student_certificate_normal`, `student_certificate_free` /
+  `certificate_class_free`, `course_custom` / `course_custom_normal` (`Certificate` module).
+- **Queue/cache**: `jobs`, `job_batches`, `failed_jobs`, `cache`, `cache_locks` (stock).
+
+### Key-value settings tables (read via the `setting()` helper where wired)
+
+`grading_settings`, `attendance_rule_settings`, `official_leave_settings`,
+`school_settings`, `login_lockout_settings` — all `key` / `value` / `type` / `label`
+/ `description` / `min` / `max` / `group` shaped (except `login_lockout_settings`).
+
+---
+
+## 8. Existing Documentation
 
 Read the relevant doc before touching a workflow:
 

@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { usePage } from "@inertiajs/vue3";
+import QrcodeVue from "qrcode.vue";
 import logoSrc from "@/assets/etecLogoBase64.js";
 
 const props = defineProps({
@@ -11,6 +12,11 @@ const props = defineProps({
   student: {
     type: Object,
     default: null,
+  },
+  // Manual Register has no class yet — hide the Instructor/Building/Floor/Room block.
+  hideClassInfo: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -25,6 +31,13 @@ const today = computed(() => new Date().toISOString().slice(0, 10));
 const receiptNo = computed(() => {
   if (!props.student?.enrollment_id) return "ETEC";
   return `ETEC${String(props.student.enrollment_id).padStart(6, "0")}`;
+});
+
+// Public attendance summary the family reaches by scanning the printed QR -
+// only present once an enrollment exists (parked pre-registrations have no id).
+const attendanceUrl = computed(() => {
+  const publicToken = props.student?.public_token;
+  return publicToken ? `${window.location.origin}/student-attendance/${publicToken}` : "";
 });
 
 const copies = [
@@ -73,8 +86,21 @@ function totalAmount() {
   return courseFeeAmount() + documentFeeAmount();
 }
 
+// The charged Course Price (may be a discount off the unit price).
 function courseFeeAmount() {
-  return Number(props.classData?.price ?? props.student?.fee_amount ?? props.classData?.course_price ?? 0);
+  return Number(props.classData?.resolved_price ?? props.classData?.price ?? props.student?.fee_amount ?? props.classData?.course_price ?? 0);
+}
+
+// The Enroll Config list / unit price. Snapshotted onto the student/enrollment
+// at registration; falls back to the charged fee when no snapshot exists
+// (receipts printed before this was tracked).
+function unitPriceAmount() {
+  const unit = Number(props.classData?.unit_price ?? props.student?.unit_price ?? 0);
+  return unit > 0 ? unit : courseFeeAmount();
+}
+
+function discountAmount() {
+  return Math.max(unitPriceAmount() - courseFeeAmount(), 0);
 }
 
 function documentFeeAmount() {
@@ -168,13 +194,15 @@ function timeWithTerm() {
           <strong class="line time-term">{{ timeWithTerm() }}</strong>
         </div>
         <div class="receipt-row">
-          <span class="label">តម្លៃ / Fee</span>
-          <strong class="line">{{ money(courseFeeAmount()) }}</strong>
+          <span class="label">តម្លៃឯកតា / Unit Price</span>
+          <strong class="line time-term">{{ money(unitPriceAmount()) }}</strong>
           <span class="label tiny">កាលបរិច្ឆេទចូលរៀន</span>
           <strong class="line time-term">{{ valueOrDash(classData?.enroll_start_date) }}</strong>
         </div>
         <div class="receipt-row">
-          <span class="label">ប្រាក់ត្រូវបង់</span>
+          <span class="label">តម្លៃវគ្គ / Course Price</span>
+          <strong class="line time-term">{{ money(courseFeeAmount()) }}<span v-if="discountAmount() > 0"> (- {{ money(discountAmount()) }})</span></strong>
+          <span class="label tiny">ប្រាក់ត្រូវបង់</span>
           <strong class="line payment-line">
             <span>{{ rowAmount() }} /{{ khmerRateAmount() }} &emsp;&emsp;{{ documentFeeLabel() }}</span>
           </strong>
@@ -183,7 +211,7 @@ function timeWithTerm() {
           <div class="note-left">
             <span>***ប្រាក់ដែលបានបង់រួច មិនអាចដកវិញបានទេ/None refundable***</span>
 
-            <div class="class-info">
+            <div v-if="!hideClassInfo" class="class-info">
               <p class="class-info-title">ព័ត៌មានថ្នាក់រៀន / Class Info</p>
               <div class="class-info-grid">
                 <div class="class-info-item">
@@ -206,7 +234,7 @@ function timeWithTerm() {
             </div>
           </div>
 
-          <div>
+          <div class="note-right">
              <div class="date">
               <span class="label tiny">កាលបរិច្ឆេទ / Date :</span>
               <div class="date-value">
@@ -214,6 +242,12 @@ function timeWithTerm() {
                 <strong class="cashier">បេឡា/Cashier</strong>
               </div>
              </div>
+
+             <div v-if="attendanceUrl" class="receipt-qr">
+               <QrcodeVue :value="attendanceUrl" :size="85" level="M" render-as="svg" />
+               <span>ស្កេនមើលវត្តមាន</span>
+             </div>
+
              <strong class="sigature">គ្រូអាយធីចិត្តល្អ</strong>
           </div>
         </div>
@@ -221,10 +255,10 @@ function timeWithTerm() {
 
 
       <footer class="receipt-contact">
-        <span>អាសយដ្ឋាន៖ ភ្នំពេញថ្មី រាជធានីភ្នំពេញ</span>
+        <span>អាសយដ្ឋាន៖ ផ្លូវលេខ ១៦០ សង្កាត់ ទឹកល្អក់២ ខណ្ឌ សែនសុខ រាជធានីភ្នំពេញ</span>
         <span>HP: +855 96 226 8884 / +855 77 368 884</span>
         <span>Email: info@eteccenter.info</span>
-        <span>Website: www.eteccenter.info</span>
+        <span>Website: www.etec.space</span>
       </footer>
     </section>
   </div>
@@ -241,6 +275,21 @@ function timeWithTerm() {
     margin: 0;
   }
 
+  /* Force a clean white canvas even when the dashboard is in dark mode:
+     <html>'s color-scheme: dark otherwise tints the printed page grey, and
+     app.css's universal color transition animates <body> to white, which
+     reads as the whole screen "flashing" to light in the print preview. */
+  :global(html) {
+    color-scheme: light;
+    background: #fff;
+  }
+
+  :global(html *),
+  :global(html *::before),
+  :global(html *::after) {
+    transition: none !important;
+  }
+
   :global(body *) {
     visibility: hidden;
   }
@@ -248,6 +297,7 @@ function timeWithTerm() {
   :global(body) {
     margin: 0;
     background: #fff;
+    color-scheme: light;
     overflow: hidden;
   }
 
@@ -273,8 +323,8 @@ function timeWithTerm() {
     background: #fff;
     color: #1f2933;
     font-family: "Khmer OS Battambang", "Noto Sans Khmer", Arial, sans-serif;
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
   }
 
   .receipt-copy {
@@ -480,6 +530,11 @@ function timeWithTerm() {
     min-width: 116mm;
   }
 
+  .fee-breakdown {
+    font-size: 8.8pt;
+    white-space: nowrap;
+  }
+
   .payment-line {
     display: flex;
     min-width: 0;
@@ -498,11 +553,11 @@ function timeWithTerm() {
 
   .note {
     display: flex;
-    min-height: 22mm;
+    min-height: 20mm;
     align-items: start;
     justify-content: space-between;
     gap: 6mm;
-    margin-top: 5mm;
+    margin-top: 3mm;
     padding-top: 1mm;
     border-top: 0.50mm solid #3d4048;
     padding-bottom: 2mm;
@@ -525,6 +580,21 @@ function timeWithTerm() {
 
   .note > div {
     flex: 0 0 58mm;
+  }
+
+  /* Right column: date on top, signature pinned to the bottom (margin-top:auto)
+     so the QR, when present, sits in the gap between them instead of being
+     crammed under Class Info on the left. */
+  .note-right {
+    display: flex;
+    min-height: 40mm;
+    flex-direction: column;
+    align-items: center;
+    gap: 2mm;
+  }
+
+  .note-right .date {
+    align-self: stretch;
   }
 
   .date {
@@ -567,7 +637,8 @@ function timeWithTerm() {
 
   .sigature {
     display: block;
-    margin-top: 28mm;
+    margin-top: auto;
+    padding-top: 6mm;
     font-size: 10pt;
     font-weight: 700;
     text-align: center;
@@ -618,6 +689,35 @@ function timeWithTerm() {
     text-overflow: ellipsis;
     white-space: nowrap;
     /* line-height: 1; */
+  }
+
+  .receipt-qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1mm;
+  }
+
+  /* Keep the child SVG's modules visible (body * is hidden for print) and the
+     black squares solid regardless of the browser's economy-ink setting. */
+  .receipt-qr,
+  .receipt-qr :deep(*) {
+    visibility: visible;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .receipt-qr :deep(svg) {
+    width: 18mm;
+    height: 18mm;
+  }
+
+  .receipt-qr span {
+    font-size: 6pt;
+    font-weight: 700;
+    letter-spacing: 0.1mm;
+    white-space: nowrap;
+    opacity: 0.75;
   }
 
   .receipt-contact {

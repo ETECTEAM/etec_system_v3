@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\AttendanceRule;
 use App\Models\OfficialLeave;
+use App\Models\StudentAttendanceBlock;
 use App\Models\User;
+use App\Modules\AbsenceBlock\Policies\AttendanceRulePolicy;
+use App\Modules\AbsenceBlock\Policies\StudentAttendanceBlockPolicy;
 use App\Modules\OfficialLeave\Policies\OfficialLeavePolicy;
 use App\Modules\User\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -32,6 +36,8 @@ class AppServiceProvider extends ServiceProvider
         // URL::forceScheme('https');
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(OfficialLeave::class, OfficialLeavePolicy::class);
+        Gate::policy(AttendanceRule::class, AttendanceRulePolicy::class);
+        Gate::policy(StudentAttendanceBlock::class, StudentAttendanceBlockPolicy::class);
 
         RateLimiter::for('login', function (Request $request): Limit {
             $login = trim((string) ($request->input('login') ?? $request->input('email') ?? ''));
@@ -39,10 +45,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by(strtolower($login).'|'.$request->ip());
         });
 
-        RateLimiter::for('register', function (Request $request): Limit {
-            $email = trim((string) $request->input('email', ''));
+        // Two independently-keyed buckets, same reasoning as password-email below:
+        // without the IP-only bucket, rotating the email field on every request
+        // gets a fresh 5/minute allowance each time from the same IP.
+        RateLimiter::for('register', function (Request $request): array {
+            $email = strtolower(trim((string) $request->input('email', '')));
 
-            return Limit::perMinute(5)->by(strtolower($email).'|'.$request->ip());
+            return [
+                Limit::perMinute(5)->by('email:'.$email.'|'.$request->ip()),
+                Limit::perMinute(10)->by('ip:'.$request->ip()),
+            ];
         });
 
         // Two independently-keyed buckets: an account can't be spammed past
@@ -65,6 +77,16 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('telegram-webhook', function (Request $request): Limit {
             return Limit::perMinute(60)->by($request->ip());
+        });
+
+        RateLimiter::for('attendance-qr-submit', function (Request $request): array {
+            $studentId = (string) $request->input('student_id', 'guest');
+            $token = (string) $request->route('token', '');
+
+            return [
+                Limit::perMinute(10)->by('student:'.$studentId.'|token:'.$token),
+                Limit::perMinute(90)->by('ip:'.$request->ip().'|token:'.$token),
+            ];
         });
 
         Gate::before(function ($user, string $ability): ?bool {

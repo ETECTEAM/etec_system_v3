@@ -9,11 +9,52 @@ the code references if you want to dig deeper.
 
 Every class has its own weekly schedule (which weekdays + a time slot, e.g. **09:00–10:30**).
 When the instructor forgets to submit attendance, the system waits a **grace period** (default
-**15 min**, so until **09:15**), then **records attendance itself** on the instructor's behalf
+**20 min**, so until **09:20**), then **records attendance itself** on the instructor's behalf
 at **09:16**. A superadmin can change the grace number or turn the whole thing off.
 
 The most important rule: **the system never marks a student `absent`** — an instructor
 forgetting can never cause a student to fail.
+
+---
+
+## 1a. Flow diagram
+
+```mermaid
+flowchart TD
+    A["Daily 00:05<br/>GenerateClassSessions"] --> B{"Class meets today?<br/>active + weekday match<br/>+ not a holiday"}
+    B -- no --> Z1["No session row created"]
+    B -- yes --> C{"Has active students?"}
+    C -- no --> D["session: skipped"]
+    C -- yes --> E["session: pending"]
+
+    E --> F["Every minute<br/>attendance:auto-record"]
+    F --> G{"auto_record_enabled?"}
+    G -- no --> F
+    G -- yes --> H{"pending AND<br/>now >= start + grace AND<br/>now < scheduled_end?"}
+    H -- no --> I{"pending AND<br/>now >= scheduled_end?"}
+    I -- yes --> J["session: missed<br/>(never auto-recorded after the fact)"]
+    I -- no --> F
+    H -- yes --> K["Lock session row (transaction)"]
+    K --> L{"Student has approved<br/>permission today?"}
+    L -- yes --> M["status = permission"]
+    L -- no --> N["status = auto_record_default_status<br/>(present / pending — never absent)"]
+    M --> O["source = auto, recorded_by = null"]
+    N --> O
+    O --> P["session: auto_recorded<br/>recorded_at = now"]
+
+    P --> Q["Instructor opens the class"]
+    Q --> R["Amber banner:<br/>'system recorded at HH:MM,<br/>correct until deadline'"]
+    R --> S{"Instructor saves a correction<br/>within the override window?"}
+    S -- "yes — PUT /attendance" --> T["OverrideAttendanceRecord"]
+    T --> U["Update existing rows in place<br/>source = manual, tracked_by = instructor"]
+    U --> V["Write attendance_audit_logs row"]
+    V --> W["session: recorded<br/>(banner timestamp stays original)"]
+    S -- "no / window closed" --> X["Auto rows stand<br/>save blocked after deadline"]
+
+    P --> Y["22:00 attendance:send-digest"]
+    J --> Y
+    Y --> Y2["Admin notification:<br/>X auto-recorded, Y missed"]
+```
 
 ---
 
@@ -30,7 +71,7 @@ busted on save).
 | Key | Default | Meaning |
 |---|---|---|
 | `attendance.auto_record_enabled` | `true` | master switch |
-| `attendance.auto_record_grace_minutes` | `15` | how long the instructor has |
+| `attendance.auto_record_grace_minutes` | `20` | how long the instructor has |
 | `attendance.auto_record_default_status` | `present` | what unmarked students get (`present` or `pending`, never `absent`) |
 | `attendance.auto_record_notify_instructor` | `true` | stored, see note in §8 |
 | `attendance.auto_record_allow_override` | `true` | may the instructor fix an auto-recorded session |

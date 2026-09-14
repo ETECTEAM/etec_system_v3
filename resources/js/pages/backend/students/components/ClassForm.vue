@@ -116,6 +116,9 @@ const form = useForm({
   capacity: props.classData?.capacity ?? 20,
   price: props.classData?.price ?? 0,
   document_price: props.classData?.document_price ?? 0,
+  attendance_latitude: props.classData?.attendance_latitude ?? "",
+  attendance_longitude: props.classData?.attendance_longitude ?? "",
+  attendance_radius_meters: props.classData?.attendance_radius_meters ?? "",
   // Enrollment opens the day the class is created unless overridden.
   enrollment_start_date: props.classData?.enrollment_start_date ?? todayIso(),
   start_date: props.classData?.start_date ?? "",

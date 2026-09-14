@@ -2,7 +2,10 @@
 
 namespace App\Modules\Website\Requests;
 
+use App\Models\ClassType;
 use App\Models\Course;
+use App\Models\Schedule;
+use App\Modules\Enroll\Queries\GetCourseClassSchedules;
 use App\Rules\LatinName;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -36,7 +39,27 @@ class StudentRegisterRequest extends FormRequest
                 },
             ],
             'term_id' => ['required', 'integer', 'exists:terms,id'],
-            'time_id' => ['required', 'integer', 'exists:times,id'],
+            // Disambiguates schedules that share a term+time (e.g. Physical/Online).
+            'class_type_id' => ['required', 'integer', Rule::in(
+                ClassType::query()
+                    ->whereIn('type_name', GetCourseClassSchedules::AVAILABLE_CLASS_TYPES)
+                    ->pluck('class_type_id')
+            )],
+            'time_id' => [
+                'required',
+                'integer',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    $belongsToSchedule = Schedule::query()
+                        ->where('term_id', $this->input('term_id'))
+                        ->where('class_type_id', $this->input('class_type_id'))
+                        ->whereHas('times', fn ($query) => $query->whereKey($value))
+                        ->exists();
+
+                    if (! $belongsToSchedule) {
+                        $fail('That time slot is not available for the selected schedule.');
+                    }
+                },
+            ],
         ];
     }
 }

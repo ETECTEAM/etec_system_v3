@@ -19,11 +19,17 @@ docker compose version
 
 ### Normal setup without Docker
 
-- Git
-- PHP 8.2+
-- Composer
-- Node.js + npm
-- MySQL or MariaDB
+| Tool | Use this | Hard minimum | Why |
+|---|---|---|---|
+| Git | any recent | — | |
+| PHP | **8.3** | 8.2 | production runs 8.3; `composer install` aborts on < 8.2 |
+| Composer | 2.x | 2.0 | |
+| Node.js + npm | **20 LTS** | 20.19 | Vite 7 refuses older Node; production builds on 20 |
+| MySQL | 8.x | 8.0 | MariaDB 10.6+ also works for local dev only |
+
+> If `php -v` or `node -v` show the wrong version, read
+> [Toolchain versions & switching](#toolchain-versions--switching) first — that is
+> the single most common cause of a broken local setup on this team.
 
 Check install:
 
@@ -33,6 +39,92 @@ composer --version
 node --version
 npm --version
 ```
+
+## Toolchain versions & switching
+
+Most "it works on my machine" setup failures on the team come down to a **wrong
+PHP or Node version**. Typical symptoms:
+
+- `composer install` aborts with `requires php ^8.2 -> your php version (8.1.x) does not satisfy it`
+- `npm run dev` / `vite` throws `Unsupported engine`, or a build fails with syntax
+  errors in a dependency
+- the app boots but Reverb / queue commands crash with `pcntl`-related errors
+
+### Pinned versions
+
+| Tool | Use | Hard minimum | Reason |
+|---|---|---|---|
+| PHP | 8.3 | 8.2 | production is 8.3; `composer.json` requires `^8.2` |
+| Node | 20 LTS | 20.19 | Vite 7 + `@vitejs/plugin-vue` 6 need Node ≥ 20.19 (or ≥ 22.12) |
+| Composer | 2.x | 2.0 | |
+| MySQL | 8.x | 8.0 | production is MySQL 8 |
+
+The repo carries version hints that most managers pick up automatically:
+
+- `.nvmrc` → `20` — read by `nvm use`, `fnm use`, asdf-nodejs
+- `.tool-versions` → `php 8.3`, `nodejs 20` — read by asdf and mise
+  (older asdf may want an exact patch, e.g. `php 8.3.15`)
+
+### Easiest fix: use Docker
+
+The dev image pins PHP 8.3 + Node 20, so version drift is impossible. If you keep
+fighting your host toolchain, switch to the [Docker setup](#setup-with-docker)
+and skip this whole section.
+
+### Switching Node
+
+```bash
+# nvm — https://github.com/nvm-sh/nvm
+nvm install 20
+nvm use            # reads .nvmrc
+
+# fnm — https://github.com/Schniz/fnm
+fnm install 20 && fnm use
+```
+
+### Switching PHP
+
+**Linux (Ubuntu, ondrej/php PPA):**
+
+```bash
+sudo add-apt-repository -y ppa:ondrej/php && sudo apt update
+sudo apt install -y php8.3-cli php8.3-{mysql,gd,zip,bcmath,mbstring,xml,curl,intl,pcntl}
+sudo update-alternatives --config php     # select 8.3 for the `php` CLI
+```
+
+**macOS (Homebrew):**
+
+```bash
+brew install php@8.3
+brew unlink php 2>/dev/null; brew link --overwrite --force php@8.3
+```
+
+**Cross-platform (asdf / mise) — respects `.tool-versions`:**
+
+```bash
+# asdf
+asdf plugin add php && asdf plugin add nodejs
+asdf install        # installs the versions from .tool-versions
+
+# mise — https://mise.jdx.dev
+mise install        # same, from .tool-versions
+```
+
+**macOS GUI:** [Laravel Herd](https://herd.laravel.com) switches PHP per project.
+**Windows:** use WSL2 with the Linux steps above, or the Docker setup.
+
+### Verify before installing anything
+
+```bash
+php -v          # expect 8.3.x  (8.2.x acceptable)
+node -v         # expect v20.x  (>= v20.19)
+composer -V     # expect 2.x
+which php        # make sure it's the version-manager shim, not /usr/bin/php
+```
+
+If `composer install` still complains about the PHP version after you switched,
+your shell is resolving a different `php` than you think — check `which php` and
+your `PATH` / shim order.
 
 ## Clone Project
 
@@ -109,7 +201,12 @@ APP_PORT=8001
 
 ### 3. Create the database
 
-Create a database named `etec_system` in MySQL before running migrations.
+Create a database matching `DB_DATABASE` in your `.env` (default `etec_db`) before
+running migrations:
+
+```sql
+CREATE DATABASE etec_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
 ### 4. Install dependencies
 
@@ -297,3 +394,11 @@ If running without Docker, use:
 ```bash
 php artisan config:clear
 ```
+
+### Wrong PHP / Node version
+
+`composer install` aborting on a platform requirement, or `npm run dev` failing
+with `Unsupported engine` / unexpected syntax errors, means your host is on the
+wrong runtime version. See
+[Toolchain versions & switching](#toolchain-versions--switching). Quickest
+unblock: run the project via [Docker](#setup-with-docker) instead.

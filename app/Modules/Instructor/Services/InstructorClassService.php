@@ -2,12 +2,23 @@
 
 namespace App\Modules\Instructor\Services;
 
+use App\Models\AttendanceSession;
 use App\Models\ClassSession;
-use App\Models\Student;
+use App\Models\Holiday;
+use App\Models\InstructorAttendanceBlock;
+use App\Models\PreAttendanceRequest;
 use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Models\User;
+use App\Modules\AbsenceBlock\Actions\AutoBlockStudent;
+use App\Modules\AbsenceBlock\Services\AbsenceBlockEvaluator;
+use App\Modules\AbsenceBlock\Services\PermissionLimitEvaluator;
+use App\Modules\AbsenceBlock\Support\LockState;
+use App\Modules\Attendance\Queries\FindActiveInstructorAttendanceBlock;
+use App\Modules\Enroll\Queries\GetClassFormOptions;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Support\InstructorDisplayName;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -16,27 +27,55 @@ use stdClass;
 
 class InstructorClassService
 {
-    // 'on_leave' is system-written (auto-record / official-leave approval) but also
-    // selectable here so an instructor tracking attendance manually can record the
-    // office-approved leave day without marking the student absent or burning permission.
-    public const ATTENDANCE_STATUSES = ['absent', 'present', 'permission', 'on_leave'];
+    public const ATTENDANCE_STATUSES = ['absent', 'present', 'permission'];
+
+    public function __construct(
+        private readonly FindActiveInstructorAttendanceBlock $findActiveBlock,
+    ) {}
+
+    private const ATTENDANCE_SCORE_DEFAULT = 40.0;
+
+    private const ABSENT_ATTENDANCE_DEDUCTION = 1.0;
+
+    private const PERMISSION_ATTENDANCE_DEDUCTION = 0.5;
+
+    private const LATE_ATTENDANCE_DEDUCTION = 0.3;
+
     public const ATTENDANCE_WINDOW_REASON_NO_SESSION = 'no_session';
+
     public const ATTENDANCE_WINDOW_REASON_BEFORE_START = 'before_start';
+
     public const ATTENDANCE_WINDOW_REASON_AFTER_DEADLINE = 'after_deadline';
+
     public const ATTENDANCE_WINDOW_REASON_ALREADY_SUBMITTED = 'already_submitted';
+
+    public const ATTENDANCE_WINDOW_REASON_HOLIDAY = 'holiday';
+
     private const VISIBLE_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
 
     private ?array $termLabels = null;
 
-    public function formOptions(): array
+    /**
+     * @param  int|null  $instructorUserId  when set, the schedule picker is narrowed to
+     *                                      only the term/time slots this instructor is
+     *                                      actually free for (availability window, no
+     *                                      manual block, no overlapping class).
+     */
+    public function formOptions(?int $instructorUserId = null): array
     {
+        $scheduleGroups = app(GetClassFormOptions::class)->scheduleGroups();
+
+        if ($instructorUserId !== null) {
+            $scheduleGroups = app(InstructorAssignmentAvailability::class)
+                ->filterScheduleGroups($instructorUserId, $scheduleGroups);
+        }
+
         return [
-            'courses' => DB::table('courses')->select('id', 'title')->get(),
-            'lessons' => DB::table('course_lessons')->select('id', 'title')->get(),
-            'terms' => DB::table('terms')->select('id', 'term_name')->get(),
-            'times' => DB::table('times')->select('id', 'time_name')->get(),
-            'rooms' => DB::table('rooms')->select('id', 'room_number')->get(),
-            'classTypes' => DB::table('class_type')->select('class_type_id', 'type_name')->get(),
+            'courses' => DB::table('courses')->select('id', 'title')->orderBy('title')->get(),
+            'lessons' => DB::table('course_lessons')->select('id', 'title')->orderBy('title')->get(),
+            'rooms' => DB::table('rooms')->select('id', 'room_number')->orderBy('room_number')->get(),
+            'classTypes' => DB::table('class_type')->select('class_type_id', 'type_name')->orderBy('class_type_id')->get(),
+            'scheduleGroups' => $scheduleGroups,
         ];
     }
 
@@ -46,6 +85,7 @@ class InstructorClassService
 
         return DB::table('study_classes')->insertGetId([
             'title' => $data['title'],
+            'slug' => StudyClass::uniqueSlug($data['title']),
             'course_id' => $data['course_id'],
             'lesson_id' => $data['lesson_id'] ?? null,
             'term_id' => $data['term_id'] ?? null,
@@ -54,6 +94,9 @@ class InstructorClassService
             'class_type_id' => $data['class_type_id'] ?? null,
             'capacity' => $data['capacity'] ?? 20,
             'status' => $data['status'] ?? 'upcoming',
+            'attendance_latitude' => $data['attendance_latitude'] ?? null,
+            'attendance_longitude' => $data['attendance_longitude'] ?? null,
+            'attendance_radius_meters' => $data['attendance_radius_meters'] ?? null,
             'teacher_id' => $instructor->id,
             'created_at' => $now,
             'updated_at' => $now,
@@ -63,6 +106,17 @@ class InstructorClassService
     public function classes(User $instructor): Collection
     {
         return $this->classesQuery($instructor)
+            ->orderByDesc('study_classes.id')
+            ->get()
+            ->map(fn (stdClass $class) => $this->presentClass($class));
+    }
+
+    // Ended / completed classes for the Class History page - the dashboard
+    // only lists upcoming/active/pre_end, so this is the only way back to a
+    // finished class to re-open its result sheet.
+    public function endedClasses(User $instructor): Collection
+    {
+        return $this->classesQuery($instructor, ['ended', 'completed'])
             ->orderByDesc('study_classes.id')
             ->get()
             ->map(fn (stdClass $class) => $this->presentClass($class));
@@ -89,9 +143,65 @@ class InstructorClassService
         ];
     }
 
+    /** Instructor's self-service "request to track again" - sends their current block to admin review. */
+    public function requestAttendanceUnblock(User $instructor): InstructorAttendanceBlock
+    {
+        $block = $this->findActiveBlock->handle($instructor->id);
+
+        if (! $block) {
+            throw ValidationException::withMessages([
+                'request' => 'You do not have an active attendance block.',
+            ]);
+        }
+
+        if ($block->status !== InstructorAttendanceBlock::STATUS_PENDING_REVIEW) {
+            $block->update([
+                'status' => InstructorAttendanceBlock::STATUS_PENDING_REVIEW,
+                'unblock_requested_at' => now(),
+            ]);
+        }
+
+        return $block;
+    }
+
     public function findForInstructor(User $instructor, int $studyClassId): stdClass
     {
         $class = $this->classesQuery($instructor)
+            ->where('study_classes.id', $studyClassId)
+            ->first();
+
+        abort_unless($class, 403);
+
+        return $class;
+    }
+
+    public function requestCertificates(stdClass $class, User $instructor): array
+    {
+        $types = $this->certificateRequestTypesForClass($class);
+        $now = now();
+
+        foreach ($types as $type) {
+            DB::table('certificate_class_requests')->updateOrInsert(
+                [
+                    'study_class_id' => $class->id,
+                    'certificate_type' => $type,
+                ],
+                [
+                    'requested_by' => $instructor->id,
+                    'status' => 'pending',
+                    'requested_at' => $now,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+            );
+        }
+
+        return $types;
+    }
+
+    public function findResultForInstructor(User $instructor, int $studyClassId): stdClass
+    {
+        $class = $this->classesQuery($instructor, ['ended', 'completed'])
             ->where('study_classes.id', $studyClassId)
             ->first();
 
@@ -104,9 +214,8 @@ class InstructorClassService
     {
         $attendanceStats = $this->attendanceStats($studyClassId);
         $todayAttendance = $this->todayAttendance($studyClassId);
-        $officialLeavesToday = $this->officialLeavesToday($studyClassId);
 
-        return DB::table('student_enrollments')
+        $rows = DB::table('student_enrollments')
             ->join('students', 'students.id', '=', 'student_enrollments.student_id')
             ->leftJoin('users as students_user', 'students_user.id', '=', 'students.user_id')
             ->leftJoin('student_scores', 'student_scores.student_enrollment_id', '=', 'student_enrollments.id')
@@ -125,14 +234,20 @@ class InstructorClassService
                 'student_scores.activity_score',
                 'student_scores.exam_score',
             ])
-            ->get()
-            ->map(fn (stdClass $student, int $index) => $this->presentStudent(
-                $student,
-                $index + 1,
-                $attendanceStats->get($student->id),
-                $todayAttendance->get($student->id),
-                $officialLeavesToday->get($student->id),
-            ));
+            ->get();
+
+        // Absence-block lock state for every student (shows even before a row is
+        // tracked, since a block can be raised from another class in the course).
+        $lockStates = app(AbsenceBlockEvaluator::class)
+            ->lockStateForRoster($studyClassId, $rows->pluck('id')->all());
+
+        return $rows->map(fn (stdClass $student, int $index) => $this->presentStudent(
+            $student,
+            $index + 1,
+            $attendanceStats->get($student->id),
+            $todayAttendance->get($student->id),
+            $lockStates[$student->id] ?? null,
+        ));
     }
 
     public function pendingRegistrations(int $studyClassId): Collection
@@ -163,9 +278,82 @@ class InstructorClassService
             ]);
     }
 
+    public function ensureTodayAttendanceSession(stdClass $class, User $instructor): void
+    {
+        $today = Carbon::today('Asia/Phnom_Penh');
+        $termName = $class->term_name ?? $class->term ?? null;
+        $timeName = $class->time_name ?? $class->time ?? null;
+
+        if (Holiday::isHoliday($today)) {
+            return;
+        }
+
+        if (! $this->allowTrackAnytime() && ! in_array($today->format('l'), StudyClass::parseTermDays($termName), true)) {
+            return;
+        }
+
+        $timeRange = StudyClass::parseTimeRange($timeName);
+
+        if (! $timeRange['start'] || ! $timeRange['end']) {
+            return;
+        }
+
+        $hasStudents = DB::table('student_enrollments')
+            ->where('study_class_id', $class->id)
+            ->where('enrollment_status', 'active')
+            ->exists();
+
+        if (! $hasStudents) {
+            return;
+        }
+
+        DB::transaction(function () use ($class, $instructor, $today, $timeRange): void {
+            $session = ClassSession::query()
+                ->where('study_class_id', $class->id)
+                ->whereDate('session_date', $today)
+                ->lockForUpdate()
+                ->first();
+
+            if ($session && $session->status !== ClassSession::STATUS_SKIPPED) {
+                return;
+            }
+
+            $payload = [
+                'instructor_id' => $instructor->id,
+                'scheduled_start' => $today->copy()->setTimeFromTimeString($timeRange['start']),
+                'scheduled_end' => $today->copy()->setTimeFromTimeString($timeRange['end']),
+                'status' => ClassSession::STATUS_PENDING,
+            ];
+
+            if ($session) {
+                $session->update($payload);
+
+                return;
+            }
+
+            ClassSession::create([
+                'study_class_id' => $class->id,
+                'session_date' => $today->toDateString(),
+                ...$payload,
+            ]);
+        });
+    }
+
     public function saveAttendance(User $instructor, int $studyClassId, array $data): void
     {
+        if ($this->findActiveBlock->handle($instructor->id)) {
+            throw ValidationException::withMessages([
+                'records' => 'Your account is blocked from tracking attendance. Submit a request to regain access.',
+            ]);
+        }
+
         $attendanceDate = Carbon::parse($data['attendance_date'] ?? now())->toDateString();
+
+        if (Holiday::isHoliday($attendanceDate)) {
+            throw ValidationException::withMessages([
+                'records' => 'Attendance cannot be tracked on a holiday.',
+            ]);
+        }
 
         $enrollments = DB::table('student_enrollments')
             ->where('study_class_id', $studyClassId)
@@ -186,43 +374,65 @@ class InstructorClassService
                 ->whereDate('session_date', $attendanceDate)
                 ->lockForUpdate()
                 ->first();
+            $activeQrSession = AttendanceSession::query()
+                ->where('study_class_id', $studyClassId)
+                ->whereDate('attendance_date', $attendanceDate)
+                ->where('status', AttendanceSession::STATUS_ACTIVE)
+                ->where('expires_at', '>', Carbon::now('Asia/Phnom_Penh'))
+                ->lockForUpdate()
+                ->first();
 
-            if (! $session || $session->status !== ClassSession::STATUS_PENDING) {
-                if ($session && $session->status === ClassSession::STATUS_AUTO_RECORDED) {
-                    throw ValidationException::withMessages([
-                        'records' => 'The system already auto-recorded this class. Use the override option on the attendance page to correct it.',
-                    ]);
-                }
+            $canCompletePreAttendance = $session && in_array($session->status, [
+                ClassSession::STATUS_PRE_ATTENDANCE,
+                ClassSession::STATUS_PARTIAL,
+            ], true);
+            $allowTrackAnytime = $this->allowTrackAnytime();
+            $approvedPreAttendanceRequest = $canCompletePreAttendance
+                ? $this->approvedPreAttendanceRequest($instructor, $studyClassId, $attendanceDate)
+                : null;
 
+            if ($session && $session->status === ClassSession::STATUS_AUTO_RECORDED) {
+                throw ValidationException::withMessages([
+                    'records' => 'The system already auto-recorded this class.',
+                ]);
+            }
+
+            if ($canCompletePreAttendance && ! $approvedPreAttendanceRequest) {
+                throw ValidationException::withMessages([
+                    'records' => 'Pre-attendance recovery needs admin approval before re-track.',
+                ]);
+            }
+
+            if ((! $session || ($session->status !== ClassSession::STATUS_PENDING && ! $canCompletePreAttendance)) && ! $activeQrSession && ! $allowTrackAnytime) {
                 throw ValidationException::withMessages([
                     'records' => 'Attendance can only be tracked during the scheduled class window.',
                 ]);
             }
 
-            $this->assertAttendanceWindowOpen($session);
+            if (! $activeQrSession && ! $canCompletePreAttendance && ! $allowTrackAnytime) {
+                $this->assertAttendanceWindowOpen($session);
+            }
 
-            // Official leave overrides everything: an approved leave covering the
-            // attendance date locks the student's row — "absent" is never allowed.
-            $blockedNames = DB::table('official_leaves')
-                ->whereIn('student_id', $enrollments->keys())
-                ->where('status', 'approved')
-                ->whereDate('start_date', '<=', $attendanceDate)
-                ->whereDate('end_date', '>=', $attendanceDate)
-                ->pluck('student_id')
-                ->filter(function ($studentId) use ($data) {
-                    $record = collect($data['records'])
-                        ->first(fn ($record) => (int) $record['student_id'] === (int) $studentId);
+            $existingPreAttendanceRows = $canCompletePreAttendance
+                ? DB::table('student_attendances')
+                    ->where('study_class_id', $studyClassId)
+                    ->whereDate('attendance_date', $attendanceDate)
+                    ->pluck('id', 'student_enrollment_id')
+                : collect();
 
-                    return $record !== null && ($record['status'] ?? '') === 'absent';
-                })
-                ->map(fn ($studentId) => Student::query()->find($studentId)?->full_name ?? "#{$studentId}")
-                ->all();
+            $lockEvaluator = app(AbsenceBlockEvaluator::class);
+            $permissionEvaluator = app(PermissionLimitEvaluator::class);
+            $class = StudyClass::query()->find($studyClassId);
 
-            if ($blockedNames !== []) {
-                throw ValidationException::withMessages([
-                    'records' => 'Official leave approved for '.implode(', ', array_slice($blockedNames, 0, 3)).' — these students cannot be marked absent.',
+            // first attendance submission for a class sets the start date and activates the class
+            if ($class && $class->start_date === null) {
+                $class->update([
+                    'start_date' => $attendanceDate,
+                    'status' => 'active',
                 ]);
             }
+
+            $settledAbsent = [];
 
             foreach ($data['records'] as $record) {
                 $enrollmentId = (int) $record['enrollment_id'];
@@ -235,6 +445,26 @@ class InstructorClassService
                     ]);
                 }
 
+                if ($existingPreAttendanceRows->has($enrollmentId)) {
+                    continue;
+                }
+
+                // Absence-block enforcement. A locked student is forced 'absent'
+                // regardless of what the instructor submitted; an over-quota
+                // manual permission is recorded as an absence.
+                $lock = $lockEvaluator->evaluate($studentId, $studyClassId, $attendanceDate);
+                $status = $record['status'];
+                $note = $record['note'] ?? null;
+
+                if ($lock->locked) {
+                    $status = 'absent';
+                    $note = $lock->reason;
+                } elseif ($status === 'permission' && $class) {
+                    $permission = $permissionEvaluator->resolve($studentId, $class, $attendanceDate);
+                    $status = $permission['status'];
+                    $note = $permission['note'] ?? $note;
+                }
+
                 DB::table('student_attendances')->updateOrInsert(
                     [
                         'study_class_id' => $studyClassId,
@@ -244,24 +474,93 @@ class InstructorClassService
                     [
                         'student_id' => $studentId,
                         'tracked_by' => $instructor->id,
-                        'status' => $record['status'],
+                        ...StudentAttendance::flagsFor($status),
+                        'locked' => $lock->locked,
+                        'lock_reason' => $lock->locked ? $lock->reason : null,
+                        'locked_block_id' => $lock->blockId,
                         'source' => StudentAttendance::SOURCE_MANUAL,
-                        'note' => $record['note'] ?? null,
+                        'note' => $note,
                         'updated_at' => now(),
                         'created_at' => now(),
                     ],
                 );
+
+                if ($status === 'absent') {
+                    $settledAbsent[] = $studentId;
+                }
             }
 
-            if ($session && $session->status === ClassSession::STATUS_PENDING) {
-                $session->update(['status' => ClassSession::STATUS_RECORDED, 'recorded_at' => now()]);
+            // Raise / escalate blocks for anyone who ended up absent.
+            $autoBlock = app(AutoBlockStudent::class);
+            foreach (array_unique($settledAbsent) as $absentStudentId) {
+                $autoBlock->handle($absentStudentId, $studyClassId, $attendanceDate, $instructor);
+            }
+
+            if ($session && in_array($session->status, [
+                ClassSession::STATUS_PENDING,
+                ClassSession::STATUS_PRE_ATTENDANCE,
+                ClassSession::STATUS_PARTIAL,
+            ], true)) {
+                $savedCount = count($data['records']);
+                $totalEnrollments = $enrollments->count();
+
+                $session->update([
+                    'status' => $savedCount >= $totalEnrollments
+                        ? ClassSession::STATUS_RECORDED
+                        : ClassSession::STATUS_PARTIAL,
+                    'recorded_at' => now(),
+                ]);
+            }
+
+            if ($approvedPreAttendanceRequest) {
+                $approvedPreAttendanceRequest->update([
+                    'status' => PreAttendanceRequest::STATUS_COMPLETED,
+                    'completed_at' => now(),
+                ]);
+            }
+
+            if ($activeQrSession && ($data['stop_session'] ?? false)) {
+                $activeQrSession->update([
+                    'status' => AttendanceSession::STATUS_STOPPED,
+                    'stopped_by' => $instructor->id,
+                    'stopped_at' => now(),
+                ]);
             }
         });
+    }
+
+    public function canUsePreAttendanceApproval(User $instructor, int $studyClassId, Carbon|string|null $date = null): bool
+    {
+        $attendanceDate = Carbon::parse($date ?? Carbon::today('Asia/Phnom_Penh'))->toDateString();
+
+        return (bool) $this->approvedPreAttendanceRequest($instructor, $studyClassId, $attendanceDate);
+    }
+
+    private function approvedPreAttendanceRequest(User $instructor, int $studyClassId, Carbon|string $date): ?PreAttendanceRequest
+    {
+        return PreAttendanceRequest::query()
+            ->where('study_class_id', $studyClassId)
+            ->where('requested_by', $instructor->id)
+            ->whereDate('session_date', Carbon::parse($date)->toDateString())
+            ->where('status', PreAttendanceRequest::STATUS_APPROVED)
+            ->first();
     }
 
     public function attendanceWindow(int $studyClassId, Carbon|string|null $attendanceDate = null): array
     {
         $date = Carbon::parse($attendanceDate ?? Carbon::today('Asia/Phnom_Penh'))->toDateString();
+
+        if (Holiday::isHoliday($date)) {
+            return [
+                'session_date' => $date,
+                'status' => ClassSession::STATUS_SKIPPED,
+                'can_submit' => false,
+                'reason' => self::ATTENDANCE_WINDOW_REASON_HOLIDAY,
+                'starts_at' => null,
+                'ends_at' => null,
+            ];
+        }
+
         $session = ClassSession::query()
             ->where('study_class_id', $studyClassId)
             ->whereDate('session_date', $date)
@@ -279,25 +578,91 @@ class InstructorClassService
         }
 
         $window = $this->windowForSession($session);
-
-        $hasAttendance = $this->hasAttendanceForDate($studyClassId, $date);
+        $isPreAttendance = in_array($session->status, [
+            ClassSession::STATUS_PRE_ATTENDANCE,
+            ClassSession::STATUS_PARTIAL,
+        ], true);
+        $allowTrackAnytime = $this->allowTrackAnytime();
+        $hasAttendance = ! $isPreAttendance && $this->hasAttendanceForDate($studyClassId, $date);
 
         return [
             'session_date' => $session->session_date->toDateString(),
             'status' => $session->status,
-            'can_submit' => $session->status === ClassSession::STATUS_PENDING
-                && $window['now']->greaterThanOrEqualTo($window['starts_at'])
-                && $window['now']->lessThanOrEqualTo($window['ends_at']),
-            'reason' => $hasAttendance
-                ? self::ATTENDANCE_WINDOW_REASON_ALREADY_SUBMITTED
-                : ($window['now']->lessThan($window['starts_at'])
+            'can_submit' => $allowTrackAnytime || $isPreAttendance
+                || ($session->status === ClassSession::STATUS_PENDING
+                    && $window['now']->greaterThanOrEqualTo($window['starts_at'])
+                    && $window['now']->lessThanOrEqualTo($window['ends_at'])),
+            'reason' => $allowTrackAnytime || $isPreAttendance
+                ? null
+                : ($hasAttendance
+                    ? self::ATTENDANCE_WINDOW_REASON_ALREADY_SUBMITTED
+                    : ($window['now']->lessThan($window['starts_at'])
                     ? self::ATTENDANCE_WINDOW_REASON_BEFORE_START
                     : ($window['now']->greaterThan($window['ends_at'])
                         ? self::ATTENDANCE_WINDOW_REASON_AFTER_DEADLINE
-                        : null)),
+                        : null))),
             'starts_at' => $window['starts_at']->format('Y-m-d H:i'),
             'ends_at' => $window['ends_at']->format('Y-m-d H:i'),
         ];
+    }
+
+    public function canTrackAttendance(stdClass $class, ?array $attendanceWindow, ?array $todaySession): bool
+    {
+        if (strtolower((string) ($class->class_status ?? '')) !== 'active') {
+            return false;
+        }
+
+        if (($attendanceWindow['reason'] ?? null) === self::ATTENDANCE_WINDOW_REASON_HOLIDAY) {
+            return false;
+        }
+
+        if (($todaySession['status'] ?? null) === ClassSession::STATUS_AUTO_RECORDED) {
+            return false;
+        }
+
+        if ($this->allowTrackAnytime()) {
+            return true;
+        }
+
+        return (bool) ($todaySession['is_pre_attendance'] ?? false)
+            || (bool) ($attendanceWindow['can_submit'] ?? false);
+    }
+
+    public function trackAttendanceLabel(stdClass $class, ?array $attendanceWindow, ?array $todaySession): string
+    {
+        $classStatus = strtolower((string) ($class->class_status ?? ''));
+
+        if ($classStatus === 'pre_end') {
+            return 'Pre-End';
+        }
+
+        if ($classStatus === 'ended') {
+            return 'Ended';
+        }
+
+        if (($todaySession['status'] ?? null) === ClassSession::STATUS_AUTO_RECORDED) {
+            return 'Submitted Today';
+        }
+
+        if (($attendanceWindow['reason'] ?? null) === self::ATTENDANCE_WINDOW_REASON_HOLIDAY) {
+            return 'Holiday';
+        }
+
+        if ($this->allowTrackAnytime()) {
+            return 'Track Attendance';
+        }
+
+        if ((bool) ($todaySession['is_pre_attendance'] ?? false)) {
+            return 'Pre-Attendance';
+        }
+
+        return match ($attendanceWindow['reason'] ?? null) {
+            self::ATTENDANCE_WINDOW_REASON_BEFORE_START => 'Not Started',
+            self::ATTENDANCE_WINDOW_REASON_AFTER_DEADLINE => 'Window Closed',
+            self::ATTENDANCE_WINDOW_REASON_NO_SESSION => 'No Session',
+            self::ATTENDANCE_WINDOW_REASON_HOLIDAY => 'Holiday',
+            default => 'Track Attendance',
+        };
     }
 
     private function assertAttendanceWindowOpen(ClassSession $session): void
@@ -313,7 +678,7 @@ class InstructorClassService
 
     private function windowForSession(ClassSession $session): array
     {
-        $graceMinutes = (int) setting('attendance.auto_record_grace_minutes', 15);
+        $graceMinutes = (int) setting('attendance.auto_record_grace_minutes', 20);
         $startsAt = $session->scheduled_start->copy();
         $endsAt = $session->scheduled_start->copy()->addMinutes($graceMinutes);
 
@@ -322,6 +687,11 @@ class InstructorClassService
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
         ];
+    }
+
+    public function allowTrackAnytime(): bool
+    {
+        return filter_var(setting('attendance.auto_record_allow_track_anytime', false), FILTER_VALIDATE_BOOLEAN);
     }
 
     public function hasAttendanceForDate(int $studyClassId, Carbon|string $attendanceDate): bool
@@ -364,24 +734,32 @@ class InstructorClassService
             ->orderByDesc('student_attendances.attendance_date')
             ->select([
                 'student_attendances.attendance_date',
-                'student_attendances.status',
+                'student_attendances.present',
+                'student_attendances.absent',
+                'student_attendances.permission',
+                'student_attendances.late',
                 'student_attendances.note',
+                'student_attendances.locked',
+                'student_attendances.lock_reason',
                 'student_attendances.updated_at',
                 'trackers.name as tracked_by_name',
             ])
             ->get()
             ->map(fn (stdClass $record) => [
                 'date' => Carbon::parse($record->attendance_date)->format('Y-m-d'),
-                'status' => $record->status,
+                'status' => StudentAttendance::labelForFlags($record),
                 'note' => $record->note ?? '-',
-                'tracked_by' => $record->tracked_by_name ?? '-',
+                'locked' => (bool) $record->locked,
+                'lock_reason' => $record->lock_reason,
+                'tracked_by' => InstructorDisplayName::format($record->tracked_by_name ?? null),
                 'updated_at' => $record->updated_at ? Carbon::parse($record->updated_at)->format('Y-m-d H:i') : '-',
             ]);
 
         $stats = $this->attendanceStats($studyClassId)->get($studentId);
+        $lockState = app(AbsenceBlockEvaluator::class)->evaluate($studentId, $studyClassId);
 
         return [
-            ...$this->presentStudent($student, 1, $stats),
+            ...$this->presentStudent($student, 1, $stats, null, $lockState),
             'records' => $records,
         ];
     }
@@ -396,10 +774,11 @@ class InstructorClassService
 
         return [
             'id' => $class->id,
+            'slug' => $class->slug,
             'title' => $class->title,
             'course' => $class->course_title,
             'lesson' => $class->lesson_title ?? 'No lesson',
-            'teacher' => $class->teacher_name ?? '-',
+            'teacher' => InstructorDisplayName::format($class->teacher_name ?? null),
             'building' => $class->building_name ?? '-',
             'floor' => $class->floor_name ?? '-',
             'room' => $class->room_number ?? ($classTypeValue === 'online' ? 'Online' : '-'),
@@ -415,7 +794,9 @@ class InstructorClassService
             'subject' => $class->my_subject ?? null,
             'is_owner' => (bool) ($class->is_owner ?? true),
             'is_shared' => ! empty($class->co_instructor_names),
-            'shared_with' => $class->co_instructor_names ?? null,
+            'shared_with' => $this->instructorDisplayNames($class->co_instructor_names ?? null),
+            'certificate_request_types' => $this->certificateRequestTypesFromCsv($class->certificate_request_types ?? null),
+            'has_certificate_request' => ! empty($class->certificate_request_types),
             'capacity' => (int) $class->capacity,
             'students' => (int) $class->current_students,
             'created_date' => $class->created_at ? Carbon::parse($class->created_at)->format('Y-m-d H:i:s') : null,
@@ -427,7 +808,7 @@ class InstructorClassService
      * shared with them ("Collapse Class"). A shared class shows that instructor their own
      * term/time — their half of the week — rather than the class-wide schedule.
      */
-    private function classesQuery(User $instructor)
+    private function classesQuery(User $instructor, ?array $statuses = null)
     {
         $activeStudentCounts = DB::table('student_enrollments')
             ->select('study_class_id', DB::raw('count(*) as current_students'))
@@ -446,9 +827,20 @@ class InstructorClassService
                 DB::raw("group_concat(users.name separator ', ') as co_instructor_names"),
             ]);
 
+        $certificateRequests = DB::table('class_certificate_requests')
+            ->where('status', 'pending')
+            ->groupBy('study_class_id')
+            ->select([
+                'study_class_id',
+                DB::raw("group_concat(certificate_type separator ',') as certificate_request_types"),
+            ]);
+
         return DB::table('study_classes')
             ->leftJoinSub($coInstructors, 'co_instructors', function ($join) {
                 $join->on('co_instructors.study_class_id', '=', 'study_classes.id');
+            })
+            ->leftJoinSub($certificateRequests, 'certificate_requests', function ($join) {
+                $join->on('certificate_requests.study_class_id', '=', 'study_classes.id');
             })
             ->leftJoin('study_class_instructors as my_slot', function ($join) use ($instructor) {
                 $join->on('my_slot.study_class_id', '=', 'study_classes.id')
@@ -460,7 +852,7 @@ class InstructorClassService
                 $query->where('study_classes.teacher_id', $instructor->id)
                     ->orWhereNotNull('my_slot.id');
             })
-            ->whereIn('study_classes.status', self::VISIBLE_CLASS_STATUSES)
+            ->whereIn('study_classes.status', $statuses ?? self::VISIBLE_CLASS_STATUSES)
             ->leftJoin('courses', 'courses.id', '=', 'study_classes.course_id')
             ->leftJoin('course_lessons', 'course_lessons.id', '=', 'study_classes.lesson_id')
             ->leftJoin('users as teachers', 'teachers.id', '=', 'study_classes.teacher_id')
@@ -475,6 +867,7 @@ class InstructorClassService
             })
             ->select([
                 'study_classes.id',
+                'study_classes.slug',
                 'study_classes.title',
                 'study_classes.capacity',
                 'study_classes.status as class_status',
@@ -492,12 +885,63 @@ class InstructorClassService
                 DB::raw('coalesce(my_times.time_name, times.time_name) as time_name'),
                 'my_slot.subject as my_subject',
                 'co_instructors.co_instructor_names',
+                'certificate_requests.certificate_request_types',
                 DB::raw('coalesce(active_student_counts.current_students, 0) as current_students'),
             ])
             // Appended after select(), which would otherwise reset the column list. Shared
             // instructors teach the class but don't own it, so the card can hide the actions
             // (edit, end, share) the backend would reject for them anyway.
             ->selectRaw('(study_classes.teacher_id = ?) as is_owner', [$instructor->id]);
+    }
+
+    private function instructorDisplayNames(?string $names): ?string
+    {
+        if (! $names) {
+            return null;
+        }
+
+        return collect(explode(',', $names))
+            ->map(fn (string $name) => InstructorDisplayName::format($name))
+            ->filter(fn (string $name) => $name !== '-')
+            ->implode(', ');
+    }
+
+    private function certificateRequestTypesForClass(stdClass $class): array
+    {
+        return match ($this->certificateRequestTypeForClass($class)) {
+            'internship' => ['internship'],
+            default => ['normal'],
+        };
+    }
+
+    private function certificateRequestTypesFromCsv(?string $types): array
+    {
+        if (! $types) {
+            return [];
+        }
+
+        return collect(explode(',', $types))
+            ->map(fn (string $type): string => trim($type))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function certificateRequestTypeForClass(stdClass $class): string
+    {
+        $text = strtolower(collect([
+            $class->class_type_name ?? null,
+            $class->course_title ?? null,
+            $class->lesson_title ?? null,
+            $class->title ?? null,
+        ])->filter()->implode(' '));
+
+        if (str_contains($text, 'internship') || str_contains($text, 'intership')) {
+            return 'internship';
+        }
+
+        return 'normal';
     }
 
     private function attendanceStats(int $studyClassId): Collection
@@ -507,10 +951,10 @@ class InstructorClassService
             ->select([
                 'student_id',
                 DB::raw('count(*) as total'),
-                DB::raw("sum(case when status = 'present' then 1 else 0 end) as present"),
-                DB::raw("sum(case when status = 'permission' then 1 else 0 end) as permission_count"),
-                DB::raw("sum(case when status = 'absent' then 1 else 0 end) as absent"),
-                DB::raw("sum(case when status = 'on_leave' then 1 else 0 end) as on_leave_count"),
+                DB::raw('sum(present) as present'),
+                DB::raw('sum(permission) as permission_count'),
+                DB::raw('sum(absent) as absent'),
+                DB::raw('sum(late) as late'),
             ])
             ->groupBy('student_id')
             ->get()
@@ -522,11 +966,11 @@ class InstructorClassService
         return DB::table('student_attendances')
             ->where('study_class_id', $studyClassId)
             ->whereDate('attendance_date', Carbon::today('Asia/Phnom_Penh'))
-            ->get(['student_id', 'status', 'note'])
+            ->get(['student_id', 'present', 'absent', 'permission', 'late', 'note', 'locked', 'lock_reason'])
             ->keyBy('student_id');
     }
 
-    private function presentStudent(stdClass $student, int $rosterNo, ?stdClass $attendanceStats = null, ?stdClass $todayAttendance = null, ?object $officialLeave = null): array
+    private function presentStudent(stdClass $student, int $rosterNo, ?stdClass $attendanceStats = null, ?stdClass $todayAttendance = null, ?LockState $lockState = null): array
     {
         return [
             'id' => $student->id,
@@ -537,46 +981,47 @@ class InstructorClassService
             'gender' => $student->gender ?? '-',
             'phone' => $student->phone ?? '-',
             'date_of_birth' => $student->date_of_birth ? Carbon::parse($student->date_of_birth)->format('Y-m-d') : null,
-            'on_leave' => $officialLeave !== null,
-            'on_leave_range' => $officialLeave
-                ? Carbon::parse($officialLeave->start_date)->format('M j').' - '.Carbon::parse($officialLeave->end_date)->format('M j')
-                : null,
             'attendance' => [
                 'total' => (int) ($attendanceStats->total ?? 0),
                 'present' => (int) ($attendanceStats->present ?? 0),
                 'permission' => (int) ($attendanceStats->permission_count ?? 0),
                 'absent' => (int) ($attendanceStats->absent ?? 0),
-                'on_leave' => (int) ($attendanceStats->on_leave_count ?? 0),
-                'current_status' => $todayAttendance->status ?? ($officialLeave ? 'on_leave' : 'absent'),
+                'late' => (int) ($attendanceStats->late ?? 0),
+                'current_status' => $todayAttendance ? StudentAttendance::labelForFlags($todayAttendance) : null,
+                'is_tracked' => $todayAttendance !== null,
                 'note' => $todayAttendance->note ?? '',
+                // Absence-block lock: when true the instructor cannot mark this
+                // student present - the save path forces 'absent'.
+                'is_locked' => $lockState?->locked ?? (bool) ($todayAttendance->locked ?? false),
+                'lock_reason' => $lockState?->reason ?? ($todayAttendance->lock_reason ?? null),
+                'lock_phase' => $lockState?->phase ?? 'none',
             ],
             'scores' => [
-                'attendance' => (float) ($student->attendance_score ?? 0),
+                'attendance' => $this->attendanceScoreFromStats($attendanceStats),
                 'activity' => (float) ($student->activity_score ?? 0),
                 'exam' => (float) ($student->exam_score ?? 0),
             ],
         ];
     }
 
-    /**
-     * Approved official leaves covering today for this class's students — the source
-     * of the "On Leave" lock in the attendance UI and saveAttendance's absent guard.
-     */
-    private function officialLeavesToday(int $studyClassId): Collection
+    private function attendanceScoreFromStats(?stdClass $attendanceStats): float
     {
-        $today = Carbon::today('Asia/Phnom_Penh')->toDateString();
+        $absent = (int) ($attendanceStats->absent ?? 0);
+        $permission = (int) ($attendanceStats->permission_count ?? 0);
+        $late = (int) ($attendanceStats->late ?? 0);
 
-        return DB::table('official_leaves')
-            ->whereIn('student_id', fn ($query) => $query
-                ->select('se.student_id')
-                ->from('student_enrollments as se')
-                ->whereColumn('se.study_class_id', $studyClassId)
-                ->where('se.enrollment_status', 'active'))
-            ->where('status', 'approved')
-            ->whereDate('start_date', '<=', $today)
-            ->whereDate('end_date', '>=', $today)
-            ->get(['student_id', 'start_date', 'end_date'])
-            ->keyBy('student_id');
+        $score = self::ATTENDANCE_SCORE_DEFAULT
+            - ($absent * self::ABSENT_ATTENDANCE_DEDUCTION)
+            - ($permission * self::PERMISSION_ATTENDANCE_DEDUCTION)
+            - ($late * self::LATE_ATTENDANCE_DEDUCTION);
+
+        return round(max(0, $score), 2);
+    }
+
+    private function attendanceScoresForClass(int $studyClassId): Collection
+    {
+        return $this->attendanceStats($studyClassId)
+            ->map(fn (stdClass $attendanceStats): float => $this->attendanceScoreFromStats($attendanceStats));
     }
 
     public function saveScores(int $studyClassId, array $records): void
@@ -586,8 +1031,9 @@ class InstructorClassService
             ->where('enrollment_status', 'active')
             ->get(['id', 'student_id'])
             ->keyBy('id');
+        $attendanceScores = $this->attendanceScoresForClass($studyClassId);
 
-        DB::transaction(function () use ($records, $enrollments, $studyClassId): void {
+        DB::transaction(function () use ($records, $enrollments, $attendanceScores, $studyClassId): void {
             foreach ($records as $record) {
                 $enrollmentId = (int) $record['enrollment_id'];
                 $studentId = (int) $record['student_id'];
@@ -607,7 +1053,7 @@ class InstructorClassService
                 $payload = [
                     'study_class_id' => $studyClassId,
                     'student_id' => $studentId,
-                    'attendance_score' => $record['attendance_score'],
+                    'attendance_score' => $attendanceScores->get($studentId, self::ATTENDANCE_SCORE_DEFAULT),
                     'activity_score' => $record['activity_score'],
                     'exam_score' => $record['exam_score'],
                     'updated_at' => $now,
@@ -625,7 +1071,7 @@ class InstructorClassService
                     'student_enrollment_id' => $enrollmentId,
                     'study_class_id' => $studyClassId,
                     'student_id' => $studentId,
-                    'attendance_score' => $record['attendance_score'],
+                    'attendance_score' => $attendanceScores->get($studentId, self::ATTENDANCE_SCORE_DEFAULT),
                     'activity_score' => $record['activity_score'],
                     'exam_score' => $record['exam_score'],
                     'created_at' => $now,
@@ -689,6 +1135,7 @@ class InstructorClassService
         }
 
         $seenStudentIds = [];
+        $seenTeamNames = [];
 
         foreach ($teams as $index => $team) {
             $teamName = trim((string) ($team['team_name'] ?? ''));
@@ -700,6 +1147,16 @@ class InstructorClassService
                     "teams.$index.team_name" => 'Team name is required.',
                 ]);
             }
+
+            $teamNameKey = mb_strtolower($teamName);
+
+            if (isset($seenTeamNames[$teamNameKey])) {
+                throw ValidationException::withMessages([
+                    "teams.$index.team_name" => 'Team names must be unique within this group.',
+                ]);
+            }
+
+            $seenTeamNames[$teamNameKey] = true;
 
             if (empty($studentIds)) {
                 throw ValidationException::withMessages([
@@ -881,21 +1338,7 @@ class InstructorClassService
 
     private function parseTermDays(?string $termName): array
     {
-        $dayMap = [
-            'Mon' => 'Monday', 'Monday' => 'Monday',
-            'Tue' => 'Tuesday', 'Tues' => 'Tuesday', 'Tuesday' => 'Tuesday',
-            'Wed' => 'Wednesday', 'Wednesday' => 'Wednesday',
-            'Thu' => 'Thursday', 'Thur' => 'Thursday', 'Thurs' => 'Thursday', 'Thursday' => 'Thursday',
-            'Fri' => 'Friday', 'Friday' => 'Friday',
-            'Sat' => 'Saturday', 'Saturday' => 'Saturday',
-            'Sun' => 'Sunday', 'Sunday' => 'Sunday',
-        ];
-
-        return collect(preg_split('/\s*(?:-|,|&|\/|\+|and)\s*/i', (string) $termName))
-            ->map(fn (string $day) => $dayMap[trim($day)] ?? null)
-            ->filter()
-            ->values()
-            ->all();
+        return StudyClass::parseTermDays($termName);
     }
 
     private function studyDaysKey(array $studyDays): string

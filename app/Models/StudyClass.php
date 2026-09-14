@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class StudyClass extends Model
 {
@@ -12,8 +14,15 @@ class StudyClass extends Model
 
     protected $table = 'study_classes';
 
+    /**
+     * Statuses where the class still occupies its time slot. An ended or
+     * cancelled class frees the slot (see Time::classSlotsRemaining()).
+     */
+    public const LIVE_STATUSES = ['upcoming', 'active', 'pre_end'];
+
     protected $fillable = [
         'title',
+        'slug',
         'course_id',
         'lesson_id',
         'teacher_id',
@@ -25,6 +34,9 @@ class StudyClass extends Model
         'capacity',
         'price',
         'document_price',
+        'attendance_latitude',
+        'attendance_longitude',
+        'attendance_radius_meters',
         'enrollment_start_date',
         'start_date',
         'end_date',
@@ -44,6 +56,9 @@ class StudyClass extends Model
             'capacity' => 'integer',
             'price' => 'decimal:2',
             'document_price' => 'decimal:2',
+            'attendance_latitude' => 'decimal:7',
+            'attendance_longitude' => 'decimal:7',
+            'attendance_radius_meters' => 'integer',
             'enrollment_start_date' => 'date',
             'start_date' => 'date',
             'end_date' => 'date',
@@ -88,6 +103,11 @@ class StudyClass extends Model
     public function enrollments()
     {
         return $this->hasMany(StudentEnrollment::class);
+    }
+
+    public function certificateRequests()
+    {
+        return $this->hasMany(ClassCertificateRequest::class);
     }
 
     /**
@@ -147,10 +167,42 @@ class StudyClass extends Model
         return $this->isOnline() ? 'online' : 'physical';
     }
 
+    public static function uniqueSlug(string $title, ?int $ignoreId = null, mixed $timestamp = null): string
+    {
+        $dateTime = $timestamp ? Carbon::parse($timestamp) : now();
+        $baseSlug = (Str::slug($title) ?: 'class').'-'.$dateTime->format('YmdHis');
+        $slug = $baseSlug;
+        $suffix = 1;
+
+        while (static::query()
+            ->where('slug', $slug)
+            ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
+            ->exists()) {
+            $slug = "{$baseSlug}-{$suffix}";
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
     /**
-     * Parses a Term's term_name ("Mon & Tue") into English weekday names. Static and
-     * public so callers with a term_name that isn't $this->term (e.g. a shared class's
-     * co-instructor slot — see study_class_instructors) can use the same parsing.
+     * Weekday order used to resolve a term's day range - Monday-first, matching how
+     * every term_name in the terms table ("Mon & Thu", "Wed & Thu", ...) is written.
+     */
+    private const WEEKDAY_ORDER = [
+        'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+    ];
+
+    /**
+     * Parses a Term's term_name into English weekday names. Static and public so callers
+     * with a term_name that isn't $this->term (e.g. a shared class's co-instructor slot —
+     * see study_class_instructors) can use the same parsing.
+     *
+     * A two-part name is a continuous weekday RANGE in this application's domain
+     * language, not a list of just those two days: "Mon & Thu" means Monday through
+     * Thursday inclusive (Mon, Tue, Wed, Thu), the same way a person would read "Mon-Thu"
+     * on a store's opening hours sign. A single-day name ("Saturday") returns just that
+     * day. Every term_name actually in use (see TermSeeder) is one of these two shapes.
      */
     public static function parseTermDays(?string $termName): array
     {
@@ -164,11 +216,27 @@ class StudyClass extends Model
             'Sun' => 'Sunday', 'Sunday' => 'Sunday',
         ];
 
-        return collect(preg_split('/\s*(?:-|,|&|\/|\+|and)\s*/i', (string) $termName))
+        $tokens = collect(preg_split('/\s*(?:-|,|&|\/|\+|and)\s*/i', (string) $termName))
             ->map(fn (string $day) => $dayMap[trim($day)] ?? null)
             ->filter()
-            ->values()
-            ->all();
+            ->values();
+
+        if ($tokens->isEmpty()) {
+            return [];
+        }
+
+        $start = array_search($tokens->first(), self::WEEKDAY_ORDER, true);
+        $end = array_search($tokens->last(), self::WEEKDAY_ORDER, true);
+
+        if ($start === false || $end === false) {
+            return $tokens->all();
+        }
+
+        if ($start > $end) {
+            [$start, $end] = [$end, $start];
+        }
+
+        return array_slice(self::WEEKDAY_ORDER, $start, $end - $start + 1);
     }
 
     /**

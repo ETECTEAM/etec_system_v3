@@ -10,6 +10,7 @@ Route::middleware(['auth', 'active', 'role:super_admin|admin'])->prefix('dashboa
 
     Route::controller(ClassTypeController::class)->prefix('class-types')->group(function () {
         Route::get('/', 'index')->name('class-types.index');
+        Route::get('/data', 'paginatedIndex')->name('class-types.data');
         Route::get('/create', 'create')->name('class-types.create');
         Route::post('/', 'store')->name('class-types.store');
         
@@ -31,5 +32,4 @@ Route::middleware(['auth', 'active', 'role:super_admin|admin'])->prefix('dashboa
         Route::delete('/{classList}', 'destroy')->name('class-list.destroy');
     });
 });
-
 

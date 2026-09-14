@@ -3,24 +3,20 @@
 namespace App\Modules\Attendance\Actions;
 
 use App\Models\ClassSession;
-use App\Models\StudentAttendance;
+use App\Models\Holiday;
 use App\Models\StudentEnrollment;
-use App\Modules\Attendance\Queries\HasApprovedPermission;
-use App\Modules\OfficialLeave\Queries\HasApprovedOfficialLeave;
-use Illuminate\Database\QueryException;
+use App\Modules\Holiday\Services\HolidayService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Records attendance on the instructor's behalf for one overdue session. Called by the
- * AutoRecordAttendance command for every session the query found due; each call is its
- * own transaction so one bad class can't roll back the whole scheduler run.
+ * Moves unresolved attendance to the recoverable pre-attendance flow after grace time.
  */
 class AutoRecordSession
 {
     public function __construct(
-        private readonly HasApprovedPermission $hasApprovedPermission,
-        private readonly HasApprovedOfficialLeave $hasApprovedOfficialLeave,
+        private readonly HolidayService $holidays,
+        private readonly BlockInstructorForMissedAttendance $blockInstructor,
     ) {}
 
     public function handle(int $sessionId): void
@@ -31,20 +27,21 @@ class AutoRecordSession
             // which takes this same lock) in the gap between that query and this call.
             $session = ClassSession::query()->lockForUpdate()->find($sessionId);
 
-            if (! $session || $session->status !== ClassSession::STATUS_PENDING) {
+            if (! $session || ! in_array($session->status, [
+                ClassSession::STATUS_PENDING,
+                ClassSession::STATUS_PRE_ATTENDANCE,
+                ClassSession::STATUS_PARTIAL,
+            ], true)) {
+                return;
+            }
+
+            if (Holiday::isHoliday($session->session_date)) {
+                $this->holidays->skipUnresolvedSession($session);
+
                 return;
             }
 
             $now = Carbon::now('Asia/Phnom_Penh');
-
-            // A class already over never gets auto-recorded after the fact — this is
-            // what protects against a scheduler outage recording classes as "present"
-            // hours or days after they actually happened.
-            if ($now->greaterThanOrEqualTo($session->scheduled_end)) {
-                $session->update(['status' => ClassSession::STATUS_MISSED]);
-
-                return;
-            }
 
             $enrollments = StudentEnrollment::query()
                 ->where('study_class_id', $session->study_class_id)
@@ -57,64 +54,40 @@ class AutoRecordSession
                 return;
             }
 
-            $graceMinutes = (int) setting('attendance.auto_record_grace_minutes', 15);
-            $defaultStatus = setting('attendance.auto_record_default_status', 'present');
-            // A stray config value never becomes "absent" here — the one rule this
-            // feature can't violate, regardless of what's stored.
-            $defaultStatus = in_array($defaultStatus, ['present', 'pending'], true) ? $defaultStatus : 'present';
+            // Captured before the update below: this command re-scans every session still
+            // sitting in pre_attendance/partial on every scheduler tick (everyMinute(), see
+            // bootstrap/app.php), not just once when it first lands there. Without this,
+            // blockInstructor->handle() below would re-fire every minute for as long as the
+            // session stays unresolved, stomping the instructor's pending_review request (or
+            // even an admin's approved_unblock) back to active on the very next tick.
+            $wasAlreadyPreAttendance = $session->status === ClassSession::STATUS_PRE_ATTENDANCE;
 
-            foreach ($enrollments as $enrollment) {
-                // Official leave outranks everything: it never becomes a permission
-                // (so it never burns quota or converts toward blocks) — it records
-                // its own status.
-                if ($this->hasApprovedOfficialLeave->handle($enrollment->student_id, $session->session_date)) {
-                    $this->insertAttendance($session, $enrollment, 'on_leave');
+            $graceMinutes = (int) setting('attendance.auto_record_grace_minutes', 20);
+            $trackedCount = DB::table('student_attendances')
+                ->where('study_class_id', $session->study_class_id)
+                ->whereDate('attendance_date', $session->session_date)
+                ->whereIn('student_enrollment_id', $enrollments->pluck('id'))
+                ->count();
 
-                    continue;
-                }
+            $status = match (true) {
+                $trackedCount === 0 => ClassSession::STATUS_PRE_ATTENDANCE,
+                $trackedCount < $enrollments->count() => ClassSession::STATUS_PARTIAL,
+                default => ClassSession::STATUS_AUTO_RECORDED,
+            };
 
-                $onLeave = $this->hasApprovedPermission->handle(
-                    $enrollment->student_id,
-                    $session->study_class_id,
-                    $session->session_date,
-                );
-
-                $this->insertAttendance($session, $enrollment, $onLeave ? 'permission' : $defaultStatus);
-            }
-
-            // The instructor's own notification is this row: their attendance page reads
-            // status/recorded_at and renders the override banner (see part F). There is
-            // no per-instructor push channel to send to instead — the shared Notification
-            // model has no per-user column and its feed is admin-only.
             $session->update([
-                'status' => ClassSession::STATUS_AUTO_RECORDED,
+                'status' => $status,
                 'recorded_at' => $now,
                 'grace_minutes_used' => $graceMinutes,
             ]);
-        });
-    }
 
-    private function insertAttendance(ClassSession $session, StudentEnrollment $enrollment, string $status): void
-    {
-        try {
-            StudentAttendance::create([
-                'study_class_id' => $session->study_class_id,
-                'student_enrollment_id' => $enrollment->id,
-                'student_id' => $enrollment->student_id,
-                'tracked_by' => null,
-                'attendance_date' => $session->session_date,
-                'status' => $status,
-                'source' => StudentAttendance::SOURCE_AUTO,
-            ]);
-        } catch (QueryException $e) {
-            // Unique index on (study_class_id, student_enrollment_id, attendance_date):
-            // a row already exists for this student today. That can only mean a manual
-            // submit landed for this specific student without the session lock catching
-            // it first (e.g. a row inserted directly, outside saveAttendance) — the row
-            // that's already there wins, this one is silently skipped.
-            if (! str_contains($e->getMessage(), 'student_attendance_unique_day')) {
-                throw $e;
+            // Case 1 (docs/instructor-attendance-block-proposal.md): a complete no-show
+            // blocks the instructor from tracking attendance on every class, not just this
+            // one. Case 2 (partial) is intentionally not wired up yet. Only fires on the
+            // transition into pre_attendance, not on every re-run while already there.
+            if ($status === ClassSession::STATUS_PRE_ATTENDANCE && ! $wasAlreadyPreAttendance) {
+                $this->blockInstructor->handle($session);
             }
-        }
+        });
     }
 }

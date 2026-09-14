@@ -241,8 +241,17 @@ const contextMenuActions = [
             <TableRow v-for="(user, index) in users" :key="user.id" class="cursor-pointer transition-opacity duration-200 hover:bg-slate-50 dark:hover:bg-gray-800/60" @click="viewUser(user.id)" @contextmenu.prevent="openRowContextMenu($event, user)">
               <TableCell class="text-slate-500 dark:text-gray-400">{{ rowNumber(index) }}</TableCell>
               <TableCell class="font-medium text-slate-900 dark:text-gray-100">
-                <span v-if="user.name">{{ user.name }}</span>
-                <span v-else class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">{{ $t('No Name') }}</span>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span v-if="user.name">{{ user.name }}</span>
+                  <span v-else class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">{{ $t('No Name') }}</span>
+                  <span
+                    v-if="user.attendance_blocked"
+                    class="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                    :title="user.attendance_block_reason || undefined"
+                  >
+                    ⚠ {{ $t('Attendance blocked') }}
+                  </span>
+                </div>
               </TableCell>
               <TableCell class="text-slate-600 dark:text-gray-300">{{ user.email }}</TableCell>
               <TableCell>

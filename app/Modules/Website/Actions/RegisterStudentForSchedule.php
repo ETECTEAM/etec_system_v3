@@ -65,12 +65,19 @@ class RegisterStudentForSchedule
                 return null;
             }
 
+            // Re-resolves the current CourseEnrollConfig rather than trusting
+            // $studyClass->price: that column is only ever set once, when the
+            // class itself was first created (see createClass() below), so an
+            // admin changing "Price to Use" afterward would otherwise never
+            // reach a student registering into that same pre-existing class.
+            $config = $course->enrollConfigForTime(isset($data['time_id']) ? (int) $data['time_id'] : null);
+
             $enrollment = StudentEnrollment::create([
                 'study_class_id' => $studyClass->id,
                 'student_id' => $student->id,
                 'source' => 'public_website',
-                'fee_amount' => $studyClass->price,
-                'document_fee_amount' => $studyClass->document_price,
+                'fee_amount' => $config?->resolvedPrice() ?? $studyClass->price,
+                'document_fee_amount' => $config?->document_price ?? $studyClass->document_price,
                 'enrolled_at' => now(),
             ]);
 
@@ -130,10 +137,16 @@ class RegisterStudentForSchedule
 
     private function availableClass(Course $course, array $data): ?StudyClass
     {
+        // class_type_id disambiguates term+time pairs shared by more than
+        // one class type's schedule.
         $classes = StudyClass::query()
             ->where('course_id', $course->id)
             ->where('term_id', $data['term_id'])
             ->where('time_id', $data['time_id'])
+            ->when(
+                isset($data['class_type_id']),
+                fn ($query) => $query->where('class_type_id', (int) $data['class_type_id']),
+            )
             ->whereIn('status', self::OPEN_CLASS_STATUSES)
             ->orderBy('id')
             ->pluck('id');
@@ -268,6 +281,11 @@ class RegisterStudentForSchedule
 
     private function classTypeId(array $data, ?StudyClass $defaults = null): ?int
     {
+        // Explicit choice (from the public form) wins over the heuristics below.
+        if (isset($data['class_type_id']) && $this->hasScheduleFor((int) $data['class_type_id'], $data)) {
+            return (int) $data['class_type_id'];
+        }
+
         if ($this->hasScheduleFor($defaults?->class_type_id, $data)) {
             return $defaults->class_type_id;
         }
@@ -428,12 +446,27 @@ class RegisterStudentForSchedule
             return false;
         }
 
+        $range = $this->timeRange((int) $data['time_id']);
+
+        if ($range['start'] === null || $range['end'] === null) {
+            return false;
+        }
+
+        // Not an exact time_id match: a block on 03:30-05:00 must also exclude an
+        // instructor for a 03:30-05:30 class even though they're different Time
+        // records.
         return InstructorScheduleBlock::query()
             ->where('instructor_id', $instructor->id)
-            ->where('time_id', $data['time_id'])
             ->whereIn('day_of_week', $days)
             ->where('status', InstructorScheduleBlock::STATUS_ACTIVE)
-            ->exists();
+            ->with('time:id,time_name')
+            ->get()
+            ->contains(function (InstructorScheduleBlock $block) use ($range): bool {
+                $blockRange = StudyClass::parseTimeRange($block->time?->time_name);
+
+                return $blockRange['start'] !== null && $blockRange['end'] !== null
+                    && $range['start'] < $blockRange['end'] && $range['end'] > $blockRange['start'];
+            });
     }
 
     private function bestFieldMatch(Collection $instructors, Course $course): ?InstructorData
@@ -471,18 +504,13 @@ class RegisterStudentForSchedule
     private function termDays(int $termId): array
     {
         $termName = Term::query()->whereKey($termId)->value('term_name');
-        $dayMap = [
-            'Mon' => 1, 'Monday' => 1,
-            'Tue' => 2, 'Tues' => 2, 'Tuesday' => 2,
-            'Wed' => 3, 'Wednesday' => 3,
-            'Thu' => 4, 'Thur' => 4, 'Thurs' => 4, 'Thursday' => 4,
-            'Fri' => 5, 'Friday' => 5,
-            'Sat' => 6, 'Saturday' => 6,
-            'Sun' => 7, 'Sunday' => 7,
+        $dayNumbers = [
+            'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4,
+            'Friday' => 5, 'Saturday' => 6, 'Sunday' => 7,
         ];
 
-        return collect(preg_split('/\s*(?:-|,|&|\/|\+|and)\s*/i', (string) $termName))
-            ->map(fn (string $day): ?int => $dayMap[trim($day)] ?? null)
+        return collect(StudyClass::parseTermDays($termName))
+            ->map(fn (string $day): ?int => $dayNumbers[$day] ?? null)
             ->filter()
             ->values()
             ->all();

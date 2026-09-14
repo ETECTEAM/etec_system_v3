@@ -5,6 +5,7 @@ namespace Database\Seeders\Course;
 
 use App\Models\Course;
 use App\Models\CourseEnrollConfig;
+use App\Models\CourseLesson;
 use App\Models\CourseTrack;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,8 @@ class CourseSeeder extends Seeder
         // Truncated alongside courses (not cascaded, since FK checks are off here)
         // so re-seeding doesn't leave orphaned config rows pointing at old course IDs.
         CourseEnrollConfig::truncate();
+        // Same reason: lessons FK to courses, so wipe them before course IDs are reissued.
+        CourseLesson::truncate();
 
         // Re-enable foreign key checks
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
@@ -144,9 +147,91 @@ class CourseSeeder extends Seeder
                 'level' => 'advanced',
                 'status' => 'active'
             ],
+
+            // Microsoft Office Course. Package courses bundle several subjects,
+            // single-subject courses carry just their one lesson - see 'lessons'.
+            [
+                'track' => 'Microsoft Office',
+                'title' => 'Microsoft Office',
+                'level' => 'beginner',
+                'status' => 'active',
+                'lessons' => [
+                    ['title' => 'Typing (English & Khmer)', 'description' => 'Touch-typing drills for the English (QWERTY) and Khmer (NiDA) keyboard layouts.'],
+                    ['title' => 'Word 2016', 'description' => 'Documents, formatting, tables, styles, headers/footers, mail merge and printing.'],
+                    ['title' => 'Excel 2016', 'description' => 'Worksheets, cell formatting, formulas and common functions, sorting/filtering and charts.'],
+                    ['title' => 'Power Point 2016', 'description' => 'Slides and layouts, themes, transitions and animation, and delivering a slideshow.'],
+                ],
+            ],
+            [
+                'track' => 'Microsoft Office',
+                'title' => 'Advance Microsoft Office',
+                'level' => 'advanced',
+                'status' => 'active',
+                'lessons' => [
+                    ['title' => 'Typing (English & Khmer)', 'description' => 'Touch-typing drills for the English (QWERTY) and Khmer (NiDA) keyboard layouts.'],
+                    ['title' => 'Word 2016', 'description' => 'Documents, formatting, tables, styles, headers/footers, mail merge and printing.'],
+                    ['title' => 'Excel 2016', 'description' => 'Worksheets, cell formatting, formulas and common functions, sorting/filtering and charts.'],
+                    ['title' => 'Power Point 2016', 'description' => 'Slides and layouts, themes, transitions and animation, and delivering a slideshow.'],
+                    ['title' => 'Advance Excel 2016', 'description' => 'PivotTables, lookup/reference functions, data validation, conditional logic and dashboards.'],
+                ],
+            ],
+            [
+                'track' => 'Microsoft Office',
+                'title' => 'Microsoft Word',
+                'level' => 'beginner',
+                'status' => 'active',
+                'lessons' => [
+                    ['title' => 'Word 2016', 'description' => 'Documents, formatting, tables, styles, headers/footers, mail merge and printing.'],
+                ],
+            ],
+            [
+                'track' => 'Microsoft Office',
+                'title' => 'Microsoft Excel',
+                'level' => 'beginner',
+                'status' => 'active',
+                'lessons' => [
+                    ['title' => 'Excel 2016', 'description' => 'Worksheets, cell formatting, formulas and common functions, sorting/filtering and charts.'],
+                ],
+            ],
+            [
+                'track' => 'Microsoft Office',
+                'title' => 'Advance Excel',
+                'level' => 'advanced',
+                'status' => 'active',
+                'lessons' => [
+                    ['title' => 'Advance Excel 2016', 'description' => 'PivotTables, lookup/reference functions, data validation, conditional logic and dashboards.'],
+                ],
+            ],
+            [
+                'track' => 'Microsoft Office',
+                'title' => 'Power Point',
+                'level' => 'beginner',
+                'status' => 'active',
+                'lessons' => [
+                    ['title' => 'Power Point 2016', 'description' => 'Slides and layouts, themes, transitions and animation, and delivering a slideshow.'],
+                ],
+            ],
+
+            // Internship Course
+            [
+                'track' => 'Internship',
+                'title' => 'Frontend Internship',
+                'level' => 'intermediate',
+                'status' => 'active',
+            ],
+            [
+                'track' => 'Internship',
+                'title' => 'Backend Internship',
+                'level' => 'intermediate',
+                'status' => 'active',
+            ],
         ];
 
         $usedSlugs = [];
+
+        // Flat placeholder so every course has a non-zero starting price; real
+        // per-course numbers are set on the Enroll Config page, not seeded here.
+        $placeholderPrice = 100;
 
         foreach ($courses as $course) {
             $slug = Str::slug($course['title']);
@@ -170,17 +255,24 @@ class CourseSeeder extends Seeder
                 ]
             );
 
-            // Price/status live on CourseEnrollConfig, not the courses table itself.
-            // time_id NULL = the course's default/general schedule. unit_price is
-            // the real, non-discounted price; course_price is the (possibly
-            // discounted) price actually charged and printed on receipts - mirror
-            // the placeholder into both so unit_price never silently sits at 0.
-            // Staff enter real, distinct per-course numbers via the Enroll Config
-            // page afterward; this is just a non-zero starting point.
             CourseEnrollConfig::updateOrCreate(
                 ['course_id' => $createdCourse->id, 'time_id' => null],
-                ['unit_price' => 100, 'course_price' => 100, 'status' => 'open']
+                ['unit_price' => $placeholderPrice, 'course_price' => $placeholderPrice, 'status' => 'open']
             );
+
+            // Optional subject breakdown (currently only the Microsoft Office
+            // courses). order_number keeps the list in the order defined above.
+            foreach ($course['lessons'] ?? [] as $index => $lesson) {
+                CourseLesson::updateOrCreate(
+                    ['course_id' => $createdCourse->id, 'slug' => Str::slug($lesson['title'])],
+                    [
+                        'title' => $lesson['title'],
+                        'description' => $lesson['description'] ?? null,
+                        'order_number' => $index + 1,
+                        'status' => 'active',
+                    ]
+                );
+            }
         }
     }
 

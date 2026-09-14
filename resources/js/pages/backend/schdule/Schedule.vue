@@ -51,7 +51,6 @@
                                 v-model="filters.class_type_id"
                                 :options="classTypeOptions"
                                 :placeholder="$t('All Class Types')"
-                                :search-placeholder="$t('Search class types...')"
                                 :button-class="filterSelectClass"
                             />
                         </div>
@@ -61,7 +60,6 @@
                                 v-model="filters.term_id"
                                 :options="termOptions"
                                 :placeholder="$t('All Terms')"
-                                :search-placeholder="$t('Search terms...')"
                                 :button-class="filterSelectClass"
                             />
                         </div>
@@ -71,7 +69,6 @@
                                 v-model="filters.time_id"
                                 :options="timeOptions"
                                 :placeholder="$t('All Times')"
-                                :search-placeholder="$t('Search times...')"
                                 :button-class="filterSelectClass"
                             />
                         </div>

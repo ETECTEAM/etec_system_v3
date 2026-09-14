@@ -1,76 +1,138 @@
 #!/usr/bin/env bash
-# Deploys code only: pulls the latest branch, refreshes composer/npm
-# dependencies and rebuilds assets through the bind mount, recreates the
-# application containers and warms caches.
-#
-# Database schema changes are NOT applied here. Migrations and seeders are
-# run manually by the administrator when required - the script prints the
-# exact commands at the end of every run.
-#
-# Run from the deploy directory on the VPS (e.g. /opt/etec-system), not from
-# a dev machine.
-#
-# Usage: ./deploy/deploy.sh [branch]
+# Production deploy script
+# Usage: ./deploy/deploy.sh [branch] [--migrate]
 
 set -euo pipefail
 
 COMPOSE_FILE="docker-compose.prod.yml"
 BRANCH="${1:-${DEPLOY_BRANCH:-production}}"
+RUN_MIGRATE=false
 
-main() {
-  # Everything below runs inside main() so a failure mid-way (notably during
-  # git reset --hard) exits the whole script instead of continuing half-done.
-  cd "$(git rev-parse --show-toplevel)"
+for arg in "$@"; do
+  case "$arg" in
+    --migrate) RUN_MIGRATE=true ;;
+  esac
+done
 
-  echo "==> Fetching latest ${BRANCH}"
-  git fetch origin "${BRANCH}"
-  git checkout "${BRANCH}"
-  git reset --hard "origin/${BRANCH}"
+cd "$(git rev-parse --show-toplevel)"
 
-  echo "==> Building runtime images (code is bind-mounted, images carry PHP/Node only)"
-  docker compose -f "${COMPOSE_FILE}" build app reverb nginx
+echo "==> Pulling latest ${BRANCH}"
+git fetch origin "${BRANCH}"
+git checkout "${BRANCH}"
+git reset --hard "origin/${BRANCH}"
 
-  echo "==> Installing composer/npm deps and building assets onto the host"
-  docker compose -f "${COMPOSE_FILE}" run --rm --no-deps app sh -c \
-    "composer install --no-dev --optimize-autoloader --no-interaction && npm ci && npm run build"
+echo "==> Building images"
+docker compose -f "${COMPOSE_FILE}" build app reverb nginx
 
-  echo "==> Recreating app, reverb, queue and scheduler so every long-running process loads the new code"
-  docker compose -f "${COMPOSE_FILE}" up -d --force-recreate app reverb queue scheduler
+echo "==> Installing dependencies and building assets"
+docker compose -f "${COMPOSE_FILE}" run --rm --no-deps app sh -c \
+  "composer install --no-dev --optimize-autoloader --no-interaction && rm -rf node_modules && npm ci && npm run build"
 
-  # Must run via `exec` against the now-recreated, long-running app container,
-  # not `run --rm` - a `run --rm` container is a throwaway instance with its
-  # own writable layer, so the bootstrap/cache/*.php files it writes vanish
-  # the moment it exits and never reach the container that actually serves
-  # traffic (app has no bind mount for /var/www here, so each container's
-  # writable layer is independent even though they share the same image).
-  echo "==> Warming config/route/view/event caches on the running app container"
-  docker compose -f "${COMPOSE_FILE}" exec -T app sh -c \
-    "php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan event:cache"
-
-  echo "==> Reloading Nginx configuration & re-resolving upstream IPs"
-  docker compose -f "${COMPOSE_FILE}" up -d nginx
-  docker compose -f "${COMPOSE_FILE}" exec -T nginx nginx -s reload || docker compose -f "${COMPOSE_FILE}" restart nginx
-
-  echo "==> Pruning old images"
-  docker image prune -f
-
-  echo "==> Done. Current containers:"
-  docker compose -f "${COMPOSE_FILE}" ps
-
-  cat <<'EOF'
-
-============================================================================
- DATABASE STEPS ARE MANUAL NOW - this deploy did NOT touch the database.
-
- Pending migrations (safe, additive):
-   docker compose -f docker-compose.prod.yml exec app php artisan migrate --force
-
- Seeders (WARNING: destructive - seeders truncate real tables first):
-   docker compose -f docker-compose.prod.yml exec app php artisan db:seed --force
-
- Only run these when you know the deploy includes schema/data changes.
-============================================================================
-EOF
+# Docker's container removal is asynchronous under the hood (the daemon
+# returns before overlay/volume cleanup finishes), so recreating a container
+# too soon after removing it can race with "container name already in use" /
+# "removal of container ... is already in progress". Used for every service
+# `up -d` recreates, nginx included - it hit this same race unprotected
+# before and took the whole deploy down with it.
+up_with_retry() {
+  local svc="$1"
+  shift
+  local attempt=1
+  until docker compose -f "${COMPOSE_FILE}" up -d "$@" "${svc}"; do
+    if [ "$attempt" -ge 10 ]; then
+      echo "ERROR: could not bring up ${svc} after ${attempt} attempts"
+      exit 1
+    fi
+    echo "    ${svc}: container removal still in progress, retrying (${attempt})..."
+    attempt=$((attempt + 1))
+    sleep 3
+  done
 }
 
-main "$@"
+echo "==> Recreating containers"
+# Deliberately NOT --force-recreate: code is bind-mounted (.:/var/www), so a
+# container whose image is unchanged doesn't need to be destroyed and
+# recreated at all - the restart below is enough to make it load the fresh
+# code. Plain `up -d` still recreates automatically on the rare deploy where
+# the image itself changed (Dockerfile edits), which is the only case where
+# recreation is actually needed. Forcing it on every deploy was the real
+# cause of the container-removal race described above.
+for svc in app reverb queue scheduler; do
+  up_with_retry "${svc}" --no-deps
+done
+
+echo "==> Restarting so every long-running process loads the latest code"
+docker compose -f "${COMPOSE_FILE}" restart app reverb queue scheduler
+
+echo "==> Waiting for app container to be ready..."
+for i in $(seq 1 30); do
+  if docker compose -f "${COMPOSE_FILE}" exec -T app php -r "echo 1;" 2>/dev/null | grep -q 1; then
+    echo "    App ready after ${i}s"
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "ERROR: App container did not become ready within 30s"
+    docker compose -f "${COMPOSE_FILE}" logs app --tail=30
+    exit 1
+  fi
+  sleep 1
+done
+
+echo "==> Normalizing storage / bootstrap-cache permissions"
+# storage/ and bootstrap/cache are named volumes seeded once from the image;
+# missing shard dirs (e.g. storage/framework/cache/data/<xx>/<yy>) are never
+# back-filled, and anything below that runs `artisan` as root (this script's
+# own cache-warming did, historically) leaves root-owned files php-fpm's
+# www-data can't rewrite. Re-assert the structure and ownership every deploy
+# so the file cache / rate limiter / sessions stay writable at runtime.
+docker compose -f "${COMPOSE_FILE}" exec -T -u root app sh -c '
+  mkdir -p storage/framework/cache/data storage/framework/sessions \
+           storage/framework/views storage/app/public storage/logs bootstrap/cache
+  chown -R www-data:www-data storage bootstrap/cache
+  chmod -R ug+rwX storage bootstrap/cache
+'
+
+echo "==> Ensuring public/storage symlink exists"
+# The production image no longer bakes this in (it's fully shadowed by the
+# code bind mount anyway) - creating it here instead makes a first-ever
+# deploy to a fresh server self-sufficient. Guarded by -e (matching
+# storage:link's own existence check, not just -L) so this stays a no-op on
+# every deploy after the first instead of erroring on "link already exists".
+# Left as root: public/ is the host bind mount (owned by the deploy user), so
+# only root inside the container can create the symlink there on a fresh box.
+docker compose -f "${COMPOSE_FILE}" exec -T app sh -c \
+  "[ -e public/storage ] || php artisan storage:link"
+
+echo "==> Warming caches"
+# Run as www-data (not the container's default root) so compiled views /
+# cached config land owned by the same user php-fpm serves as.
+docker compose -f "${COMPOSE_FILE}" exec -T -u www-data app sh -c \
+  "php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan event:cache"
+
+echo "==> Reloading nginx"
+up_with_retry nginx
+docker compose -f "${COMPOSE_FILE}" exec -T nginx nginx -s reload 2>/dev/null || \
+  docker compose -f "${COMPOSE_FILE}" restart nginx
+
+if [ "$RUN_MIGRATE" = true ]; then
+  echo "==> Running migrations"
+  docker compose -f "${COMPOSE_FILE}" exec -T app php artisan migrate --force
+fi
+
+# Hygiene only (shrinks the bind-mounted node_modules / reclaims disk) - not
+# required for the app to serve traffic, so a hiccup here must never stop the
+# script before the steps above (cache warming, nginx reload) have run.
+echo "==> Pruning dev dependencies"
+docker compose -f "${COMPOSE_FILE}" exec -T app npm prune --omit=dev || \
+  echo "    WARNING: npm prune failed/was killed, continuing anyway"
+
+echo "==> Cleaning up old images"
+docker image prune -f || echo "    WARNING: docker image prune failed, continuing anyway"
+
+echo "==> Status:"
+docker compose -f "${COMPOSE_FILE}" ps
+
+if [ "$RUN_MIGRATE" = false ]; then
+  echo ""
+  echo "Tip: Run with --migrate to also apply database migrations"
+fi

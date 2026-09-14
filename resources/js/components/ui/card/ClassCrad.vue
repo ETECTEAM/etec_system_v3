@@ -1,13 +1,29 @@
 <script setup>
-import { router } from "@inertiajs/vue3";
-import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,} from "@lucide/vue";
-import { ref, computed } from "vue";
+import { router, usePage } from "@inertiajs/vue3";
+import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,Pencil,X,Maximize2,} from "@lucide/vue";
+import { ref, computed, watch } from "vue";
 import { QrcodeCanvas } from "qrcode.vue";
+import axios from "axios";
+import { useToast } from "@/composables/useToast";
 import NotificationBadge from "../notification-badge/NotificationBadge.vue";
 import ClassActionMenu from "./ClassActionMenu.vue";
 import CollapseClassModal from "./CollapseClassModal.vue";
 import BarClass from "../../../pages/backend/students/components/BarClass.vue";
-// import { router } from "@inertiajs/vue3";
+import RegisterStudentModal from "../../../pages/backend/students/components/RegisterStudentModal.vue";
+import AssignRegistrationModal from "../../../pages/backend/students/components/AssignRegistrationModal.vue";
+import { useConfirm } from "@/composables/useConfirm";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
+const toast = useToast();
+const page = usePage();
+
+// Inline capacity editing is an admin/super-admin action; instructors see the
+// number as plain text on their dashboard cards.
+const isAdmin = computed(() => {
+    const roles = page.props.auth?.roles ?? [];
+    return roles.includes("super_admin") || roles.includes("admin");
+});
 
 const props = defineProps({
     classData: Object,
@@ -52,6 +68,10 @@ const emit = defineEmits([
 ]);
 
 const capacity = computed(() => props.classData.capacity);
+const isFull = computed(() => {
+    if (!capacity.value) return false;
+    return (props.classData.students ?? 0) >= capacity.value;
+});
 const lifecycleStatus = computed(() => String(props.classData.class_status ?? "").toLowerCase());
 const normalizedLifecycleStatus = computed(() => {
     switch (lifecycleStatus.value) {
@@ -121,6 +141,21 @@ const cardToneClasses = computed(() => {
 const showBarDialog = ref(false);
 const showQrDialog = ref(false);
 const showCollapseDialog = ref(false);
+const showRegisterModal = ref(false);
+const showAssignModal = ref(false);
+const { confirm } = useConfirm();
+
+// "Add Existing Student" pulled an unassigned registration into this class —
+// bump the local seat count so the card / progress bar update immediately.
+function onRegistrationAssigned() {
+    props.classData.students = (props.classData.students ?? 0) + 1;
+}
+
+// Inline capacity editing
+const editingCapacity = ref(false);
+const capacityInput = ref(props.classData.capacity);
+const savingCapacity = ref(false);
+const savedCapacity = ref(false);
 
 // "Collapse Class" splits the class between two instructors, each teaching their own
 // days — offered for Basic IT classes only. The card owns the dialog, so it hands
@@ -146,7 +181,20 @@ const menuItems = computed(() => [
         ]
         : []),
 ]);
-const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.id}`);
+const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.slug ?? props.classData.id}`);
+const qrCopied = ref(false);
+const qrZoomed = ref(false);
+
+// Leaving the QR dialog also drops the full-screen zoom.
+watch(showQrDialog, (open) => { if (!open) qrZoomed.value = false; });
+
+function copyQrUrl() {
+    navigator.clipboard?.writeText(qrUrl.value).then(() => {
+        qrCopied.value = true;
+        setTimeout(() => { qrCopied.value = false; }, 1500);
+        toast.success(t("Link copied."));
+    });
+}
 
 function showViewClass () {
    router.get(props.viewUrl ?? `/dashboard/enroll/view/${props.classData.id}`);
@@ -161,7 +209,7 @@ function showCopyClass() {
 }
 
 function showAddStudent() {
-    router.get(`/dashboard/enroll/${props.classData.id}/students/create`);
+    showRegisterModal.value = true;
 }
 
 function showQr() {
@@ -188,6 +236,61 @@ function updateStatus(status) {
             showBarDialog.value = false;
         },
     });
+}
+
+async function confirmPreEnd() {
+    const ok = await confirm({
+        title: "Pre-End Class?",
+        message: "This will lock attendance tracking and prevent new students from joining. Are you sure you want to pre-end this class?",
+        confirmText: "Pre-End",
+        cancelText: "Cancel",
+        danger: true,
+    });
+    if (!ok) return;
+    updateStatus("inactive");
+}
+
+async function confirmEnd() {
+    const ok = await confirm({
+        title: "End Class?",
+        message: "This will permanently end the class and lock all activity. Are you sure you want to end this class?",
+        confirmText: "End",
+        cancelText: "Cancel",
+        danger: true,
+    });
+    if (!ok) return;
+    updateStatus("completed");
+}
+
+function startEditCapacity() {
+    capacityInput.value = props.classData.capacity;
+    editingCapacity.value = true;
+    savedCapacity.value = false;
+}
+
+async function saveCapacity() {
+    const newValue = Number(capacityInput.value);
+    if (!newValue || newValue < 1 || newValue === props.classData.capacity) {
+        editingCapacity.value = false;
+        return;
+    }
+
+    savingCapacity.value = true;
+    try {
+        const response = await axios.patch(`/dashboard/enroll/${props.classData.id}/capacity`, {
+            capacity: newValue,
+        });
+        props.classData.capacity = response.data.capacity;
+        savedCapacity.value = true;
+        toast.success(t("Class capacity updated."));
+        setTimeout(() => { savedCapacity.value = false; }, 2000);
+    } catch (error) {
+        capacityInput.value = props.classData.capacity;
+        toast.error(t(error.response?.data?.message ?? "Failed to update capacity. Please try again."));
+    } finally {
+        savingCapacity.value = false;
+        editingCapacity.value = false;
+    }
 }
 </script>
 
@@ -250,6 +353,8 @@ function updateStatus(status) {
                 :extraItems="menuItems"
                 :hiddenItems="hiddenItems"
                 @open-bar="showBarDialog = true"
+                @register-student="showRegisterModal = true"
+                @assign-registration="showAssignModal = true"
             />
         </div>
 
@@ -259,7 +364,7 @@ function updateStatus(status) {
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <BookOpen class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Lesson</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Lesson') }}</span>
                 </div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">
                     {{ classData.lesson }}
@@ -269,7 +374,7 @@ function updateStatus(status) {
             <div v-if="showInstructor" class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <UserRound class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Instructor</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Instructor') }}</span>
                 </div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">
                     {{ classData.teacher }}
@@ -279,7 +384,7 @@ function updateStatus(status) {
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <Building2 class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Building</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Building') }}</span>
                 </div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">
                     {{ classData.building }}
@@ -289,7 +394,7 @@ function updateStatus(status) {
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <DoorOpen class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Room</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Room') }}</span>
                 </div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">
                     {{ classData.floor }} {{ classData.room }}
@@ -297,7 +402,7 @@ function updateStatus(status) {
             </div>
 
             <div class="flex items-center justify-between gap-2">
-                <span class="text-xs sm:text-sm text-slate-500 dark:text-gray-400">Status</span>
+                <span class="text-xs sm:text-sm text-slate-500 dark:text-gray-400">{{ $t('Status') }}</span>
                 <span
                     :class="[
                         'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0',
@@ -322,9 +427,29 @@ function updateStatus(status) {
             </div>
 
             <div class="flex items-center justify-between gap-2">
+                <span class="text-xs sm:text-sm text-slate-500 dark:text-gray-400">{{ $t('Enrollment') }}</span>
+                <span
+                    :class="[
+                        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ring-1 ring-inset',
+                        isFull
+                            ? 'bg-rose-50 text-rose-700 ring-rose-600/20'
+                            : 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+                    ]"
+                >
+                    <span
+                        :class="[
+                            'w-1.5 h-1.5 rounded-full',
+                            isFull ? 'bg-rose-500' : 'bg-emerald-500',
+                        ]"
+                    ></span>
+                    {{ isFull ? 'Full' : 'Open' }}
+                </span>
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <CalendarDays class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Days</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Days') }}</span>
                 </div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">
                     {{ classData.term }}
@@ -334,7 +459,7 @@ function updateStatus(status) {
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <Clock3 class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Time</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Time') }}</span>
                 </div>
                 <span class="text-xs sm:text-sm font-medium text-emerald-600 text-right truncate dark:text-emerald-400">
                     {{ classData.time }}
@@ -347,11 +472,40 @@ function updateStatus(status) {
             <div class="flex items-center justify-between gap-2 mb-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400">
                     <Users class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-xs sm:text-sm">Students</span>
+                    <span class="text-xs sm:text-sm">{{ $t('Students') }}</span>
                 </div>
-                <span class="text-xs sm:text-sm font-semibold text-slate-800 tabular-nums dark:text-gray-200">
-                    {{ classData.students }} / {{ capacity }}
-                </span>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-xs sm:text-sm font-semibold text-slate-800 tabular-nums dark:text-gray-200">
+                        {{ classData.students }} /
+                    </span>
+                    <input
+                        v-if="editingCapacity"
+                        v-model="capacityInput"
+                        type="number"
+                        min="1"
+                        class="w-14 text-xs sm:text-sm font-semibold text-slate-800 tabular-nums dark:text-gray-200 bg-white border border-blue-300 rounded px-1.5 py-0.5 text-center outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-blue-600"
+                        @keyup.enter="saveCapacity"
+                        @blur="saveCapacity"
+                    />
+                    <button
+                        v-else-if="isAdmin"
+                        type="button"
+                        :title="t('Edit class capacity')"
+                        class="inline-flex items-center gap-1 border-b border-dashed border-slate-300 text-xs sm:text-sm font-semibold text-slate-800 tabular-nums transition-colors hover:border-blue-500 hover:text-blue-600 dark:border-gray-600 dark:text-gray-200 dark:hover:border-blue-500 dark:hover:text-blue-400"
+                        @click="startEditCapacity"
+                    >
+                        {{ capacity }}
+                        <Pencil class="h-3 w-3 text-slate-400 dark:text-gray-500" />
+                    </button>
+                    <span
+                        v-else
+                        class="text-xs sm:text-sm font-semibold text-slate-800 tabular-nums dark:text-gray-200"
+                    >
+                        {{ capacity }}
+                    </span>
+                    <span v-if="savingCapacity" class="text-[10px] text-blue-600 dark:text-blue-400">{{ $t('Saving...') }}</span>
+                    <span v-else-if="savedCapacity" class="text-[10px] text-emerald-600 dark:text-emerald-400">&#10003; {{ $t('Saved') }}</span>
+                </div>
             </div>
 
             <div
@@ -392,6 +546,23 @@ function updateStatus(status) {
     @close="showCollapseDialog = false"
 />
 
+<RegisterStudentModal
+    :show="showRegisterModal"
+    :class-id="classData.id"
+    :class-title="classData.title"
+    :seats-left="Math.max(0, (capacity ?? 0) - (classData.students ?? 0))"
+    @close="showRegisterModal = false"
+/>
+
+<AssignRegistrationModal
+    :show="showAssignModal"
+    :class-id="classData.id"
+    :class-title="classData.title"
+    :seats-left="Math.max(0, (capacity ?? 0) - (classData.students ?? 0))"
+    @close="showAssignModal = false"
+    @assigned="onRegistrationAssigned"
+/>
+
 <BarClass
     :show="showBarDialog"
     :classData="classData"
@@ -405,32 +576,82 @@ function updateStatus(status) {
     @switch-teacher="notifyPendingAction('Switch teacher')"
     @attendance="runExtraAction('Attendance')"
     @export="notifyPendingAction('Export student list')"
-    @pre-end="updateStatus('inactive')"
-    @end="updateStatus('completed')"
+    @pre-end="confirmPreEnd"
+    @end="confirmEnd"
 />
 
 <Teleport to="body">
-    <div v-if="showQrDialog" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/50 px-4" @click.self="showQrDialog = false">
-        <div class="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl dark:bg-gray-900">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">
-                Generate QR
-            </h3>
-            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">
-                {{ classData.title }}
-            </p>
-
-            <div class="mt-5 inline-flex rounded-2xl bg-white p-4 shadow-inner">
-                <QrcodeCanvas :value="qrUrl" :size="220" level="H" />
+    <div v-if="showQrDialog" class="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4" @click.self="showQrDialog = false">
+        <div class="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-900/90">
+            <!-- Header -->
+            <div class="flex items-center justify-between gap-3 border-b border-slate-100 bg-white px-5 py-4 dark:border-gray-800 dark:bg-gray-900/90">
+                <div class="min-w-0">
+                    <p class="text-[11px] font-medium uppercase tracking-widest text-slate-400 dark:text-gray-500">{{ $t('Scan to join') }}</p>
+                    <p class="truncate text-base font-semibold text-slate-900 dark:text-gray-100">{{ classData.title }}</p>
+                </div>
+                <div class="-mr-1.5 flex shrink-0 items-center gap-0.5">
+                    <button type="button" :aria-label="$t('Zoom')" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="qrZoomed = true">
+                        <Maximize2 class="h-[18px] w-[18px]" />
+                    </button>
+                    <button type="button" :aria-label="$t('Close')" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="showQrDialog = false">
+                        <X class="h-5 w-5" />
+                    </button>
+                </div>
             </div>
 
-            <a :href="qrUrl" target="_blank" class="mt-4 block break-all text-xs text-blue-700 hover:underline dark:text-blue-400">
-                {{ qrUrl }}
-            </a>
+            <!-- QR -->
+            <div class="flex flex-col items-center px-6 py-6">
+                <button type="button" class="rounded-xl border border-slate-200 bg-white p-3 dark:border-gray-700" :aria-label="$t('Zoom')" @click="qrZoomed = true">
+                    <QrcodeCanvas
+                        :value="qrUrl"
+                        :size="360"
+                        level="M"
+                        :margin="0"
+                        foreground="#1e3a8a"
+                        class="block h-[360px] w-[360px] max-w-full"
+                    />
+                </button>
+                <div class="mt-4 flex w-full flex-col items-center gap-2">
+                    <a :href="qrUrl" target="_blank" rel="noopener" class="block max-w-full truncate text-[11px] text-blue-600 hover:underline dark:text-blue-400">
+                        {{ qrUrl }}
+                    </a>
+                    <button type="button" @click="copyQrUrl" class="rounded-lg border border-slate-200 px-3 py-1 text-[11px] font-medium text-slate-600 transition hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
+                        {{ qrCopied ? $t('Copied') : $t('Copy') }}
+                    </button>
+                </div>
+            </div>
 
-            <button type="button" @click="showQrDialog = false" class="mt-5 w-full rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500">
-                Close
-            </button>
+            <!-- Footer -->
+            <div class="border-t border-slate-100 p-4 dark:border-gray-800">
+                <button type="button" @click="showQrDialog = false" class="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+                    {{ $t('Close') }}
+                </button>
+            </div>
         </div>
     </div>
+
+    <!-- Zoomed QR: full-screen for easy scanning -->
+    <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-to-class="opacity-0"
+    >
+        <div v-if="qrZoomed" class="fixed inset-0 z-[130] flex flex-col items-center justify-center gap-5 overflow-y-auto bg-white px-4 py-12 dark:bg-gray-950" @click="qrZoomed = false">
+            <button type="button" :aria-label="$t('Close')" class="absolute right-4 top-4 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 dark:text-gray-400 dark:hover:bg-gray-800" @click.stop="qrZoomed = false">
+                <X class="h-6 w-6" />
+            </button>
+            <QrcodeCanvas
+                :value="qrUrl"
+                :size="1000"
+                level="M"
+                :margin="0"
+                foreground="#1e3a8a"
+                class="qr-pop block h-auto w-[min(82vw,68vh)] max-w-none"
+                @click.stop
+            />
+            <p class="text-base font-semibold text-slate-900 dark:text-gray-100">{{ classData.title }}</p>
+        </div>
+    </Transition>
 </Teleport>
 </template>

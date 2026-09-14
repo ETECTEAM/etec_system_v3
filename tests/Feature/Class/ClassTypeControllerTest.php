@@ -46,6 +46,16 @@ class ClassTypeControllerTest extends TestCase
             ->assertOk();
     }
 
+    public function test_admin_can_get_paginated_class_types_for_inline_editing(): void
+    {
+        $this->createClassType(['type_name' => 'Inline Type']);
+
+        $this->actingAs($this->admin())
+            ->getJson('/dashboard/class-types/data?search=Inline')
+            ->assertOk()
+            ->assertJsonPath('data.0.type_name', 'Inline Type');
+    }
+
     public function test_guest_is_redirected_from_class_types(): void
     {
         $this->get('/dashboard/class-types')
@@ -153,6 +163,21 @@ class ClassTypeControllerTest extends TestCase
         $this->assertFalse($fresh->is_active);
     }
 
+    public function test_update_returns_the_updated_class_type_for_inline_editing(): void
+    {
+        $classType = $this->createClassType();
+
+        $this->actingAs($this->admin())
+            ->putJson("/dashboard/class-types/{$classType->class_type_id}", [
+                'type_name' => 'Inline Updated',
+                'description' => 'Updated in the table',
+                'is_active' => false,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.type_name', 'Inline Updated')
+            ->assertJsonPath('data.is_active', false);
+    }
+
     public function test_update_allows_keeping_own_name_but_not_others(): void
     {
         $first = $this->createClassType(['type_name' => 'First']);
@@ -160,7 +185,8 @@ class ClassTypeControllerTest extends TestCase
 
         $this->actingAs($this->admin())
             ->putJson("/dashboard/class-types/{$first->class_type_id}", ['type_name' => 'First'])
-            ->assertRedirect('/dashboard/class-types');
+            ->assertOk()
+            ->assertJsonPath('data.type_name', 'First');
 
         $this->actingAs($this->admin())
             ->putJson("/dashboard/class-types/{$second->class_type_id}", ['type_name' => 'First'])

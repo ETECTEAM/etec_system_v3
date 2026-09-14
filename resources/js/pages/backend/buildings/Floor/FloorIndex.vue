@@ -9,7 +9,7 @@ import { Card } from '../../../../components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table'
 import DashboardLayout from '../../../../layouts/DashboardLayout.vue'
 import { useI18n } from '@/i18n'
-import { useToast } from 'vue-toastification'
+import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
 const toast = useToast()

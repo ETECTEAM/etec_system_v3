@@ -200,7 +200,6 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
                     v-model="form.owner_term_id"
                     :options="ownerTermOptions"
                     placeholder="Select days"
-                    search-placeholder="Search days..."
                     empty-text="No days configured"
                   />
                 </div>
@@ -224,7 +223,6 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
                   v-model="form.instructor_id"
                   :options="teacherOptions"
                   placeholder="Select instructor"
-                  search-placeholder="Search instructor by name..."
                   empty-text="No other instructors found"
                 />
               </div>
@@ -235,7 +233,6 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
                     v-model="form.instructor_term_id"
                     :options="instructorTermOptions"
                     placeholder="Select days"
-                    search-placeholder="Search days..."
                     empty-text="No days configured"
                   />
                 </div>

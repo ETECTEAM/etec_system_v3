@@ -33,8 +33,9 @@ class WebsiteVideoRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'video' => [$isCreating ? 'required' : 'nullable', 'file', 'mimes:mp4,mov,webm,ogg', 'max:'.self::MAX_VIDEO_KILOBYTES],
-            'thumbnail' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            // FILE: disabled - not using file uploads
+            // 'video' => [$isCreating ? 'required' : 'nullable', 'file', 'mimes:mp4,mov,webm,ogg', 'max:'.self::MAX_VIDEO_KILOBYTES],
+            // 'thumbnail' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'duration' => ['nullable', 'string', 'max:50'],
             'sort_order' => ['required', 'integer', 'min:0', 'max:999999'],
             'is_featured' => ['boolean'],

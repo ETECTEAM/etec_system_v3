@@ -2,6 +2,7 @@
 
 namespace App\Modules\Enroll\Actions;
 
+use App\Models\CourseEnrollConfig;
 use App\Models\StudyClass;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use Illuminate\Support\Facades\DB;
@@ -19,12 +20,24 @@ class CreateClassStudent
 
             $student = $this->registrations->createStudent($data, auth()->id());
 
+            $config = $this->resolveEnrollConfig($class);
+            $resolvedFee = $config?->resolvedPrice() ?? (float) $class->price;
+            $resolvedDocFee = $config !== null ? (float) $config->document_price : (float) $class->document_price;
+            $unitPrice = $config && (float) $config->unit_price > 0 ? (float) $config->unit_price : $resolvedFee;
+
             return $this->registrations->createEnrollment([
                 'study_class_id' => $class->id,
                 'student_id' => $student->id,
-                'fee_amount' => $class->price,
-                'document_fee_amount' => $class->document_price,
+                'fee_amount' => $resolvedFee,
+                'unit_price' => $unitPrice,
+                'document_fee_amount' => $resolvedDocFee,
+                'source' => 'admin_register',
             ]);
         });
+    }
+
+    private function resolveEnrollConfig(stdClass $class): ?CourseEnrollConfig
+    {
+        return CourseEnrollConfig::forCourseTime($class->course_id, $class->time_id);
     }
 }

@@ -70,7 +70,7 @@ class ClassJoinController extends Controller
         $this->rememberBrowserJoin($studyClass->id);
 
         return redirect()
-            ->route('frontend.class-join.create', $studyClass)
+            ->route('frontend.class-join.create', $studyClass->slug)
             ->with('success', 'Your request was sent. An instructor will review it before approval.');
     }
 

@@ -103,9 +103,9 @@ class PublicApiController extends Controller
         ]);
     }
 
-    public function video(int $video): JsonResponse
+    public function video(string $slug): JsonResponse
     {
-        return $this->success($this->publicApiService->publicVideoDetail($video));
+        return $this->success($this->publicApiService->publicVideoDetail($slug));
     }
 
     public function emptyCollection(): JsonResponse

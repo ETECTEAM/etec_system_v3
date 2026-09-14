@@ -14,8 +14,8 @@
 
             <PageHero
                 eyebrow="Class Management"
-                :title="$t('Class List')"
-                :description="$t('Read, create, update, and delete class list records.')"
+                :title="$t('Classes')"
+                :description="$t('Manage class schedules, instructors, and enrollment.')"
                 class="mb-6"
             />
 
@@ -23,8 +23,8 @@
                 <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div class="min-w-0 shrink-0">
-                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-gray-500">{{ $t('Class Directory') }}</p>
-                            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t('Read, create, update, and delete class list records.') }}</p>
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-gray-500">{{ $t('Classes') }}</p>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t('Manage class schedules, instructors, and enrollment.') }}</p>
                         </div>
 
                         <Link
@@ -32,7 +32,7 @@
                             class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
                         >
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                            {{ $t('Class') }}
+                            {{ $t('Create Class') }}
                         </Link>
                     </div>
 
@@ -42,7 +42,7 @@
                             <input
                                 v-model="search"
                                 type="search"
-                                :placeholder="$t('Search by class, instructor, or time')"
+                                :placeholder="$t('Search classes or instructors')"
                                 class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:w-64 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
                                 @input="debounceSearch"
                                 @keyup.enter.prevent="applyFilters"
@@ -54,7 +54,6 @@
                                 v-model="selectedType"
                                 :options="classTypeOptions"
                                 :placeholder="$t('Type')"
-                                :search-placeholder="$t('Search types...')"
                                 :button-class="filterSelectClass"
                             />
                         </div>
@@ -64,7 +63,6 @@
                                 v-model="selectedTerm"
                                 :options="termOptions"
                                 :placeholder="$t('Term')"
-                                :search-placeholder="$t('Search terms...')"
                                 :button-class="filterSelectClass"
                             />
                         </div>
@@ -74,7 +72,6 @@
                                 v-model="selectedTime"
                                 :options="timeOptions"
                                 :placeholder="$t('Time')"
-                                :search-placeholder="$t('Search times...')"
                                 :button-class="filterSelectClass"
                             />
                         </div>
@@ -84,7 +81,6 @@
                                 v-model="selectedStatus"
                                 :options="statusOptions"
                                 :placeholder="$t('Status')"
-                                :search-placeholder="$t('Search status...')"
                                 :button-class="filterSelectClass"
                             />
                         </div>
@@ -96,12 +92,11 @@
                         <TableHeader>
                             <TableRow>
                                 <TableHead class="w-16">{{ $t('No') }}</TableHead>
-                                <TableHead>{{ $t('Class ID') }}</TableHead>
-                                <TableHead>{{ $t('Teacher') }}</TableHead>
-                                <TableHead>{{ $t('Course / Lesson') }}</TableHead>
-                                <TableHead>{{ $t('Term & Time') }}</TableHead>
-                                <TableHead>{{ $t('Building Floor & Room') }}</TableHead>
-                                <TableHead>{{ $t('Students') }}</TableHead>
+                                <TableHead>{{ $t('Class') }}</TableHead>
+                                <TableHead>{{ $t('Instructor') }}</TableHead>
+                                <TableHead>{{ $t('Schedule') }}</TableHead>
+                                <TableHead>{{ $t('Location') }}</TableHead>
+                                <TableHead>{{ $t('Enrollment') }}</TableHead>
                                 <TableHead>{{ $t('Status') }}</TableHead>
                                 <TableHead class="text-right">{{ $t('Actions') }}</TableHead>
                             </TableRow>
@@ -112,19 +107,12 @@
                                     {{ (classLists.current_page - 1) * classLists.per_page + index + 1 }}
                                 </TableCell>
                                 <TableCell>
-                                    <span class="inline-flex rounded-full bg-blue-800 px-3 py-1 text-xs font-semibold text-white dark:bg-blue-600">ID: {{ item.id }}</span>
-                                </TableCell>
-                                <TableCell>
-                                    <div class="flex items-center gap-2">
-                                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">👤</span>
-                                        <span class="font-medium text-slate-900 dark:text-gray-100">{{ item.teacher?.name || $t('No teacher') }}</span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
                                     <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.title || $t('No title') }}</div>
-                                    <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.course?.title || $t('No course') }}</div>
-                                    <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ $t('Lesson:') }} <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700 dark:bg-gray-800 dark:text-gray-300">{{ item.lesson?.title || $t('No lesson') }}</span></div>
-                                    <div class="mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">{{ $t('Type') }}: {{ item.class_type?.type_name || $t('Unknown') }}</div>
+                                    <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ $t('Class #:id', { id: item.id }) }} · {{ item.course?.title || $t('No course') }}</div>
+                                    <div class="mt-2 flex flex-wrap items-center gap-1.5"><span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700 dark:bg-gray-800 dark:text-gray-300">{{ item.lesson?.title || $t('No lesson') }}</span><span class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">{{ item.class_type?.type_name || $t('Unknown') }}</span></div>
+                                </TableCell>
+                                <TableCell>
+                                    <span class="font-medium text-slate-900 dark:text-gray-100">{{ item.teacher?.name || $t('No instructor') }}</span>
                                 </TableCell>
                                 <TableCell>
                                     <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.term?.term_name || $t('No term') }}</div>
@@ -134,8 +122,9 @@
                                     <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.room?.floor?.building?.name || $t('No building') }}</div>
                                     <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ item.room?.floor?.name || $t('No floor') }} · {{ item.room?.room_number || $t('No room') }}</div>
                                 </TableCell>
-                                <TableCell class="font-semibold text-slate-900 dark:text-gray-100">
-                                    {{ item.current_students ?? 0 }} / {{ item.capacity ?? 0 }}
+                                <TableCell>
+                                    <div class="font-semibold text-slate-900 dark:text-gray-100">{{ item.current_students ?? 0 }} / {{ item.capacity ?? 0 }}</div>
+                                    <div class="mt-1 text-xs text-slate-500 dark:text-gray-400">{{ $t('enrolled') }}</div>
                                 </TableCell>
                                 <TableCell>
                                     <span :class="['inline-flex rounded-full px-3 py-1 text-[11px] font-semibold', statusBadgeClass(item.status)]">
@@ -177,7 +166,7 @@
 
                             <!-- Empty state -->
                             <TableRow v-if="filteredData.length === 0">
-                                <TableCell colspan="9" class="px-4 py-16 text-center">
+                                <TableCell colspan="8" class="px-4 py-16 text-center">
                                     <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-gray-700 mb-3" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -186,7 +175,7 @@
                                     <p class="text-sm font-medium text-slate-600 dark:text-gray-300">{{ $t('No classes found.') }}</p>
                                     <Link href="/dashboard/class-list/create"
                                         class="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                                        + {{ $t('Class') }}
+                                        + {{ $t('Create Class') }}
                                     </Link>
                                 </TableCell>
                             </TableRow>
@@ -198,7 +187,7 @@
                 <div v-if="totalCount > 0"
                     class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-800/40">
                     <p class="text-sm text-slate-500 dark:text-gray-400">
-                        {{ $t('Showing :from-:to of :total entries', { from: classLists.from ?? 0, to: classLists.to ?? 0, total: totalCount }) }}
+                        {{ $t('Showing :from-:to of :total classes', { from: classLists.from ?? 0, to: classLists.to ?? 0, total: totalCount }) }}
                     </p>
 
                     <Pagination

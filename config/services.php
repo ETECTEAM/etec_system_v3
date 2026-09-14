@@ -14,6 +14,13 @@ return [
     |
     */
 
+    // Absolute path to a Chrome/Chromium binary for ClassResultPdfGenerator's
+    // headless PDF rendering. Leave null to auto-detect google-chrome /
+    // chromium / chromium-browser on PATH (the Docker image ships chromium).
+    'chrome' => [
+        'path' => env('CHROME_PATH'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],
@@ -33,6 +40,15 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    'telegram' => [
+        'otp_bot_token' => env('TELEGRAM_OTP_BOT_TOKEN'),
+        'error_bot_token' => env('TELEGRAM_ERROR_BOT_TOKEN'),
+        'otp_chat_id' => env('TELEGRAM_OTP_CHAT_ID'),
+        'error_chat_id' => env('TELEGRAM_ERROR_CHAT_ID'),
+        'personal_chat_id' => env('TELEGRAM_PERSONAL_CHAT_ID'),
+        'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
     ],
 
 ];

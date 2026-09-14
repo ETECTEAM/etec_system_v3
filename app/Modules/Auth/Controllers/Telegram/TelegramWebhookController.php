@@ -18,7 +18,7 @@ class TelegramWebhookController extends Controller
 {
     public function __invoke(Request $request, UserApprovalService $approvalService, AuthAuditService $auditService): Response
     {
-        $secret = (string) config('telegram.webhook_secret');
+        $secret = (string) config('services.telegram.webhook_secret');
         $routeSecret = (string) $request->route('secret', '');
         $headerSecret = (string) $request->header('X-Telegram-Bot-Api-Secret-Token', '');
 

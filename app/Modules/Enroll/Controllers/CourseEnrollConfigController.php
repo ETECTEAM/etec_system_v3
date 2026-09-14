@@ -5,7 +5,7 @@ namespace App\Modules\Enroll\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseEnrollConfig;
-use App\Modules\Enroll\Actions\SetAllCourseStartDates;
+use App\Modules\Enroll\Actions\SetClassTypeStartDates;
 use App\Modules\Enroll\Actions\SetCourseEnrollConfig;
 use App\Modules\Enroll\Queries\GetCourseEnrollConfigs;
 use Illuminate\Http\JsonResponse;
@@ -15,9 +15,13 @@ use Inertia\Response;
 
 class CourseEnrollConfigController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request, GetCourseEnrollConfigs $configs): Response
     {
-        return Inertia::render('backend/students/EnrollConfig');
+        // Rendered as a prop so the page arrives with its data on first paint -
+        // no empty-then-populate flash from a second XHR after mount.
+        return Inertia::render('backend/students/EnrollConfig', [
+            'initial' => $configs->handle($request),
+        ]);
     }
 
     public function data(Request $request, GetCourseEnrollConfigs $configs): JsonResponse
@@ -35,7 +39,6 @@ class CourseEnrollConfigController extends Controller
             'start_date' => ['nullable', 'date'],
             'unit_price' => ['nullable', 'numeric', 'min:0'],
             'course_price' => ['nullable', 'numeric', 'min:0'],
-            'selected_price_type' => ['required', 'string', 'in:unit,course'],
             'document_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
@@ -54,7 +57,6 @@ class CourseEnrollConfigController extends Controller
             'start_date' => ['nullable', 'date'],
             'unit_price' => ['nullable', 'numeric', 'min:0'],
             'course_price' => ['nullable', 'numeric', 'min:0'],
-            'selected_price_type' => ['required', 'string', 'in:unit,course'],
             'document_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
@@ -72,15 +74,26 @@ class CourseEnrollConfigController extends Controller
         return response()->json(['deleted' => true]);
     }
 
-    public function bulkUpdateStartDate(Request $request, SetAllCourseStartDates $setAllStartDates): JsonResponse
+    // Scoped bulk start date: applies one date to every course's config for the
+    // selected class type only. Backend enforces the scope — a class type hidden
+    // in the UI is never touched.
+    public function bulkUpdateStartDate(Request $request, SetClassTypeStartDates $setStartDates): JsonResponse
     {
         $validated = $request->validate([
+            'class_type_id' => ['required', 'integer', 'exists:class_type,class_type_id'],
             'start_date' => ['nullable', 'date'],
         ]);
 
-        $updated = $setAllStartDates->handle($validated['start_date'] ?? null);
+        $updated = $setStartDates->handle(
+            (int) $validated['class_type_id'],
+            $validated['start_date'] ?? null,
+        );
 
-        return response()->json(['updated' => $updated]);
+        return response()->json([
+            'updated' => $updated,
+            'class_type_id' => (int) $validated['class_type_id'],
+            'start_date' => $validated['start_date'] ?? null,
+        ]);
     }
 
     // The course's display position on the public student-register list -
@@ -124,7 +137,6 @@ class CourseEnrollConfigController extends Controller
             'start_date' => optional($config->start_date)->format('Y-m-d'),
             'unit_price' => (float) $config->unit_price,
             'course_price' => (float) $config->course_price,
-            'selected_price_type' => $config->selected_price_type,
             'resolved_price' => $config->resolvedPrice(),
             'document_price' => (float) $config->document_price,
         ];

@@ -54,6 +54,16 @@ class SubCategorySeeder extends Seeder
                 'category_id' => $this->getCategoryId('Networking'),
                 'name' => 'Network & Systems'
             ],
+            // Computer Basic Category
+            [
+                'category_id' => $this->getCategoryId('Computer Basic'),
+                'name' => 'Office Skills'
+            ],
+            // Internship Category
+            [
+                'category_id' => $this->getCategoryId('Internship'),
+                'name' => 'Internship'
+            ],
         ];
 
         $usedSlugs = [];

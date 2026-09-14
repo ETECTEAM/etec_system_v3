@@ -9,7 +9,7 @@ use App\Models\News;
 use App\Models\Page;
 use App\Models\SchoolSetting;
 use App\Models\WebsiteVideo;
-use Illuminate\Http\UploadedFile;
+// use Illuminate\Http\UploadedFile; // FILE: disabled - not using file uploads
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -458,40 +458,25 @@ class WebsiteContentService
         ];
     }
 
-    public function uniqueUploadPath(UploadedFile $file, string $directory): string
-    {
-        $extension = strtolower($file->getClientOriginalExtension());
-        $name = Str::uuid()->toString().'.'.$extension;
+    // FILE: disabled - not using file uploads
+    // public function uniqueUploadPath(UploadedFile $file, string $directory): string
+    // {
+    //     $extension = strtolower($file->getClientOriginalExtension());
+    //     $name = Str::uuid()->toString().'.'.$extension;
+    //
+    //     return $file->storeAs($directory, $name, 'public');
+    // }
 
-        return $file->storeAs($directory, $name, 'public');
-    }
-
+    // Stub: returns null when file uploads are disabled
     public function publicImageDataUri(?string $path): ?string
     {
-        if (! $path || Str::startsWith($path, ['data:', 'http://', 'https://', '//'])) {
-            return $path;
-        }
-
-        $path = ltrim($path, '/');
-
-        if (! Storage::disk('public')->exists($path)) {
-            return null;
-        }
-
-        $mimeType = Storage::disk('public')->mimeType($path);
-
-        if (! is_string($mimeType) || ! Str::startsWith($mimeType, 'image/')) {
-            return null;
-        }
-
-        return 'data:'.$mimeType.';base64,'.base64_encode(Storage::disk('public')->get($path));
+        return null;
     }
 
+    // Stub: no-op when file uploads are disabled
     public function deletePublicFile(?string $path): void
     {
-        if ($path && Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
-        }
+        // FILE: disabled - not using file uploads
     }
 
     public function sanitizeContent(?string $content): ?string

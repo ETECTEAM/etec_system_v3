@@ -1,0 +1,120 @@
+services:
+  app:
+    build:
+      context: .
+      target: production
+    container_name: system_app_prod
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      # The repo itself is mounted in, so `git pull` on the host immediately
+      # changes what php-fpm serves - no image rebuild per deploy. The image is
+      # now only the *runtime* (PHP 8.3 + extensions + composer + node); the
+      # code it bakes in at build time is entirely shadowed by this mount.
+      - .:/var/www
+      # storage/ and bootstrap/cache stay container-owned named volumes,
+      # layered on top of the bind mount above. Two reasons: www-data (uid 33)
+      # can write them without chowning host paths out from under the deploy
+      # user's git checkout, and runtime state survives independently of the
+      # working tree.
+      - storage_data:/var/www/storage
+      - bootstrap_cache:/var/www/bootstrap/cache
+    depends_on:
+      - mysql
+
+  scheduler:
+    build:
+      context: .
+      target: production
+    container_name: system_scheduler_prod
+    restart: always
+    env_file:
+      - .env
+    # schedule:work is the long-running equivalent of a `* * * * * schedule:run`
+    # cron entry - it sleeps and fires due commands every minute for as long as
+    # the container runs. This is what actually drives AutoRecordAttendanceCommand,
+    # GenerateClassSessionsCommand, and SendAttendanceDigestCommand; without it
+    # none of bootstrap/app.php's ->withSchedule() definitions ever execute.
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - .:/var/www
+      - storage_data:/var/www/storage
+      - bootstrap_cache:/var/www/bootstrap/cache
+    depends_on:
+      - mysql
+
+  queue:
+    build:
+      context: .
+      target: production
+    container_name: system_queue_prod
+    restart: always
+    env_file:
+      - .env
+    # Processes queued jobs (e.g. the Telegram admin-approval notification
+    # listener). Requires QUEUE_CONNECTION=database - under the old `sync`
+    # setting, jobs ran inline in the request instead of being queued, so a
+    # worker had nothing to pick up.
+    command: ["php", "artisan", "queue:work", "--tries=3", "--backoff=10", "--sleep=3"]
+    volumes:
+      - .:/var/www
+      - storage_data:/var/www/storage
+      - bootstrap_cache:/var/www/bootstrap/cache
+    depends_on:
+      - mysql
+
+  reverb:
+    build:
+      context: .
+      target: production
+    container_name: system_reverb_prod
+    restart: always
+    env_file:
+      - .env
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    volumes:
+      - .:/var/www
+      - storage_data:/var/www/storage
+      - bootstrap_cache:/var/www/bootstrap/cache
+    # No host port published - nginx proxies /app to this container over the
+    # compose network, so only 80/443 are ever exposed publicly.
+    depends_on:
+      - mysql
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: system_nginx_prod
+    restart: always
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # Serves public/ straight off the host, including the public/build output
+      # that `npm run build` just wrote there.
+      - ./public:/var/www/public:ro
+      # public/storage is a symlink to ../storage/app/public. Without storage
+      # mounted here too that symlink dangles and every user-uploaded file 404s.
+      - storage_data:/var/www/storage:ro
+    depends_on:
+      - app
+      - reverb
+
+  mysql:
+    image: mysql:8
+    container_name: system_mysql_prod
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # No host port published deliberately - only reachable from other
+    # containers on this compose network. Use an SSH tunnel for direct access.
+
+volumes:
+  mysql_data:
+  storage_data:
+  bootstrap_cache:

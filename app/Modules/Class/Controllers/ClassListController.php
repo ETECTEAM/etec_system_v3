@@ -12,6 +12,7 @@ use App\Models\Term;
 use App\Models\Time;
 use App\Models\User;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
+use App\Support\InstructorDisplayName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -63,6 +64,7 @@ class ClassListController extends Controller
         }
 
         $classLists = $classLists->latest()->paginate(20)->withQueryString();
+        $classLists->getCollection()->each(fn (StudyClass $class) => $this->stripTeacherName($class));
 
         return Inertia::render('backend/classes/class-list/ClassList', [
             'classLists' => $classLists,
@@ -85,7 +87,7 @@ class ClassListController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title'         => ['required', 'string', 'max:255'],
+            'title'         => ['nullable', 'string', 'max:255'],
             'teacher_id'    => ['nullable', 'exists:users,id'],
             'course_id'     => ['required', 'exists:courses,id'],
             'lesson_id'     => ['nullable', 'exists:course_lessons,id'],
@@ -96,6 +98,10 @@ class ClassListController extends Controller
             'capacity'      => ['nullable', 'integer', 'min:0'],
             'status'        => ['nullable', 'string', Rule::in(GetClassFormOptions::STATUSES)],
         ]);
+
+        $validated['title'] = filled($validated['title'] ?? null)
+            ? $validated['title']
+            : Course::findOrFail($validated['course_id'])->title;
 
         StudyClass::create($validated);
 
@@ -108,7 +114,7 @@ class ClassListController extends Controller
     public function create()
     {
         return Inertia::render('backend/classes/class-list/ClassListCreate', [
-            'teachers' => User::role('instructor')->select('id', 'name')->get(),
+            'teachers' => $this->teacherOptions(),
             'courses' => Course::select('id', 'title')->get(),
             'lessons' => CourseLesson::select('id', 'title')->get(),
             'terms' => Term::select('id', 'term_name')->get(),
@@ -127,6 +133,7 @@ class ClassListController extends Controller
         $classList->loadCount([
             'enrollments as current_students' => fn (Builder $query) => $query->where('enrollment_status', 'active'),
         ]);
+        $this->stripTeacherName($classList);
 
         return Inertia::render('backend/classes/class-list/ClassListShow', [
             'classList' => $classList,
@@ -140,7 +147,7 @@ class ClassListController extends Controller
     {
         return Inertia::render('backend/classes/class-list/ClassListEdit', [
             'classList' => $classList->load(['course', 'lesson', 'term', 'time', 'room', 'classType']),
-            'teachers' => User::role('instructor')->select('id', 'name')->get(),
+            'teachers' => $this->teacherOptions(),
             'courses' => Course::select('id', 'title')->get(),
             'lessons' => CourseLesson::select('id', 'title')->get(),
             'terms' => Term::select('id', 'term_name')->get(),
@@ -181,5 +188,24 @@ class ClassListController extends Controller
         $classList->delete();
 
         return redirect()->route('class-list.index')->with('success', 'Class deleted successfully.');
+    }
+
+    private function teacherOptions()
+    {
+        return User::role('instructor')
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (User $teacher) => [
+                'id' => $teacher->id,
+                'name' => InstructorDisplayName::format($teacher->name, 'Unknown'),
+            ]);
+    }
+
+    private function stripTeacherName(StudyClass $class): void
+    {
+        if ($class->relationLoaded('teacher') && $class->teacher) {
+            $class->teacher->name = InstructorDisplayName::format($class->teacher->name, 'Unknown');
+        }
     }
 }

@@ -36,6 +36,7 @@ function submit() {
     </div>
 
     <form class="space-y-4" @submit.prevent="submit">
+
       <label class="block">
         <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">Full Name</span>
         <input

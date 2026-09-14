@@ -20,7 +20,7 @@ class GradingSettingSeeder extends Seeder
             ],
             [
                 'key' => 'attendance.auto_record_grace_minutes',
-                'value' => '15',
+                'value' => '20',
                 'type' => 'number',
                 'label' => 'Grace minutes',
                 'description' => 'Minutes after a class starts before the system records attendance on the instructor\'s behalf.',
@@ -51,6 +51,14 @@ class GradingSettingSeeder extends Seeder
                 'type' => 'boolean',
                 'label' => 'Allow instructor override',
                 'description' => 'Lets the instructor correct an auto-recorded session within the override window below.',
+                'group' => 'attendance',
+            ],
+            [
+                'key' => 'attendance.auto_record_allow_track_anytime',
+                'value' => 'false',
+                'type' => 'boolean',
+                'label' => 'Allow tracking anytime',
+                'description' => 'Development/testing switch that lets instructors track attendance outside the scheduled session window.',
                 'group' => 'attendance',
             ],
             [

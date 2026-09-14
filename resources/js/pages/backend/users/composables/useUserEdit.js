@@ -24,7 +24,6 @@ export function useUserEdit() {
     role: user.role ?? (roleOptions[0] ?? 'admin'),
     account_status: user.status ?? 'active',
     avatar: null,
-    student_code: s.student_code ?? '',
     student_full_name: s.full_name ?? '',
     student_first_name: s.first_name ?? '',
     student_last_name: s.last_name ?? '',

@@ -5,7 +5,9 @@ namespace App\Modules\Enroll\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Building;
 use App\Models\Course;
+use App\Models\CourseEnrollConfig;
 use App\Models\Floor;
+use App\Models\Room;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
@@ -15,6 +17,7 @@ use App\Modules\Enroll\Actions\CreateStudyClass;
 use App\Modules\Enroll\Actions\EnrollStudent;
 use App\Modules\Enroll\Actions\MoveStudentEnrollment;
 use App\Modules\Enroll\Actions\RecordEnrollmentDeposit;
+use App\Modules\Enroll\Actions\RecordManualRegistration;
 use App\Modules\Enroll\Actions\RegisterStudent;
 use App\Modules\Enroll\Actions\ShareClassWithInstructor;
 use App\Modules\Enroll\Actions\UpdatePublicRegistrationDetails;
@@ -30,21 +33,87 @@ use App\Modules\Enroll\Requests\RegisterStudentRequest;
 use App\Modules\Enroll\Requests\SaveStudyClassRequest;
 use App\Modules\Enroll\Requests\ShareClassInstructorRequest;
 use App\Modules\Enroll\Requests\StoreClassStudentRequest;
+use App\Modules\Enroll\Requests\StoreManualRegistrationRequest;
 use App\Modules\Enroll\Requests\UpdatePublicRegistrationRequest;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
+use App\Support\InstructorDisplayName;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class EnrollmentClassController extends Controller
 {
-    public function index(Request $request, GetClassList $classes): Response
+    public function index(Request $request, GetClassList $classes, GetClassFormOptions $formOptions): Response
     {
-        return Inertia::render('backend/students/ClassList', $classes->handle($request));
+        $options = $formOptions->handle();
+
+        return Inertia::render('backend/students/ClassList', [
+            ...$classes->handle($request),
+            // Feeds the "Register to Class" tab — only classes a new student may
+            // still join (open seats + recently started / upcoming).
+            'eligibleClasses' => $this->eligibleRegistrationClasses($classes),
+            // Full option lists for the VIP / Manual Register forms — every
+            // course / instructor / room / term / time, not only the ones that
+            // currently have a live class.
+            'registerOptions' => [
+                'courses' => collect($options['courses'])->pluck('title')->filter()->unique()->values()->all(),
+                'instructors' => collect($options['teachers'])->pluck('name')->filter()->unique()->values()->all(),
+                'terms' => collect($options['terms'])->pluck('term_name')->filter()->unique()->values()->all(),
+                'times' => collect($options['times'])->pluck('time_name')->filter()->unique()->values()->all(),
+                'rooms' => Room::query()
+                    ->with('floor:id,name')
+                    ->orderBy('room_number')
+                    ->get()
+                    ->map(fn (Room $room) => trim(($room->floor?->name ? $room->floor->name.' ' : '').$room->room_number))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all(),
+            ],
+        ]);
+    }
+
+    /**
+     * Classes a new student can still be registered into: upcoming or active,
+     * with a free seat, and — once started — within the last month. Mirrors the
+     * server-side guard in ensureClassAcceptsRegistration().
+     */
+    private function eligibleRegistrationClasses(GetClassList $classList): array
+    {
+        return StudyClass::query()
+            ->with([
+                'course:id,title',
+                'lesson:id,course_id,title',
+                'teacher:id,name',
+                'room:id,floor_id,room_number',
+                'room.floor:id,building_id,name,level',
+                'room.floor.building:id,name',
+                'classType:class_type_id,type_name',
+                'term:id,term_name',
+                'time:id,time_name',
+            ])
+            ->withCount([
+                'enrollments as current_students' => fn ($query) => $query->where('enrollment_status', 'active'),
+            ])
+            ->whereIn('status', ['upcoming', 'active'])
+            ->where(function ($query): void {
+                $query->whereNull('start_date')
+                    ->orWhere('start_date', '>=', now('Asia/Phnom_Penh')->subMonth()->startOfDay());
+            })
+            ->orderByDesc('start_date')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (StudyClass $studyClass) => $classList->presentClass($studyClass))
+            ->filter(fn (array $class) => ($class['available_seats'] ?? 0) > 0)
+            ->values()
+            ->all();
     }
 
     public function publicRegistrations(Request $request, GetPublicRegistrations $query): JsonResponse
@@ -87,7 +156,7 @@ class EnrollmentClassController extends Controller
     public function create(GetClassFormOptions $options): Response
     {
         return Inertia::render('backend/students/CreateClass', [
-            'options' => $options->handle(),
+            'options' => $this->scopeScheduleOptionsToInstructor($options->handle()),
         ]);
     }
 
@@ -145,7 +214,7 @@ class EnrollmentClassController extends Controller
                 'id' => $studyClass->id,
                 ...$this->presentClassData($studyClass),
             ],
-            'options' => $options->handle($studyClass),
+            'options' => $this->scopeScheduleOptionsToInstructor($options->handle($studyClass), $studyClass->id),
         ]);
     }
 
@@ -167,16 +236,13 @@ class EnrollmentClassController extends Controller
 
         return Inertia::render('backend/students/CreateClass', [
             'classData' => $this->presentClassData($studyClass),
-            'options' => $options->handle($studyClass),
+            'options' => $this->scopeScheduleOptionsToInstructor($options->handle($studyClass)),
         ]);
     }
 
     public function createStudent(StudyClass $studyClass, GetClassList $classList): Response|RedirectResponse
     {
-        if (auth()->guest()) {
-            return redirect()->route('frontend.class-join.create', $studyClass);
-        }
-
+        $this->ensureInstructorCanManageClassStudents($studyClass);
         $this->ensureClassAcceptsMutations($studyClass);
 
         $studyClass->load([
@@ -195,11 +261,51 @@ class EnrollmentClassController extends Controller
         ]);
     }
 
-    public function createRegisteredStudent(GetClassFormOptions $options): Response
+    public function createRegisteredStudent(GetClassList $classList): Response
     {
+        // The Register Student page now lists classes that just started as cards —
+        // each card's 3-dot menu opens "Register New Student" to hand-register a
+        // student straight into that class. Classes are ordered by most recently
+        // started first (see GetClassList).
+        $classes = StudyClass::query()
+            ->select([
+                'id',
+                'title',
+                'course_id',
+                'lesson_id',
+                'teacher_id',
+                'room_id',
+                'class_type_id',
+                'term_id',
+                'time_id',
+                'status',
+                'capacity',
+                'price',
+                'document_price',
+                'start_date',
+                'end_date',
+            ])
+            ->with([
+                'course:id,title',
+                'lesson:id,course_id,title',
+                'teacher:id,name',
+                'room:id,floor_id,room_number',
+                'room.floor:id,building_id,name,level',
+                'room.floor.building:id,name',
+                'classType:class_type_id,type_name',
+                'term:id,term_name',
+                'time:id,time_name',
+            ])
+            ->withCount([
+                'enrollments as current_students' => fn ($query) => $query->where('enrollment_status', 'active'),
+            ])
+            ->whereIn('status', ['upcoming', 'active'])
+            ->orderByDesc('start_date')
+            ->orderByDesc('id')
+            ->get();
+
         return Inertia::render('backend/students/RegisterStudent', [
-            'courses' => Course::query()->select('id', 'title')->orderBy('title')->get(),
-            'scheduleGroups' => $options->scheduleGroups(),
+            'classes' => $classes->map(fn (StudyClass $studyClass) => $classList->presentClass($studyClass))->all(),
         ]);
     }
 
@@ -212,6 +318,21 @@ class EnrollmentClassController extends Controller
         return redirect()
             ->route('enroll.students.create')
             ->with('success', 'Student registered successfully.');
+    }
+
+    // "Manual Register" tab — hand-record an old registration (no class), stored
+    // as a class-less enrollment with source = manual. Returns JSON (the form
+    // posts with axios, not Inertia).
+    public function storeManualRegistration(
+        StoreManualRegistrationRequest $request,
+        RecordManualRegistration $record
+    ): JsonResponse {
+        $enrollment = $record->handle($request->validated());
+
+        return response()->json([
+            'success' => true,
+            'enrollment_id' => $enrollment->id,
+        ], 201);
     }
 
     public function update(
@@ -246,6 +367,24 @@ class EnrollmentClassController extends Controller
         return back()->with('success', 'Class status updated successfully.');
     }
 
+    public function updateCapacity(Request $request, StudyClass $studyClass): \Illuminate\Http\JsonResponse
+    {
+        $this->ensureInstructorOwnsClass($studyClass);
+
+        $validated = $request->validate([
+            'capacity' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $studyClass->update([
+            'capacity' => $validated['capacity'],
+        ]);
+
+        return response()->json([
+            'capacity' => $studyClass->capacity,
+            'message' => 'Class capacity updated successfully.',
+        ]);
+    }
+
     public function destroy(StudyClass $studyClass): RedirectResponse
     {
         $studyClass->enrollments()->delete();
@@ -267,14 +406,14 @@ class EnrollmentClassController extends Controller
         return response()->json([
             'owner' => $studyClass->teacher ? [
                 'id' => $studyClass->teacher->id,
-                'name' => $studyClass->teacher->name,
+                'name' => InstructorDisplayName::format($studyClass->teacher->name, 'Unknown'),
             ] : null,
             'classTypeId' => $studyClass->class_type_id,
             'termId' => $studyClass->term_id,
             'timeId' => $studyClass->time_id,
             'shared' => $studyClass->instructors->map(fn (User $instructor) => [
                 'id' => $instructor->id,
-                'name' => $instructor->name,
+                'name' => InstructorDisplayName::format($instructor->name, 'Unknown'),
                 'term_id' => $instructor->pivot->term_id,
                 'time_id' => $instructor->pivot->time_id,
                 'subject' => $instructor->pivot->subject,
@@ -284,7 +423,11 @@ class EnrollmentClassController extends Controller
                 ->where('id', '!=', $studyClass->teacher_id)
                 ->select('id', 'name')
                 ->orderBy('name')
-                ->get(),
+                ->get()
+                ->map(fn (User $teacher) => [
+                    'id' => $teacher->id,
+                    'name' => InstructorDisplayName::format($teacher->name, 'Unknown'),
+                ]),
             'schedules' => $this->shareableSchedules($studyClass, $options),
         ]);
     }
@@ -366,18 +509,166 @@ class EnrollmentClassController extends Controller
         return back()->with('success', 'Student added to class successfully.');
     }
 
+    /**
+     * "Add Existing Student" on the class card. Lists registrations for THIS
+     * class's course — parked ones (Manual Register + other unassigned rows) and
+     * students already taking the same course in a different time slot — but
+     * never a student who already sits in a class of this course + time (any
+     * instructor's parallel section). One row per student.
+     * Instructor-scoped to the class's own teachers.
+     */
+    public function assignableRegistrations(Request $request, StudyClass $studyClass): JsonResponse
+    {
+        $this->ensureInstructorCanManageClassStudents($studyClass);
+
+        $search = trim($request->string('search')->toString());
+
+        // Students already in THIS class — kept in the list, flagged as added.
+        $inThisClassIds = StudentEnrollment::query()
+            ->where('study_class_id', $studyClass->id)
+            ->whereNotIn('enrollment_status', ['cancelled', 'rejected'])
+            ->pluck('student_id')
+            ->all();
+
+        // Students holding a seat in ANOTHER class of this same course + time
+        // (a parallel section) — a student belongs to one such class only, so
+        // they can't be added here and are dropped from the list.
+        $inParallelSectionIds = StudentEnrollment::query()
+            ->where('study_class_id', '!=', $studyClass->id)
+            ->whereNotIn('enrollment_status', ['cancelled', 'rejected'])
+            ->whereHas('studyClass', fn (Builder $query) => $query
+                ->where('course_id', $studyClass->course_id)
+                ->where('time_id', $studyClass->time_id))
+            ->pluck('student_id')
+            ->all();
+
+        $perPage = min(max((int) $request->integer('per_page', 20), 10), 100);
+
+        $paginator = StudentEnrollment::query()
+            // One representative (latest live) registration per student for this course.
+            ->whereIn('id', function ($sub) use ($studyClass): void {
+                $sub->from('student_enrollments')
+                    ->selectRaw('MAX(id)')
+                    ->where('course_id', $studyClass->course_id)
+                    ->whereNotIn('enrollment_status', ['cancelled', 'rejected'])
+                    ->groupBy('student_id');
+            })
+            ->when($inParallelSectionIds !== [], fn (Builder $query) => $query->whereNotIn('student_id', $inParallelSectionIds))
+            ->with([
+                'student:id,full_name,gender',
+                'course:id,title',
+                'term:id,term_name',
+                'time:id,time_name',
+                'studyClass:id,title,time_id',
+                'studyClass.time:id,time_name',
+            ])
+            ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $query) use ($search): void {
+                $query->whereHas('student', fn (Builder $query) => $query
+                    ->where('full_name', 'like', "%{$search}%"))
+                    ->orWhereHas('course', fn (Builder $query) => $query->where('title', 'like', "%{$search}%"));
+            }))
+            // Students still addable first; those already in this class fall to the end.
+            ->when($inThisClassIds !== [], fn (Builder $query) => $query->orderByRaw(
+                'student_id IN ('.implode(',', array_fill(0, count($inThisClassIds), '?')).') asc',
+                $inThisClassIds,
+            ))
+            ->latest('id')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return response()->json(
+            $paginator->through(fn (StudentEnrollment $enrollment) => [
+                'enrollment_id' => $enrollment->id,
+                'name' => $enrollment->student?->full_name ?? '-',
+                'gender' => $enrollment->student?->gender ?? '-',
+                'course_title' => $enrollment->course?->title,
+                'term_name' => $enrollment->term?->term_name,
+                'time_name' => $enrollment->time?->time_name,
+                'registration_type' => match ($enrollment->source) {
+                    'vip' => 'vip',
+                    'manual' => 'manual',
+                    default => 'normal',
+                },
+                // Already enrolled in this class — shown as "Added", not addable.
+                'in_this_class' => in_array($enrollment->student_id, $inThisClassIds, true),
+                // null when the student is still parked (no class yet).
+                'current_class' => $enrollment->studyClass?->title,
+                'current_class_time' => $enrollment->studyClass?->time?->time_name,
+            ])
+        );
+    }
+
+    /**
+     * Add one existing student to this class. Rejected if the student already
+     * holds a seat in any class of this course + time (a student belongs to one
+     * such section only). A still-parked registration is moved in place (its
+     * payment / receipt stay on the same row); a student taking this course in
+     * another time slot gets a fresh, already-paid enrollment here — their other
+     * one is untouched. Instructor-scoped.
+     */
+    public function assignRegistration(
+        Request $request,
+        StudyClass $studyClass,
+        MoveStudentEnrollment $move,
+        EnrollStudent $enroll
+    ): JsonResponse {
+        $this->ensureInstructorCanManageClassStudents($studyClass);
+        $this->ensureClassAcceptsMutations($studyClass);
+
+        $validated = $request->validate([
+            'enrollment_id' => ['required', 'integer', 'exists:student_enrollments,id'],
+            'force' => ['sometimes', 'boolean'],
+        ]);
+
+        $enrollment = StudentEnrollment::query()->findOrFail($validated['enrollment_id']);
+        $force = (bool) ($validated['force'] ?? false);
+
+        $alreadyInSection = StudentEnrollment::query()
+            ->where('student_id', $enrollment->student_id)
+            ->whereNotIn('enrollment_status', ['cancelled', 'rejected'])
+            ->whereHas('studyClass', fn (Builder $query) => $query
+                ->where('course_id', $studyClass->course_id)
+                ->where('time_id', $studyClass->time_id))
+            ->exists();
+
+        abort_if($alreadyInSection, 422, 'This student is already in a class for this course and time.');
+
+        // Parked registration (never assigned): move the existing row in place.
+        if ($enrollment->study_class_id === null && $enrollment->enrollment_status === 'unassigned') {
+            $move->handle($enrollment, $studyClass, $force);
+
+            return response()->json(['success' => true]);
+        }
+
+        // Taking this course at another time: fresh, already-paid enrollment here.
+        // EnrollStudent::handle() also runs the seat check.
+        $enroll->handle($studyClass, (int) $enrollment->student_id, $force, [
+            'source' => $enrollment->source ?? 'manual',
+            'course_id' => $studyClass->course_id,
+            'term_id' => $studyClass->term_id,
+            'payment_status' => 'paid',
+            'amount_paid' => (float) $enrollment->amount_paid,
+            'paid_at' => $enrollment->paid_at ?? now(),
+            'enrolled_at' => now(),
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
     public function storeStudent(
         StoreClassStudentRequest $request,
         StudyClass $studyClass,
         CreateClassStudent $createClassStudent
     ): RedirectResponse {
+        $this->ensureInstructorCanManageClassStudents($studyClass);
         $this->ensureClassAcceptsMutations($studyClass);
+        $this->ensureClassAcceptsRegistration($studyClass);
 
         $createClassStudent->handle($studyClass, $request->validated());
 
-        return redirect()
-            ->route('enroll.class-students.create', $studyClass)
-            ->with('success', 'Student added to class successfully.');
+        // back() so the class list's inline register modal returns to the list
+        // with the flash message and refreshed seat counts.
+        return back()->with('success', 'Student added to class successfully.');
     }
 
     public function approveEnrollment(Request $request, StudentEnrollment $enrollment, StudentRegistrationService $registrations): RedirectResponse
@@ -473,6 +764,10 @@ class EnrollmentClassController extends Controller
 
     private function presentClassData(StudyClass $studyClass): array
     {
+        $config = $this->resolveEnrollConfig($studyClass);
+        $resolvedPrice = $config?->resolvedPrice() ?? (float) $studyClass->price;
+        $resolvedDocumentPrice = $config !== null ? (float) $config->document_price : (float) $studyClass->document_price;
+
         return [
             'title' => $studyClass->title,
             'course_id' => $studyClass->course_id,
@@ -490,12 +785,20 @@ class EnrollmentClassController extends Controller
             'start_time' => $this->formatTime($studyClass->scheduleStartTime()),
             'end_time' => $this->formatTime($studyClass->scheduleEndTime()),
             'capacity' => $studyClass->capacity,
-            'price' => round((float) $studyClass->price, 2),
-            'document_price' => round((float) $studyClass->document_price, 2),
+            'price' => $resolvedPrice,
+            'document_price' => $resolvedDocumentPrice,
+            'attendance_latitude' => $studyClass->attendance_latitude !== null ? (float) $studyClass->attendance_latitude : null,
+            'attendance_longitude' => $studyClass->attendance_longitude !== null ? (float) $studyClass->attendance_longitude : null,
+            'attendance_radius_meters' => $studyClass->attendance_radius_meters !== null ? (int) $studyClass->attendance_radius_meters : null,
             'enrollment_start_date' => $studyClass->enrollment_start_date?->format('Y-m-d'),
             'start_date' => $studyClass->start_date?->format('Y-m-d'),
             'end_date' => $studyClass->end_date?->format('Y-m-d'),
         ];
+    }
+
+    private function resolveEnrollConfig(StudyClass $studyClass): ?\App\Models\CourseEnrollConfig
+    {
+        return \App\Models\CourseEnrollConfig::forCourseTime($studyClass->course_id, $studyClass->time_id);
     }
 
     private function approvePendingEnrollment(StudentEnrollment $enrollment, StudentRegistrationService $registrations): void
@@ -519,6 +822,27 @@ class EnrollmentClassController extends Controller
             422,
             'This class is no longer accepting student changes.',
         );
+    }
+
+    /**
+     * Extra guard for the "Register to Class" walk-in flow: the class must be
+     * upcoming or active and, once it has started, no older than one month —
+     * so an old/closed class can't be registered into via a direct request.
+     */
+    private function ensureClassAcceptsRegistration(StudyClass $studyClass): void
+    {
+        if (! in_array($this->normaliseClassStatus($studyClass->status), ['upcoming', 'active'], true)) {
+            throw ValidationException::withMessages([
+                'class' => 'This class is not open for new registrations.',
+            ]);
+        }
+
+        if ($studyClass->start_date !== null
+            && $studyClass->start_date->lt(now('Asia/Phnom_Penh')->subMonth()->startOfDay())) {
+            throw ValidationException::withMessages([
+                'class' => 'This class started more than a month ago and no longer accepts new registrations.',
+            ]);
+        }
     }
 
     private function normaliseClassStatus(?string $status): string
@@ -547,6 +871,27 @@ class EnrollmentClassController extends Controller
     }
 
     /**
+     * Adding students is a class-level action, so unlike ensureInstructorOwnsClass()
+     * a co-instructor on a collapsed/shared class is allowed too (matches the
+     * instructor dashboard, which keeps "Add Student" for both instructors).
+     */
+    private function ensureInstructorCanManageClassStudents(StudyClass $studyClass): void
+    {
+        if (! $this->isSelfManagingInstructor()) {
+            return;
+        }
+
+        $userId = auth()->id();
+
+        abort_unless(
+            $studyClass->teacher_id === $userId
+                || $studyClass->instructors()->whereKey($userId)->exists(),
+            403,
+            'You can only manage classes assigned to you.',
+        );
+    }
+
+    /**
      * An instructor acting on their own classes — i.e. not also an admin, who manages every
      * class and works from the admin screens rather than the instructor dashboard.
      */
@@ -557,6 +902,33 @@ class EnrollmentClassController extends Controller
         return $user !== null
             && $user->hasRole('instructor')
             && ! $user->hasAnyRole(['admin', 'super_admin']);
+    }
+
+    /**
+     * When a self-managing instructor opens the class form, narrow its schedule
+     * picker (scheduleGroups) to only the term/time slots they can actually be
+     * assigned to — inside an availability window, not manually blocked, not
+     * overlapping a class they already teach. Admins keep the full list: they
+     * choose the teacher, and CreateStudyClass / SaveStudyClassRequest still
+     * validate the final pick. $exceptClassId skips the class being edited so
+     * its own current slot stays selectable.
+     *
+     * @param  array<string, mixed>  $optionsData
+     * @return array<string, mixed>
+     */
+    private function scopeScheduleOptionsToInstructor(array $optionsData, ?int $exceptClassId = null): array
+    {
+        if (! $this->isSelfManagingInstructor()) {
+            return $optionsData;
+        }
+
+        $optionsData['scheduleGroups'] = app(InstructorAssignmentAvailability::class)->filterScheduleGroups(
+            (int) auth()->id(),
+            $optionsData['scheduleGroups'] ?? [],
+            $exceptClassId,
+        );
+
+        return $optionsData;
     }
 
     /**

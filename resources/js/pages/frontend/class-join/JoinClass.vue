@@ -29,7 +29,7 @@ const form = useForm({
   phone: "",
 });
 
-const joinUrl = computed(() => `/join-class/${props.classData.id}`);
+const joinUrl = computed(() => `/join-class/${props.classData.slug ?? props.classData.id}`);
 
 function submit() {
   if (props.isLocked) {
@@ -69,7 +69,7 @@ function normalizePhoneInput(event) {
         </p>
 
         <p
-          v-if="isLocked"
+          v-if="isLocked && !flashSuccess"
           class="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
         >
           You already requested this class from this device. Please wait for instructor approval.

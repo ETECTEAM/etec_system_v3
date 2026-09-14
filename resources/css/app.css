@@ -133,3 +133,23 @@ input:-webkit-autofill:active {
         overflow: hidden;
     }
 }
+
+/* Inertia progress bar & spinner */
+#nprogress .bar {
+    height: 3px !important;
+    z-index: 99999 !important;
+}
+
+#nprogress .spinner {
+    z-index: 99999 !important;
+}
+
+
+/* QR "zoom to scan" pop-in (used by the class QR dialogs). */
+@keyframes qr-pop {
+    from { transform: scale(0.6); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+.qr-pop {
+    animation: qr-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

@@ -51,7 +51,7 @@ function toggleSidebarCollapse() {
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import axios from 'axios'
 import { usePage } from '@inertiajs/vue3'
-import { useToast } from 'vue-toastification'
+import { useToast } from '@/composables/useToast'
 import Sidebar from './Sidebar.vue'
 import DashboardHeader from './DashboardHeader.vue'
 import { ConfirmDialog } from '../components/ui/confirm-dialog'

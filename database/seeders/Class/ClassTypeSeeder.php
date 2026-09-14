@@ -53,6 +53,22 @@ class ClassTypeSeeder extends Seeder
                 'created_at'    => now(),
                 'updated_at'    => now(),
             ],
+            [
+                'class_type_id' => 6,
+                'type_name'     => 'Internship',
+                'description'   => 'Internship and workplace-based learning',
+                'is_active'     => 1,
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ],
+            [
+                'class_type_id' => 7,
+                'type_name'     => 'Microsoft Office',
+                'description'   => 'Microsoft Office application classes',
+                'is_active'     => 1,
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ],
         ];
 
         foreach ($types as $type) {

@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AuthCard from './components/AuthCard.vue'
 import AuthLayout from '../../layouts/AuthLayout.vue'
 import { Link, useForm, usePage } from '@inertiajs/vue3'
-import { useToast } from 'vue-toastification'
+import { useToast } from '@/composables/useToast'
 defineOptions({
   layout: AuthLayout,
 })

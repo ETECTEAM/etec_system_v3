@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\UserStatus;
 use App\Modules\Auth\Notifications\ResetPasswordNotification;
+use App\Modules\Auth\Services\TokenExpirationService;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -34,8 +36,12 @@ class User extends Authenticatable
         'password',
         'role',
         'status',
+        'requires_onboarding',
+        'onboarding_completed_at',
         'last_login_at',
         'created_by',
+        'access_expires_at',
+        'access_renewed_at',
     ];
 
     /**
@@ -46,6 +52,11 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+    ];
+
+    protected $casts = [
+        'access_expires_at' => 'datetime',
+        'access_renewed_at' => 'datetime',
     ];
 
     /**
@@ -60,6 +71,8 @@ class User extends Authenticatable
             'status' => UserStatus::class,
             'verified_at' => 'datetime',
             'password' => 'hashed',
+            'requires_onboarding' => 'boolean',
+            'onboarding_completed_at' => 'datetime',
         ];
     }
 
@@ -88,6 +101,14 @@ class User extends Authenticatable
         return $this->hasOne(Photo::class);
     }
 
+    /** The instructor's current attendance block, if any (see docs/instructor-attendance-block-proposal.md). */
+    public function activeAttendanceBlock(): HasOne
+    {
+        return $this->hasOne(InstructorAttendanceBlock::class, 'instructor_id')
+            ->whereIn('status', InstructorAttendanceBlock::BLOCKING_STATUSES)
+            ->latestOfMany('blocked_at');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -113,5 +134,53 @@ class User extends Authenticatable
 
         Notification::route('mail', $recipient)
             ->notify(new ResetPasswordNotification($token, $this->email));
+    }
+
+    // The effective deadline is derived from access_renewed_at (when the token
+    // was last issued) plus the role's configured lifetime from
+    // config('auth.token_expiration.roles'). Falls back to the stored
+    // access_expires_at for any legacy rows that only have that column set.
+    // Roles with no configured lifetime (e.g. student) have no window (null),
+    // so they never expire.
+    public function accessExpiresAt(): ?Carbon
+    {
+        if ($this->access_renewed_at !== null) {
+            $duration = app(TokenExpirationService::class)->durationFor($this);
+
+            if ($duration !== null) {
+                return $this->access_renewed_at->copy()->add($duration);
+            }
+        }
+
+        return $this->access_expires_at;
+    }
+
+    public function isAccessExpired(): bool
+    {
+        $expiresAt = $this->accessExpiresAt();
+
+        if ($expiresAt === null) {
+            return false;
+        }
+
+        return now()->greaterThanOrEqualTo($expiresAt);
+    }
+
+    // A user's token/session is invalid (and they should be signed out) when
+    // the deadline has passed, or when the deadline isn't strictly ahead of
+    // the last renewal — e.g. access_expires_at <= access_renewed_at, an
+    // inverted/inconsistent state. Roles with no configured lifetime
+    // (e.g. student) have a null deadline and never expire.
+    public function accessWindowInvalid(): bool
+    {
+        if ($this->access_expires_at === null) {
+            return false;
+        }
+
+        if ($this->access_renewed_at !== null && $this->access_expires_at->lte($this->access_renewed_at)) {
+            return true;
+        }
+
+        return $this->isAccessExpired();
     }
 }

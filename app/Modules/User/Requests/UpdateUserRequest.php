@@ -44,7 +44,6 @@ class UpdateUserRequest extends FormRequest
         $rules['password'] = ['nullable', 'string', 'min:8', 'confirmed'];
         // Index 4 is the Rule::unique() slot reserved (but left absent) in profileRules();
         // patched in here since it needs the route-bound target to ignore.
-        $rules['student_code'][4] = Rule::unique('students', 'student_code')->ignore($target?->student?->id);
         $rules['instructor_code'][4] = Rule::unique('instructor_data', 'instructor_code')->ignore($target?->instructorData?->id);
         return $rules;
     }
@@ -57,7 +56,7 @@ class UpdateUserRequest extends FormRequest
     public function toData(): UpdateUserData
     {
         $data = $this->validated();
-        return new UpdateUserData($this->displayName($data), $data['email'], $data['password'] ?? null, $data['role'], $data['account_status'], $this->file('avatar'), $this->student($data), $this->instructorData($data));
+        return new UpdateUserData($this->displayName($data), $data['email'], $data['password'] ?? null, $data['role'], $data['account_status'], null /* FILE: disabled - $this->file('avatar') */, $this->student($data), $this->instructorData($data));
     }
 
     /**
@@ -73,9 +72,9 @@ class UpdateUserRequest extends FormRequest
             'name' => ['required_unless:role,student,instructor', 'nullable', 'string', 'max:255'],
             'role' => ['required', 'string', Rule::in($roles)],
             'account_status' => ['required', 'string', Rule::in(['active', 'inactive'])],
-            'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            // FILE: disabled - not using file uploads
+            // 'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             // student_* fields are nullable here since they only apply when role === 'student'.
-            'student_code' => ['nullable', 'string', 'max:255'],
             'student_full_name' => ['nullable', 'string', 'max:255'],
             'student_first_name' => ['nullable', 'string', 'max:255'], 'student_last_name' => ['nullable', 'string', 'max:255'],
             'student_full_name_kh' => ['nullable', 'string', 'max:255'], 'student_gender' => ['nullable', 'string', 'max:20'],
@@ -128,7 +127,6 @@ class UpdateUserRequest extends FormRequest
     protected function student(array $data): array
     {
         return [
-            'student_code' => $data['student_code'] ?? null,
             'first_name' => $data['student_first_name'] ?? null,
             'last_name' => $data['student_last_name'] ?? null,
             'full_name' => $data['student_full_name'] ?? null,

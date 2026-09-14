@@ -1,18 +1,21 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from "vue";
-import { router } from "@inertiajs/vue3";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { router, usePage } from "@inertiajs/vue3";
 import { QrcodeCanvas } from "qrcode.vue";
 import { useI18n } from "@/i18n";
+import { useConfirm } from "@/composables/useConfirm";
 import {
   MoreVertical,
-  Eye,
   SquarePen,
   Copy,
   UserPlus,
+  UserCheck,
   QrCode,
   UserCog,
   CirclePause,
   CircleX,
+  X,
+  Maximize2,
 } from "@lucide/vue";
 
 const props = defineProps({
@@ -34,10 +37,13 @@ const props = defineProps({
   },
 });
 
+const emit = defineEmits(["register-student", "assign-registration"]);
+
 const open = ref(false);
 const showQr = ref(false);
 const dropdownRef = ref(null);
 const { t } = useI18n();
+const { confirm } = useConfirm();
 const lifecycleStatus = computed(() => String(props.classData?.class_status ?? "").toLowerCase());
 const normalizedLifecycleStatus = computed(() => {
   switch (lifecycleStatus.value) {
@@ -50,7 +56,23 @@ const normalizedLifecycleStatus = computed(() => {
   }
 });
 const lockedStudentActions = computed(() => ['pre_end', 'ended', 'cancelled'].includes(normalizedLifecycleStatus.value));
-const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.id}`);
+const page = usePage();
+const roles = computed(() => page.props.auth?.roles ?? []);
+const isAdminUser = computed(() => roles.value.includes("super_admin") || roles.value.includes("admin"));
+const isInstructor = computed(() => roles.value.includes("instructor") && !isAdminUser.value);
+const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.slug ?? props.classData.id}`);
+const qrCopied = ref(false);
+const qrZoomed = ref(false);
+
+// Leaving the QR dialog also drops the full-screen zoom.
+watch(showQr, (open) => { if (!open) qrZoomed.value = false; });
+
+function copyQrUrl() {
+  navigator.clipboard?.writeText(qrUrl.value).then(() => {
+    qrCopied.value = true;
+    setTimeout(() => { qrCopied.value = false; }, 1500);
+  });
+}
 
 function closeDropdown() {
   open.value = false;
@@ -78,9 +100,12 @@ onUnmounted(() => {
   document.removeEventListener("keydown", handleKeydown);
 });
 
-function updateStatus(status) {
+function updateStatus(status, onSuccess = null) {
   router.post(`/dashboard/enroll/${props.classData.id}/status`, { status }, {
     preserveScroll: true,
+    onSuccess: () => {
+      onSuccess?.();
+    },
     onFinish: () => {
       open.value = false;
     },
@@ -97,24 +122,20 @@ function onMenuItemClick(item) {
 
 const menus = computed(() => [
   {
-    label: "View Class",
-    icon: Eye,
-    action: () => router.get(props.viewUrl ?? `/dashboard/enroll/view/${props.classData.id}`),
-  },
-  {
     label: "Edit Class",
     icon: SquarePen,
     action: () => router.get(`/dashboard/enroll/edit/${props.classData.id}`),
   },
   {
-    label: "Copy Class",
-    icon: Copy,
-    action: () => router.get(`/dashboard/enroll/copy/${props.classData.id}`),
+    label: "Register Student",
+    icon: UserPlus,
+    action: () => { emit("register-student"); open.value = false; },
+    disabled: lockedStudentActions.value,
   },
   {
-    label: "Add Student",
-    icon: UserPlus,
-    action: () => router.get(`/dashboard/enroll/${props.classData.id}/students/create`),
+    label: "Add Existing Student",
+    icon: UserCheck,
+    action: () => { emit("assign-registration"); open.value = false; },
     disabled: lockedStudentActions.value,
   },
   {
@@ -123,16 +144,50 @@ const menus = computed(() => [
     action: () => { showQr.value = true; open.value = false; },
     disabled: lockedStudentActions.value,
   },
+  {
+    label: "Copy Class",
+    icon: Copy,
+    action: () => router.get(`/dashboard/enroll/copy/${props.classData.id}`),
+  },
   { label: "Switch Teacher", icon: UserCog, action: () => window.alert("Switch teacher is not available yet.") },
 ]
   .filter((item) => !props.hiddenItems.includes(item.label))
-  .concat(props.extraItems));
+  .filter((item) => !isAdminUser.value || item.label !== "Generate QR")
+  .concat(props.extraItems.filter((item) => !isAdminUser.value || item.label !== "Collapse Class")));
 
 const actions = computed(() => [
-  { label: "Pre-End", icon: CirclePause, class: "text-yellow-600", action: () => updateStatus("inactive") },
-  { label: "End", icon: CircleX, class: "text-red-600", action: () => updateStatus("completed") },
+  { label: "Pre-End", icon: CirclePause, textClass: "text-amber-700 dark:text-amber-400", iconClass: "text-amber-500 dark:text-amber-400", action: async () => {
+    const ok = await confirm({
+      title: t("Pre-End Class?"),
+      message: t("This will lock attendance tracking and prevent new students from joining. Are you sure you want to pre-end this class?"),
+      confirmText: t("Pre-End"),
+      cancelText: t("Cancel"),
+      danger: true,
+    });
+    if (!ok) return;
+    updateStatus("inactive");
+  }},
+  { label: "End", icon: CircleX, textClass: "text-red-600 dark:text-red-400", iconClass: "text-red-500 dark:text-red-400", action: async () => {
+    const ok = await confirm({
+      title: t("End Class?"),
+      message: t("This will permanently end the class and lock all activity. Are you sure you want to end this class?"),
+      confirmText: t("End"),
+      cancelText: t("Cancel"),
+      danger: true,
+    });
+    if (!ok) return;
+    updateStatus("completed", () => {
+      if (isInstructor.value) {
+        window.location.href = `/dashboard/instructor/classes/${props.classData.id}/result?download=1`;
+      }
+    });
+  }},
 ].filter((item) => {
   if (props.hiddenItems.includes(item.label)) {
+    return false;
+  }
+
+  if (!isInstructor.value && ["Pre-End", "End"].includes(item.label)) {
     return false;
   }
 
@@ -157,66 +212,112 @@ const actions = computed(() => [
       <MoreVertical class="h-5 w-5" />
     </button>
 
-    <div v-if="open" class="absolute right-0 z-50 mt-2 w-56 rounded-xl shadow-2xl bg-white py-2 dark:bg-gray-800 dark:ring-1 dark:ring-gray-700">
-      <!-- Normal menu -->
+    <div v-if="open" class="absolute right-0 z-[60] mt-1 w-52 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800">
+      <!-- Normal actions -->
       <button
         v-for="item in menus"
         :key="item.label"
         @click="onMenuItemClick(item)"
         :disabled="item.disabled"
         :class="[
-          'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors',
+          'flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors',
           item.disabled
             ? 'cursor-not-allowed text-slate-400 dark:text-gray-500'
             : 'text-slate-700 hover:bg-slate-50 dark:text-gray-300 dark:hover:bg-gray-700',
         ]"
       >
-        <component :is="item.icon" class="h-4 w-4" />
+        <span class="flex w-5 shrink-0 justify-center">
+          <component :is="item.icon" class="h-4 w-4" />
+        </span>
         {{ t(item.label) }}
       </button>
 
-      <div v-if="actions.length" class="my-2 border-t dark:border-gray-700"></div>
+      <div v-if="actions.length" class="mx-3 my-1.5 border-t border-slate-200 dark:border-gray-700"></div>
 
-      <!-- Pre-End & End -->
-      <div v-if="actions.length" class="grid grid-cols-2 gap-2 px-3">
-        <button
-          v-for="item in actions"
-          :key="item.label"
-          @click="item.action?.()"
-          :class="[
-            'flex items-center justify-center gap-1 rounded-lg py-2 hover:bg-slate-100 dark:hover:bg-gray-700',
-            item.class,
-          ]"
-        >
-          <component :is="item.icon" class="h-4 w-4" />
-          {{ t(item.label) }}
-        </button>
-      </div>
+      <!-- Lifecycle actions: Pre-End (warning) and End (destructive) -->
+      <button
+        v-for="item in actions"
+        :key="item.label"
+        @click="item.action?.()"
+        class="flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-gray-700"
+      >
+        <span class="flex w-5 shrink-0 justify-center">
+          <component :is="item.icon" :class="['h-4 w-4', item.iconClass]" />
+        </span>
+        <span :class="['font-medium', item.textClass]">{{ t(`${item.label} Class`) }}</span>
+      </button>
     </div>
 
     <Teleport to="body">
-      <div v-if="showQr" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/50 px-4" @click.self="showQr = false">
-        <div class="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl dark:bg-gray-900">
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-gray-100">
-            {{ t('Generate QR') }}
-          </h3>
-          <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">
-            {{ classData?.title }}
-          </p>
-
-          <div class="mt-5 inline-flex rounded-2xl bg-white p-4 shadow-inner">
-            <QrcodeCanvas :value="qrUrl" :size="220" level="H" />
+      <div v-if="showQr" class="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4" @click.self="showQr = false">
+        <div class="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-900/90">
+          <div class="flex items-center justify-between gap-3 border-b border-slate-100 bg-white px-5 py-4 dark:border-gray-800 dark:bg-gray-900/90">
+            <div class="min-w-0">
+              <p class="text-[11px] font-medium uppercase tracking-widest text-slate-400 dark:text-gray-500">{{ t('Scan to join') }}</p>
+              <p class="truncate text-base font-semibold text-slate-900 dark:text-gray-100">{{ classData?.title }}</p>
+            </div>
+            <div class="-mr-1.5 flex shrink-0 items-center gap-0.5">
+              <button type="button" :aria-label="t('Zoom')" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="qrZoomed = true">
+                <Maximize2 class="h-[18px] w-[18px]" />
+              </button>
+              <button type="button" :aria-label="t('Close')" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-800 dark:hover:text-gray-200" @click="showQr = false">
+                <X class="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
-          <a :href="qrUrl" target="_blank" class="mt-4 block break-all text-xs text-blue-700 hover:underline dark:text-blue-400">
-            {{ qrUrl }}
-          </a>
+          <div class="flex flex-col items-center px-6 py-6">
+            <button type="button" class="rounded-xl border border-slate-200 bg-white p-3 dark:border-gray-700" :aria-label="t('Zoom')" @click="qrZoomed = true">
+              <QrcodeCanvas
+                :value="qrUrl"
+                :size="360"
+                level="M"
+                :margin="0"
+                foreground="#1e3a8a"
+                class="block h-[360px] w-[360px] max-w-full"
+              />
+            </button>
+            <div class="mt-4 flex w-full flex-col items-center gap-2">
+              <a :href="qrUrl" target="_blank" rel="noopener" class="block max-w-full truncate text-[11px] text-blue-600 hover:underline dark:text-blue-400">
+                {{ qrUrl }}
+              </a>
+              <button type="button" @click="copyQrUrl" class="rounded-lg border border-slate-200 px-3 py-1 text-[11px] font-medium text-slate-600 transition hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
+                {{ qrCopied ? t('Copied') : t('Copy') }}
+              </button>
+            </div>
+          </div>
 
-          <button type="button" @click="showQr = false" class="mt-5 w-full rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500">
-            {{ t('Close') }}
-          </button>
+          <!-- <div class="border-t border-slate-100 p-4 dark:border-gray-800">
+            <button type="button" @click="showQr = false" class="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+              {{ t('Close') }}
+            </button>
+          </div> -->
         </div>
       </div>
+
+      <!-- Zoomed QR: full-screen for easy scanning -->
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-to-class="opacity-0"
+      >
+        <div v-if="qrZoomed" class="fixed inset-0 z-[130] flex flex-col items-center justify-center gap-5 overflow-y-auto bg-white px-4 py-12 dark:bg-gray-950" @click="qrZoomed = false">
+          <button type="button" :aria-label="t('Close')" class="absolute right-4 top-4 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 dark:text-gray-400 dark:hover:bg-gray-800" @click.stop="qrZoomed = false">
+            <X class="h-6 w-6" />
+          </button>
+          <QrcodeCanvas
+            :value="qrUrl"
+            :size="1000"
+            level="M"
+            :margin="0"
+            foreground="#1e3a8a"
+            class="qr-pop block h-auto w-[min(82vw,68vh)] max-w-none"
+            @click.stop
+          />
+          <p class="text-base font-semibold text-slate-900 dark:text-gray-100">{{ classData?.title }}</p>
+        </div>
+      </Transition>
     </Teleport>
   </div>
 </template>

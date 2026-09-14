@@ -3,25 +3,31 @@
 use App\Console\Commands\AutoRecordAttendanceCommand;
 use App\Console\Commands\GenerateClassSessionsCommand;
 use App\Console\Commands\SendAttendanceDigestCommand;
-use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Configuration\Exceptions;
-use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Session\TokenMismatchException;
+use App\Http\Middleware\EnforceLocationAccess;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureInstructorOnboardingComplete;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Services\TelegramService;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Auth\Middleware\AuthenticateWithBasicAuth;
 use Illuminate\Auth\Middleware\Authorize;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Auth\Middleware\RedirectIfAuthenticated;
 use Illuminate\Auth\Middleware\RequirePassword;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Middleware\SetCacheHeaders;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Routing\Middleware\ThrottleRequestsWithRedis;
 use Illuminate\Routing\Middleware\ValidateSignature;
 use Illuminate\Session\Middleware\AuthenticateSession;
+use Illuminate\Session\TokenMismatchException;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -47,6 +53,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             HandleInertiaRequests::class,
+            // Runs after HandleInertiaRequests so its 302->303 redirect fix still
+            // applies to any redirect this middleware returns. No-op unless the
+            // location-lock feature is on and the path is actually locked.
+            EnforceLocationAccess::class,
         ]);
 
         $middleware->statefulApi();
@@ -54,6 +64,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth' => Authenticate::class,
             'active' => EnsureAccountIsActive::class,
+            'onboarding' => EnsureInstructorOnboardingComplete::class,
             'auth.basic' => AuthenticateWithBasicAuth::class,
             'auth.session' => AuthenticateSession::class,
             'cache.headers' => SetCacheHeaders::class,
@@ -95,7 +106,19 @@ return Application::configure(basePath: dirname(__DIR__))
             ->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+        $exceptions->report(function (Throwable $e): void {
+            if (app()->runningInConsole()) {
+                return;
+            }
+
+            $request = app()->bound('request') ? app('request') : null;
+
+            app(TelegramService::class)->sendErrorLog(
+                app(TelegramService::class)->buildErrorMessage($e, $request)
+            );
+        });
+
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Unauthenticated.'], 401);
             }
@@ -103,7 +126,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return redirect()->guest(route('login'));
         });
 
-        $exceptions->render(function (TokenMismatchException $e, \Illuminate\Http\Request $request) {
+        $exceptions->render(function (TokenMismatchException $e, Request $request) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Session expired. Please login again.'], 419);
             }
@@ -111,7 +134,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return redirect()->route('login')->with('error', 'Session expired. Please login again.');
         });
 
-        $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, \Illuminate\Http\Request $request) {
+        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
             $retryAfter = (int) ($e->getHeaders()['Retry-After'] ?? 60);
             $message = "Too many attempts. Please try again in {$retryAfter} seconds.";
 

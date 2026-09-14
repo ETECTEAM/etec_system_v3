@@ -151,17 +151,32 @@ class ClassListControllerTest extends TestCase
         ]);
     }
 
-    public function test_store_requires_title_and_existing_course(): void
+    public function test_store_requires_an_existing_course(): void
     {
         $this->actingAs($this->superAdmin())
             ->postJson('/dashboard/class-list', [])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['title', 'course_id']);
+            ->assertJsonValidationErrors(['course_id']);
 
         $this->actingAs($this->superAdmin())
             ->postJson('/dashboard/class-list', ['title' => 'Ghost Course', 'course_id' => 99999])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['course_id']);
+    }
+
+    public function test_store_uses_the_course_title_and_default_capacity_when_omitted(): void
+    {
+        $course = $this->createCourse('Auto-Titled Course');
+
+        $this->actingAs($this->admin())
+            ->post('/dashboard/class-list', ['course_id' => $course->id])
+            ->assertRedirect('/dashboard/class-list');
+
+        $this->assertDatabaseHas('study_classes', [
+            'course_id' => $course->id,
+            'title' => 'Auto-Titled Course',
+            'capacity' => 20,
+        ]);
     }
 
     public function test_store_validates_status_against_allowed_values(): void

@@ -20,7 +20,7 @@ class CourseLessonController extends Controller
         $lessons = CourseLesson::with('course')->orderBy('order_number')->get();
         $allCourses = Course::where('status', 'active')->get();
 
-        return Inertia::render('backend/courses/Lessons', [
+        return Inertia::render('backend/courses/Lesson/LessonIndex', [
             'lessons' => $lessons,
             'allCourses' => $allCourses
         ]);
@@ -32,7 +32,7 @@ class CourseLessonController extends Controller
     public function create()
     {
         $courses = Course::where('status', 'active')->get();
-        return Inertia::render('backend/courses/LessonForm', [
+        return Inertia::render('backend/courses/Lesson/LessonForm', [
             'lesson' => null,
             'courses' => $courses
         ]);
@@ -89,7 +89,7 @@ class CourseLessonController extends Controller
     public function edit(CourseLesson $lesson)
     {
         $courses = Course::where('status', 'active')->get();
-        return Inertia::render('backend/courses/LessonForm', [
+        return Inertia::render('backend/courses/Lesson/LessonForm', [
             'lesson' => $lesson,
             'courses' => $courses
         ]);
@@ -122,6 +122,10 @@ class CourseLessonController extends Controller
             'order_number' => $validated['order_number'] ?? $lesson->order_number,
             'status' => $validated['status'] ?? 'active'
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $lesson->fresh('course')]);
+        }
 
         return redirect()->route('course.lessons')->with('success', 'Lesson updated successfully');
     }

@@ -13,10 +13,10 @@ class UpdateSettingRequest extends FormRequest
 
     public function rules(): array
     {
+        // Absence-block tuning (threshold, permission->absence conversion) lives
+        // in attendance_rule_settings, not here - see the Absence Blocks module.
         return [
             'monthly_permission_quota' => ['required', 'integer', 'min:0', 'max:100'],
-            'permissions_per_absence' => ['required', 'integer', 'min:1', 'max:20'],
-            'absence_block_threshold' => ['required', 'integer', 'min:1', 'max:50'],
             'qr_token_ttl_minutes' => ['required', 'integer', 'min:1', 'max:1440'],
         ];
     }

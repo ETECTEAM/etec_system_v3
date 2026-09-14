@@ -14,12 +14,14 @@ class Student extends Model
         'gender',
         'date_of_birth',
         'phone',
+        'attendance_pin_hash',
         'address',
         'student_status',
         'course_id',
         'term_id',
         'time_id',
         'fee_amount',
+        'unit_price',
         'document_fee_amount',
     ];
 
@@ -33,9 +35,19 @@ class Student extends Model
         return $this->hasMany(StudentEnrollment::class);
     }
 
+    public function certificates(): HasMany
+    {
+        return $this->hasMany(StudentCertificateNormal::class);
+    }
+
     public function scores(): HasMany
     {
         return $this->hasMany(StudentScore::class);
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(StudentAttendance::class);
     }
 
     public function course(): BelongsTo

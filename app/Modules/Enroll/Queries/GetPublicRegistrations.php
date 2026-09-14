@@ -3,13 +3,13 @@
 namespace App\Modules\Enroll\Queries;
 
 use App\Models\StudentEnrollment;
+use App\Support\InstructorDisplayName;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 /**
- * Lists students who self-registered via the public /classes page
- * (StudentEnrollment.source = 'public_website'), shaped for the dashboard's
+ * Lists student registrations that should appear in the dashboard's
  * "Registrations" tab and its receipt-printing action.
  */
 class GetPublicRegistrations
@@ -39,7 +39,7 @@ class GetPublicRegistrations
     private function baseQuery(string $search = ''): Builder
     {
         return StudentEnrollment::query()
-            ->whereIn('source', ['public_website', 'qr_code'])
+            ->whereIn('source', ['public_website', 'qr_code', 'admin_register', 'vip', 'manual'])
             ->whereIn('enrollment_status', ['active', 'pending', 'unassigned'])
             ->with([
                 'student:id,full_name,gender,phone',
@@ -79,12 +79,19 @@ class GetPublicRegistrations
     {
         return [
             'enrollment_id' => $enrollment->id,
+            'public_token' => $enrollment->public_token,
             'name' => $enrollment->student?->full_name ?? '-',
             'gender' => $enrollment->student?->gender ?? '-',
             'phone' => $enrollment->student?->phone ?? '-',
             'class_id' => $enrollment->study_class_id,
             'class_title' => $enrollment->studyClass?->title ?? '-',
             'course_title' => $enrollment->studyClass?->course?->title ?? $enrollment->course?->title,
+            // The class's term name verbatim ("Mon & Thu"), shown as-is rather
+            // than the weekday range parseTermDays() expands it into - the
+            // receipt-only terms ("Mon & Thu", "Sat & Sun") otherwise print a
+            // whole span like "Mon & Tue & Wed & Thu" until an instructor
+            // narrows the term.
+            'term_name' => $enrollment->studyClass?->term?->term_name,
             // Only meaningful while there's no class yet - what the student
             // asked for at registration time (see the course_title fallback
             // above). A class's real schedule is shown via study_days/
@@ -98,7 +105,7 @@ class GetPublicRegistrations
             'enroll_start_date' => optional(
                 $enrollment->studyClass?->course?->enrollConfigForTime($enrollment->studyClass?->time_id)
             )?->start_date?->format('Y-m-d'),
-            'teacher_name' => $enrollment->studyClass?->teacher?->name,
+            'teacher_name' => InstructorDisplayName::format($enrollment->studyClass?->teacher?->name, ''),
             'building' => $enrollment->studyClass?->room?->floor?->building?->name,
             'floor' => $enrollment->studyClass?->room?->floor?->name,
             'room' => $enrollment->studyClass?->room?->room_number ?? ($enrollment->studyClass?->isOnline() ? 'Online' : null),
@@ -106,11 +113,17 @@ class GetPublicRegistrations
             'start_time' => $this->formatTime($enrollment->studyClass?->scheduleStartTime()),
             'end_time' => $this->formatTime($enrollment->studyClass?->scheduleEndTime()),
             'fee_amount' => (float) $enrollment->fee_amount,
+            'unit_price' => $enrollment->unit_price !== null ? (float) $enrollment->unit_price : null,
             'document_fee_amount' => (float) $enrollment->document_fee_amount,
             'amount_paid' => (float) $enrollment->amount_paid,
             'payment_status' => ucfirst($enrollment->payment_status),
             'enrollment_status' => ucfirst($enrollment->enrollment_status),
             'source' => $enrollment->source,
+            // Additive marker for HOW the registration was created — derived from
+            // the existing `source` column, entirely separate from course_id /
+            // the Class column. 'normal' unless the row was created through the
+            // VIP or Manual Register flows.
+            'registration_type' => $this->registrationType($enrollment),
             'enrolled_at' => $enrollment->enrolled_at?->format('Y-m-d h:i A'),
             // RegisterStudentForSchedule couldn't slot this into a class (no
             // room/instructor free at the time) - the Registrations tab shows
@@ -123,5 +136,16 @@ class GetPublicRegistrations
     private function formatTime(?string $time): ?string
     {
         return $time ? substr($time, 0, 5) : null;
+    }
+
+    // Registration source -> display marker. Anything not created through the
+    // VIP or Manual Register flows is a "normal" registration.
+    private function registrationType(StudentEnrollment $enrollment): string
+    {
+        return match ($enrollment->source) {
+            'vip' => 'vip',
+            'manual' => 'manual',
+            default => 'normal',
+        };
     }
 }

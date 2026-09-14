@@ -293,10 +293,10 @@ class PublicApiService
         ];
     }
 
-    public function publicVideoDetail(int $id): array
+    public function publicVideoDetail(string $slug): array
     {
         $video = $this->videosQuery()
-            ->where('id', $id)
+            ->where('slug', $slug)
             ->where('is_active', true)
             ->first();
 
@@ -351,6 +351,7 @@ class PublicApiService
             ->select([
                 'id',
                 'title',
+                'slug',
                 'description',
                 'video_path',
                 'thumbnail_path',
@@ -453,6 +454,7 @@ class PublicApiService
     {
         return [
             'id' => $video->id,
+            'slug' => $video->slug,
             'title' => $video->title,
             'description' => $video->description,
             'video_url' => $this->storageUrl($video->video_path, $video->updated_at),
@@ -580,25 +582,32 @@ class PublicApiService
         return $value ? Carbon::parse($value)->format('Y-m-d') : null;
     }
 
+    // FILE: disabled - not using file uploads
+    // private function publicImageDataUri(?string $path): ?string
+    // {
+    //     if (! $path || Str::startsWith($path, ['data:', 'http://', 'https://', '//'])) {
+    //         return $path;
+    //     }
+    //
+    //     $path = ltrim($path, '/');
+    //
+    //     if (! Storage::disk('public')->exists($path)) {
+    //         return null;
+    //     }
+    //
+    //     $mimeType = Storage::disk('public')->mimeType($path);
+    //
+    //     if (! is_string($mimeType) || ! Str::startsWith($mimeType, 'image/')) {
+    //         return null;
+    //     }
+    //
+    //     return 'data:'.$mimeType.';base64,'.base64_encode(Storage::disk('public')->get($path));
+    // }
+
+    // Stub: returns null when file uploads are disabled
     private function publicImageDataUri(?string $path): ?string
     {
-        if (! $path || Str::startsWith($path, ['data:', 'http://', 'https://', '//'])) {
-            return $path;
-        }
-
-        $path = ltrim($path, '/');
-
-        if (! Storage::disk('public')->exists($path)) {
-            return null;
-        }
-
-        $mimeType = Storage::disk('public')->mimeType($path);
-
-        if (! is_string($mimeType) || ! Str::startsWith($mimeType, 'image/')) {
-            return null;
-        }
-
-        return 'data:'.$mimeType.';base64,'.base64_encode(Storage::disk('public')->get($path));
+        return null;
     }
 
     private function sanitizeContent(?string $content): ?string

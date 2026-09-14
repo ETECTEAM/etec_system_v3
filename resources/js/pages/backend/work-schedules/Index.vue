@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
+import { useI18n } from '@/i18n'
 import { Pencil, Search, Trash2 } from '@lucide/vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import { Card } from '@/components/ui/card'
@@ -14,9 +15,11 @@ const props = defineProps({
   filters: Object,
 })
 
+const { t } = useI18n()
+
 const breadcrumbItems = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Work Schedules', current: true },
+  { label: t('Dashboard'), href: '/dashboard' },
+  { label: t('Work Schedules'), current: true },
 ]
 
 const search = ref(props.filters.search ?? '')
@@ -65,7 +68,7 @@ const deleteSchedule = () => {
       <Breadcrumbs :items="breadcrumbItems" class="mb-4" />
 
       <PageHero
-        eyebrow="Schedule Management"
+        :eyebrow="$t('Schedule Management')"
         :title="$t('Work Schedules')"
         :description="$t('Define instructor working availability by day and time slot.')"
         class="mb-6"

@@ -15,6 +15,7 @@ class InstructorScheduleBlock extends Model
         'time_id',
         'reason',
         'status',
+        'created_by',
     ];
 
     protected function casts(): array
@@ -23,6 +24,7 @@ class InstructorScheduleBlock extends Model
             'instructor_id' => 'integer',
             'day_of_week' => 'integer',
             'time_id' => 'integer',
+            'created_by' => 'integer',
         ];
     }
 
@@ -34,5 +36,12 @@ class InstructorScheduleBlock extends Model
     public function time(): BelongsTo
     {
         return $this->belongsTo(Time::class);
+    }
+
+    // NULL = the instructor blocked their own slot from "My Availability";
+    // a user = an admin / super_admin blocked it from the Instructor Busy Time grid.
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

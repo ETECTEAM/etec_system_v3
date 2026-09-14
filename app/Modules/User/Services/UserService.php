@@ -11,7 +11,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+// use Illuminate\Support\Facades\Storage; // FILE: disabled - not using file uploads
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 
@@ -50,7 +50,7 @@ class UserService
 
     public function queryVisibleUsers(User $authUser): Builder
     {
-        $query = User::query()->latest('id')->with(['student', 'instructorData', 'creator']);
+        $query = User::query()->latest('id')->with(['student', 'instructorData', 'creator', 'activeAttendanceBlock']);
 
         // Visibility mirrors the same hierarchy as assignment permissions.
         if ($authUser->hasRole('super_admin')) {
@@ -93,7 +93,7 @@ class UserService
                     $builder
                         ->where('users.name', 'like', '%'.$search.'%')
                         ->orWhere('users.email', 'like', '%'.$search.'%')
-                        ->orWhereHas('student', fn (Builder $query) => $query->where('full_name', 'like', '%'.$search.'%')->orWhere('student_code', 'like', '%'.$search.'%')->orWhere('phone', 'like', '%'.$search.'%'))
+                        ->orWhereHas('student', fn (Builder $query) => $query->where('full_name', 'like', '%'.$search.'%')->orWhere('phone', 'like', '%'.$search.'%'))
                         ->orWhereHas('instructorData', fn (Builder $query) => $query->where('full_name', 'like', '%'.$search.'%')->orWhere('instructor_code', 'like', '%'.$search.'%')->orWhere('phone', 'like', '%'.$search.'%'));
                 });
             }
@@ -187,6 +187,11 @@ class UserService
             'roles' => $user->getRoleNames()->values(),
             'student' => $user->student,
             'instructor_data' => $user->instructorData,
+            // Flags an instructor row that's currently blocked from tracking attendance
+            // (see docs/instructor-attendance-block-proposal.md). Always false/null for
+            // non-instructors since the relation just won't match any row.
+            'attendance_blocked' => $user->activeAttendanceBlock !== null,
+            'attendance_block_reason' => $user->activeAttendanceBlock?->reason,
             // ISO 8601 (UTC) — the frontend renders it in the viewer's own timezone.
             'created_at' => $user->created_at?->toIso8601String(),
             'created_by' => $user->creator?->name,
@@ -201,7 +206,8 @@ class UserService
                 'role' => $data->role, 'status' => $data->status, 'created_by' => $creatorId,
             ]);
             $user->syncRoles([$data->role]);
-            $this->syncPhoto($user, $data->avatar);
+            // FILE: disabled - not using file uploads
+            // $this->syncPhoto($user, $data->avatar);
             $this->instructorService->syncProfile($user, $data->role, $data->student, $data->instructorData);
             return $user->fresh(['roles', 'student', 'instructorData', 'photo', 'creator']);
         });
@@ -217,7 +223,8 @@ class UserService
             $attributes = ['name' => $data->name, 'email' => $data->email, 'role' => $data->role, 'status' => $data->status];
             if ($data->password !== null && $data->password !== '') { $attributes['password'] = $data->password; }
             $user->update($attributes);
-            $this->syncPhoto($user, $data->avatar);
+            // FILE: disabled - not using file uploads
+            // $this->syncPhoto($user, $data->avatar);
             $user->syncRoles([$data->role]);
             $this->instructorService->syncProfile($user, $data->role, $data->student, $data->instructorData);
             return $user->fresh(['roles', 'student', 'instructorData', 'photo']);
@@ -243,23 +250,24 @@ class UserService
         }
     }
 
-    private function syncPhoto(User $user, ?\Illuminate\Http\UploadedFile $avatar): void
-    {
-        if ($avatar === null) {
-            return;
-        }
-
-        $previousPath = $user->photo?->file_path;
-
-        $user->photo()->updateOrCreate(['user_id' => $user->id], [
-            'file_path' => $avatar->store('avatars', 'public'),
-            'file_name' => $avatar->getClientOriginalName(),
-            'file_mime' => $avatar->getClientMimeType(),
-            'file_size' => $avatar->getSize(),
-        ]);
-
-        if ($previousPath !== null && $previousPath !== '') {
-            Storage::disk('public')->delete($previousPath);
-        }
-    }
+    // FILE: disabled - not using file uploads
+    // private function syncPhoto(User $user, ?\Illuminate\Http\UploadedFile $avatar): void
+    // {
+    //     if ($avatar === null) {
+    //         return;
+    //     }
+    //
+    //     $previousPath = $user->photo?->file_path;
+    //
+    //     $user->photo()->updateOrCreate(['user_id' => $user->id], [
+    //         'file_path' => $avatar->store('avatars', 'public'),
+    //         'file_name' => $avatar->getClientOriginalName(),
+    //         'file_mime' => $avatar->getClientMimeType(),
+    //         'file_size' => $avatar->getSize(),
+    //     ]);
+    //
+    //     if ($previousPath !== null && $previousPath !== '') {
+    //         Storage::disk('public')->delete($previousPath);
+    //     }
+    // }
 }

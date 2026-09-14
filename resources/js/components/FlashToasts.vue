@@ -1,20 +1,18 @@
 <script setup>
-import { usePage } from "@inertiajs/vue3";
-import { watch } from "vue";
-import { useToast } from "vue-toastification";
+import { onMounted, onUnmounted } from "vue";
+import { router, usePage } from "@inertiajs/vue3";
+import { useToast } from "@/composables/useToast";
 
 const page = usePage();
 const toast = useToast();
 
-let lastSignature = "";
+// Some backend handlers (e.g. the throttle-lockout renderer in bootstrap/app.php)
+// put the same message in both flash.error and the errors bag. Dedupe so it only
+// toasts once on pages that don't render the inline field error.
+function announce(props = {}) {
+  const flash = props.flash ?? {};
+  const errors = props.errors ?? {};
 
-// Some backend handlers (e.g. the throttle-lockout exception renderer in
-// bootstrap/app.php) put the same message in both the errors bag (so a page
-// can show it inline under a field) and flash.error (so pages without that
-// field still get a toast). Treating those as one combined, de-duped source
-// avoids toasting the identical message twice on pages like student-register
-// that don't render errors.login/errors.throttle inline.
-function collectMessages(flash = {}, errors = {}) {
   const flashEntries = [
     ["success", flash.success],
     ["error", flash.error],
@@ -22,34 +20,47 @@ function collectMessages(flash = {}, errors = {}) {
     ["info", flash.info],
   ].filter(([, message]) => Boolean(message));
 
+  flashEntries.forEach(([type, message]) => toast[type](message));
+
   const flashTexts = new Set(flashEntries.map(([, message]) => message));
   const errorMessage = Object.values(errors)
     .flat()
     .filter(Boolean)
     .find((message) => !flashTexts.has(message));
 
-  return { flashEntries, errorMessage };
-}
-
-function showAll() {
-  const { flashEntries, errorMessage } = collectMessages(page.props.flash, page.props.errors);
-
-  const signature = JSON.stringify([flashEntries, errorMessage]);
-  if (signature === lastSignature) return;
-  lastSignature = signature;
-
-  flashEntries.forEach(([type, message]) => toast[type](message));
-
   if (errorMessage) {
     toast.error(errorMessage);
   }
 }
 
-watch(
-  () => [page.props.flash, page.props.errors],
-  () => showAll(),
-  { deep: true, immediate: true },
-);
+let stopSuccess;
+let stopError;
+
+onMounted(() => {
+  // Initial full page load (e.g. a login redirect landing with a flash).
+  announce(page.props);
+
+  // Fires exactly once per Inertia visit - so a repeat save with an unchanged
+  // message still toasts, unlike watching page.props for a value change.
+  stopSuccess = router.on("success", (event) => announce(event.detail.page.props));
+
+  // 422s don't swap the page; surface the first validation error for pages
+  // that don't show it inline.
+  stopError = router.on("error", (event) => {
+    const message = Object.values(event.detail.errors ?? {})
+      .flat()
+      .filter(Boolean)[0];
+
+    if (message) {
+      toast.error(message);
+    }
+  });
+});
+
+onUnmounted(() => {
+  stopSuccess?.();
+  stopError?.();
+});
 </script>
 
 <template></template>

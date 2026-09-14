@@ -3,6 +3,13 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="manifest" href="/manifest.webmanifest">
+        <meta name="theme-color" content="#1A66FF">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="ETEC Center">
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
         <script>
             // Set the `dark` class before first paint so the page never flashes
             // the wrong theme while Vue/Inertia boots.
@@ -18,6 +25,7 @@
                 display: none;
             }
         </style>
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">

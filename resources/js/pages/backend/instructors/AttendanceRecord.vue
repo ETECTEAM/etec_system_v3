@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Head, Link, router } from "@inertiajs/vue3";
 import axios from "axios";
-import { useToast } from "vue-toastification";
+import { useToast } from "@/composables/useToast";
 import {
   ArrowRightLeft,
   Bot,
@@ -14,12 +14,14 @@ import {
   Pencil,
   RefreshCw,
   Save,
+  TriangleAlert,
   Users,
   Venus,
 } from "@lucide/vue";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import Breadcrumbs from "../../../components/ui/breadcrumbs/Breadcrumbs.vue";
+import { useConfirm } from "../../../composables/useConfirm";
 
 const toast = useToast();
 
@@ -45,53 +47,44 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  canTrackAttendance: {
+    type: Boolean,
+    default: false,
+  },
+  trackAttendanceLabel: {
+    type: String,
+    default: "Track Attendance",
+  },
+  certificateRequest: {
+    type: Object,
+    default: null,
+  },
+  attendanceBlock: {
+    type: Object,
+    default: null,
+  },
 });
 
 const rosterStudents = ref([]);
 const pendingRequests = ref([]);
 const classLifecycleStatus = computed(() => String(props.classData?.class_status ?? "").toLowerCase());
+const isActiveClass = computed(() => classLifecycleStatus.value === "active");
+const canRequestCertificate = computed(() => isActiveClass.value && props.certificateRequest?.status !== "pending");
 
 const totalPresent = computed(() =>
   rosterStudents.value.reduce((total, student) => total + Number(student.attendance?.present ?? 0), 0),
 );
-const canTrackAttendance = computed(() =>
-  classLifecycleStatus.value === "active"
-  && (props.todaySession?.status === "auto_recorded" || props.attendanceWindow?.can_submit),
-);
-const trackAttendanceLabel = computed(() => {
-  if (classLifecycleStatus.value === "pre_end") {
-    return "Pre-End";
-  }
-
-  if (classLifecycleStatus.value === "ended") {
-    return "Ended";
-  }
-
-  if (props.todaySession?.status === "auto_recorded") {
-    return "Track Attendance";
-  }
-
-  if (props.attendanceWindow?.reason === "before_start") {
-    return "Not Started";
-  }
-
-  if (props.attendanceWindow?.reason === "after_deadline") {
-    return "Window Closed";
-  }
-
-  if (props.attendanceWindow?.reason === "no_session") {
-    return "No Session";
-  }
-
-  return "Track Attendance";
-});
 const lifecycleNotice = computed(() => {
+  if (classLifecycleStatus.value === "upcoming") {
+    return "This class is upcoming. Attendance tracking and certificate requests are available after the class becomes active.";
+  }
+
   if (classLifecycleStatus.value === "pre_end") {
-    return "This class has been pre-ended. Attendance tracking is closed.";
+    return "This class has been pre-ended. Attendance tracking and certificate requests are closed.";
   }
 
   if (classLifecycleStatus.value === "ended") {
-    return "This class has ended. Attendance tracking is no longer available.";
+    return "This class has ended. Attendance tracking and certificate requests are no longer available.";
   }
 
   return null;
@@ -106,6 +99,7 @@ const allPendingSelected = computed(() =>
 );
 const hasSelectedPending = computed(() => selectedPendingCount.value > 0);
 const pendingRequestsListener = () => openPendingModal();
+const { confirm } = useConfirm();
 
 const activeStudent = ref(null);
 const editModalOpen = ref(false);
@@ -116,6 +110,7 @@ const transferSaving = ref(false);
 const scoreSaving = ref(false);
 const editErrors = ref({});
 const transferErrors = ref({});
+const MAX_PROJECT_SCORE = 30;
 
 const editForm = ref({
   full_name: "",
@@ -172,6 +167,7 @@ function resetEditForm() {
   };
 }
 
+
 function openEditModal(student) {
   activeStudent.value = student;
   editErrors.value = {};
@@ -223,13 +219,32 @@ function removeStudentFromRoster(studentId) {
   rosterStudents.value = rosterStudents.value.filter((student) => student.id !== studentId);
 }
 
+function attendanceScoreFor(student) {
+  const attendance = student.attendance ?? {};
+  const absent = Number(attendance.absent ?? 0);
+  const permission = Number(attendance.permission ?? 0);
+  const late = Number(attendance.late ?? 0);
+
+  return Math.max(0, Number((40 - absent - permission * 0.5 - late * 0.3).toFixed(2)));
+}
+
+function clampProjectScore(value) {
+  const score = Number(value ?? 0);
+
+  if (Number.isNaN(score)) {
+    return 0;
+  }
+
+  return Math.min(MAX_PROJECT_SCORE, Math.max(0, Number(score.toFixed(2))));
+}
+
 function buildScorePayload() {
   return rosterStudents.value.map((student) => ({
     enrollment_id: student.enrollment_id,
     student_id: student.id,
-    attendance_score: Number(student.scores?.attendance ?? 0),
-    activity_score: Number(student.scores?.activity ?? 0),
-    exam_score: Number(student.scores?.exam ?? 0),
+    attendance_score: attendanceScoreFor(student),
+    activity_score: clampProjectScore(student.scores?.activity),
+    exam_score: clampProjectScore(student.scores?.exam),
   }));
 }
 
@@ -321,6 +336,26 @@ function openPendingModal() {
   pendingModalOpen.value = true;
 }
 
+async function openCertificateRequestPage() {
+  if (!canRequestCertificate.value) {
+    toast.warning("Certificates can only be requested while the class is active.");
+    return;
+  }
+
+  const accepted = await confirm({
+    title: "Request Certificate?",
+    message: "This will open the certificate request page for this class.",
+    confirmText: "Request",
+    cancelText: "Cancel",
+  });
+
+  if (!accepted) {
+    return;
+  }
+
+  router.get(`/dashboard/instructor/classes/${props.classData.id}/certificate-request`);
+}
+
 function closePendingModal() {
   pendingModalOpen.value = false;
   selectedPendingIds.value = [];
@@ -396,6 +431,7 @@ async function approveAllPendingRegistrations() {
     toast.error(error.response?.data?.message ?? "Failed to approve all requests.");
   }
 }
+
 </script>
 
 <template>
@@ -412,10 +448,6 @@ async function approveAllPendingRegistrations() {
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <button class="inline-flex h-10 items-center gap-2 rounded-lg bg-slate-700 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md" @click="router.reload({ preserveScroll: true })" type="button">
-            <RefreshCw class="h-4 w-4" />
-            Refresh Table
-          </button>
           <Link
             :href="`/dashboard/instructor/classes/${classData.id}/groups`"
             class="inline-flex h-10 items-center gap-2 rounded-lg bg-cyan-500 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-cyan-600 hover:shadow-md"
@@ -423,21 +455,32 @@ async function approveAllPendingRegistrations() {
             <Users class="h-4 w-4" />
             Group
           </Link>
-          <button class="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-500 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-amber-600 hover:shadow-md" type="button">
+          <button
+            class="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-500 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-amber-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:opacity-80 dark:disabled:bg-gray-800 dark:disabled:text-gray-400"
+            type="button"
+            :disabled="!canRequestCertificate"
+            @click="openCertificateRequestPage"
+          >
             <FileText class="h-4 w-4" />
-            Request Certificate
+            {{ certificateRequest?.status === 'pending' ? 'Certificate Requested' : 'Request Certificate' }}
           </button>
+          <span
+            v-if="certificateRequest"
+            class="inline-flex h-10 items-center rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-black uppercase tracking-[0.12em] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+          >
+            {{ certificateRequest.status_label }}
+          </span>
           <button class="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70" type="button" :disabled="scoreSaving || !rosterStudents.length" @click="submitScores">
             <Save class="h-4 w-4" />
             {{ scoreSaving ? "Saving..." : "Save Score" }}
           </button>
           <Link
-            v-if="canTrackAttendance"
+            v-if="props.canTrackAttendance"
             :href="`/dashboard/instructor/classes/${classData.id}/attendance/track`"
             class="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md"
           >
             <ClipboardCheck class="h-4 w-4" />
-            Track Attendance
+            {{ props.trackAttendanceLabel }}
           </Link>
           <button
             v-else
@@ -446,8 +489,19 @@ async function approveAllPendingRegistrations() {
             disabled
           >
             <ClipboardCheck class="h-4 w-4" />
-            {{ trackAttendanceLabel }}
+            {{ props.trackAttendanceLabel }}
           </button>
+        </div>
+      </div>
+
+      <div
+        v-if="attendanceBlock"
+        class="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300"
+      >
+        <TriangleAlert class="mt-0.5 h-4 w-4 shrink-0" />
+        <div>
+          <p class="font-semibold">Your account is blocked from tracking attendance on every class.</p>
+          <p class="mt-0.5 text-red-700 dark:text-red-400">{{ attendanceBlock.reason }}</p>
         </div>
       </div>
 
@@ -488,7 +542,7 @@ async function approveAllPendingRegistrations() {
 
       <div>
         <h2 class="text-xl font-black text-blue-950 dark:text-gray-100">Track Attendance</h2>
-        <p class="text-sm font-semibold text-slate-500 dark:text-gray-400">Track your student attendance</p>
+        <p class="text-sm font-medium text-slate-500 dark:text-gray-400">Track your student attendance</p>
       </div>
 
       <Teleport to="body">
@@ -627,36 +681,51 @@ async function approveAllPendingRegistrations() {
           Student Attendance & Score
         </div>
         <div class="overflow-x-auto">
-          <table class="min-w-[1180px] w-full border-collapse text-center text-sm">
+          <table class="min-w-[1120px] w-full table-fixed border-collapse text-center text-xs sm:text-sm">
+            <colgroup>
+              <col class="w-[4%]" />
+              <col class="w-[20%]" />
+              <col class="w-[8%]" />
+              <col class="w-[7%]" />
+              <col class="w-[7%]" />
+              <col class="w-[7%]" />
+              <col class="w-[7%]" />
+              <col class="w-[7%]" />
+              <col class="w-[8%]" />
+              <col class="w-[8%]" />
+              <col class="w-[8%]" />
+              <col class="w-[13%]" />
+            </colgroup>
             <thead>
               <tr class="bg-blue-100 text-slate-950 dark:bg-blue-950/60 dark:text-gray-100">
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700" rowspan="2">Nº</th>
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700" rowspan="2">Student</th>
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700" rowspan="2">Gender</th>
-                <th class="border border-slate-300 px-3 py-3 text-center dark:border-gray-700" colspan="4">Attendance</th>
-                <th class="border border-slate-300 px-3 py-3 text-center dark:border-gray-700" colspan="3">Score</th>
-                <th class="border border-slate-300 px-3 py-3 text-center dark:border-gray-700" rowspan="2">Action</th>
+                <th class="border border-slate-300 px-1 py-2.5 font-medium dark:border-gray-700" rowspan="2">Nº</th>
+                <th class="border border-slate-300 px-2 py-2.5 font-medium dark:border-gray-700" rowspan="2">Student</th>
+                <th class="border border-slate-300 px-1 py-2.5 font-medium dark:border-gray-700" rowspan="2">Gender</th>
+                <th class="border border-slate-300 px-2 py-2.5 text-center font-medium dark:border-gray-700" colspan="5">Attendance</th>
+                <th class="border border-slate-300 px-2 py-2.5 text-center font-medium dark:border-gray-700" colspan="3">Score</th>
+                <th class="border border-slate-300 px-1 py-2.5 text-center font-medium dark:border-gray-700" rowspan="2">Action</th>
               </tr>
               <tr class="bg-blue-100 text-slate-950 dark:bg-blue-950/60 dark:text-gray-100">
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Total</th>
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Present</th>
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Permission</th>
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Absent</th>
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Attendance Score</th>
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Activity Score</th>
-                <th class="border border-slate-300 px-3 py-3 dark:border-gray-700">Exam Score</th>
+                <th class="border border-slate-300 px-1 py-2.5 font-medium dark:border-gray-700">Total</th>
+                <th class="border border-slate-300 px-1 py-2.5 font-medium dark:border-gray-700">P</th>
+                <th class="border border-slate-300 px-1 py-2.5 font-medium dark:border-gray-700">L</th>
+                <th class="border border-slate-300 px-1 py-2.5 font-medium dark:border-gray-700">PM</th>
+                <th class="border border-slate-300 px-1 py-2.5 font-medium dark:border-gray-700">A</th>
+                <th class="border border-slate-300 px-1 py-2.5 font-medium dark:border-gray-700">Attendance Score</th>
+                <th class="border border-slate-300 px-1 py-2.5 font-medium dark:border-gray-700">Activity Score</th>
+                <th class="border border-slate-300 px-1 py-2.5 font-medium dark:border-gray-700">Exam Score</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="student in rosterStudents" :key="student.enrollment_id" class="align-middle">
-                <td class="border border-slate-200 px-3 py-5 font-semibold dark:border-gray-800">{{ student.roster_no }}</td>
-                <td class="border border-slate-200 px-3 py-5 text-left dark:border-gray-800">
-                  <p class="text-base font-black text-slate-950 dark:text-gray-100">{{ student.name }}</p>
-                  <p class="mt-1 text-xs font-bold">
+                <td class="border border-slate-200 px-1.5 py-4 font-semibold dark:border-gray-800">{{ student.roster_no }}</td>
+                <td class="border border-slate-200 px-2 py-4 text-left dark:border-gray-800">
+                  <p class="break-words text-sm font-black leading-snug text-slate-950 dark:text-gray-100">{{ student.name }}</p>
+                  <p class="mt-1 break-words text-[11px] font-bold leading-snug">
                     ID: <span class="rounded-md bg-blue-900 px-2 py-0.5 text-white">#{{ student.id }}</span>
                   </p>
                 </td>
-                <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
+                <td class="border border-slate-200 px-1.5 py-4 dark:border-gray-800">
                   <span
                     :class="[
                       'inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-bold capitalize',
@@ -670,36 +739,41 @@ async function approveAllPendingRegistrations() {
                     {{ student.gender || "-" }}
                   </span>
                 </td>
-                <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <span class="inline-flex min-w-14 justify-center rounded-lg bg-slate-100 px-3 py-2 text-sm font-black text-slate-700 dark:bg-gray-800 dark:text-gray-200">
+                <td class="border border-slate-200 px-1.5 py-4 dark:border-gray-800">
+                  <span class="inline-flex min-w-12 justify-center rounded-lg bg-slate-100 px-2 py-2 text-sm font-black text-slate-700 dark:bg-gray-800 dark:text-gray-200">
                     {{ student.attendance?.total ?? 0 }}
                   </span>
                 </td>
-                <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <span class="inline-flex min-w-14 justify-center rounded-lg bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                <td class="border border-slate-200 px-1.5 py-4 dark:border-gray-800">
+                  <span class="inline-flex min-w-12 justify-center rounded-lg bg-emerald-50 px-2 py-2 text-sm font-black text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
                     {{ student.attendance?.present ?? 0 }}
                   </span>
                 </td>
-                <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <span class="inline-flex min-w-14 justify-center rounded-lg bg-amber-50 px-3 py-2 text-sm font-black text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                <td class="border border-slate-200 px-1.5 py-4 dark:border-gray-800">
+                  <span class="inline-flex min-w-12 justify-center rounded-lg bg-orange-50 px-2 py-2 text-sm font-black text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">
+                    {{ student.attendance?.late ?? 0 }}
+                  </span>
+                </td>
+                <td class="border border-slate-200 px-1.5 py-4 dark:border-gray-800">
+                  <span class="inline-flex min-w-12 justify-center rounded-lg bg-amber-50 px-2 py-2 text-sm font-black text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
                     {{ student.attendance?.permission ?? 0 }}
                   </span>
                 </td>
-                <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <span class="inline-flex min-w-14 justify-center rounded-lg bg-rose-50 px-3 py-2 text-sm font-black text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                <td class="border border-slate-200 px-1.5 py-4 dark:border-gray-800">
+                  <span class="inline-flex min-w-12 justify-center rounded-lg bg-rose-50 px-2 py-2 text-sm font-black text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
                     {{ student.attendance?.absent ?? 0 }}
                   </span>
                 </td>
-                <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <input v-model.number="student.scores.attendance" type="number" min="0" max="100" step="0.01" class="h-10 w-28 rounded-lg border border-slate-300 bg-slate-100 px-3 text-center font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:focus:ring-blue-500/10" />
+                <td class="border border-slate-200 px-1.5 py-4 dark:border-gray-800">
+                  <input :value="attendanceScoreFor(student)" type="number" min="0" max="40" step="0.01" readonly class="h-9 w-16 rounded-lg border border-slate-300 bg-slate-100 px-2 text-center font-semibold outline-none dark:border-gray-700 dark:bg-gray-800" />
                 </td>
-                <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <input v-model.number="student.scores.activity" type="number" min="0" max="100" step="0.01" class="h-10 w-28 rounded-lg border border-slate-300 bg-white px-3 text-center font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-950 dark:focus:ring-blue-500/10" />
+                <td class="border border-slate-200 px-1.5 py-4 dark:border-gray-800">
+                  <input v-model.number="student.scores.activity" type="number" min="0" :max="MAX_PROJECT_SCORE" step="0.01" class="h-9 w-16 rounded-lg border border-slate-300 bg-white px-2 text-center font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-950 dark:focus:ring-blue-500/10" @change="student.scores.activity = clampProjectScore(student.scores.activity)" />
                 </td>
-                <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
-                  <input v-model.number="student.scores.exam" type="number" min="0" max="100" step="0.01" class="h-10 w-28 rounded-lg border border-slate-300 bg-white px-3 text-center font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-950 dark:focus:ring-blue-500/10" />
+                <td class="border border-slate-200 px-1.5 py-4 dark:border-gray-800">
+                  <input v-model.number="student.scores.exam" type="number" min="0" :max="MAX_PROJECT_SCORE" step="0.01" class="h-9 w-16 rounded-lg border border-slate-300 bg-white px-2 text-center font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-950 dark:focus:ring-blue-500/10" @change="student.scores.exam = clampProjectScore(student.scores.exam)" />
                 </td>
-                <td class="border border-slate-200 px-3 py-5 dark:border-gray-800">
+                <td class="border border-slate-200 px-1.5 py-4 dark:border-gray-800">
                   <div class="flex justify-center gap-2">
                     <Link
                       :href="`/dashboard/instructor/classes/${classData.id}/attendance/students/${student.id}`"
@@ -728,7 +802,7 @@ async function approveAllPendingRegistrations() {
                 </td>
               </tr>
               <tr v-if="!rosterStudents.length">
-                <td class="border border-slate-200 px-3 py-12 text-center text-sm font-semibold text-slate-500 dark:border-gray-800" colspan="11">
+                <td class="border border-slate-200 px-3 py-12 text-center text-sm font-semibold text-slate-500 dark:border-gray-800" colspan="12">
                   No students are enrolled in this class yet.
                 </td>
               </tr>

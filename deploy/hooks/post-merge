@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Fires automatically after a successful `git pull` (a plain fast-forward
+# pull with nothing to merge does NOT trigger this - only one that actually
+# merges new commits does, which is exactly when a redeploy is needed).
+#
+# Enables `git pull` alone to deploy, without typing ./deploy/deploy.sh.
+# One-time setup on the server, from the repo root:
+#   chmod +x deploy/hooks/post-merge
+#   git config core.hooksPath deploy/hooks
+#
+# Migrations are deliberately NOT run here - run them explicitly after a
+# pull that includes schema changes:
+#   docker compose -f docker-compose.prod.yml exec app php artisan migrate --force
+#
+# Note: `git pull --rebase` triggers post-rewrite, not post-merge, so this
+# hook won't fire for a rebase-style pull.
+
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+./deploy/deploy.sh "${branch}"

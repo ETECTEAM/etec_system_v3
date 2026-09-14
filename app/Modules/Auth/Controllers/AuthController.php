@@ -8,8 +8,6 @@ use App\Models\InstructorData;
 use App\Models\User;
 use App\Modules\Auth\Events\PendingUserRegistered;
 use App\Modules\Auth\Notifications\PasswordChangedNotification;
-use App\Modules\Instructor\Services\InstructorService;
-use App\Modules\User\Services\UserService;
 use App\Modules\Auth\Requests\ForgotPasswordRequest;
 use App\Modules\Auth\Requests\LoginWebRequest;
 use App\Modules\Auth\Requests\RegisterWebRequest;
@@ -20,6 +18,9 @@ use App\Modules\Auth\Services\AuthAuditService;
 use App\Modules\Auth\Services\AuthService;
 use App\Modules\Auth\Services\LoginLockoutService;
 use App\Modules\Auth\Services\OtpService;
+use App\Modules\Auth\Services\TokenExpirationService;
+use App\Modules\Instructor\Services\InstructorService;
+use App\Modules\Instructor\Services\InstructorOnboardingService;
 use App\Modules\User\Services\UserApprovalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -35,6 +36,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
+use Throwable;
 
 /**
  * Coordinates web authentication, registration, OTP verification, and logout.
@@ -47,6 +49,7 @@ class AuthController extends Controller
         private readonly UserApprovalService $approvalService,
         private readonly AuthAuditService $auditService,
         private readonly LoginLockoutService $lockoutService,
+        private readonly InstructorOnboardingService $onboarding,
     ) {}
 
     public function showLogin(): Response
@@ -72,7 +75,13 @@ class AuthController extends Controller
                 'email' => $data->email,
                 'password' => $data->password,
                 'role' => 'instructor',
+                // Role-based access window is minted at the first login event
+                // (OTP-disabled login, OTP activation, or normal login), not here.
                 'status' => 'pending',
+                // Self-registered instructors must complete setup (profile
+                // details, work schedule, specialization, verified recovery
+                // email) before they can use the dashboard.
+                'requires_onboarding' => true,
             ]);
 
             Role::findOrCreate('instructor', 'web');
@@ -97,6 +106,7 @@ class AuthController extends Controller
 
         if (! $otpVerificationEnabled) {
             $this->approvalService->approve($user, null, 'otp_disabled');
+            $this->applyAccessExpiration($user, $request->ip(), $data->email);
             Auth::login($user);
             $request->session()->regenerate();
 
@@ -104,7 +114,14 @@ class AuthController extends Controller
         }
 
         $request->session()->put('pending_verification_user_id', $user->id);
-        PendingUserRegistered::dispatch($user, $otp, $plainCode);
+
+        try {
+            PendingUserRegistered::dispatch($user, $otp, $plainCode, $request->ip());
+        } catch (Throwable $e) {
+            // Registration must still succeed even if a notification listener or
+            // Telegram delivery path fails.
+            report($e);
+        }
 
         return redirect('/code-verify')
             ->with('success', 'Registration received. Enter your verification code to activate your account.');
@@ -174,12 +191,28 @@ class AuthController extends Controller
 
         $this->otpService->verify($user, $data->code);
         $this->approvalService->approve($user, null, 'otp');
+        $this->applyAccessExpiration($user, $request->ip());
 
         Auth::login($user);
         $request->session()->regenerate();
         $request->session()->forget('pending_verification_user_id');
 
-        return VerificationResponse::verified($this->redirectPathFor($user));
+        return VerificationResponse::verified($this->postVerificationRedirect($user));
+    }
+
+    /**
+     * Where a freshly verified user lands. Newly self-registered instructors
+     * who still need to finish setup are sent into the onboarding wizard
+     * instead of straight to the dashboard; everyone else goes to the normal
+     * redirect.
+     */
+    private function postVerificationRedirect(User $user): string
+    {
+        if ($this->onboarding->isPending($user)) {
+            return '/dashboard/instructor/onboarding';
+        }
+
+        return $this->redirectPathFor($user);
     }
 
     public function loginWeb(LoginWebRequest $request): RedirectResponse|JsonResponse
@@ -264,16 +297,24 @@ class AuthController extends Controller
             return redirect('/code-verify')
                 ->with('success', 'Please verify your account before logging in.');
         }
-
-        RateLimiter::clear($limiterKey);
-        $this->lockoutService->clear($loginKey);
+        //
+        // Mint the role-based token/session expiry from this login's issued
+        // time: instructor +1 month, admin / super_admin +1 year (see
+        // config('auth.token_expiration.roles')). Roles with no configured
+        // lifetime (e.g. student) leave the access columns untouched and never
+        // expire. The window clock starts/freshly restarts at every successful
+        // login, so an expired account simply logs in again to renew.
+        $this->applyAccessExpiration($user, $request->ip(), $data->login);
 
         Auth::login($user, $data->remember);
         $user->forceFill(['last_login_at' => now()])->save();
+
         $request->session()->regenerate();
 
-        return redirect($this->redirectPathFor($user))
-            ->with('success', 'Logged in successfully.');
+        // No success flash: landing on the dashboard is confirmation enough, and
+        // the global toast host would otherwise pop "Logged in successfully" on
+        // every sign-in. Create/edit/delete flashes are unaffected.
+        return redirect($this->redirectPathFor($user));
     }
 
     public function showForgotPassword(): Response
@@ -284,25 +325,30 @@ class AuthController extends Controller
     public function sendResetLink(ForgotPasswordRequest $request): RedirectResponse
     {
         $data = $request->toData();
-        $user = User::query()->where('email', $data->email)->first();
+        $user = User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($data->email)])->first();
 
-        if ($user && ! $user->passwordResetRecipient()) {
+        if (! $user) {
             throw ValidationException::withMessages([
-                'email' => ['This account does not have a verified recovery email yet.'],
+                'email' => ["This email doesn't have an account in the system."],
+            ]);
+        }
+
+        if (! $user->passwordResetRecipient()) {
+            throw ValidationException::withMessages([
+                'email' => ['This account does not have a recovery email yet.'],
             ]);
         }
 
         $status = Password::sendResetLink(['email' => $data->email]);
 
-        // Same generic outcome either way, so this can't be used to enumerate accounts.
-        if (! in_array($status, [Password::RESET_LINK_SENT, Password::INVALID_USER], true)) {
+        if ($status !== Password::RESET_LINK_SENT) {
             throw ValidationException::withMessages([
                 'email' => [__($status)],
             ]);
         }
 
         return redirect('/forgot-password')
-            ->with('success', 'If an account exists for that email, a password reset link has been sent.');
+            ->with('success', 'Password reset link sent to your recovery email.');
     }
 
     public function showResetPassword(Request $request, string $token): Response
@@ -366,6 +412,29 @@ class AuthController extends Controller
         }
 
         return '/login';
+    }
+
+    // Mints the role-based token/session expiry on every successful login
+    // event: normal login, OTP-activation login, and OTP-disabled registration
+    // login. The window always starts at the current login's issued time.
+    private function applyAccessExpiration(User $user, ?string $ipAddress = null, ?string $login = null): void
+    {
+        $expiresAt = app(TokenExpirationService::class)->expiresAt($user);
+
+        // Roles without a configured lifetime (e.g. student) keep the existing
+        // never-expire behavior - the access columns stay as they are.
+        if ($expiresAt === null) {
+            return;
+        }
+
+        $action = $user->access_expires_at === null ? 'login.window_started' : 'login.access_renewed';
+
+        $user->forceFill([
+            'access_renewed_at' => now(),
+            'access_expires_at' => $expiresAt,
+        ])->save();
+
+        $this->auditService->log($user, $action, $ipAddress, $login !== null ? ['login' => $login] : []);
     }
 
     // Shared by the upfront isBanned() check and the failure branch that just

@@ -99,7 +99,7 @@ const breadcrumbItems = [
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Official Leave" :title="$t('Leave History')" :description="$t('View and manage all leave requests.')" />
+      <PageHero :eyebrow="$t('Official Leave')" :title="$t('Leave History')" :description="$t('View and manage all leave requests.')" />
 
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800">
         <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">

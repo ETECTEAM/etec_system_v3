@@ -9,23 +9,29 @@ use Illuminate\Support\Collection;
 class GetSessionsDueForAutoRecord
 {
     /**
-     * Sessions past grace and still not submitted — but not past their own end time,
-     * which the caller marks 'missed' instead of auto-recording.
+     * Sessions past grace that still need student-by-student finalization.
      */
     public function handle(Carbon $now, int $graceMinutes): Collection
     {
         return ClassSession::query()
-            ->where('status', ClassSession::STATUS_PENDING)
+            ->whereIn('status', [
+                ClassSession::STATUS_PENDING,
+                ClassSession::STATUS_PRE_ATTENDANCE,
+                ClassSession::STATUS_PARTIAL,
+            ])
             ->whereDate('session_date', $now->toDateString())
             ->where('scheduled_start', '<=', $now->copy()->subMinutes($graceMinutes))
-            ->where('scheduled_end', '>', $now)
             ->pluck('id');
     }
 
     public function pastEnd(Carbon $now): Collection
     {
         return ClassSession::query()
-            ->where('status', ClassSession::STATUS_PENDING)
+            ->whereIn('status', [
+                ClassSession::STATUS_PENDING,
+                ClassSession::STATUS_PRE_ATTENDANCE,
+                ClassSession::STATUS_PARTIAL,
+            ])
             ->whereDate('session_date', $now->toDateString())
             ->where('scheduled_end', '<=', $now)
             ->pluck('id');

@@ -8,7 +8,7 @@ import { PageHero } from "../../../../components/ui/page-hero";
 import DashboardLayout from "../../../../layouts/DashboardLayout.vue";
 import { useI18n } from "@/i18n";
 import { useConfirm } from "@/composables/useConfirm";
-import { useToast } from "vue-toastification";
+import { useToast } from "@/composables/useToast";
 import { Pencil, Plus, Trash2 } from "@lucide/vue";
 
 const page = usePage();

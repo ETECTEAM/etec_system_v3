@@ -3,7 +3,7 @@
 use App\Modules\Instructor\Controllers\InstructorScheduleBlockController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'active', 'role:instructor'])
+Route::middleware(['auth', 'active', 'role:instructor', 'onboarding'])
     ->prefix('/dashboard/instructor-schedule-blocks')
     ->name('instructor-schedule-blocks.')
     ->group(function () {

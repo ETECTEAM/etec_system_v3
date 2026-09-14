@@ -23,6 +23,7 @@ class RegisterStudentRequest extends FormRequest
             'term_id' => ['required', 'integer', 'exists:terms,id'],
             'time_id' => ['required', 'integer', 'exists:times,id'],
             'price' => ['required', 'numeric', 'min:0'],
+            'unit_price' => ['nullable', 'numeric', 'min:0'],
             'document_price' => ['nullable', 'numeric', 'min:0'],
         ];
     }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Instructor\Controllers\InstructorClassController;
+use App\Modules\Instructor\Controllers\InstructorOnboardingController;
 use App\Modules\Instructor\Controllers\InstructorProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,20 +11,48 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
     Route::put('/profile', [InstructorProfileController::class, 'update'])->middleware('throttle:10,1');
     Route::delete('/profile/attachments/{type}', [InstructorProfileController::class, 'destroyAttachment'])->middleware('throttle:10,1');
 
-    Route::get('/classes/create', [InstructorClassController::class, 'create'])->name('instructor.classes.create');
-    Route::post('/classes', [InstructorClassController::class, 'store'])->name('instructor.classes.store');
-    Route::get('/classes/{studyClass}', [InstructorClassController::class, 'show'])->name('instructor.classes.show');
-    Route::get('/classes/{studyClass}/attendance', [InstructorClassController::class, 'attendance'])->name('instructor.classes.attendance');
-    Route::get('/classes/{studyClass}/groups', [InstructorClassController::class, 'groups'])->name('instructor.classes.groups');
-    Route::put('/classes/{studyClass}/groups', [InstructorClassController::class, 'saveTeams'])->name('instructor.classes.groups.save');
-    Route::get('/classes/{studyClass}/attendance/track', [InstructorClassController::class, 'trackAttendance'])->name('instructor.classes.attendance.track');
-    Route::get('/classes/{studyClass}/attendance/students/{student}', [InstructorClassController::class, 'studentAttendance'])->name('instructor.classes.attendance.students.show');
-    Route::put('/classes/{studyClass}/scores', [InstructorClassController::class, 'saveScores'])->name('instructor.classes.scores.update');
-    // Route to update a student profile from the instructor's class roster.
-    Route::put('/classes/{studyClass}/students/{student}', [InstructorClassController::class, 'updateStudent'])->name('instructor.classes.students.update');
-    // Route to move a student into another class by class ID.
-    Route::put('/classes/{studyClass}/students/{student}/transfer', [InstructorClassController::class, 'transferStudent'])->name('instructor.classes.students.transfer');
-    Route::post('/classes/{studyClass}/attendance', [InstructorClassController::class, 'storeAttendance'])->middleware('throttle:20,1')->name('instructor.classes.attendance.store');
-    // Route to correct a session the system auto-recorded (see OverrideAttendanceRecord).
-    Route::put('/classes/{studyClass}/attendance', [InstructorClassController::class, 'overrideAttendance'])->middleware('throttle:20,1')->name('instructor.classes.attendance.override');
+    // Post-registration onboarding wizard. Stays outside the 'onboarding'
+    // group below so a still-gated instructor can actually reach it.
+    Route::prefix('/onboarding')->group(function () {
+        Route::get('/', [InstructorOnboardingController::class, 'show'])->name('instructor.onboarding');
+        Route::get('/status', [InstructorOnboardingController::class, 'status'])->name('instructor.onboarding.status');
+        Route::put('/teaching', [InstructorOnboardingController::class, 'saveTeaching'])->middleware('throttle:10,1')->name('instructor.onboarding.teaching');
+        Route::post('/recovery-email', [InstructorOnboardingController::class, 'saveRecoveryEmail'])->middleware('throttle:5,1')->name('instructor.onboarding.recovery-email');
+        Route::post('/recovery-email/resend', [InstructorOnboardingController::class, 'resendRecoveryEmail'])->middleware('throttle:5,1')->name('instructor.onboarding.recovery-email.resend');
+    });
+
+    // Everything below this point requires onboarding to be complete first.
+    Route::middleware('onboarding')->group(function () {
+        // Self-service request to lift an instructor's attendance-tracking block (see docs/instructor-attendance-block-proposal.md).
+        Route::post('/attendance-block/request', [InstructorClassController::class, 'requestAttendanceUnblock'])->middleware('throttle:10,1')->name('instructor.attendance-block.request');
+        // Route to list this instructor's ended classes so they can re-open a finished class's result sheet / re-download its PDF.
+        Route::get('/class-history', [InstructorClassController::class, 'history'])->name('instructor.classes.history');
+        Route::get('/classes/create', [InstructorClassController::class, 'create'])->name('instructor.classes.create');
+        Route::post('/classes', [InstructorClassController::class, 'store'])->name('instructor.classes.store');
+        Route::get('/classes/{studyClass}', [InstructorClassController::class, 'show'])->name('instructor.classes.show');
+        Route::get('/classes/{studyClass}/attendance', [InstructorClassController::class, 'attendance'])->name('instructor.classes.attendance');
+        Route::get('/classes/{studyClass}/result', [InstructorClassController::class, 'result'])->name('instructor.classes.result');
+        Route::get('/classes/{studyClass}/groups', [InstructorClassController::class, 'groups'])->name('instructor.classes.groups');
+        // Route to open the dedicated certificate request page for this class.
+        Route::get('/classes/{studyClass}/certificate-request', [InstructorClassController::class, 'certificateRequest'])->name('instructor.classes.certificate-request');
+        // Route to submit a class certificate request for super admin review.
+        Route::post('/classes/{studyClass}/certificate-request', [InstructorClassController::class, 'storeCertificateRequest'])->middleware('throttle:10,1')->name('instructor.classes.certificate-request.store');
+        Route::put('/classes/{studyClass}/groups', [InstructorClassController::class, 'saveTeams'])->name('instructor.classes.groups.save');
+        Route::get('/classes/{studyClass}/attendance/track', [InstructorClassController::class, 'trackAttendance'])->name('instructor.classes.attendance.track');
+        // Route to start or refresh the QR attendance session for today.
+        Route::post('/classes/{studyClass}/attendance/session', [InstructorClassController::class, 'startAttendanceSession'])->middleware('throttle:10,1')->name('instructor.classes.attendance.session.start');
+        // Route to stop the current QR attendance session immediately.
+        Route::delete('/classes/{studyClass}/attendance/session', [InstructorClassController::class, 'stopAttendanceSession'])->middleware('throttle:10,1')->name('instructor.classes.attendance.session.stop');
+        Route::get('/classes/{studyClass}/attendance/students/{student}', [InstructorClassController::class, 'studentAttendance'])->name('instructor.classes.attendance.students.show');
+        // Route to import legacy student details and attendance rows for a class.
+        Route::post('/classes/{studyClass}/attendance/import-csv', [InstructorClassController::class, 'importAttendanceCsv'])->middleware('throttle:5,1')->name('instructor.classes.attendance.import-csv');
+        Route::put('/classes/{studyClass}/scores', [InstructorClassController::class, 'saveScores'])->name('instructor.classes.scores.update');
+        // Route to update a student profile from the instructor's class roster.
+        Route::put('/classes/{studyClass}/students/{student}', [InstructorClassController::class, 'updateStudent'])->name('instructor.classes.students.update');
+        // Route to move a student into another class by class ID.
+        Route::put('/classes/{studyClass}/students/{student}/transfer', [InstructorClassController::class, 'transferStudent'])->name('instructor.classes.students.transfer');
+        Route::post('/classes/{studyClass}/attendance', [InstructorClassController::class, 'storeAttendance'])->middleware('throttle:20,1')->name('instructor.classes.attendance.store');
+        // Route to correct a session the system auto-recorded (see OverrideAttendanceRecord).
+        Route::put('/classes/{studyClass}/attendance', [InstructorClassController::class, 'overrideAttendance'])->middleware('throttle:20,1')->name('instructor.classes.attendance.override');
+    });
 });

@@ -50,7 +50,7 @@ const breadcrumbItems = [
   <DashboardLayout>
     <section class="space-y-6">
       <Breadcrumbs :items="breadcrumbItems" />
-      <PageHero eyebrow="Super Admin" :title="$t('Activity Log')" :description="$t('Audit trail of all leave-related actions.')" />
+      <PageHero :eyebrow="$t('Super Admin')" :title="$t('Activity Log')" :description="$t('Audit trail of all leave-related actions.')" />
 
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm dark:bg-gray-900 dark:border-gray-800">
         <div class="border-b border-slate-200 px-6 py-5 dark:border-gray-800">

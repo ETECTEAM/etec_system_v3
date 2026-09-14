@@ -11,12 +11,17 @@ import {
   Clock,
   CalendarClock,
   CalendarDays,
+  CalendarOff,
   ShieldCheck,
   Lock,
   UserCircle,
   LayoutDashboard,
   SlidersHorizontal,
-  Bot,
+  BadgeCheck,
+  MapPin,
+  ClipboardCheck,
+  UserX,
+  History,
 } from "@lucide/vue";
 
 // Maps a menu item's `icon` string to its Lucide component.
@@ -33,11 +38,16 @@ export const menuIcons = {
   shift: Clock,
   schedule: CalendarClock,
   official_leave: CalendarDays,
+  holiday: CalendarOff,
   account_security: ShieldCheck,
   login_security: Lock,
   profile: UserCircle,
   "enroll-config": SlidersHorizontal,
-  attendance_settings: Bot,
+  certificate: BadgeCheck,
+  access_locations: MapPin,
+  pre_attendance: ClipboardCheck,
+  absence_block: UserX,
+  class_history: History,
 };
 
 // Used when an item's `icon` key has no entry above.

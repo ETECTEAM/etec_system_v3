@@ -2,6 +2,7 @@
 
 namespace App\Modules\Enroll\Actions;
 
+use App\Models\CourseEnrollConfig;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
 use App\Modules\Enroll\Services\StudentRegistrationService;
@@ -34,9 +35,21 @@ class MoveStudentEnrollment
                 return $this->assignUnassigned($enrollment, $targetClass, $force);
             }
 
+            // A same-course class change keeps the current enrollment's
+            // payment context, so require its receipt to be settled first.
+            // Moving to another course starts a new course enrollment and may
+            // proceed even when the source enrollment is still unpaid.
+            if ((int) $enrollment->course_id === (int) $targetClass->course_id
+                && $enrollment->payment_status !== 'paid') {
+                throw ValidationException::withMessages([
+                    'study_class_id' => 'Record the payment and print the receipt for this student before moving them to another class.',
+                ]);
+            }
+
             $sourceClassId = $enrollment->study_class_id;
             $amountPaid = (float) $enrollment->amount_paid;
-            $totalDue = (float) $targetClass->price + (float) $targetClass->document_price;
+            $resolved = $this->resolveClassPrice($targetClass);
+            $totalDue = $resolved['price'] + $resolved['document_price'];
 
             $moved = $this->enrollStudent->handle($targetClass, $enrollment->student_id, $force, [
                 'source' => $enrollment->source,
@@ -45,6 +58,16 @@ class MoveStudentEnrollment
                 'paid_at' => $enrollment->paid_at,
                 'enrolled_at' => $enrollment->enrolled_at,
             ]);
+
+            // Keep the student's attendance history continuous when the
+            // enrollment is recreated for the destination class. The record
+            // IDs stay unchanged, so audit-log references remain valid.
+            DB::table('student_attendances')
+                ->where('student_enrollment_id', $enrollment->id)
+                ->update([
+                    'student_enrollment_id' => $moved->id,
+                    'study_class_id' => $targetClass->id,
+                ]);
 
             $enrollment->update(['enrollment_status' => 'cancelled']);
 
@@ -70,13 +93,15 @@ class MoveStudentEnrollment
         // from this specific class's price, so payment_status is recomputed
         // against the amount already paid rather than left as-is.
         $amountPaid = (float) $enrollment->amount_paid;
-        $totalDue = (float) $class->price + (float) $class->document_price;
+        $resolved = $this->resolveClassPrice($class);
+        $totalDue = $resolved['price'] + $resolved['document_price'];
 
         $enrollment->update([
             'study_class_id' => $class->id,
             'enrollment_status' => 'active',
-            'fee_amount' => $class->price,
-            'document_fee_amount' => $class->document_price,
+            'fee_amount' => $resolved['price'],
+            'unit_price' => $resolved['unit_price'],
+            'document_fee_amount' => $resolved['document_price'],
             'payment_status' => $this->paymentStatus($amountPaid, $totalDue),
             'no_room_and_instructor' => false,
             'no_instructor' => false,
@@ -84,6 +109,19 @@ class MoveStudentEnrollment
         ]);
 
         return (object) $enrollment->fresh()->toArray();
+    }
+
+    private function resolveClassPrice(stdClass|StudyClass $class): array
+    {
+        $config = CourseEnrollConfig::forCourseTime($class->course_id, $class->time_id);
+
+        $price = $config?->resolvedPrice() ?? (float) $class->price;
+
+        return [
+            'price' => $price,
+            'unit_price' => $config && (float) $config->unit_price > 0 ? (float) $config->unit_price : $price,
+            'document_price' => $config !== null ? (float) $config->document_price : (float) $class->document_price,
+        ];
     }
 
     // A move is the only action that can leave a class with zero active

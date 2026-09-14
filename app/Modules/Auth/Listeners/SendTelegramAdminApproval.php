@@ -19,6 +19,7 @@ class SendTelegramAdminApproval implements ShouldQueue
             $event->user,
             $event->otp,
             $event->plainCode,
+            $event->ipAddress,
         );
     }
 }

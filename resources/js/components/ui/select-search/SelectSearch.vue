@@ -17,10 +17,6 @@ const props = defineProps({
     type: String,
     default: 'Select...',
   },
-  searchPlaceholder: {
-    type: String,
-    default: 'Search...',
-  },
   emptyText: {
     type: String,
     default: 'No results found',
@@ -39,39 +35,57 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
-  // Off when the option list is short enough that a search box is just
-  // clutter (e.g. a 2-option toggle) - the dropdown/keyboard-nav behavior
-  // stays, only the search input itself is hidden.
+  // Type-to-filter box at the top of the panel. On by default, but only
+  // actually rendered once the list is long enough to be worth searching
+  // (see `showSearch`) so short selects stay clean. Pass :searchable="false"
+  // to force it off.
   searchable: {
     type: Boolean,
     default: true,
+  },
+  // Minimum option count before the search box appears.
+  searchThreshold: {
+    type: Number,
+    default: 6,
   },
 })
 
 const emit = defineEmits(['update:modelValue'])
 
 const open = ref(false)
-const search = ref('')
 const root = ref(null)
 const panel = ref(null)
 const triggerButton = ref(null)
 const searchInput = ref(null)
 const panelStyle = ref({})
-
-const filteredOptions = computed(() => {
-  const keyword = search.value.trim().toLowerCase()
-
-  if (keyword === '') {
-    return props.options
-  }
-
-  return props.options.filter((option) => t(option.label).toLowerCase().includes(keyword))
-})
+const query = ref('')
+// The teleported panel mounts before its screen coords are known (that needs a
+// nextTick so it's in the DOM to measure). Until the first updatePanelPosition()
+// of an open cycle runs it's kept invisible, otherwise the very first open
+// flashes the panel at the bottom of <body> before it snaps into place - the
+// "bad on first click, fine after" glitch, since panelStyle keeps its last value.
+const positioned = ref(false)
 
 const selectedLabel = computed(() => {
   const found = props.options.find((option) => option.value === props.modelValue)
 
   return found ? t(found.label) : null
+})
+
+const showSearch = computed(() => props.searchable && props.options.length >= props.searchThreshold)
+
+const filteredOptions = computed(() => {
+  if (!showSearch.value) {
+    return props.options
+  }
+
+  const q = query.value.trim().toLowerCase()
+
+  if (q === '') {
+    return props.options
+  }
+
+  return props.options.filter((option) => String(t(option.label)).toLowerCase().includes(q))
 })
 
 // The panel is teleported to <body> (see template) rather than absolutely
@@ -91,12 +105,22 @@ function updatePanelPosition() {
     return
   }
 
+  const offset = 8
+  const panelHeight = panel.value?.offsetHeight ?? 240
+  const spaceBelow = window.innerHeight - rect.bottom - offset
+  const spaceAbove = rect.top - offset
+  const opensUpward = spaceBelow < panelHeight && spaceAbove > spaceBelow
+
   panelStyle.value = {
     position: 'fixed',
-    top: `${rect.bottom + 8}px`,
     left: `${rect.left}px`,
     width: `${rect.width}px`,
+    ...(opensUpward
+      ? { bottom: `${window.innerHeight - rect.top + offset}px` }
+      : { top: `${rect.bottom + offset}px` }),
   }
+
+  positioned.value = true
 }
 
 async function toggleDropdown() {
@@ -107,15 +131,21 @@ async function toggleDropdown() {
   open.value = !open.value
 
   if (open.value) {
-    updatePanelPosition()
+    query.value = ''
+    positioned.value = false
     await nextTick()
-    searchInput.value?.focus()
+    updatePanelPosition()
+
+    if (showSearch.value) {
+      searchInput.value?.focus()
+    }
   }
 }
 
 function closeDropdown() {
   open.value = false
-  search.value = ''
+  query.value = ''
+  positioned.value = false
 }
 
 function selectOption(option) {
@@ -126,6 +156,16 @@ function selectOption(option) {
 function clearSelection() {
   emit('update:modelValue', '')
   closeDropdown()
+}
+
+// Enter in the search box picks the only / first remaining match, so a
+// keyboard user never has to reach for the mouse.
+function selectFirstMatch() {
+  const [first] = filteredOptions.value
+
+  if (first) {
+    selectOption(first)
+  }
 }
 
 function handleDocumentClick(event) {
@@ -156,10 +196,11 @@ function handleScroll(event) {
   }
 }
 
-watch(open, async (isOpen) => {
-  if (isOpen) {
-    await nextTick()
-    searchInput.value?.focus()
+// Filtering shrinks/grows the panel; when it opens upward its top edge moves,
+// so re-anchor it to the trigger after the list changes.
+watch(filteredOptions, () => {
+  if (open.value) {
+    nextTick(updatePanelPosition)
   }
 })
 
@@ -197,17 +238,18 @@ onBeforeUnmount(() => {
       <div
         v-if="open"
         ref="panel"
-        :style="panelStyle"
+        :style="[panelStyle, positioned ? null : { opacity: 0, pointerEvents: 'none' }]"
         class="z-[130] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
       >
-        <div v-if="searchable" class="border-b border-slate-200 p-2 dark:border-gray-700">
+        <div v-if="showSearch" class="border-b border-slate-100 p-2 dark:border-gray-700">
           <input
             ref="searchInput"
-            v-model="search"
+            v-model="query"
             type="text"
-            :placeholder="t(searchPlaceholder)"
-            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-          >
+            :placeholder="t('Search...')"
+            class="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:focus:ring-blue-500/20"
+            @keydown.enter.prevent="selectFirstMatch"
+          />
         </div>
 
         <div class="max-h-48 overflow-y-auto py-1">
