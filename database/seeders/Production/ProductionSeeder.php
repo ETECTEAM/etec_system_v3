@@ -26,11 +26,12 @@ use Illuminate\Database\Seeder;
 /**
  * The full seed set for every environment.
  *
- * Sections 1-7 are reference / lookup data + the real super-admin and are safe
- * on a live database. Section 8 folds in \Database\Seeders\Dev\DevSeeder
- * (admin login, one instructor per work schedule, every course opened with
- * flat pricing) so a plain `db:seed` produces the same working dataset
- * everywhere - remove that call to go back to reference-data-only prod seeds.
+ * Sections 1-7 are reference / lookup data + the two real logins
+ * (super-admin, admin) and are safe on a live database. Section 8 folds in
+ * \Database\Seeders\Dev\DevSeeder (throwaway admin@etec.com/password login,
+ * one demo instructor per work schedule, every course opened with flat
+ * pricing) so a plain `db:seed` produces a working dataset locally - it is
+ * skipped automatically when APP_ENV=production.
  */
 class ProductionSeeder extends Seeder
 {
@@ -45,8 +46,9 @@ class ProductionSeeder extends Seeder
             // this every instructor 403s on /dashboard.
             DashboardPermissionSeeder::class,
 
-            // 2. The one real login (idempotent, never truncates users)
+            // 2. The two real logins (idempotent, never truncates users)
             SuperAdminSeeder::class,
+            AdminSeeder::class,
 
             // 3. Application settings
             LoginLockoutSeeder::class,
@@ -73,10 +75,14 @@ class ProductionSeeder extends Seeder
 
             // 7. Public website defaults
             // WebsiteMenuSeeder::class,
-
-            // 8. Demo data - admin login, instructors, course enroll config.
-            //    Drop this line for a reference-data-only production seed.
-            DevSeeder::class,
         ]);
+
+        // 8. Demo data - throwaway admin@etec.com/password login, 10 fake
+        //    instructor accounts, flat course pricing. Never seeded on a real
+        //    production database - APP_ENV=production skips it entirely so a
+        //    live deploy only ever gets the two real logins seeded above.
+        if (! app()->environment('production')) {
+            $this->call(DevSeeder::class);
+        }
     }
 }
