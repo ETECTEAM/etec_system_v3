@@ -23,8 +23,6 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
 
     // Everything below this point requires onboarding to be complete first.
     Route::middleware('onboarding')->group(function () {
-        Route::get('/pre-attendance', [InstructorClassController::class, 'preAttendance'])->name('instructor.pre-attendance');
-        Route::post('/pre-attendance/classes/{studyClass}/request', [InstructorClassController::class, 'requestPreAttendance'])->middleware('throttle:10,1')->name('instructor.pre-attendance.request');
         // Self-service request to lift an instructor's attendance-tracking block (see docs/instructor-attendance-block-proposal.md).
         Route::post('/attendance-block/request', [InstructorClassController::class, 'requestAttendanceUnblock'])->middleware('throttle:10,1')->name('instructor.attendance-block.request');
         // Route to list this instructor's ended classes so they can re-open a finished class's result sheet / re-download its PDF.
@@ -46,6 +44,8 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
         // Route to stop the current QR attendance session immediately.
         Route::delete('/classes/{studyClass}/attendance/session', [InstructorClassController::class, 'stopAttendanceSession'])->middleware('throttle:10,1')->name('instructor.classes.attendance.session.stop');
         Route::get('/classes/{studyClass}/attendance/students/{student}', [InstructorClassController::class, 'studentAttendance'])->name('instructor.classes.attendance.students.show');
+        // Route to import legacy student details and attendance rows for a class.
+        Route::post('/classes/{studyClass}/attendance/import-csv', [InstructorClassController::class, 'importAttendanceCsv'])->middleware('throttle:5,1')->name('instructor.classes.attendance.import-csv');
         Route::put('/classes/{studyClass}/scores', [InstructorClassController::class, 'saveScores'])->name('instructor.classes.scores.update');
         // Route to update a student profile from the instructor's class roster.
         Route::put('/classes/{studyClass}/students/{student}', [InstructorClassController::class, 'updateStudent'])->name('instructor.classes.students.update');

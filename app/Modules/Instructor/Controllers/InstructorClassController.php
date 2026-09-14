@@ -19,6 +19,7 @@ use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Instructor\Services\ClassResultPdfGenerator;
 use App\Modules\Instructor\Services\InstructorClassService;
+use App\Modules\Instructor\Services\ImportInstructorAttendanceCsv;
 use App\Support\InstructorDisplayName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -42,6 +43,7 @@ class InstructorClassController extends Controller
         private readonly AttendanceQrService $attendanceQr,
         private readonly ClassResultPdfGenerator $classResultPdfGenerator,
         private readonly FindActiveInstructorAttendanceBlock $findActiveBlock,
+        private readonly ImportInstructorAttendanceCsv $importAttendanceCsv,
     ) {}
 
     /** Attendance-blocked banner payload for the instructor's attendance pages (see docs/instructor-attendance-block-proposal.md). */
@@ -137,34 +139,10 @@ class InstructorClassController extends Controller
                 && ! $attendanceBlock
                 && $this->instructorClasses->canTrackAttendance($class, $attendanceWindow, $todaySession),
             'trackAttendanceLabel' => $requiresPreAttendanceApproval
-                ? 'Request Admin'
+                ? 'Awaiting Admin Approval'
                 : $this->instructorClasses->trackAttendanceLabel($class, $attendanceWindow, $todaySession),
             'attendanceBlock' => $attendanceBlock,
         ]);
-    }
-
-    public function preAttendance(Request $request): Response
-    {
-        return Inertia::render('backend/instructors/PreAttendance', [
-            'classes' => $this->instructorClasses->preAttendanceClasses($request->user()),
-        ]);
-    }
-
-    public function requestPreAttendance(Request $request, string $studyClass): RedirectResponse
-    {
-        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
-
-        if (($class->class_status ?? null) !== 'active') {
-            return back()->with('warning', 'Pre-attendance recovery can only be requested while the class is active.');
-        }
-
-        $validated = $request->validate([
-            'note' => ['required', 'string', 'min:3', 'max:1000'],
-        ]);
-
-        $this->instructorClasses->requestPreAttendance($request->user(), $class->id, $validated['note'] ?? null);
-
-        return back()->with('success', 'Pre-attendance request sent to admin.');
     }
 
     public function requestAttendanceUnblock(Request $request): RedirectResponse
@@ -248,8 +226,8 @@ class InstructorClassController extends Controller
 
         if ($canCompletePreAttendance && ! $hasPreAttendanceApproval) {
             return redirect()
-                ->route('instructor.pre-attendance')
-                ->with('warning', 'Please request admin approval before re-tracking pre-attendance.');
+                ->route('instructor.classes.attendance', $class->id)
+                ->with('warning', 'This class needs admin approval before you can re-track it.');
         }
 
         $isAutoRecorded = ($todaySession['status'] ?? null) === 'auto_recorded';
@@ -431,6 +409,13 @@ class InstructorClassController extends Controller
             'backUrl' => "/dashboard/instructor/classes/{$class->id}/attendance",
             'student' => $this->instructorClasses->studentAttendanceDetail($class->id, (int) $student),
         ]);
+    }
+
+    public function importAttendanceCsv(Request $request, string $studyClass): JsonResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        $request->validate(['file' => ['required', 'file', 'mimes:csv,txt', 'max:10240']]);
+        return response()->json(['message' => 'Legacy students and attendance imported successfully.', 'summary' => $this->importAttendanceCsv->handle($class, $request->file('file'), (int) $request->user()->id)]);
     }
 
     public function groups(Request $request, string $studyClass): Response

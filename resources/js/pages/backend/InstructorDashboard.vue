@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
+import axios from "axios";
 import {
   Award,
   BookOpen,
@@ -17,8 +18,10 @@ import {
 import DashboardLayout from "../../layouts/DashboardLayout.vue";
 import ClassCrad from "../../components/ui/card/ClassCrad.vue";
 import { useI18n } from "../../i18n";
+import { useToast } from "@/composables/useToast";
 
 const { t } = useI18n();
+const toast = useToast();
 
 const props = defineProps({
   instructorData: {
@@ -47,6 +50,9 @@ const props = defineProps({
 const page = usePage();
 const search = ref("");
 const requestingUnblock = ref(false);
+const csvInput = ref(null);
+const csvClass = ref(null);
+const csvImporting = ref(false);
 
 function requestAttendanceUnblock() {
   requestingUnblock.value = true;
@@ -120,6 +126,30 @@ function refresh() {
   router.reload({ only: ["classes", "summary"], preserveScroll: true });
 }
 
+function importLegacyCsv(classData) {
+  csvClass.value = classData;
+  csvInput.value?.click();
+}
+
+async function onCsvSelected(event) {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file || !csvClass.value) return;
+  csvImporting.value = true;
+  const data = new FormData();
+  data.append("file", file);
+  try {
+    const response = await axios.post(`/dashboard/instructor/classes/${csvClass.value.id}/attendance/import-csv`, data);
+    toast.success(`Imported ${response.data.summary.attendance_imported} attendance rows.`);
+    refresh();
+  } catch (error) {
+    toast.error(error.response?.data?.message ?? "CSV import failed.");
+  } finally {
+    csvImporting.value = false;
+    csvClass.value = null;
+  }
+}
+
 // The class card is shared with the admin class list, which sends "View Class" to the
 // super_admin-only enrollment page; instructors go to their own class screen instead.
 function viewUrl(classData) {
@@ -173,6 +203,12 @@ function certificateItem(classData) {
 
 function actionItems(classData) {
   return [
+    {
+      label: csvImporting.value && csvClass.value?.id === classData.id ? "Importing CSV..." : "Import Legacy CSV",
+      icon: RefreshCw,
+      disabled: csvImporting.value,
+      action: () => importLegacyCsv(classData),
+    },
     ...attendanceItem(classData),
     ...certificateItem(classData),
   ];
@@ -183,6 +219,7 @@ function actionItems(classData) {
   <Head :title="$t('Instructor Dashboard')" />
 
   <DashboardLayout>
+    <input ref="csvInput" type="file" accept=".csv,text/csv" class="hidden" @change="onCsvSelected" />
     <section class="space-y-5 sm:space-y-6">
       <div
         v-if="attendanceBlock"

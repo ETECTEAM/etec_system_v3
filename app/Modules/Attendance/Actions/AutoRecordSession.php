@@ -54,6 +54,14 @@ class AutoRecordSession
                 return;
             }
 
+            // Captured before the update below: this command re-scans every session still
+            // sitting in pre_attendance/partial on every scheduler tick (everyMinute(), see
+            // bootstrap/app.php), not just once when it first lands there. Without this,
+            // blockInstructor->handle() below would re-fire every minute for as long as the
+            // session stays unresolved, stomping the instructor's pending_review request (or
+            // even an admin's approved_unblock) back to active on the very next tick.
+            $wasAlreadyPreAttendance = $session->status === ClassSession::STATUS_PRE_ATTENDANCE;
+
             $graceMinutes = (int) setting('attendance.auto_record_grace_minutes', 20);
             $trackedCount = DB::table('student_attendances')
                 ->where('study_class_id', $session->study_class_id)
@@ -75,8 +83,9 @@ class AutoRecordSession
 
             // Case 1 (docs/instructor-attendance-block-proposal.md): a complete no-show
             // blocks the instructor from tracking attendance on every class, not just this
-            // one. Case 2 (partial) is intentionally not wired up yet.
-            if ($status === ClassSession::STATUS_PRE_ATTENDANCE) {
+            // one. Case 2 (partial) is intentionally not wired up yet. Only fires on the
+            // transition into pre_attendance, not on every re-run while already there.
+            if ($status === ClassSession::STATUS_PRE_ATTENDANCE && ! $wasAlreadyPreAttendance) {
                 $this->blockInstructor->handle($session);
             }
         });
