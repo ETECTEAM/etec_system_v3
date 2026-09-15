@@ -228,6 +228,42 @@ function attendanceScoreFor(student) {
   return Math.max(0, Number((40 - absent - permission * 0.5 - late * 0.3).toFixed(2)));
 }
 
+function attendancePercentFor(student) {
+  return (attendanceScoreFor(student) / 40) * 100;
+}
+
+function rowStatusFor(student) {
+  if (student.attendance?.is_locked) {
+    return "blocked";
+  }
+
+  const percent = attendancePercentFor(student);
+
+  if (percent <= 60) {
+    return "danger";
+  }
+
+  if (percent < 80) {
+    return "warning";
+  }
+
+  return "normal";
+}
+
+function rowHighlightClass(student) {
+  const status = rowStatusFor(student);
+
+  if (status === "blocked" || status === "danger") {
+    return "bg-red-50/60 dark:bg-red-500/5";
+  }
+
+  if (status === "warning") {
+    return "bg-amber-50/60 dark:bg-amber-500/5";
+  }
+
+  return "";
+}
+
 function clampProjectScore(value) {
   const score = Number(value ?? 0);
 
@@ -717,12 +753,15 @@ async function approveAllPendingRegistrations() {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="student in rosterStudents" :key="student.enrollment_id" class="align-middle">
+              <tr v-for="student in rosterStudents" :key="student.enrollment_id" :class="['align-middle', rowHighlightClass(student)]">
                 <td class="border border-slate-200 px-1.5 py-4 font-semibold dark:border-gray-800">{{ student.roster_no }}</td>
                 <td class="border border-slate-200 px-2 py-4 text-left dark:border-gray-800">
                   <p class="break-words text-sm font-black leading-snug text-slate-950 dark:text-gray-100">{{ student.name }}</p>
                   <p class="mt-1 break-words text-[11px] font-bold leading-snug">
                     ID: <span class="rounded-md bg-blue-900 px-2 py-0.5 text-white">#{{ student.id }}</span>
+                  </p>
+                  <p v-if="student.attendance?.is_locked" :title="student.attendance?.lock_reason" class="mt-1 inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                    Blocked
                   </p>
                 </td>
                 <td class="border border-slate-200 px-1.5 py-4 dark:border-gray-800">
