@@ -2,8 +2,18 @@ import DisableDevtool from 'disable-devtool'
 
 let initialized = false
 
+function isMobileDevice() {
+    return /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent)
+}
+
 function shouldEnableAntiInspect() {
-    return import.meta.env.PROD || import.meta.env.VITE_ANTI_INSPECT === 'true'
+    // Mobile browsers can report different outer/inner dimensions and trigger
+    // false DevTools detections. The public QR and student flows must remain
+    // usable from a phone.
+    return !isMobileDevice() && (
+        import.meta.env.PROD ||
+        import.meta.env.VITE_ANTI_INSPECT === 'true'
+    )
 }
 
 function showRestrictedPage() {
@@ -125,7 +135,7 @@ function runProtectionCheck() {
     const devtoolOpened =
         typeof DisableDevtool.isDevToolOpened === 'function' && DisableDevtool.isDevToolOpened()
 
-    if (devtoolOpened || isLikelyDevtoolsDocked()) {
+    if (devtoolOpened) {
         showRestrictedPage()
     }
 }
