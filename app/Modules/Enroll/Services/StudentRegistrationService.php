@@ -3,8 +3,10 @@
 namespace App\Modules\Enroll\Services;
 
 use App\Models\StudyClass;
+use App\Models\Student;
 use App\Models\StudentEnrollment;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use stdClass;
 
@@ -12,6 +14,10 @@ class StudentRegistrationService
 {
     public function createStudent(array $data, ?int $creatorUserId = null, array $extra = []): stdClass
     {
+        if (! empty($data['email'])) {
+            $this->ensureRecoveryEmailAvailable($data['email'], null, 'email');
+        }
+
         $now = now();
         $studentId = DB::table('students')->insertGetId([
             'user_id' => $creatorUserId,
@@ -19,6 +25,9 @@ class StudentRegistrationService
             'gender' => $data['gender'],
             'date_of_birth' => $data['date_of_birth'] ?? null,
             'phone' => $data['phone'],
+            'email' => $this->uniqueStudentEmail($data['name'] ?? $data['full_name']),
+            'recovery_email' => $data['email'] ?? null,
+            'attendance_code' => $this->uniqueAttendanceCode(),
             'address' => $data['address'] ?? null,
             'student_status' => 'active',
             'course_id' => $extra['course_id'] ?? $data['course_id'] ?? null,
@@ -47,8 +56,87 @@ class StudentRegistrationService
 
     public function findOrCreatePublicStudent(array $data): stdClass
     {
-        return $this->findStudentByPhone($data['phone'])
-            ?? $this->createStudent($data);
+        $student = $this->findStudentByPhone($data['phone']);
+        if (! $student) {
+            return $this->createStudent($data);
+        }
+
+        if (! $student->attendance_code || ! $student->email || (! empty($data['email']) && ! $student->recovery_email)) {
+            $changes = ['updated_at' => now()];
+
+            if (! $student->attendance_code) {
+                $changes['attendance_code'] = $this->uniqueAttendanceCode();
+            }
+
+            if (! $student->email) {
+                $changes['email'] = $this->uniqueStudentEmail($student->full_name);
+            }
+
+            if (! empty($data['email']) && ! $student->recovery_email) {
+                $this->ensureRecoveryEmailAvailable($data['email'], (int) $student->id, 'email');
+                $changes['recovery_email'] = $data['email'];
+            }
+
+            DB::table('students')->where('id', $student->id)->update([
+                ...$changes,
+            ]);
+            $student = $this->student((int) $student->id);
+        }
+
+        return $student;
+    }
+
+    private function uniqueAttendanceCode(): string
+    {
+        do {
+            $code = Str::upper(Str::random(4)).'-'.Str::upper(Str::random(4));
+        } while (DB::table('students')->where('attendance_code', $code)->exists());
+
+        return $code;
+    }
+
+    public function newAttendanceCode(): string
+    {
+        return $this->uniqueAttendanceCode();
+    }
+
+    public function replaceAttendanceCode(Student $student, string $code): void
+    {
+        $student->forceFill(['attendance_code' => $code])->save();
+    }
+
+    public function setRecoveryEmail(Student $student, string $recoveryEmail): void
+    {
+        $this->ensureRecoveryEmailAvailable($recoveryEmail, $student->id);
+        $student->forceFill(['recovery_email' => $recoveryEmail])->save();
+    }
+
+    private function ensureRecoveryEmailAvailable(string $recoveryEmail, ?int $studentId = null, string $field = 'recovery_email'): void
+    {
+        $taken = DB::table('students')
+            ->whereRaw('LOWER(recovery_email) = ?', [mb_strtolower($recoveryEmail)])
+            ->when($studentId, fn ($query) => $query->where('id', '!=', $studentId))
+            ->exists();
+
+        if ($taken) {
+            throw ValidationException::withMessages([
+                $field => ['This recovery email is already used by another student account.'],
+            ]);
+        }
+    }
+
+    private function uniqueStudentEmail(string $name): string
+    {
+        $localPart = Str::of($name)->ascii()->lower()->replaceMatches('/[^a-z0-9]+/', '.')->trim('.')->value() ?: 'student';
+        $candidate = "{$localPart}@etec.com";
+        $suffix = 2;
+
+        while (DB::table('students')->where('email', $candidate)->exists()) {
+            $candidate = "{$localPart}-{$suffix}@etec.com";
+            $suffix++;
+        }
+
+        return $candidate;
     }
 
     public function createEnrollment(array $data): stdClass

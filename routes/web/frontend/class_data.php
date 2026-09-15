@@ -17,3 +17,7 @@ Route::get('/join-class/{studyClass:slug}', [ClassJoinController::class, 'create
 Route::post('/join-class/{studyClass:slug}', [ClassJoinController::class, 'store'])
     ->middleware('throttle:5,10')
     ->name('frontend.class-join.store');
+
+Route::get('/join-class/{studyClass:slug}/approval-status', [ClassJoinController::class, 'approvalStatus'])
+    ->middleware('throttle:60,1')
+    ->name('frontend.class-join.approval-status');
