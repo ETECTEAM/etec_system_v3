@@ -90,6 +90,10 @@ class WorkScheduleSeeder extends Seeder
             $this->schedule('full_time_morning_afternoon_weekend_morning', 'Morning + Afternoon + Weekend Morning', 'full-time instructor: weekday daytime and weekend morning', [
                 ...$this->windows(self::WEEKDAYS, [['09:00 am', '05:30 pm']]),
                 ...$this->windows(self::WEEKEND, [['08:00 am', '01:30 pm']]),
+            ], weekdayExclude: [
+                // Reserved for Microsoft Office program instructors, not this
+                // general full-time schedule.
+                '11:00 am - 02:00 pm',
             ]),
             $this->schedule('full_time_morning_evening_weekend_morning', 'Morning + Evening + Weekend Morning', 'full-time instructor: weekday morning/evening and weekend morning', [
                 ...$this->windows(self::WEEKDAYS, [['09:00 am', '01:45 pm'], ['05:00 pm', '08:30 pm']]),
