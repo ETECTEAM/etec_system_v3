@@ -5,6 +5,7 @@ namespace App\Modules\Auth\Controllers;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\InstructorData;
+use App\Models\OtpVerificationSetting;
 use App\Models\User;
 use App\Modules\Auth\Events\PendingUserRegistered;
 use App\Modules\Auth\Notifications\PasswordChangedNotification;
@@ -60,13 +61,17 @@ class AuthController extends Controller
     // Instructor signup lives here, not /register (the frontend student flow).
     public function showRegister(): Response
     {
-        return Inertia::render('auth/Register');
+        return Inertia::render('auth/Register', [
+            'turnstileSiteKey' => config('services.turnstile.site_key'),
+        ]);
     }
 
     public function registerWeb(RegisterWebRequest $request): RedirectResponse
     {
         $data = $request->toData();
-        $otpVerificationEnabled = (bool) config('auth.otp.enabled', true);
+        // Super_admin-controlled toggle (see OtpVerificationSettingController),
+        // not the old static auth.otp.enabled env value.
+        $otpVerificationEnabled = OtpVerificationSetting::current()->is_enabled;
 
         // User, role, and OTP must be created together or rolled back together.
         [$user, $otp, $plainCode] = DB::transaction(function () use ($data, $otpVerificationEnabled): array {

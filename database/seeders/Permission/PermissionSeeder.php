@@ -25,6 +25,8 @@ class PermissionSeeder extends Seeder
             // គ្រប់គ្រង Login Security (lockout tiers)
             'manage-login-security',
             'unblock-login-accounts',
+            // គ្រប់គ្រង OTP verification toggle (registration)
+            'manage-otp-settings',
         ];
 
         foreach ($permissions as $permission) {
