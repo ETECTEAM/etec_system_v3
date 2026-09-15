@@ -167,7 +167,7 @@ function initializeDisableDevtool() {
 }
 
 export function initializeAntiInspect() {
-    if (!shouldEnableAntiInspect() || initialized || isMobileDevice()) {
+    if (!isProductionProtectionEnabled() || initialized || isMobileDevice()) {
         return
     }
 
