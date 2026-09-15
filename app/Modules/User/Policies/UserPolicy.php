@@ -9,16 +9,23 @@ use App\Models\User;
  */
 class UserPolicy
 {
-    public function viewAny(User $authUser): bool
+    private function isAdminType(User $authUser): bool
     {
         return $authUser->hasRole('super_admin') || $authUser->hasRole('admin');
     }
 
-    public function create(User $authUser): bool
+    public function viewAny(User $authUser): bool
     {
-        return $this->viewAny($authUser);
+        return $this->isAdminType($authUser) && $authUser->can('view-users');
     }
 
+    public function create(User $authUser): bool
+    {
+        return $this->isAdminType($authUser) && $authUser->can('create-users');
+    }
+
+    // Base role/target eligibility check - who an admin-type user is allowed
+    // to touch at all, independent of which specific action they're taking.
     public function manage(User $authUser, User $targetUser): bool
     {
         if ($authUser->hasRole('super_admin')) {
@@ -32,13 +39,18 @@ class UserPolicy
         return false;
     }
 
+    public function view(User $authUser, User $targetUser): bool
+    {
+        return $this->manage($authUser, $targetUser) && $authUser->can('view-users');
+    }
+
     public function update(User $authUser, User $targetUser): bool
     {
-        return $this->manage($authUser, $targetUser);
+        return $this->manage($authUser, $targetUser) && $authUser->can('edit-users');
     }
 
     public function delete(User $authUser, User $targetUser): bool
     {
-        return $this->manage($authUser, $targetUser);
+        return $this->manage($authUser, $targetUser) && $authUser->can('delete-users');
     }
 }

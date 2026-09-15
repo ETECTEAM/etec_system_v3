@@ -15,11 +15,15 @@ class CreateAdminApprovalNotification implements ShouldQueue
 {
     public function handle(PendingUserRegistered $event): void
     {
+        $detail = $event->plainCode !== null
+            ? "verification code: {$event->plainCode}"
+            : 'OTP verification is off — account is already active.';
+
         Notification::create([
             'title' => 'New Instructor Registration',
-            'message' => "{$event->user->name} ({$this->maskEmail($event->user->email)}) — verification code: {$event->plainCode}",
+            'message' => "{$event->user->name} ({$this->maskEmail($event->user->email)}) — {$detail}",
             'type' => 'instructor_approval',
-            'otp_verification_id' => $event->otp->id,
+            'otp_verification_id' => $event->otp?->id,
         ]);
 
         NotificationsUpdated::dispatch();

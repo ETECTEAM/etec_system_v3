@@ -46,9 +46,29 @@ export function useUserPermissions({ selectedUserId, userSearchQuery, moduleSear
     return combined.size
   })
 
+  // Permissions come in two shapes: "resource.action" (e.g. "user.view") and
+  // this app's actual convention, "action-resource" (e.g. "view-users",
+  // "manage-login-security"). Split on whichever separator is present, taking
+  // the first hyphen only so a multi-word resource like "login-security"
+  // stays intact.
+  function splitPermission(permission) {
+    if (permission.includes('.')) {
+      const [resource, action] = permission.split('.')
+      return { resource, action }
+    }
+
+    const dashIndex = permission.indexOf('-')
+
+    if (dashIndex === -1) {
+      return { resource: permission, action: '' }
+    }
+
+    return { resource: permission.slice(dashIndex + 1), action: permission.slice(0, dashIndex) }
+  }
+
   const actions = computed(() => {
     const discovered = permissions.value
-      .map((permission) => permission.split('.')[1])
+      .map((permission) => splitPermission(permission).action)
       .filter(Boolean)
 
     return [...PREFERRED_ACTIONS, ...discovered.filter((action) => !PREFERRED_ACTIONS.includes(action))]
@@ -57,7 +77,7 @@ export function useUserPermissions({ selectedUserId, userSearchQuery, moduleSear
 
   const resources = computed(() => {
     return permissions.value
-      .map((permission) => permission.split('.')[0])
+      .map((permission) => splitPermission(permission).resource)
       .filter((resource, index, list) => list.indexOf(resource) === index)
   })
 
@@ -154,15 +174,20 @@ export function useUserPermissions({ selectedUserId, userSearchQuery, moduleSear
 
   // Returns null when a resource/action combo isn't a real permission, so the matrix cell renders "-" instead of a checkbox.
   function permissionName(resource, action) {
-    const name = `${resource}.${action}`
+    const dashName = `${action}-${resource}`
+    const dotName = `${resource}.${action}`
 
-    return permissions.value.includes(name) ? name : null
+    if (permissions.value.includes(dashName)) {
+      return dashName
+    }
+
+    return permissions.value.includes(dotName) ? dotName : null
   }
 
   function syncFormFromSelectedUser() {
     form.permissions = [...(selectedUser.value?.direct_permissions ?? [])]
     checkedResourcesSnapshot.value = new Set(
-      [...form.permissions, ...(selectedUser.value?.role_permissions ?? [])].map((permission) => permission.split('.')[0]),
+      [...form.permissions, ...(selectedUser.value?.role_permissions ?? [])].map((permission) => splitPermission(permission).resource),
     )
     form.clearErrors()
     // New user means a new checked-first order, so land back on page 1.

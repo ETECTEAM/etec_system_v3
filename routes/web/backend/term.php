@@ -8,11 +8,13 @@ Route::middleware(['auth', 'active', 'role:super_admin|admin'])
     ->name('terms.')
     ->group(function () {
 
-        Route::get('/', [TermController::class, 'index'])->name('index');
-        Route::get('/create', [TermController::class, 'create'])->name('create');
-        Route::post('/', [TermController::class, 'store'])->name('store');
+        Route::get('/', [TermController::class, 'index'])->middleware('permission:view-terms')->name('index');
 
-        Route::get('/{term}/edit', [TermController::class, 'edit'])->name('edit');
-        Route::put('/{term}', [TermController::class, 'update'])->name('update');
-        Route::delete('/{term}', [TermController::class, 'destroy'])->name('destroy');
+        Route::middleware('permission:manage-terms')->group(function () {
+            Route::get('/create', [TermController::class, 'create'])->name('create');
+            Route::post('/', [TermController::class, 'store'])->name('store');
+            Route::get('/{term}/edit', [TermController::class, 'edit'])->name('edit');
+            Route::put('/{term}', [TermController::class, 'update'])->name('update');
+            Route::delete('/{term}', [TermController::class, 'destroy'])->name('destroy');
+        });
     });

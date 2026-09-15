@@ -214,6 +214,13 @@ const showPasswordConfirmation = ref(false)
         <span>{{ $t('Address') }}</span>
         <textarea v-model="form.instructor_address" :placeholder="$t('Street, city, province')" class="input" />
       </label>
+      <label class="block">
+        <span>{{ $t('Can Create Classes') }}</span>
+        <select v-model="form.can_create_classes" class="input">
+          <option :value="true">{{ $t('Yes') }}</option>
+          <option :value="false">{{ $t('No - not approved yet') }}</option>
+        </select>
+      </label>
     </template>
 
     <div class="flex justify-end gap-3 sm:col-span-2">
