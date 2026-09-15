@@ -17,8 +17,8 @@ class PendingUserRegistered
 
     public function __construct(
         public readonly User $user,
-        public readonly OtpVerification $otp,
-        public readonly string $plainCode,
+        public readonly ?OtpVerification $otp,
+        public readonly ?string $plainCode,
         public readonly ?string $ipAddress = null,
     ) {}
 }

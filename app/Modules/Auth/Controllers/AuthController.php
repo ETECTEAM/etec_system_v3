@@ -115,6 +115,14 @@ class AuthController extends Controller
             Auth::login($user);
             $request->session()->regenerate();
 
+            try {
+                // No OTP to hand out here (verification is off), but admins
+                // still get a Telegram log of who registered.
+                PendingUserRegistered::dispatch($user, null, null, $request->ip());
+            } catch (Throwable $e) {
+                report($e);
+            }
+
             return redirect($this->postVerificationRedirect($user))->with('success', 'Registration completed.');
         }
 

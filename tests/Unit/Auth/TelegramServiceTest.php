@@ -93,4 +93,32 @@ class TelegramServiceTest extends TestCase
 
         Http::assertSentCount(1);
     }
+
+    public function test_registration_log_is_sent_without_otp_when_verification_is_disabled(): void
+    {
+        $user = User::factory()->create();
+        $user->forceFill(['email' => 'srinnalen@etec.com'])->save();
+
+        app(TelegramService::class)->sendAdminApprovalRequest($user, null, null);
+
+        Http::assertSent(function ($request) use ($user): bool {
+            return $request->url() === 'https://api.telegram.org/bottest-token/sendMessage'
+                && $request['chat_id'] === '12345'
+                && str_contains($request['text'], 'Email: sri***@etec.com')
+                && ! str_contains($request['text'], 'OTP:')
+                && str_contains($request['text'], 'OTP verification is off')
+                && ! array_key_exists('reply_markup', $request->data());
+        });
+    }
+
+    public function test_duplicate_registration_logs_for_the_same_user_are_locked_out(): void
+    {
+        $user = User::factory()->create();
+        $service = app(TelegramService::class);
+
+        $service->sendAdminApprovalRequest($user, null, null);
+        $service->sendAdminApprovalRequest($user, null, null);
+
+        Http::assertSentCount(1);
+    }
 }
