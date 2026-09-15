@@ -6,6 +6,14 @@ function shouldEnableAntiInspect() {
     return import.meta.env.PROD || import.meta.env.VITE_ANTI_INSPECT === 'true'
 }
 
+function isMobileDevice() {
+    const coarsePointer =
+        typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches
+    const touchCapable = navigator.maxTouchPoints > 1 || 'ontouchstart' in window
+
+    return /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent) || (coarsePointer && touchCapable)
+}
+
 function showRestrictedPage() {
     if (document.getElementById('devtools-restricted')) {
         return
@@ -151,7 +159,7 @@ function initializeDisableDevtool() {
 }
 
 export function initializeAntiInspect() {
-    if (!shouldEnableAntiInspect() || initialized) {
+    if (!shouldEnableAntiInspect() || initialized || isMobileDevice()) {
         return
     }
 
