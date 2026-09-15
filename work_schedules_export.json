@@ -1,0 +1,600 @@
+[
+    {
+        "code": "full_time_morning_afternoon_weekend_morning",
+        "name": "Morning + Afternoon + Weekend Morning",
+        "description": "full-time instructor: weekday daytime and weekend morning",
+        "is_active": true,
+        "schedule": {
+            "Monday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Tuesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Wednesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Thursday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Saturday": [
+                "08:00 am - 11:00 am",
+                "11:00 am - 01:30 pm"
+            ],
+            "Sunday": [
+                "08:00 am - 11:00 am",
+                "11:00 am - 01:30 pm"
+            ]
+        }
+    },
+    {
+        "code": "full_time_morning_evening_weekend_morning",
+        "name": "Morning + Evening + Weekend Morning",
+        "description": "full-time instructor: weekday morning/evening and weekend morning",
+        "is_active": true,
+        "schedule": {
+            "Monday": [
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Tuesday": [
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Wednesday": [
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Thursday": [
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Saturday": [
+                "08:00 am - 11:00 am",
+                "11:00 am - 01:30 pm"
+            ],
+            "Sunday": [
+                "08:00 am - 11:00 am",
+                "11:00 am - 01:30 pm"
+            ]
+        }
+    },
+    {
+        "code": "full_time_morning_evening_weekend_afternoon",
+        "name": "Morning + Evening + Weekend Afternoon",
+        "description": "full-time instructor: weekday morning/evening and weekend afternoon",
+        "is_active": true,
+        "schedule": {
+            "Monday": [
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Tuesday": [
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Wednesday": [
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Thursday": [
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Saturday": [
+                "02:00 pm - 05:00 pm",
+                "11:00 am - 01:30 pm"
+            ],
+            "Sunday": [
+                "02:00 pm - 05:00 pm",
+                "11:00 am - 01:30 pm"
+            ]
+        }
+    },
+    {
+        "code": "full_time_afternoon_evening_weekend_morning",
+        "name": "Afternoon + Evening + Weekend Morning",
+        "description": "full-time instructor: weekday afternoon and weekend morning",
+        "is_active": true,
+        "schedule": {
+            "Monday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Tuesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Wednesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Thursday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Saturday": [
+                "08:00 am - 11:00 am",
+                "11:00 am - 01:30 pm"
+            ],
+            "Sunday": [
+                "08:00 am - 11:00 am",
+                "11:00 am - 01:30 pm"
+            ]
+        }
+    },
+    {
+        "code": "full_time_afternoon_evening_weekend_afternoon",
+        "name": "Afternoon + Evening + Weekend Afternoon",
+        "description": "full-time instructor: weekday afternoon and weekend afternoon",
+        "is_active": true,
+        "schedule": {
+            "Monday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Tuesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Wednesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Thursday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Saturday": [
+                "02:00 pm - 05:00 pm",
+                "11:00 am - 01:30 pm"
+            ],
+            "Sunday": [
+                "02:00 pm - 05:00 pm",
+                "11:00 am - 01:30 pm"
+            ]
+        }
+    },
+    {
+        "code": "full_time_afternoon_1230_evening_weekend_morning",
+        "name": "Afternoon (12:30) + Evening + Weekend Morning",
+        "description": "full-time instructor: weekday afternoon from 12:30 pm and weekend morning",
+        "is_active": true,
+        "schedule": {
+            "Monday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Tuesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Wednesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Thursday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Saturday": [
+                "08:00 am - 11:00 am",
+                "11:00 am - 01:30 pm"
+            ],
+            "Sunday": [
+                "08:00 am - 11:00 am",
+                "11:00 am - 01:30 pm"
+            ]
+        }
+    },
+    {
+        "code": "full_time_afternoon_1230_evening_weekend_afternoon",
+        "name": "Afternoon (12:30) + Evening + Weekend Afternoon",
+        "description": "full-time instructor: weekday afternoon from 12:30 pm and weekend afternoon",
+        "is_active": true,
+        "schedule": {
+            "Monday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Tuesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Wednesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Thursday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "05:00 pm - 06:15 pm",
+                "05:30 pm - 07:30 pm",
+                "06:00 pm - 07:15 pm",
+                "07:15 pm - 08:30 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Saturday": [
+                "02:00 pm - 05:00 pm",
+                "11:00 am - 01:30 pm"
+            ],
+            "Sunday": [
+                "02:00 pm - 05:00 pm",
+                "11:00 am - 01:30 pm"
+            ]
+        }
+    },
+    {
+        "code": "full_time_morning_afternoon_weekend_afternoon",
+        "name": "Morning + Afternoon + Weekend Afternoon",
+        "description": "full-time instructor: weekday daytime and weekend afternoon",
+        "is_active": true,
+        "schedule": {
+            "Monday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Tuesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Wednesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Thursday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "03:30 pm - 05:30 pm",
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 01:30 pm",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Saturday": [
+                "02:00 pm - 05:00 pm",
+                "11:00 am - 01:30 pm"
+            ],
+            "Sunday": [
+                "02:00 pm - 05:00 pm",
+                "11:00 am - 01:30 pm"
+            ]
+        }
+    },
+    {
+        "code": "part_time_weekend_afternoon",
+        "name": "Weekend Afternoon",
+        "description": "part-time instructor: weekend afternoon only",
+        "is_active": true,
+        "schedule": {
+            "Saturday": [
+                "02:00 pm - 05:00 pm",
+                "11:00 am - 01:30 pm"
+            ],
+            "Sunday": [
+                "02:00 pm - 05:00 pm",
+                "11:00 am - 01:30 pm"
+            ]
+        }
+    },
+    {
+        "code": "part_time_weekend_morning",
+        "name": "Weekend Morning",
+        "description": "part-time instructor: weekend morning only",
+        "is_active": true,
+        "schedule": {
+            "Saturday": [
+                "08:00 am - 11:00 am",
+                "11:00 am - 01:30 pm"
+            ],
+            "Sunday": [
+                "08:00 am - 11:00 am",
+                "11:00 am - 01:30 pm"
+            ]
+        }
+    },
+    {
+        "code": "office_morning",
+        "name": "Office \u00b7 Morning",
+        "description": "Microsoft Office instructor: weekday mornings (incl. the 12:30 slot) and the Sunday morning session",
+        "is_active": true,
+        "schedule": {
+            "Monday": [
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Tuesday": [
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Wednesday": [
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Thursday": [
+                "09:00 am - 10:30 am",
+                "09:00 am - 11:00 am",
+                "11:00 am - 12:15 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Sunday": [
+                "08:00 am - 12:00 pm"
+            ]
+        }
+    },
+    {
+        "code": "office_afternoon",
+        "name": "Office \u00b7 Afternoon",
+        "description": "Microsoft Office instructor: weekday afternoons and the Sunday afternoon session",
+        "is_active": true,
+        "schedule": {
+            "Monday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Tuesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Wednesday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Thursday": [
+                "02:00 pm - 03:15 pm",
+                "02:00 pm - 05:00 pm",
+                "03:30 pm - 05:00 pm",
+                "12:30 pm - 01:45 pm"
+            ],
+            "Sunday": [
+                "12:00 pm - 05:00 pm"
+            ]
+        }
+    }
+]
