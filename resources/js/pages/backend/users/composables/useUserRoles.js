@@ -127,10 +127,30 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
     return actions.value.some((action) => permissionName(resource, action) && !form.permissions.includes(permissionName(resource, action)))
   }).length)
 
+  // Permissions come in two shapes: "resource.action" (e.g. "user.view") and
+  // this app's actual convention, "action-resource" (e.g. "view-users",
+  // "manage-login-security"). Split on whichever separator is present, taking
+  // the first hyphen only so a multi-word resource like "login-security"
+  // stays intact.
+  function splitPermission(permission) {
+    if (permission.includes('.')) {
+      const [resource, action] = permission.split('.')
+      return { resource, action }
+    }
+
+    const dashIndex = permission.indexOf('-')
+
+    if (dashIndex === -1) {
+      return { resource: permission, action: '' }
+    }
+
+    return { resource: permission.slice(dashIndex + 1), action: permission.slice(0, dashIndex) }
+  }
+
   // Build the action columns shown in the matrix.
   const actions = computed(() => {
     const discovered = permissions.value
-      .map((permission) => permission.split('.')[1])
+      .map((permission) => splitPermission(permission).action)
       .filter(Boolean)
 
     return [...PREFERRED_ACTIONS, ...discovered.filter((action) => !PREFERRED_ACTIONS.includes(action))]
@@ -140,7 +160,7 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
   // Build the unique module list from all permission names.
   const resources = computed(() => {
     return permissions.value
-      .map((permission) => permission.split('.')[0])
+      .map((permission) => splitPermission(permission).resource)
       .filter((resource, index, list) => list.indexOf(resource) === index)
   })
 
@@ -240,15 +260,20 @@ export function useUserRoles({ selectedRoleId, userSearch, permissionSearch, mat
 
   // Return the full permission key only when it exists in the backend list.
   function permissionName(resource, action) {
-    const name = `${resource}.${action}`
+    const dashName = `${action}-${resource}`
+    const dotName = `${resource}.${action}`
 
-    return permissions.value.includes(name) ? name : null
+    if (permissions.value.includes(dashName)) {
+      return dashName
+    }
+
+    return permissions.value.includes(dotName) ? dotName : null
   }
 
   // Reset both forms whenever the selected role changes.
   function syncFormFromSelectedRole() {
     form.permissions = [...(selectedRole.value?.permissions ?? [])]
-    checkedResourcesSnapshot.value = new Set(form.permissions.map((permission) => permission.split('.')[0]))
+    checkedResourcesSnapshot.value = new Set(form.permissions.map((permission) => splitPermission(permission).resource))
     assignUsersForm.users = users.value
       .filter((user) => (user.roles ?? []).includes(selectedRole.value?.name))
       .map((user) => user.id)

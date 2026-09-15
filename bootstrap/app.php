@@ -5,6 +5,7 @@ use App\Console\Commands\GenerateClassSessionsCommand;
 use App\Console\Commands\SendAttendanceDigestCommand;
 use App\Http\Middleware\EnforceLocationAccess;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureInstructorCanCreateClasses;
 use App\Http\Middleware\EnsureInstructorOnboardingComplete;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Services\TelegramService;
@@ -65,6 +66,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth' => Authenticate::class,
             'active' => EnsureAccountIsActive::class,
             'onboarding' => EnsureInstructorOnboardingComplete::class,
+            'can-create-classes' => EnsureInstructorCanCreateClasses::class,
             'auth.basic' => AuthenticateWithBasicAuth::class,
             'auth.session' => AuthenticateSession::class,
             'cache.headers' => SetCacheHeaders::class,

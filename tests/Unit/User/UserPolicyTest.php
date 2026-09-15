@@ -4,7 +4,9 @@ namespace Tests\Unit\User;
 
 use App\Models\User;
 use App\Modules\User\Policies\UserPolicy;
-use Database\Seeders\Core\RoleSeeder;
+use Database\Seeders\Permission\AssignPermissionSeeder;
+use Database\Seeders\Permission\PermissionSeeder;
+use Database\Seeders\Permission\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,7 +20,10 @@ class UserPolicyTest extends TestCase
     {
         parent::setUp();
 
-        $this->seed(RoleSeeder::class);
+        // The real permission set (see ProductionSeeder), not Database\Seeders\Core\*
+        // - admin's viewAny/create/update/delete checks now also require the
+        // matching *-users permission, which only this trio actually grants.
+        $this->seed([PermissionSeeder::class, RoleSeeder::class, AssignPermissionSeeder::class]);
 
         $this->policy = new UserPolicy();
     }

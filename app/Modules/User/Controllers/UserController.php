@@ -91,7 +91,7 @@ class UserController extends Controller
      */
     public function show(Request $request, User $user): Response
     {
-        $this->authorize('manage', $user);
+        $this->authorize('view', $user);
 
         return Inertia::render('backend/users/UserShow', [
             // Eager-load role/student/instructor relations so presentUser() can build the full profile in one pass.
@@ -108,7 +108,7 @@ class UserController extends Controller
      */
     public function edit(Request $request, User $user): Response
     {
-        $this->authorize('manage', $user);
+        $this->authorize('update', $user);
 
         return Inertia::render('backend/users/UserEdit', [
             'user' => $this->userService->presentUser($user->load(['roles', 'student', 'instructorData', 'creator', 'activeAttendanceBlock'])),
@@ -146,7 +146,7 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
-        $this->authorize('manage', $user);
+        $this->authorize('update', $user);
         $data = $request->toData();
 
         // Re-check role assignability server-side; the request's own rule only
@@ -166,7 +166,7 @@ class UserController extends Controller
      */
     public function destroy(Request $request, User $user): RedirectResponse
     {
-        $this->authorize('manage', $user);
+        $this->authorize('delete', $user);
         $this->userService->delete($user);
 
         return redirect('/dashboard/users')->with('success', 'User deleted successfully.');

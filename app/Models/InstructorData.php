@@ -19,6 +19,7 @@ class InstructorData extends Model
         'shift_group',
         'work_schedule_id',
         'available_for_class',
+        'can_create_classes',
         'status',
         'headline',
         'bio',
@@ -35,6 +36,7 @@ class InstructorData extends Model
     {
         return [
             'available_for_class' => 'boolean',
+            'can_create_classes' => 'boolean',
             'status' => 'boolean',
             'date_of_birth' => 'date',
             // A list of sub-category names now, not a single free-text value -
