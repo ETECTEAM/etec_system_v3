@@ -115,7 +115,7 @@ class AuthController extends Controller
             Auth::login($user);
             $request->session()->regenerate();
 
-            return redirect($this->redirectPathFor($user))->with('success', 'Registration completed. OTP verification is disabled.');
+            return redirect($this->postVerificationRedirect($user))->with('success', 'Registration completed.');
         }
 
         $request->session()->put('pending_verification_user_id', $user->id);

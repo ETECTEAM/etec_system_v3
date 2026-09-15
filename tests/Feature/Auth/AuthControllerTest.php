@@ -354,7 +354,7 @@ class AuthControllerTest extends TestCase
             'email' => 'otp.off@etec.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-        ])->assertRedirect('/dashboard');
+        ])->assertRedirect('/dashboard/instructor/onboarding');
 
         $user = User::where('email', 'otp.off@etec.com')->first();
         $this->assertTrue($user->fresh()->access_expires_at->isSameDay(now()->addMonth()));
@@ -459,7 +459,7 @@ class AuthControllerTest extends TestCase
             'email' => 'no.otp@etec.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-        ])->assertRedirect('/dashboard');
+        ])->assertRedirect('/dashboard/instructor/onboarding');
 
         $user = User::where('email', 'no.otp@etec.com')->first();
         $this->assertSame(UserStatus::Active, $user->status);
