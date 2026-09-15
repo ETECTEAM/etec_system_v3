@@ -97,7 +97,7 @@ class WorkScheduleSeeder extends Seeder
             ]),
             $this->schedule('full_time_morning_evening_weekend_afternoon', 'Morning + Evening + Weekend Afternoon', 'full-time instructor: weekday morning/evening and weekend afternoon', [
                 ...$this->windows(self::WEEKDAYS, [['09:00 am', '12:15 pm'], ['12:30 pm', '01:45 pm'], ['05:00 pm', '08:30 pm']]),
-                ...$this->windows(self::WEEKEND, [['02:00 pm', '05:00 pm']]),
+                ...$this->windows(self::WEEKEND, [['11:00 am', '01:30 pm'], ['02:00 pm', '05:00 pm']]),
             ]),
             $this->schedule('full_time_afternoon_evening_weekend_morning', 'Afternoon + Evening + Weekend Morning', 'full-time instructor: weekday afternoon and weekend morning', [
                 ...$this->windows(self::WEEKDAYS, [['12:15 pm', '08:30 pm']]),
@@ -105,7 +105,7 @@ class WorkScheduleSeeder extends Seeder
             ]),
             $this->schedule('full_time_afternoon_evening_weekend_afternoon', 'Afternoon + Evening + Weekend Afternoon', 'full-time instructor: weekday afternoon and weekend afternoon', [
                 ...$this->windows(self::WEEKDAYS, [['12:15 pm', '08:30 pm']]),
-                ...$this->windows(self::WEEKEND, [['02:00 pm', '05:00 pm']]),
+                ...$this->windows(self::WEEKEND, [['11:00 am', '01:30 pm'], ['02:00 pm', '05:00 pm']]),
             ]),
             $this->schedule('full_time_afternoon_1230_evening_weekend_morning', 'Afternoon (12:30) + Evening + Weekend Morning', 'full-time instructor: weekday afternoon from 12:30 pm and weekend morning', [
                 ...$this->windows(self::WEEKDAYS, [['12:30 pm', '08:30 pm']]),
@@ -113,7 +113,7 @@ class WorkScheduleSeeder extends Seeder
             ]),
             $this->schedule('full_time_afternoon_1230_evening_weekend_afternoon', 'Afternoon (12:30) + Evening + Weekend Afternoon', 'full-time instructor: weekday afternoon from 12:30 pm and weekend afternoon', [
                 ...$this->windows(self::WEEKDAYS, [['12:30 pm', '08:30 pm']]),
-                ...$this->windows(self::WEEKEND, [['02:00 pm', '05:00 pm']]),
+                ...$this->windows(self::WEEKEND, [['11:00 am', '01:30 pm'], ['02:00 pm', '05:00 pm']]),
             ]),
             $this->schedule('full_time_morning_afternoon_weekend_afternoon', 'Morning + Afternoon + Weekend Afternoon', 'full-time instructor: weekday daytime and weekend afternoon', [
                 ...$this->windows(self::WEEKDAYS, [['09:00 am', '05:30 pm']]),
