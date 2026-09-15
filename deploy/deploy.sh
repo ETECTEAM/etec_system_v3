@@ -5,7 +5,7 @@
 set -euo pipefail
 
 COMPOSE_FILE="docker-compose.prod.yml"
-BRANCH="${1:-${DEPLOY_BRANCH:-production_v1}}"
+BRANCH="${1:-${DEPLOY_BRANCH:-production}}"
 RUN_MIGRATE=false
 
 for arg in "$@"; do
