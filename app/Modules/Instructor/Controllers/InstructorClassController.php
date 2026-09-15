@@ -195,7 +195,7 @@ class InstructorClassController extends Controller
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
         $studyClassModel = StudyClass::query()->findOrFail($class->id);
-        $qrAttendanceAvailable = $this->attendanceQr->allowsQrAttendance($studyClassModel);
+        $qrAttendanceAvailable = $this->attendanceQr->allowsQrAttendance();
         $allowTrackAnytime = $this->attendanceQr->allowsTrackAnytime();
 
         if (($class->class_status ?? null) !== 'active') {
@@ -375,6 +375,10 @@ class InstructorClassController extends Controller
 
         if ($preAttendanceSession && ! $this->instructorClasses->canUsePreAttendanceApproval($request->user(), $class->id)) {
             return back()->with('warning', 'Please request admin approval before starting pre-attendance re-track.');
+        }
+
+        if (! $this->attendanceQr->allowsQrAttendance()) {
+            return back()->with('warning', 'QR attendance is currently disabled by the administrator.');
         }
 
         $this->attendanceQr->startSession($studyClassModel, $request->user());
