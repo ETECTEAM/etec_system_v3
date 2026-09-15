@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted } from "vue";
 import { Head, useForm, usePage } from "@inertiajs/vue3";
+import axios from "axios";
 import { ArrowRight, Phone } from "@lucide/vue";
 import { useTheme } from "@/composables/useTheme";
 
@@ -18,10 +19,27 @@ const props = defineProps({
 const page = usePage();
 const flashSuccess = computed(() => page.props.flash?.success);
 const flashError = computed(() => page.props.flash?.error);
+const portalEmail = computed(() => page.props.flash?.student_portal_email);
+const attendanceCode = computed(() => page.props.flash?.attendance_code);
 
 const { resolvedTheme } = useTheme();
+let approvalTimer;
 onMounted(() => document.documentElement.classList.remove("dark"));
-onBeforeUnmount(() => document.documentElement.classList.toggle("dark", resolvedTheme.value === "dark"));
+onMounted(() => {
+  if (flashSuccess.value) {
+    approvalTimer = window.setInterval(async () => {
+      const response = await axios.get(`${joinUrl.value}/approval-status`);
+      if (response.data?.approved) {
+        window.clearInterval(approvalTimer);
+        window.location.href = response.data?.portal_url ?? "/student-portal";
+      }
+    }, 5000);
+  }
+});
+onBeforeUnmount(() => {
+  if (approvalTimer) window.clearInterval(approvalTimer);
+  document.documentElement.classList.toggle("dark", resolvedTheme.value === "dark");
+});
 
 const form = useForm({
   name: "",
@@ -63,6 +81,13 @@ function normalizePhoneInput(event) {
 
         <p v-if="flashSuccess" class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
           {{ flashSuccess }}
+          <span v-if="portalEmail && attendanceCode" class="mt-4 block rounded-xl border border-blue-100 bg-white p-3 text-left text-slate-700">
+            <span class="block text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Student Portal email</span>
+            <span class="mt-1 block break-all text-sm font-black text-blue-700">{{ portalEmail }}</span>
+            <span class="mt-3 block text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Attendance code</span>
+            <span class="mt-1 block text-lg font-black tracking-[0.18em] text-slate-950">{{ attendanceCode }}</span>
+          </span>
+          <a href="/student-portal/login" class="mt-3 block text-blue-700 underline">Open Student Portal Login</a>
         </p>
         <p v-else-if="flashError" class="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
           {{ flashError }}
@@ -119,6 +144,7 @@ function normalizePhoneInput(event) {
             </div>
             <p v-if="form.errors.phone" class="mt-1 text-xs font-semibold text-rose-600">{{ form.errors.phone }}</p>
           </label>
+
 
           <button
             type="submit"
