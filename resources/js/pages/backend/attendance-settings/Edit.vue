@@ -161,8 +161,8 @@ const breadcrumbItems = [
                   <QrCode class="h-4 w-4" />
                 </span>
                 <span>
-                  <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ $t('Allow QR attendance for all classes') }}</span>
-                  <span class="block text-xs text-slate-500 dark:text-gray-400">{{ $t('When off, only Internship classes can use QR attendance for student self-scan.') }}</span>
+                  <span class="block text-sm font-semibold text-slate-800 dark:text-gray-100">{{ $t('Enable QR attendance') }}</span>
+                  <span class="block text-xs text-slate-500 dark:text-gray-400">{{ $t('When off, instructors cannot start a QR session and students cannot self-scan for any class.') }}</span>
                 </span>
               </span>
               <span class="relative inline-flex items-center">
