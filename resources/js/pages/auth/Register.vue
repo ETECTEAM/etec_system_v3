@@ -1,11 +1,18 @@
 <script setup>
-import { ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import AuthCard from './components/AuthCard.vue'
 import AuthLayout from '../../layouts/AuthLayout.vue'
 import { Link, useForm } from '@inertiajs/vue3'
 
 defineOptions({
   layout: AuthLayout,
+})
+
+const props = defineProps({
+  turnstileSiteKey: {
+    type: String,
+    default: null,
+  },
 })
 
 const form = useForm({
@@ -18,14 +25,78 @@ const form = useForm({
 const showPassword = ref(false)
 const showPasswordConfirmation = ref(false)
 
+const turnstileToken = ref('')
+const turnstileContainer = ref(null)
+let turnstileWidgetId = null
+
+const TURNSTILE_SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
+
+function loadTurnstileScript() {
+  if (window.turnstile) {
+    return Promise.resolve()
+  }
+
+  const existing = document.querySelector(`script[src="${TURNSTILE_SCRIPT_SRC}"]`)
+  if (existing) {
+    return new Promise((resolve) => existing.addEventListener('load', resolve, { once: true }))
+  }
+
+  return new Promise((resolve) => {
+    const script = document.createElement('script')
+    script.src = TURNSTILE_SCRIPT_SRC
+    script.async = true
+    script.defer = true
+    script.addEventListener('load', resolve, { once: true })
+    document.head.appendChild(script)
+  })
+}
+
+onMounted(async () => {
+  if (!props.turnstileSiteKey) {
+    return
+  }
+
+  await loadTurnstileScript()
+
+  if (turnstileContainer.value && window.turnstile) {
+    turnstileWidgetId = window.turnstile.render(turnstileContainer.value, {
+      sitekey: props.turnstileSiteKey,
+      callback: (token) => {
+        turnstileToken.value = token
+      },
+      'expired-callback': () => {
+        turnstileToken.value = ''
+      },
+      'error-callback': () => {
+        turnstileToken.value = ''
+      },
+    })
+  }
+})
+
+onBeforeUnmount(() => {
+  if (turnstileWidgetId !== null && window.turnstile) {
+    window.turnstile.remove(turnstileWidgetId)
+  }
+})
+
 function submit() {
   form
     .transform((data) => ({
       ...data,
       name: data.name.trim(),
       email: data.email.trim().toLowerCase(),
+      cf_turnstile_response: turnstileToken.value,
     }))
-    .post('/instructor-register')
+    .post('/instructor-register', {
+      onError: () => {
+        // A failed/expired token can't be reused - force a fresh challenge.
+        if (turnstileWidgetId !== null && window.turnstile) {
+          window.turnstile.reset(turnstileWidgetId)
+        }
+        turnstileToken.value = ''
+      },
+    })
 }
 </script>
 <template>
@@ -123,7 +194,12 @@ function submit() {
         <span v-if="form.errors.password_confirmation" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.password_confirmation }}</span>
       </label>
 
-      <p v-if="form.hasErrors && !form.errors.name && !form.errors.email && !form.errors.password && !form.errors.password_confirmation" class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+      <div v-if="turnstileSiteKey" class="flex flex-col items-center pt-1">
+        <div ref="turnstileContainer"></div>
+        <span v-if="form.errors.cf_turnstile_response" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.cf_turnstile_response }}</span>
+      </div>
+
+      <p v-if="form.hasErrors && !form.errors.name && !form.errors.email && !form.errors.password && !form.errors.password_confirmation && !form.errors.cf_turnstile_response" class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
         Unable to create account right now. Please try again.
       </p>
 

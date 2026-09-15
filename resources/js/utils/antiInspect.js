@@ -2,8 +2,23 @@ import DisableDevtool from 'disable-devtool'
 
 let initialized = false
 
-function shouldEnableAntiInspect() {
-    return import.meta.env.PROD || import.meta.env.VITE_ANTI_INSPECT === 'true'
+function isRealMobileBrowser() {
+    const ua = navigator.userAgent || ''
+    const mobileUA = /Android|iPhone|iPad|iPod|Windows Phone|Mobile/i.test(ua)
+    const userAgentDataMobile = navigator.userAgentData?.mobile === true
+    const iPadDesktopMode =
+        navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+    const coarseTouchDevice =
+        navigator.maxTouchPoints > 0 &&
+        window.matchMedia?.('(pointer: coarse)').matches
+
+    return mobileUA || userAgentDataMobile || iPadDesktopMode || coarseTouchDevice
+}
+
+function isProductionProtectionEnabled() {
+    return (
+        import.meta.env.VITE_ANTI_INSPECT === 'true'
+    )
 }
 
 function isMobileDevice() {
@@ -122,18 +137,11 @@ function blockContextMenu(event) {
     event.preventDefault()
 }
 
-function isLikelyDevtoolsDocked() {
-    const widthGap = window.outerWidth - window.innerWidth
-    const heightGap = window.outerHeight - window.innerHeight
-
-    return widthGap > 160 || heightGap > 160
-}
-
 function runProtectionCheck() {
     const devtoolOpened =
         typeof DisableDevtool.isDevToolOpened === 'function' && DisableDevtool.isDevToolOpened()
 
-    if (devtoolOpened || isLikelyDevtoolsDocked()) {
+    if (devtoolOpened) {
         showRestrictedPage()
     }
 }
@@ -167,6 +175,14 @@ export function initializeAntiInspect() {
 
     document.addEventListener('keydown', blockDevToolShortcuts, true)
     document.addEventListener('contextmenu', blockContextMenu, true)
+
+    // Do not initialize disable-devtool on phones or embedded mobile browsers.
+    // Their viewport and lifecycle changes can look like a desktop DevTools
+    // event even when the user is simply rotating, resizing, or returning to
+    // the page.
+    if (isRealMobileBrowser()) {
+        return
+    }
 
     initializeDisableDevtool()
 

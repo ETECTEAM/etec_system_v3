@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Course;
 use App\Models\CourseEnrollConfig;
 use App\Models\Schedule;
+use App\Models\Student;
 use App\Models\Term;
 use App\Models\Time;
 use App\Modules\Enroll\Queries\GetCourseClassSchedules;
@@ -36,6 +37,7 @@ class StudentRegisterController extends Controller
     public function store(StudentRegisterRequest $request, RegisterStudentForSchedule $register): RedirectResponse
     {
         $enrollment = $register->handle($request->validated());
+        $studentEmail = Student::query()->where('phone', $request->validated('phone'))->value('email');
 
         $message = match (true) {
             $enrollment === null => 'Registration received. No class is available for that time right now — our staff will confirm your class shortly.',
@@ -45,9 +47,11 @@ class StudentRegisterController extends Controller
 
         // Flashed on a private key (not 'success') so StudentRegister.vue shows
         // it on its own confirmation screen without the global toast firing too.
+        $emailNotice = $studentEmail ? " Your Student Portal email is {$studentEmail}." : '';
+
         return redirect()
             ->route('frontend.student-register.create')
-            ->with('registration_status', $message);
+            ->with('registration_status', $message.$emailNotice);
     }
 
     private function categories(): array

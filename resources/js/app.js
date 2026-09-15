@@ -12,7 +12,7 @@ import FlashToasts from './components/FlashToasts.vue'
 import ToastHost from './components/ToastHost.vue'
 import { initializeAntiInspect } from './utils/antiInspect'
 
-if (import.meta.env.PROD || import.meta.env.VITE_ANTI_INSPECT === 'true') {
+if (import.meta.env.VITE_ANTI_INSPECT === 'true') {
     initializeAntiInspect()
 }
 

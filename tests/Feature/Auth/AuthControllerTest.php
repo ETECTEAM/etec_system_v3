@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Enums\UserStatus;
 use App\Models\OtpVerification;
+use App\Models\OtpVerificationSetting;
 use App\Models\User;
 use App\Modules\Auth\Events\PendingUserRegistered;
 use App\Modules\Auth\Services\OtpService;
@@ -346,7 +347,7 @@ class AuthControllerTest extends TestCase
 
     public function test_otp_disabled_registration_login_mints_the_role_expiry(): void
     {
-        config(['auth.otp.enabled' => false]);
+        OtpVerificationSetting::current()->update(['is_enabled' => false]);
 
         $this->post('/instructor-register', [
             'name' => 'OTP Disabled Instructor',
@@ -451,7 +452,7 @@ class AuthControllerTest extends TestCase
 
     public function test_register_activates_user_immediately_when_otp_is_disabled(): void
     {
-        config(['auth.otp.enabled' => false]);
+        OtpVerificationSetting::current()->update(['is_enabled' => false]);
 
         $this->post('/instructor-register', [
             'name' => 'New Instructor',
