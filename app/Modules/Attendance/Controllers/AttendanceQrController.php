@@ -29,7 +29,7 @@ class AttendanceQrController extends Controller
         }
 
         $validated = $request->validate([
-            'student_id' => ['required', 'integer'],
+            'attendance_code' => ['required', 'string', 'size:9'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'accuracy' => ['required', 'numeric', 'min:0'],
@@ -38,6 +38,7 @@ class AttendanceQrController extends Controller
         ]);
 
         $attendance = $this->attendanceQr->recordAttendanceFromQr($request, $sessionData, $validated);
+        $request->session()->put('student_portal_id', $attendance->student_id);
 
         $attendancePayload = [
             'student_id' => $attendance->student_id,
@@ -47,6 +48,7 @@ class AttendanceQrController extends Controller
             'status' => $attendance->statusLabel(),
             'verification_status' => $attendance->verification_status,
             'verification_reason' => $attendance->verification_reason,
+            'portal_url' => route('frontend.student-portal.dashboard'),
         ];
 
         app()->terminating(function () use ($attendance, $attendancePayload): void {

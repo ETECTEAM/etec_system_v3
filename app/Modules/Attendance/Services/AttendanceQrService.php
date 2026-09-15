@@ -245,7 +245,12 @@ class AttendanceQrService
             ]);
         }
 
-        $studentId = (int) $payload['student_id'];
+        $studentId = (int) DB::table('students')
+            ->where('attendance_code', strtoupper(trim($payload['attendance_code'])))
+            ->value('id');
+        if (! $studentId) {
+            throw ValidationException::withMessages(['attendance_code' => 'Invalid student code.']);
+        }
         $enrollment = DB::table('student_enrollments')
             ->where('student_id', $studentId)
             ->where('study_class_id', (int) $sessionData['study_class_id'])

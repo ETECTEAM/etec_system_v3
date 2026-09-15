@@ -20,7 +20,7 @@ const props = defineProps({
 });
 
 const form = ref({
-  student_id: "",
+  attendance_code: "",
 });
 
 const submitting = ref(false);
@@ -30,6 +30,7 @@ const errorMessage = ref("");
 const currentPosition = ref(null);
 
 const submitUrl = computed(() => window.location.pathname + window.location.search);
+const forgotCodeUrl = computed(() => `/student-portal/forgot-code?return_to=${encodeURIComponent(submitUrl.value)}`);
 
 function deviceIdentifier() {
   const key = "attendance_device_identifier";
@@ -70,7 +71,7 @@ async function submit() {
     currentPosition.value = position.coords;
 
     const response = await axios.post(submitUrl.value, {
-      student_id: Number(form.value.student_id),
+      attendance_code: form.value.attendance_code.toUpperCase(),
       latitude: position.coords.latitude,
       longitude: position.coords.longitude,
       accuracy: position.coords.accuracy,
@@ -80,6 +81,9 @@ async function submit() {
 
     submitted.value = true;
     responseData.value = response.data?.attendance ?? response.data ?? null;
+    window.setTimeout(() => {
+      window.location.href = responseData.value?.portal_url ?? "/student-portal";
+    }, 1200);
   } catch (error) {
     const firstError = Object.values(error.response?.data?.errors ?? {})
       .flat()
@@ -154,7 +158,7 @@ onBeforeUnmount(() => {
             Attendance recorded successfully.
           </div>
           <div class="mt-3 space-y-1 text-sm font-semibold text-slate-700">
-            <p>Student: #{{ responseData?.student_id ?? form.student_id }}</p>
+            <p>Student attendance recorded</p>
             <p>Class: {{ classData?.title ?? "-" }}</p>
             <p>Date: {{ responseData?.date ?? session?.attendance_date ?? "-" }}</p>
             <p>Time: {{ responseData?.time ?? "-" }}</p>
@@ -171,18 +175,20 @@ onBeforeUnmount(() => {
               <Smartphone class="h-4 w-4" />
               <p class="text-xs font-black uppercase tracking-[0.16em]">Student Flow</p>
             </div>
-            <p class="mt-2 text-sm font-semibold text-slate-600">Scan the code, enter your Student ID, allow GPS, then submit once from your device.</p>
+            <p class="mt-2 text-sm font-semibold text-slate-600">Scan the code, enter your student code, allow GPS, then submit once from your device.</p>
           </div>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700">Student ID</span>
+            <span class="mb-2 block text-sm font-semibold text-slate-700">Student Code</span>
             <input
-              v-model="form.student_id"
-              type="number"
-              inputmode="numeric"
-              placeholder="Enter Student ID"
+              v-model="form.attendance_code"
+              type="text"
+              maxlength="9"
+              autocomplete="off"
+              placeholder="XXXX-XXXX"
               class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
             />
+            <a :href="forgotCodeUrl" class="mt-2 inline-block text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline">Forgot your code?</a>
           </label>
 
           <button
