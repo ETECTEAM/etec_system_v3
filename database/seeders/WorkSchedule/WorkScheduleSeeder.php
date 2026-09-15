@@ -61,7 +61,7 @@ class WorkScheduleSeeder extends Seeder
                 ],
             );
 
-            $entries = $this->entriesForWindows($parsedTimes, $definition['windows'], $definition['program']);
+            $entries = $this->entriesForWindows($parsedTimes, $definition['windows'], $definition['program'], $definition['weekdayExclude'] ?? []);
             $desiredKeys = [];
 
             foreach ($entries as $entry) {
@@ -118,9 +118,17 @@ class WorkScheduleSeeder extends Seeder
             $this->schedule('full_time_morning_afternoon_weekend_afternoon', 'Morning + Afternoon + Weekend Afternoon', 'full-time instructor: weekday daytime and weekend afternoon', [
                 ...$this->windows(self::WEEKDAYS, [['09:00 am', '05:30 pm']]),
                 ...$this->windows(self::WEEKEND, [['02:00 pm', '05:00 pm']]),
+            ], weekdayExclude: [
+                // Reserved for Microsoft Office program instructors, not this
+                // general full-time schedule. '02:00 pm - 05:00 pm' still
+                // applies to this schedule's own Weekend window below - this
+                // list only strips it from the weekday (Monday-Thursday) side.
+                '11:00 am - 01:30 pm',
+                '11:00 am - 02:00 pm',
+                '02:00 pm - 05:00 pm',
             ]),
             $this->schedule('part_time_weekend_afternoon', 'Weekend Afternoon', 'part-time instructor: weekend afternoon only', [
-                ...$this->windows(self::WEEKEND, [['02:00 pm', '05:00 pm']]),
+                ...$this->windows(self::WEEKEND, [['11:00 am', '01:30 pm'], ['02:00 pm', '05:00 pm']]),
             ]),
             $this->schedule('part_time_weekend_morning', 'Weekend Morning', 'part-time instructor: weekend morning only', [
                 ...$this->windows(self::WEEKEND, [['08:00 am', '01:30 pm']]),
@@ -140,9 +148,9 @@ class WorkScheduleSeeder extends Seeder
         ];
     }
 
-    private function schedule(string $code, string $name, string $description, array $windows, bool $program = false): array
+    private function schedule(string $code, string $name, string $description, array $windows, bool $program = false, array $weekdayExclude = []): array
     {
-        return compact('code', 'name', 'description', 'windows', 'program');
+        return compact('code', 'name', 'description', 'windows', 'program', 'weekdayExclude');
     }
 
     private function windows(array $days, array $ranges): array
@@ -162,7 +170,7 @@ class WorkScheduleSeeder extends Seeder
         return $windows;
     }
 
-    private function entriesForWindows($times, array $windows, bool $program = false): array
+    private function entriesForWindows($times, array $windows, bool $program = false, array $weekdayExclude = []): array
     {
         $entries = [];
 
@@ -177,6 +185,16 @@ class WorkScheduleSeeder extends Seeder
             if (! $program) {
                 $matches = $matches->reject(
                     fn (array $time) => in_array($time['name'], self::PROGRAM_ONLY_RANGES, true)
+                );
+            }
+
+            // Schedule-specific weekday exclusions (e.g. slots that overlap a
+            // broad weekday window but actually belong to another program).
+            // Scoped to weekdays only so a shared time range - like this same
+            // schedule's own Weekend window - isn't stripped everywhere too.
+            if ($weekdayExclude !== [] && in_array($window['day_of_week'], self::WEEKDAYS, true)) {
+                $matches = $matches->reject(
+                    fn (array $time) => in_array($time['name'], $weekdayExclude, true)
                 );
             }
 

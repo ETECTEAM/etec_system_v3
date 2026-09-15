@@ -9,7 +9,6 @@ use Database\Seeders\Course\CourseSeeder;
 use Database\Seeders\Course\CourseTrackSeeder;
 use Database\Seeders\Course\SubCategorySeeder;
 use Database\Seeders\Dev\DevSeeder;
-use Database\Seeders\Dev\InstructorWorkScheduleSeeder;
 use Database\Seeders\GradingSettingSeeder;
 use Database\Seeders\LoginLockoutSeeder;
 use Database\Seeders\Permission\AssignPermissionSeeder;
@@ -70,8 +69,6 @@ class ProductionSeeder extends Seeder
             CourseTrackSeeder::class,
             CourseSeeder::class,
             ScheduleSeeder::class,
-
-            InstructorWorkScheduleSeeder::class,
 
             // 7. Public website defaults
             // WebsiteMenuSeeder::class,
