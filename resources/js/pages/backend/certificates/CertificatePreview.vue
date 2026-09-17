@@ -100,8 +100,8 @@ const internshipCourseName = computed(() => {
                         <div class="internship-body-content">
                             <p class="internship-presented">is proudly presented to</p>
                             <h2>{{ certificate.student_name }}</h2>
-                            <p class="internship-description">
-                                Has successfully completed an internship in <strong class="internship-course-name">{{ internshipCourseName }}</strong> at <strong>KRU IT Solution</strong>,
+                            <p class="internship-description">~
+                                has successfully completed an internship in <strong class="internship-course-name">{{ internshipCourseName }}</strong> at <strong>KRU IT Solution</strong>,
                                 demonstrating dedication, teamwork, and commitment to professional growth.
                             </p>
                             <p class="internship-granted">Granted: {{ certificate.granted_date }}</p>
