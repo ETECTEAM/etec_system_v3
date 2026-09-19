@@ -1,10 +1,11 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from "vue";
 import { Head, Link, router } from "@inertiajs/vue3";
-import { ArrowLeft, Download } from "@lucide/vue";
+import { ArrowLeft, Download, LoaderCircle } from "@lucide/vue";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import etecLogoBase64 from "../../../assets/etecLogoBase64";
+import { useToast } from "@/composables/useToast";
 
 const props = defineProps({
   classData: {
@@ -24,6 +25,7 @@ const props = defineProps({
 const reportRef = ref(null);
 const html2PdfLoading = ref(false);
 const autoDownloaded = ref(false);
+const toast = useToast();
 
 const khMonths = [
   "មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា",
@@ -119,7 +121,42 @@ function ensureJsPdf() {
 }
 
 async function downloadPdf() {
-  window.location.href = `/dashboard/instructor/classes/${props.classData.id}/result?download=1`;
+  if (html2PdfLoading.value) return;
+
+  html2PdfLoading.value = true;
+
+  try {
+    const response = await fetch(
+      `/dashboard/instructor/classes/${props.classData.id}/result?download=1`,
+      {
+        credentials: "same-origin",
+        headers: { Accept: "application/pdf" },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`PDF export failed with status ${response.status}.`);
+    }
+
+    const pdf = await response.blob();
+    if (pdf.size === 0) {
+      throw new Error("The generated PDF is empty.");
+    }
+
+    const downloadUrl = URL.createObjectURL(pdf);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `${props.classData.title || "class-result"}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(downloadUrl);
+    toast.success("Result PDF downloaded successfully.");
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : "Failed to download the result PDF.");
+  } finally {
+    html2PdfLoading.value = false;
+  }
 }
 
 onMounted(async () => {
@@ -150,11 +187,14 @@ onMounted(async () => {
 
         <div class="flex flex-wrap gap-3">
           <Link
-            :href="`/dashboard/instructor/classes/${classData.id}/attendance`"
+            href="/dashboard/instructor/class-history"
+            @click.prevent="html2PdfLoading"
+            :aria-disabled="html2PdfLoading"
+            :class="html2PdfLoading ? 'pointer-events-none opacity-50' : ''"
             class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
           >
             <ArrowLeft class="h-4 w-4" />
-            Back to class
+            Back to class history
           </Link>
           <button
             type="button"
@@ -202,8 +242,8 @@ onMounted(async () => {
                 លទ្ធផលនៃការប្រលងបញ្ចប់
               </h2>
               <p class="mt-2 text-sm font-semibold text-slate-600 dark:text-gray-300">
-                វគ្គសិក្សា៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.course }}</span>
-                · ម៉ោងសិក្សា៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.time }}</span>
+                វគ្គសិក្សារ៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.course }}</span>
+                · ម៉ោងសិក្សារ៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.time }}</span>
               </p>
               <p class="mt-1 text-sm font-semibold text-slate-600 dark:text-gray-300">
                 ថ្ងៃទី៖ <span class="font-black text-rose-600 dark:text-rose-400">{{ new Date().toLocaleDateString("en-GB") }}</span>
@@ -328,7 +368,20 @@ onMounted(async () => {
     </section>
   </DashboardLayout>
 
-  <div v-else class="fixed inset-0 overflow-hidden bg-transparent pointer-events-none">
+  <div
+    v-if="html2PdfLoading && !autoDownload"
+    class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm"
+    role="status"
+    aria-live="assertive"
+  >
+    <div class="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 text-center text-white shadow-2xl">
+      <LoaderCircle class="mx-auto h-10 w-10 animate-spin text-blue-400" />
+      <p class="mt-4 text-lg font-bold">Preparing result PDF</p>
+      <p class="mt-2 text-sm text-slate-300">Please wait. Navigation is locked until your download is ready.</p>
+    </div>
+  </div>
+
+  <div v-if="autoDownload" class="fixed inset-0 overflow-hidden bg-transparent pointer-events-none">
     <div
       ref="reportRef"
       class="pdf-sheet fixed left-[-12000px] top-0 w-[297mm] overflow-hidden rounded-2xl border border-slate-300 bg-white text-slate-900 shadow-sm"
@@ -345,8 +398,8 @@ onMounted(async () => {
               លទ្ធផលនៃការប្រលងបញ្ចប់
             </h2>
             <p class="mt-2 text-sm font-semibold text-slate-600 dark:text-gray-300">
-              វគ្គសិក្សា៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.course }}</span>
-              · ម៉ោងសិក្សា៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.time }}</span>
+              វគ្គសិក្សារ៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.course }}</span>
+              · ម៉ោងសិក្សារ៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.time }}</span>
             </p>
             <p class="mt-1 text-sm font-semibold text-slate-600 dark:text-gray-300">
               ថ្ងៃទី៖ <span class="font-black text-rose-600 dark:text-rose-400">{{ new Date().toLocaleDateString("en-GB") }}</span>

@@ -168,7 +168,9 @@ function viewUrl(classData) {
 const OWNER_ONLY_ACTIONS = ["Edit Class", "Collapse Class", "Pre-End", "End"];
 
 function hiddenItems(classData) {
-  return classData.is_owner ? ["Copy Class", "Switch Teacher"] : ["Copy Class", "Switch Teacher", ...OWNER_ONLY_ACTIONS];
+  const instructorHiddenItems = ["Copy Class", "Switch Teacher"];
+
+  return classData.is_owner ? instructorHiddenItems : [...instructorHiddenItems, ...OWNER_ONLY_ACTIONS];
 }
 
 // Appended to the shared action menu: attendance tracking is instructor-only, so it
@@ -365,6 +367,7 @@ function actionItems(classData) {
               :viewUrl="viewUrl(classData)"
               :extraItems="actionItems(classData)"
               :showInstructor="false"
+              :instructorSummary="true"
               :hiddenItems="hiddenItems(classData)"
             />
           </div>

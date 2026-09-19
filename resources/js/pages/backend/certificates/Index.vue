@@ -40,7 +40,7 @@ axios.defaults.withCredentials = true
 const certificateType = computed(() => props.type)
 const isNormal = computed(() => certificateType.value === 'normal')
 const isFree = computed(() => certificateType.value === 'free')
-const isClassCertificate = computed(() => ['free', 'normal', 'scholarship', 'meal', 'internship'].includes(certificateType.value))
+const isClassCertificate = computed(() => ['free', 'normal', 'scholarship', 'meal', 'internship', 'office'].includes(certificateType.value))
 const isReport = computed(() => certificateType.value === 'report')
 const isClassListPage = computed(() => isClassCertificate.value || isReport.value)
 const { resolvedTheme } = useTheme()
@@ -54,6 +54,7 @@ const pageTitle = computed(() => ({
     scholarship: t('certificatePage.titles.scholarship'),
     internship: t('certificatePage.titles.internship'),
     meal: t('certificatePage.titles.meal'),
+    office: t('certificatePage.titles.office'),
     report: t('certificatePage.titles.report'),
 }[certificateType.value] ?? t('navigation.certificate')))
 
@@ -63,6 +64,7 @@ const pageDescription = computed(() => ({
     scholarship: 'Print and manage scholarship training certificates.',
     internship: 'Print and manage internship completion certificates.',
     meal: 'Print and manage meal scholarship certificates.',
+    office: 'Print and manage office course completion certificates.',
     report: 'Review certificate print history and remaining students.',
 }[certificateType.value] ?? 'Manage certificate printing and student records.'))
 
@@ -768,7 +770,8 @@ function beginNormalPrint(batch = false) {
                 border-radius: 8px !important;
                 padding: 9mm 12mm 5mm !important;
             }
-            body.normal-certificate-print #normal-cert-print .regular-certificate-preview .cert-inner-border {
+            body.normal-certificate-print #normal-cert-print .regular-certificate-preview .cert-inner-border,
+            body.normal-certificate-print #normal-cert-print .office-certificate-preview .cert-inner-border {
                 border: 2mm solid #a8a8a8 !important;
                 border-radius: 1.3mm !important;
             }
@@ -4023,7 +4026,8 @@ table {
     padding: 21px 21px 9px;
 }
 
-.regular-certificate-preview .cert-inner-border {
+.regular-certificate-preview .cert-inner-border,
+.office-certificate-preview .cert-inner-border {
     border: 6px solid #a8a8a8;
     border-radius: 4px;
 }
