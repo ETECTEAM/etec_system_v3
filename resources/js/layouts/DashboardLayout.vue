@@ -108,6 +108,18 @@ function playChime() {
     new Audio('/sounds/notification.mp3').play().catch(() => {})
 }
 
+function announceTransferredStudent(studentName) {
+    if (!('speechSynthesis' in window)) return
+
+    const announcement = new SpeechSynthesisUtterance(`Received student named ${studentName}`)
+
+    announcement.lang = 'en-US'
+    announcement.rate = 0.95
+
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(announcement)
+}
+
 async function announceLatestNotification() {
     try {
         const response = await axios.get('/notifications/data')
@@ -131,9 +143,13 @@ function handleNotificationsUpdated() {
 
 function handleStudentTransferred(event) {
     playChime()
+    const studentName = event.student_name ?? t('Student')
+    const classTitle = event.class_title ?? t('your class')
+
+    announceTransferredStudent(studentName)
     toast.info(t(':name was transferred into :class.', {
-        name: event.student_name ?? t('Student'),
-        class: event.class_title ?? t('your class'),
+        name: studentName,
+        class: classTitle,
     }), {
         timeout: 8000,
     })
@@ -164,6 +180,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
     notificationChannel?.stopListening('.notifications.updated', handleNotificationsUpdated)
     instructorNotificationChannel?.stopListening('.student.transferred', handleStudentTransferred)
+
 })
 </script>
 

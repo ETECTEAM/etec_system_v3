@@ -218,6 +218,7 @@ export const backendFinalTranslations = {
     "Student transferred successfully.": "បានផ្ទេរសិស្សដោយជោគជ័យ។",
     "Failed to transfer student.": "មិនអាចផ្ទេរសិស្សបានទេ។",
     ":name was transferred into :class.": ":name ត្រូវបានផ្ទេរចូលទៅក្នុង :class។",
+    ":name has joined :class.": ":name បានចូលថ្នាក់ :class។",
     "your class": "ថ្នាក់របស់អ្នក",
     "Mark this student as late": "សម្គាល់សិស្សនេះថាយឺត",
     "Already marked late today": "បានសម្គាល់ថាយឺតរួចហើយថ្ងៃនេះ",
