@@ -51,8 +51,10 @@ class StoreUserRequest extends FormRequest
             // student_* fields are nullable here since they only apply when role === 'student'.
             'student_full_name' => ['nullable', 'string', 'max:255'],
             'student_first_name' => ['nullable', 'string', 'max:255'], 'student_last_name' => ['nullable', 'string', 'max:255'],
-            'student_full_name_kh' => ['nullable', 'string', 'max:255'], 'student_gender' => ['nullable', 'string', 'max:20'],
-            'student_date_of_birth' => ['nullable', 'date'], 'student_phone' => ['nullable', 'string', 'max:30'],
+            // students.gender is an enum and students.phone is varchar(20), both NOT NULL with no
+            // default - so a student can't be saved without them (that was a database error, not a form error).
+            'student_full_name_kh' => ['nullable', 'string', 'max:255'], 'student_gender' => ['required_if:role,student', 'nullable', Rule::in(['male', 'female'])],
+            'student_date_of_birth' => ['nullable', 'date'], 'student_phone' => ['required_if:role,student', 'nullable', 'string', 'max:20'],
             'student_email' => ['nullable', 'email', 'max:255', 'regex:/^[a-zA-Z0-9._%+-]+@gmail\.com$/'], 'student_class_id' => ['nullable', 'integer'],
             'parent_name' => ['nullable', 'string', 'max:255'], 'parent_phone' => ['nullable', 'string', 'max:30'],
             'student_address' => ['nullable', 'string'], 'student_status' => ['nullable', 'boolean'],

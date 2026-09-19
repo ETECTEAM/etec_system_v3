@@ -12,6 +12,11 @@ const statusOptions = [
   { label: 'Active', value: 'active' },
   { label: 'Inactive', value: 'inactive' },
 ]
+// Values match the students.gender enum ('male' | 'female').
+const genderOptions = [
+  { label: 'Male', value: 'male' },
+  { label: 'Female', value: 'female' },
+]
 const student = computed(() => props.form.role === 'student')
 const instructor = computed(() => props.form.role === 'instructor')
 const showPassword = ref(false)
@@ -88,7 +93,8 @@ const showPasswordConfirmation = ref(false)
       </label>
       <label class="block">
         <span>{{ $t('Gender') }}</span>
-        <input v-model="form.student_gender" :placeholder="$t('Male / Female')" class="input" />
+        <SelectSearch v-model="form.student_gender" :options="genderOptions" :placeholder="$t('Select gender')" />
+        <span v-if="form.errors.student_gender" class="text-xs text-red-600">{{ form.errors.student_gender }}</span>
       </label>
       <label class="block">
         <span>{{ $t('Date of Birth') }}</span>
@@ -97,6 +103,7 @@ const showPasswordConfirmation = ref(false)
       <label class="block">
         <span>{{ $t('Student Phone') }}</span>
         <input v-model="form.student_phone" :placeholder="$t('e.g. 012 345 678')" class="input" />
+        <span v-if="form.errors.student_phone" class="text-xs text-red-600">{{ form.errors.student_phone }}</span>
       </label>
       <label class="block">
         <span>{{ $t('Contact Email') }}</span>

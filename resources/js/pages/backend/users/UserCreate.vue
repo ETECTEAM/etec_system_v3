@@ -20,7 +20,7 @@ const breadcrumbItems = [
 ]
 
 // Server-side validation errors land on form.errors and are rendered inline per field below.
-const { form, roleSelectOptions, statusSelectOptions, nameLocked, submit } = useUserCreate()
+const { form, roleSelectOptions, statusSelectOptions, genderSelectOptions, isStudent, nameLocked, submit } = useUserCreate()
 </script>
 
 <template>
@@ -87,6 +87,23 @@ const { form, roleSelectOptions, statusSelectOptions, nameLocked, submit } = use
               <span v-if="form.errors.account_status" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.account_status }}</span>
             </label>
           </div>
+
+          <!-- Student profile: the students table requires gender and phone, so they're collected here -->
+          <template v-if="isStudent">
+            <div class="border-t border-slate-200 pt-4 text-base font-semibold text-slate-900 sm:col-span-2 dark:border-gray-800 dark:text-gray-100">{{ $t('Student Profile') }}</div>
+
+            <label class="block">
+              <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Gender') }}</span>
+              <SelectSearch v-model="form.student_gender" :options="genderSelectOptions" :placeholder="$t('Select gender')" />
+              <span v-if="form.errors.student_gender" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.student_gender }}</span>
+            </label>
+
+            <label class="block">
+              <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">{{ $t('Student Phone') }}</span>
+              <input v-model="form.student_phone" type="tel" autocomplete="tel" maxlength="20" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20" :placeholder="$t('e.g. 012 345 678')">
+              <span v-if="form.errors.student_phone" class="mt-1 block text-xs text-red-600 dark:text-red-400">{{ form.errors.student_phone }}</span>
+            </label>
+          </template>
 
           <!-- Actions: submit is disabled while the request is in flight to prevent double-submits -->
           <div class="flex justify-end gap-3 sm:col-span-2">
