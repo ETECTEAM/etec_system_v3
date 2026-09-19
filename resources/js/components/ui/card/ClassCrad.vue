@@ -618,6 +618,7 @@ async function saveCapacity() {
     :class-id="classData.id"
     :class-title="classData.title"
     :seats-left="Math.max(0, (capacity ?? 0) - (classData.students ?? 0))"
+    :phone-required="isAdmin"
     @close="showRegisterModal = false"
 />
 

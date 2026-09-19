@@ -3,8 +3,8 @@
 namespace App\Modules\Instructor\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\ClassCertificateRequest;
 use App\Models\AttendanceSession;
+use App\Models\ClassCertificateRequest;
 use App\Models\ClassSession;
 use App\Models\Course;
 use App\Models\Holiday;
@@ -17,9 +17,10 @@ use App\Modules\Attendance\Queries\GetSessionBanner;
 use App\Modules\Attendance\Services\AttendanceQrService;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Modules\Instructor\Events\StudentTransferred;
 use App\Modules\Instructor\Services\ClassResultPdfGenerator;
-use App\Modules\Instructor\Services\InstructorClassService;
 use App\Modules\Instructor\Services\ImportInstructorAttendanceCsv;
+use App\Modules\Instructor\Services\InstructorClassService;
 use App\Support\InstructorDisplayName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -433,6 +434,7 @@ class InstructorClassController extends Controller
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
         $request->validate(['file' => ['required', 'file', 'mimes:csv,txt', 'max:10240']]);
+
         return response()->json(['message' => 'Legacy students and attendance imported successfully.', 'summary' => $this->importAttendanceCsv->handle($class, $request->file('file'), (int) $request->user()->id)]);
     }
 
@@ -564,7 +566,9 @@ class InstructorClassController extends Controller
 
         $targetClass = StudyClass::query()->findOrFail((int) $validated['study_class_id']);
 
-        $this->instructorClasses->transferStudent($class->id, (int) $student, $targetClass);
+        $movedEnrollment = $this->instructorClasses->transferStudent($class->id, (int) $student, $targetClass);
+
+        event(StudentTransferred::forClass($targetClass, $movedEnrollment->student?->full_name ?? 'Student'));
 
         $request->session()->forget(['error', 'warning', 'info', 'retryAfter', 'isHardBlock']);
 
