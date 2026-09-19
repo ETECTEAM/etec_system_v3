@@ -22,6 +22,9 @@ const props = defineProps({
 
 const classTypeList = ref([...props.classTypes]);
 const isLoadingClassTypes = ref(false);
+const lessons = ref([]);
+const isLoadingLessons = ref(false);
+let lessonRequestId = 0;
 
 const form = useForm({
   // Title is not shown on the form - the server sets it to the course title.
@@ -31,7 +34,6 @@ const form = useForm({
   term_id: '',
   time_id: '',
   room_id: '',
-  capacity: 20,
   status: 'upcoming',
   attendance_latitude: '',
   attendance_longitude: '',
@@ -50,7 +52,7 @@ const toOptions = (items, valueKey = 'id') =>
   (items || []).map((item) => ({ label: optionLabel(item), value: String(item[valueKey]) }));
 
 const courseOptions = computed(() => toOptions(props.courses));
-const lessonOptions = computed(() => toOptions(props.lessons));
+const lessonOptions = computed(() => toOptions(lessons.value));
 const roomOptions = computed(() => toOptions(props.rooms));
 
 // --- Class Type -> Term -> Time cascade, sourced from scheduleGroups ---
@@ -115,6 +117,35 @@ watch(() => form.term_id, () => {
   form.time_id = '';
 });
 
+// A lesson belongs to one course. Do not expose every lesson in the selector;
+// load only the lessons for the newly selected course.
+watch(() => form.course_id, async (courseId) => {
+  const requestId = ++lessonRequestId;
+  form.lesson_id = '';
+  lessons.value = [];
+
+  if (!courseId) {
+    isLoadingLessons.value = false;
+    return;
+  }
+
+  isLoadingLessons.value = true;
+  try {
+    const response = await axios.get(`/dashboard/enroll/courses/${courseId}/lessons`);
+    if (requestId === lessonRequestId) {
+      lessons.value = response.data;
+    }
+  } catch (error) {
+    if (requestId === lessonRequestId) {
+      console.error('Failed to fetch lessons', error);
+    }
+  } finally {
+    if (requestId === lessonRequestId) {
+      isLoadingLessons.value = false;
+    }
+  }
+});
+
 const statusOptions = [
   { label: 'Upcoming', value: 'upcoming' },
   { label: 'Active', value: 'active' },
@@ -170,7 +201,8 @@ onMounted(() => {
             <SelectSearch
               v-model="form.lesson_id"
               :options="lessonOptions"
-              :placeholder="$t('Select lesson')"
+              :disabled="isLoadingLessons || !form.course_id"
+              :placeholder="isLoadingLessons ? $t('Loading lessons...') : $t(form.course_id ? 'Select lesson' : 'Select course first')"
               :button-class="selectClass"
             />
             <span v-if="form.errors.lesson_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.lesson_id }}</span>
@@ -220,17 +252,6 @@ onMounted(() => {
               :button-class="selectClass"
             />
             <span v-if="form.errors.room_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.room_id }}</span>
-          </label>
-
-          <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Capacity') }}</span>
-            <input
-              type="number"
-              min="1"
-              v-model="form.capacity"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
-            />
-            <span v-if="form.errors.capacity" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.capacity }}</span>
           </label>
 
           <label class="block">

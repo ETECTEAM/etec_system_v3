@@ -485,6 +485,9 @@ const submit = (options = {}) => {
 
   const url = `/dashboard/instructor/classes/${props.classData.id}/attendance`;
   const visitOptions = {
+    // Saving returns to the class attendance list. Replace the tracking-page
+    // history entry so the browser Back button cannot reopen a stale form.
+    replace: true,
     preserveScroll: true,
     onError: () => {
       pendingNavigationUrl.value = "";
