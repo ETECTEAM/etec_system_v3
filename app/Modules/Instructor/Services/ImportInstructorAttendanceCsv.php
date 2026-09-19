@@ -78,6 +78,15 @@ class ImportInstructorAttendanceCsv
             }
         });
         fclose($handle);
+
+        // Enrollments are inserted directly, so grow the class to fit like every other
+        // enrolment path does (capacity is a floor, never a ceiling).
+        $activeStudents = DB::table('student_enrollments')->where('study_class_id', $class->id)->where('enrollment_status', 'active')->count();
+
+        if ($activeStudents > (int) $class->capacity) {
+            DB::table('study_classes')->where('id', $class->id)->update(['capacity' => $activeStudents, 'updated_at' => now()]);
+        }
+
         return $result;
     }
 }
