@@ -110,6 +110,8 @@ class UserManagementController extends Controller
                 'required',
                 'string',
                 'max:255',
+                // web guard: this role needs to actually grant dashboard access,
+                // which is checked against the web guard, not sanctum (API tokens).
                 // Unique check scoped to the web guard (name + guard_name must be unique).
                 Rule::unique('roles', 'name')->where('guard_name', 'web'),
             ],

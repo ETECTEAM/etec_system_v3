@@ -19,10 +19,16 @@ class StoreClassStudentRequest extends FormRequest
 
     public function rules(): array
     {
+        $phoneOptionalForInstructor = $this->user()?->hasRole('instructor')
+            && ! $this->user()?->hasAnyRole(['super_admin', 'admin']);
+        $phoneRules = $phoneOptionalForInstructor
+            ? ['nullable', 'string', 'regex:/^[0-9+\-\s()]{6,20}$/']
+            : ['required', 'string', 'regex:/^[0-9+\-\s()]{6,20}$/'];
+
         return [
             'name' => ['required', 'string', 'max:255', new LatinName],
             'gender' => ['required', 'string', Rule::in(['male', 'female'])],
-            'phone' => ['required', 'string', 'regex:/^[0-9+\-\s()]{6,20}$/'],
+            'phone' => $phoneRules,
         ];
     }
 }

@@ -41,6 +41,8 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         // Pre-register a student with no class yet — they're enrolled into one later.
         Route::get('/students/create', [EnrollmentClassController::class, 'createRegisteredStudent'])->name('enroll.students.create');
         Route::post('/students', [EnrollmentClassController::class, 'storeRegisteredStudent'])->name('enroll.students.store');
+        // Full student profile — reached from the View Class student table's eye button.
+        Route::get('/students/{student}', [EnrollmentClassController::class, 'showStudent'])->name('enroll.students.show');
         // "Manual Register" tab — hand-record an old registration + payment.
         Route::post('/manual-registrations', [EnrollmentClassController::class, 'storeManualRegistration'])
             ->middleware('throttle:20,1')

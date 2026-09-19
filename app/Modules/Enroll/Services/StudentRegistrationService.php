@@ -2,9 +2,9 @@
 
 namespace App\Modules\Enroll\Services;
 
-use App\Models\StudyClass;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Models\StudyClass;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -24,7 +24,7 @@ class StudentRegistrationService
             'full_name' => $data['name'] ?? $data['full_name'],
             'gender' => $data['gender'],
             'date_of_birth' => $data['date_of_birth'] ?? null,
-            'phone' => $data['phone'],
+            'phone' => ($data['phone'] ?? null) ?: null,
             'email' => $this->uniqueStudentEmail($data['name'] ?? $data['full_name']),
             'recovery_email' => $data['email'] ?? null,
             'attendance_code' => $this->uniqueAttendanceCode(),

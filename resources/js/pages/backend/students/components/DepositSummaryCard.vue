@@ -2,7 +2,9 @@
 import {
   Users,
   CheckCircle2,
+  Clock3,
   XCircle,
+  AlertTriangle,
   DollarSign,
 } from "@lucide/vue";
 
@@ -15,7 +17,7 @@ defineProps({
 </script>
 
 <template>
-  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
     <!-- Total Students -->
     <div
       class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
@@ -58,7 +60,28 @@ defineProps({
       </div>
     </div>
 
-    <!-- Unpaid Students (includes Partial + Unpaid) -->
+    <!-- Partial Students -->
+    <div
+      class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
+    >
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">
+            {{ $t('Partial Students') }}
+          </p>
+          <p class="mt-1 text-2xl font-bold text-amber-700 dark:text-amber-400">
+            {{ depositSummary?.partial_students ?? 0 }}
+          </p>
+        </div>
+        <div
+          class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-500/10"
+        >
+          <Clock3 class="h-5 w-5 text-amber-600 dark:text-amber-400" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Unpaid Students -->
     <div
       class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
     >
@@ -68,15 +91,34 @@ defineProps({
             {{ $t('Unpaid Students') }}
           </p>
           <p class="mt-1 text-2xl font-bold text-red-700 dark:text-red-400">
-            {{
-              depositSummary?.unpaid_students ?? 0
-            }}
+            {{ depositSummary?.unpaid_students ?? 0 }}
           </p>
         </div>
         <div
           class="flex h-11 w-11 items-center justify-center rounded-xl bg-red-100 dark:bg-red-500/10"
         >
           <XCircle class="h-5 w-5 text-red-600 dark:text-red-400" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Students With Balance -->
+    <div
+      class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
+    >
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-gray-500">
+            {{ $t('Students With Balance') }}
+          </p>
+          <p class="mt-1 text-2xl font-bold text-orange-700 dark:text-orange-400">
+            {{ depositSummary?.students_with_balance ?? 0 }}
+          </p>
+        </div>
+        <div
+          class="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-100 dark:bg-orange-500/10"
+        >
+          <AlertTriangle class="h-5 w-5 text-orange-600 dark:text-orange-400" />
         </div>
       </div>
     </div>

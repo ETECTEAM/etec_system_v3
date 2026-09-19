@@ -89,14 +89,12 @@ class ImportInstructorAttendanceCsv
         });
         fclose($handle);
 
-        // Imported rows skip the instructor save path, so run the absence-limit check here
-        // (once per student, on their latest absence) or they'd never be blocked.
-        $actor = User::query()->find($trackedBy);
+        // Enrollments are inserted directly, so grow the class to fit like every other
+        // enrolment path does (capacity is a floor, never a ceiling).
+        $activeStudents = DB::table('student_enrollments')->where('study_class_id', $class->id)->where('enrollment_status', 'active')->count();
 
-        foreach ($latestAbsent as $studentId => $date) {
-            if ($this->autoBlock->handle((int) $studentId, (int) $class->id, $date, $actor)?->wasRecentlyCreated) {
-                $result['students_blocked']++;
-            }
+        if ($activeStudents > (int) $class->capacity) {
+            DB::table('study_classes')->where('id', $class->id)->update(['capacity' => $activeStudents, 'updated_at' => now()]);
         }
 
         return $result;

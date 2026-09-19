@@ -287,7 +287,7 @@ async function unblockRow(rowIndex, group) {
       <!-- Weekly calendar -->
       <div v-else-if="schedule.length > 0" class="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="overflow-x-auto">
-          <table class="w-full min-w-[900px] border-collapse">
+          <table class="w-full min-w-[1200px] table-fixed border-collapse">
             <thead>
               <tr>
                 <th class="w-28 border-b border-slate-200 px-2 py-3 text-center dark:border-gray-800">
