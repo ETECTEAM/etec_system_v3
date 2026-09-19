@@ -254,11 +254,11 @@ function rowHighlightClass(student) {
   const status = rowStatusFor(student);
 
   if (status === "blocked" || status === "danger") {
-    return "bg-red-50/60 dark:bg-red-500/5";
+    return "bg-red-100 dark:bg-red-500/20";
   }
 
   if (status === "warning") {
-    return "bg-amber-50/60 dark:bg-amber-500/5";
+    return "bg-amber-100/70 dark:bg-amber-500/15";
   }
 
   return "";

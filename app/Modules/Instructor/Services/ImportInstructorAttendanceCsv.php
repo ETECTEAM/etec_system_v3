@@ -4,6 +4,8 @@ namespace App\Modules\Instructor\Services;
 
 use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
+use App\Models\User;
+use App\Modules\AbsenceBlock\Actions\AutoBlockStudent;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 class ImportInstructorAttendanceCsv
 {
-    public function __construct(private readonly StudentRegistrationService $registration) {}
+    public function __construct(
+        private readonly StudentRegistrationService $registration,
+        private readonly AutoBlockStudent $autoBlock,
+    ) {}
 
     public function handle(\stdClass $class, UploadedFile $file, int $trackedBy): array
     {
@@ -44,9 +49,10 @@ class ImportInstructorAttendanceCsv
             throw ValidationException::withMessages(['file' => 'CSV headers must include Name, Gender, Tel, Date, Present, Absent, and Permission.']);
         }
         $index = array_flip($header);
-        $result = ['students_created' => 0, 'enrollments_created' => 0, 'attendance_imported' => 0, 'rows_skipped' => 0];
+        $result = ['students_created' => 0, 'enrollments_created' => 0, 'attendance_imported' => 0, 'rows_skipped' => 0, 'students_blocked' => 0];
+        $latestAbsent = [];
 
-        DB::transaction(function () use ($handle, $index, $class, $trackedBy, &$result): void {
+        DB::transaction(function () use ($handle, $index, $class, $trackedBy, &$result, &$latestAbsent): void {
             while (($row = fgetcsv($handle)) !== false) {
                 $name = trim((string) ($row[$index['name']] ?? ''));
                 $phone = trim((string) ($row[$index['tel']] ?? ''));
@@ -75,9 +81,24 @@ class ImportInstructorAttendanceCsv
                     ['student_id' => $student->id, 'tracked_by' => $trackedBy, ...StudentAttendance::flagsFor($status), 'source' => StudentAttendance::SOURCE_MANUAL, 'note' => trim((string) ($row[$index['reason']] ?? '')) ?: 'Imported from legacy CSV', 'updated_at' => now(), 'created_at' => now()]
                 );
                 $result['attendance_imported']++;
+
+                if ($status === 'absent' && $date > ($latestAbsent[$student->id] ?? '')) {
+                    $latestAbsent[$student->id] = $date;
+                }
             }
         });
         fclose($handle);
+
+        // Imported rows skip the instructor save path, so run the absence-limit check here
+        // (once per student, on their latest absence) or they'd never be blocked.
+        $actor = User::query()->find($trackedBy);
+
+        foreach ($latestAbsent as $studentId => $date) {
+            if ($this->autoBlock->handle((int) $studentId, (int) $class->id, $date, $actor)?->wasRecentlyCreated) {
+                $result['students_blocked']++;
+            }
+        }
+
         return $result;
     }
 }

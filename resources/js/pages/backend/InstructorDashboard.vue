@@ -143,7 +143,8 @@ async function onCsvSelected(event) {
   data.append("file", file);
   try {
     const response = await axios.post(`/dashboard/instructor/classes/${csvClass.value.id}/attendance/import-csv`, data);
-    toast.success(`Imported ${response.data.summary.attendance_imported} attendance rows.`);
+    const { attendance_imported: imported, students_blocked: blocked } = response.data.summary;
+    toast.success(`Imported ${imported} attendance rows.${blocked ? ` ${blocked} student(s) reached the absence limit and were blocked.` : ""}`);
     refresh();
   } catch (error) {
     toast.error(error.response?.data?.message ?? "CSV import failed.");
