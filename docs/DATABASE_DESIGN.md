@@ -14,7 +14,7 @@ Dropped tables/columns are **not** included — this is the *current* schema, no
 | Auth & Access | `users`, `photos`, `otp_verifications`, `otp_verification_settings`, `auth_audit_logs`, `login_lockout*`, `access_location*`, `location_access_logs`, `dashboard_notifications`, Spatie permission tables | Login, OTP, lockout, geo-fenced route access |
 | Facility | `buildings`, `floors`, `rooms` | Physical location hierarchy |
 | Catalog | `categories`, `sub_categories`, `course_tracks`, `courses`, `course_lessons` | Course taxonomy |
-| Scheduling | `class_type`, `terms`, `times`, `schedules`, `schedule_time`, `holidays`, `course_enroll_configs` | Time slots, day patterns, enrollment windows & pricing |
+| Scheduling | `class_type`, `terms`, `times`, `schedules`, `schedule_time`, `holidays`, `course_enroll_configs`, `course_class_type_statuses` | Time slots, day patterns, enrollment windows & pricing |
 | Students & Classes | `students`, `study_classes`, `study_class_instructors`, `student_enrollments` | The core operational tables |
 | Attendance | `class_sessions`, `attendance_sessions`, `student_attendances`, `attendance_audit_logs`, `pre_attendance_requests`, `instructor_attendance_blocks` | QR + manual attendance, geo/IP verification |
 | Leave & Rules | `student_permissions`, `leave_request_sessions`, `official_leaves`, `official_leave_settings`, `attendance_rules`, `attendance_rule_settings`, `student_attendance_block`, `activity_logs` | Permission quotas, absence blocking |
@@ -44,6 +44,7 @@ Table users {
   created_by bigint [null, note: 'admin who created this account']
   name varchar(255) [null]
   email varchar(255) [unique, not null]
+  gender enum('male','female') [null, note: 'set when the account is created; students.gender / instructor_data.gender are written from it']
   recovery_email varchar(255) [null]
   recovery_verified boolean [default: false]
   email_verified_at timestamp [null]
@@ -420,6 +421,21 @@ Table course_enroll_configs {
 
   indexes {
     (course_id, schedule_id, time_id) [unique]
+  }
+}
+
+Table course_class_type_statuses {
+  id bigint [pk, increment]
+  course_id bigint [not null]
+  class_type_id bigint [not null]
+  status varchar(20) [default: 'open', note: 'open | closed. No row = open']
+  created_at timestamp
+  updated_at timestamp
+
+  note: 'per-class-type Open/Closed switch on the Enroll Config page; replaces the old course-wide status'
+
+  indexes {
+    (course_id, class_type_id) [unique]
   }
 }
 
@@ -1229,6 +1245,8 @@ Ref: schedule_time.time_id > times.id                              // [delete: c
 Ref: course_enroll_configs.course_id > courses.id                  // [delete: cascade]
 Ref: course_enroll_configs.schedule_id > schedules.id              // [delete: cascade]
 Ref: course_enroll_configs.time_id > times.id                      // [delete: set null]
+Ref: course_class_type_statuses.course_id > courses.id             // [delete: cascade]
+Ref: course_class_type_statuses.class_type_id > class_type.class_type_id  // [delete: cascade]
 
 // --- students & classes ---
 Ref: students.user_id > users.id                                   // [delete: cascade]
@@ -1405,6 +1423,7 @@ TableGroup "Scheduling" {
   schedule_time
   holidays
   course_enroll_configs
+  course_class_type_statuses
 }
 
 TableGroup "Students & Classes" {

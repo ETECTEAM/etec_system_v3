@@ -1,12 +1,28 @@
 <script setup>
 import { computed, ref } from "vue";
-import { UserPlus, Users, Clock3, CalendarDays, DoorOpen, BookOpen, Search } from "@lucide/vue";
+import axios from "axios";
+import { router } from "@inertiajs/vue3";
+import { UserPlus, Users, Clock3, CalendarDays, DoorOpen, BookOpen, Search, Eye, Pencil } from "@lucide/vue";
 import RegisterStudentModal from "./RegisterStudentModal.vue";
 import EmptyState from "../../../../components/ui/empty-state/EmptyState.vue";
 import SelectSearch from "@/components/ui/select-search/SelectSearch.vue";
+import ClassActionMenu from "@/components/ui/card/ClassActionMenu.vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "@/composables/useToast";
 
 const { t } = useI18n();
+const toast = useToast();
+
+// The card's ⋯ menu keeps Edit Class (teacher, room, time...) and Copy Class. The rest
+// is left out here: the card has its own Register New Student button, Add Existing
+// Student needs an assign modal this tab doesn't have, and Switch Teacher is an
+// unfinished stub - changing the teacher goes through Edit Class.
+const HIDDEN_MENU_ITEMS = ["Register Student", "Add Existing Student", "Switch Teacher"];
+
+// Added after Edit Class / Copy Class through the menu's extraItems hook.
+function extraMenuItems(item) {
+  return [{ label: "View Class", icon: Eye, action: () => router.get(`/dashboard/enroll/view/${item.id}`) }];
+}
 
 const props = defineProps({
   // Eligible classes only (open seats + recently started / upcoming),
@@ -110,6 +126,65 @@ function isFull(item) {
   return (item.students ?? 0) >= (item.capacity ?? 0);
 }
 
+// Inline capacity edit - one card at a time.
+const editingCapacityId = ref(null);
+const capacityInput = ref("");
+const savingCapacityId = ref(null);
+const savedCapacityId = ref(null);
+
+// Focus and select the number as soon as the input appears.
+const vFocus = {
+  mounted: (el) => {
+    el.focus();
+    el.select();
+  },
+};
+
+function startEditCapacity(item) {
+  capacityInput.value = item.capacity;
+  editingCapacityId.value = item.id;
+  savedCapacityId.value = null;
+}
+
+function cancelEditCapacity() {
+  editingCapacityId.value = null;
+}
+
+async function saveCapacity(item) {
+  // Enter and the blur that follows it both land here - only the first one saves.
+  if (editingCapacityId.value !== item.id) return;
+  editingCapacityId.value = null;
+
+  const next = Number(capacityInput.value);
+  if (!Number.isInteger(next) || next < 1 || next === item.capacity) return;
+
+  // A class can't be shrunk below the students already in it.
+  if (next < (item.students ?? 0)) {
+    toast.error(t("Capacity can't be lower than the :count students already in this class.", { count: item.students }));
+    return;
+  }
+
+  // Optimistic: the bar, seats left and the register button follow at once.
+  const previous = item.capacity;
+  item.capacity = next;
+  savingCapacityId.value = item.id;
+
+  try {
+    const { data } = await axios.patch(`/dashboard/enroll/${item.id}/capacity`, { capacity: next });
+    item.capacity = data.capacity;
+    savedCapacityId.value = item.id;
+    toast.success(t("Class capacity updated."));
+    setTimeout(() => {
+      if (savedCapacityId.value === item.id) savedCapacityId.value = null;
+    }, 2000);
+  } catch (error) {
+    item.capacity = previous;
+    toast.error(t(error.response?.data?.message ?? "Failed to update capacity. Please try again."));
+  } finally {
+    savingCapacityId.value = null;
+  }
+}
+
 const inputClass = "w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20";
 </script>
 
@@ -156,6 +231,12 @@ const inputClass = "w-full rounded-xl border border-slate-300 bg-white px-4 py-2
             </h3>
             <p class="mt-0.5 truncate text-xs text-slate-500 dark:text-gray-400">{{ item.course }}</p>
           </div>
+          <ClassActionMenu
+            :class-data="item"
+            :hidden-items="HIDDEN_MENU_ITEMS"
+            :extra-items="extraMenuItems(item)"
+            class="-mr-2 -mt-1 ml-auto shrink-0"
+          />
         </div>
 
         <div class="mt-4 space-y-2.5 text-sm">
@@ -192,7 +273,32 @@ const inputClass = "w-full rounded-xl border border-slate-300 bg-white px-4 py-2
         <div class="mt-3 border-t border-slate-100 pt-3 dark:border-gray-800">
           <div class="mb-1.5 flex items-center justify-between">
             <span class="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-400"><Users class="h-4 w-4" /> {{ $t('Students') }}</span>
-            <span class="text-sm font-semibold tabular-nums text-slate-800 dark:text-gray-200">{{ item.students }} / {{ item.capacity }}</span>
+            <div class="flex items-center gap-1.5 text-sm font-semibold tabular-nums text-slate-800 dark:text-gray-200">
+              <span>{{ item.students }} /</span>
+              <input
+                v-if="editingCapacityId === item.id"
+                v-focus
+                v-model="capacityInput"
+                type="number"
+                :min="Math.max(1, item.students ?? 0)"
+                class="w-14 rounded border border-blue-300 bg-white px-1.5 py-0.5 text-center text-sm font-semibold tabular-nums text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 dark:border-blue-600 dark:bg-gray-800 dark:text-gray-200"
+                @keyup.enter="saveCapacity(item)"
+                @keyup.esc="cancelEditCapacity"
+                @blur="saveCapacity(item)"
+              />
+              <button
+                v-else
+                type="button"
+                :title="t('Edit class capacity')"
+                class="inline-flex items-center gap-1 border-b border-dashed border-slate-300 font-semibold tabular-nums transition-colors hover:border-blue-500 hover:text-blue-600 dark:border-gray-600 dark:hover:border-blue-500 dark:hover:text-blue-400"
+                @click="startEditCapacity(item)"
+              >
+                {{ item.capacity }}
+                <Pencil class="h-3 w-3 text-slate-400 dark:text-gray-500" />
+              </button>
+              <span v-if="savingCapacityId === item.id" class="text-[10px] font-normal text-blue-600 dark:text-blue-400">{{ $t('Saving...') }}</span>
+              <span v-else-if="savedCapacityId === item.id" class="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">&#10003; {{ $t('Saved') }}</span>
+            </div>
           </div>
           <div class="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-800">
             <div

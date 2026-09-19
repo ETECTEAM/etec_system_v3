@@ -110,6 +110,18 @@ function formatDateTime(isoString) {
   })
 }
 
+// The account's own gender wins; older rows may only have it on the student/instructor
+// profile (instructor_data.gender is free text). Returns '' when none is known.
+function genderLabel(user) {
+  const raw = String(user.gender ?? user.student?.gender ?? user.instructor_data?.gender ?? '').trim()
+  const key = raw.toLowerCase()
+
+  if (key === 'male') return t('Male')
+  if (key === 'female') return t('Female')
+
+  return raw
+}
+
 // Build the role filter options from the backend roles list.
 const roleOptions = computed(() => [
   { label: t('All Roles'), value: '' },
@@ -230,6 +242,7 @@ const contextMenuActions = [
             <TableHead>{{ $t('Name') }}</TableHead>
             <TableHead>{{ $t('Email') }}</TableHead>
             <TableHead>{{ $t('Roles') }}</TableHead>
+            <TableHead>{{ $t('Gender') }}</TableHead>
             <TableHead>{{ $t('Status') }}</TableHead>
             <TableHead>{{ $t('Created By') }}</TableHead>
             <TableHead>{{ $t('Created At') }}</TableHead>
@@ -268,6 +281,7 @@ const contextMenuActions = [
                   </span>
                 </div>
               </TableCell>
+              <TableCell class="text-slate-600 dark:text-gray-300">{{ genderLabel(user) || '—' }}</TableCell>
               <TableCell>
                 <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="user.status === 'active' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'">
                   {{ user.status === 'active' ? $t('Active') : $t('Inactive') }}

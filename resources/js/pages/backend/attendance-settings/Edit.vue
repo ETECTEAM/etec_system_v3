@@ -1,12 +1,13 @@
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3'
 import { computed } from 'vue'
-import { BellRing, Bot, PencilLine, QrCode, Save, ShieldAlert, Timer, UserCheck, Zap } from '@lucide/vue'
+import { BellRing, Bot, PencilLine, QrCode, ShieldAlert, Timer, UserCheck, Zap } from '@lucide/vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
 import PageHero from '../../../components/ui/page-hero/PageHero.vue'
 import { SelectSearch } from '../../../components/ui/select-search'
 import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/useToast'
 import { useI18n } from '@/i18n'
 
 const props = defineProps({
@@ -18,6 +19,7 @@ const props = defineProps({
 })
 
 const { confirm } = useConfirm()
+const toast = useToast()
 const { t } = useI18n()
 
 const form = useForm({
@@ -30,6 +32,60 @@ const form = useForm({
   auto_record_allow_qr_attendance: props.settings.allowQrAttendance,
   auto_record_override_hours: props.settings.overrideHours,
 })
+
+// Settings save as soon as a control changes - there is no Save button. The endpoint takes
+// every setting at once (all-or-nothing), so each save sends the last values the server
+// confirmed for everything except the field that just changed. That way a half-typed or
+// invalid number elsewhere on the page can't block, or ride along with, a toggle.
+const saved = { ...form.data() }
+
+// Saves run one after another: Inertia cancels an in-flight visit when a new one starts,
+// and a cancelled save would never update `saved`, so the next one could undo it.
+let saveQueue = Promise.resolve()
+
+function persist(field) {
+  saveQueue = saveQueue.then(() => new Promise((resolve) => {
+    const value = form[field]
+
+    if (value === saved[field]) {
+      resolve()
+      return
+    }
+
+    let ok = false
+
+    form
+      .transform(() => ({ ...saved, [field]: value }))
+      .put('/dashboard/attendance-settings', {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+          ok = true
+          saved[field] = value
+        },
+        onFinish: () => {
+          // A validation message stays on its field so it can be corrected; any other
+          // failure (no permission, network) puts the control back to what is really saved.
+          if (!ok && !form.errors[field]) {
+            form[field] = saved[field]
+            toast.error(t('Failed to save. Please try again.'))
+          }
+
+          resolve()
+        },
+      })
+  }))
+}
+
+function setToggle(field, checked) {
+  form[field] = checked
+  persist(field)
+}
+
+function onStatusChange(value) {
+  form.auto_record_default_status = value
+  persist('auto_record_default_status')
+}
 
 const statusOptions = [
   { value: 'present', label: 'Present' },
@@ -54,7 +110,7 @@ async function toggleEnabled(event) {
   const turningOff = form.auto_record_enabled && !event.target.checked
 
   if (!turningOff) {
-    form.auto_record_enabled = event.target.checked
+    setToggle('auto_record_enabled', event.target.checked)
     return
   }
 
@@ -70,12 +126,8 @@ async function toggleEnabled(event) {
   })
 
   if (ok) {
-    form.auto_record_enabled = false
+    setToggle('auto_record_enabled', false)
   }
-}
-
-function submit() {
-  form.put('/dashboard/attendance-settings', { preserveScroll: true })
 }
 
 const breadcrumbItems = [
@@ -153,7 +205,7 @@ const breadcrumbItems = [
       </div>
 
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
-        <form @submit.prevent="submit">
+        <form @submit.prevent>
           <div class="mb-8">
             <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3.5 transition hover:border-slate-300 dark:border-gray-800 dark:bg-gray-950/40 dark:hover:border-gray-700">
               <span class="flex items-center gap-3">
@@ -166,7 +218,7 @@ const breadcrumbItems = [
                 </span>
               </span>
               <span class="relative inline-flex items-center">
-                <input v-model="form.auto_record_allow_qr_attendance" type="checkbox" class="peer sr-only">
+                <input :checked="form.auto_record_allow_qr_attendance" type="checkbox" class="peer sr-only" @change="setToggle('auto_record_allow_qr_attendance', $event.target.checked)">
                 <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-blue-900 dark:bg-gray-600 dark:peer-checked:bg-blue-600"></span>
                 <span class="absolute left-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5"></span>
               </span>
@@ -185,7 +237,7 @@ const breadcrumbItems = [
                 </span>
               </span>
               <span class="relative inline-flex items-center">
-                <input v-model="form.auto_record_allow_track_anytime" type="checkbox" class="peer sr-only">
+                <input :checked="form.auto_record_allow_track_anytime" type="checkbox" class="peer sr-only" @change="setToggle('auto_record_allow_track_anytime', $event.target.checked)">
                 <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-blue-900 dark:bg-gray-600 dark:peer-checked:bg-blue-600"></span>
                 <span class="absolute left-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5"></span>
               </span>
@@ -211,6 +263,8 @@ const breadcrumbItems = [
                 <div class="max-w-[140px] flex-1">
                   <input
                     v-model.number="form.auto_record_grace_minutes"
+                    @change="persist('auto_record_grace_minutes')"
+                    @keydown.enter.prevent="$event.target.blur()"
                     type="number"
                     min="1"
                     class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
@@ -237,7 +291,8 @@ const breadcrumbItems = [
               <div class="mt-4 flex flex-wrap items-center gap-3 pl-0 sm:pl-12">
                 <div class="w-full sm:w-64">
                   <SelectSearch
-                    v-model="form.auto_record_default_status"
+                    :model-value="form.auto_record_default_status"
+                    @update:model-value="onStatusChange"
                     :options="statusOptions"
                     :placeholder="$t('Select status')"
                     :button-class="selectClass"
@@ -265,7 +320,7 @@ const breadcrumbItems = [
                 <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3.5 transition hover:border-slate-300 dark:border-gray-800 dark:bg-gray-950/40 dark:hover:border-gray-700">
                   <span class="text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Allow instructor override') }}</span>
                   <span class="relative inline-flex items-center">
-                    <input v-model="form.auto_record_allow_override" type="checkbox" class="peer sr-only">
+                    <input :checked="form.auto_record_allow_override" type="checkbox" class="peer sr-only" @change="setToggle('auto_record_allow_override', $event.target.checked)">
                     <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-blue-900 dark:bg-gray-600 dark:peer-checked:bg-blue-600"></span>
                     <span class="absolute left-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5"></span>
                   </span>
@@ -278,6 +333,8 @@ const breadcrumbItems = [
                   <div class="max-w-[140px] flex-1">
                     <input
                       v-model.number="form.auto_record_override_hours"
+                      @change="persist('auto_record_override_hours')"
+                      @keydown.enter.prevent="$event.target.blur()"
                       type="number"
                       min="1"
                       class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
@@ -294,7 +351,7 @@ const breadcrumbItems = [
                     <span class="text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Notify instructor') }}</span>
                   </span>
                   <span class="relative inline-flex items-center">
-                    <input v-model="form.auto_record_notify_instructor" type="checkbox" class="peer sr-only">
+                    <input :checked="form.auto_record_notify_instructor" type="checkbox" class="peer sr-only" @change="setToggle('auto_record_notify_instructor', $event.target.checked)">
                     <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-blue-900 dark:bg-gray-600 dark:peer-checked:bg-blue-600"></span>
                     <span class="absolute left-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5"></span>
                   </span>
@@ -308,15 +365,11 @@ const breadcrumbItems = [
             </div>
           </div>
 
-          <div class="mt-8 flex items-center justify-end gap-3 border-t border-slate-200 pt-6 dark:border-gray-800">
-            <button
-              type="submit"
-              :disabled="form.processing"
-              class="flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-600 dark:hover:bg-blue-500"
-            >
-              <Save class="h-4 w-4" />
-              {{ form.processing ? $t('Saving...') : $t('Save Settings') }}
-            </button>
+          <!-- No Save button: every control saves as it changes, so this only reports where it stands -->
+          <div class="mt-8 flex items-center justify-end gap-2 border-t border-slate-200 pt-6 text-sm dark:border-gray-800" aria-live="polite">
+            <span v-if="form.processing" class="font-medium text-blue-700 dark:text-blue-400">{{ $t('Saving...') }}</span>
+            <span v-else-if="form.recentlySuccessful" class="font-medium text-emerald-600 dark:text-emerald-400">&#10003; {{ $t('Saved') }}</span>
+            <span v-else class="text-slate-400 dark:text-gray-500">{{ $t('Changes save automatically.') }}</span>
           </div>
         </form>
       </div>

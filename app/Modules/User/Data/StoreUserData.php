@@ -16,6 +16,8 @@ readonly class StoreUserData
         // public ?UploadedFile $avatar, // FILE: disabled - not using file uploads
         public array $student,
         public array $instructorData,
+        // 'male' | 'female'. Last and optional: only students are required to have one.
+        public ?string $gender = null,
     ) {}
 
     /**

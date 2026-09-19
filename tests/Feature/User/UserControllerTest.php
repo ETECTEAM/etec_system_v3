@@ -315,7 +315,7 @@ class UserControllerTest extends TestCase
                 'role' => 'student',
                 'account_status' => 'active',
                 'student_full_name' => 'New Student',
-                'student_gender' => 'male',
+                'gender' => 'male',
                 'student_phone' => '012345678',
             ]);
 
@@ -325,5 +325,8 @@ class UserControllerTest extends TestCase
         $user = User::where('email', 'new.student@etec.com')->first();
         $this->assertTrue($user->hasRole('student'));
         $this->assertSame('New Student', $user->student?->full_name);
+        // The one gender field lands on the account and is copied into the student profile.
+        $this->assertSame('male', $user->gender);
+        $this->assertSame('male', $user->student?->gender);
     }
 }

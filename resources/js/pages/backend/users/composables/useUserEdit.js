@@ -14,6 +14,13 @@ export function useUserEdit() {
   const s = user.student ?? {}
   const i = user.instructor_data ?? {}
 
+  // The select only offers male/female, but older instructor rows hold free text (e.g. "Male"), so normalise what we can.
+  const knownGender = (value) => {
+    const key = String(value ?? '').trim().toLowerCase()
+
+    return key === 'male' || key === 'female' ? key : ''
+  }
+
   // Flat form combining core account fields with every student/instructor profile field, so switching role in the UI
   // doesn't need to swap form models. password/password_confirmation start blank: leaving them blank keeps the current password (see submit).
   const { form, save } = useSaveForm({
@@ -23,12 +30,13 @@ export function useUserEdit() {
     password_confirmation: '',
     role: user.role ?? (roleOptions[0] ?? 'admin'),
     account_status: user.status ?? 'active',
+    // One gender for every role; the account's own value wins, then the profile's.
+    gender: knownGender(user.gender ?? s.gender ?? i.gender),
     avatar: null,
     student_full_name: s.full_name ?? '',
     student_first_name: s.first_name ?? '',
     student_last_name: s.last_name ?? '',
     student_full_name_kh: s.full_name_kh ?? '',
-    student_gender: s.gender ?? '',
     student_date_of_birth: s.date_of_birth ?? '',
     student_phone: s.phone ?? '',
     student_email: s.email ?? '',
@@ -42,7 +50,6 @@ export function useUserEdit() {
     instructor_first_name: i.first_name ?? '',
     instructor_last_name: i.last_name ?? '',
     instructor_full_name_kh: i.full_name_kh ?? '',
-    instructor_gender: i.gender ?? '',
     instructor_date_of_birth: i.date_of_birth ?? '',
     instructor_phone: i.phone ?? '',
     instructor_email: i.email ?? '',

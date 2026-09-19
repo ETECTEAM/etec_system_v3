@@ -17,6 +17,8 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         Route::post('/config/bulk-start-date', [CourseEnrollConfigController::class, 'bulkUpdateStartDate'])->name('enroll.config.bulk-start-date');
         // Route to set a course's display order (1 shows first) on the public student-register list.
         Route::put('/config/course/{course}/order', [CourseEnrollConfigController::class, 'updateCourseOrder'])->name('enroll.config.course-order');
+        // Route to open or close a course under one class type, without affecting its other class types.
+        Route::put('/config/course/{course}/class-type-status', [CourseEnrollConfigController::class, 'updateClassTypeStatus'])->name('enroll.config.class-type-status');
         // Route to add a new enrollment schedule (time slot) for a course.
         Route::post('/config/{course}/schedules', [CourseEnrollConfigController::class, 'store'])->name('enroll.config.store');
         // Route to update an existing schedule's status/start date/prices.

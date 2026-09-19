@@ -100,7 +100,7 @@ class StudentRegisterController extends Controller
     private function courses(): array
     {
         return Course::query()
-            ->with('track.subCategory.category:id,name', 'enrollConfigs.schedule:id,class_type_id')
+            ->with('track.subCategory.category:id,name', 'enrollConfigs.schedule:id,class_type_id', 'classTypeStatuses:course_id,class_type_id,status')
             ->where('status', 'active')
             ->select('id', 'course_track_id', 'title', 'level', 'enroll_order')
             // Admin-set display order (Enroll Config page) - 1 shows first;
@@ -126,20 +126,15 @@ class StudentRegisterController extends Controller
             ->all();
     }
 
-    // The default config's status (the course-wide Open/Closed toggle on the
-    // Enroll Config page) is a master switch: closed hides the course from
-    // public registration outright, regardless of which individual class
-    // type/time slots are toggled open, so pausing a course doesn't require
-    // touching every badge.
+    // Each class type has its own Open/Closed switch on the Enroll Config page.
+    // Closed hides just that class type from public registration, regardless of
+    // which of its time slots are toggled open, so pausing Scholarship for a
+    // course leaves its Physical and Online slots bookable.
     private function openClassTypesForCourse(Course $course): array
     {
         $default = $course->enrollConfigs->first(
             fn (CourseEnrollConfig $config) => $config->schedule_id === null && $config->time_id === null
         );
-
-        if ($default !== null && $default->status !== 'open') {
-            return [];
-        }
 
         // start_date is the class intake open date. Once that date is in the
         // past the intake is considered closed and new walk-ins should no
@@ -148,9 +143,16 @@ class StudentRegisterController extends Controller
             return [];
         }
 
+        $closedTypeIds = $course->classTypeStatuses
+            ->where('status', '!=', 'open')
+            ->pluck('class_type_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
         return $course->enrollConfigs
             ->filter(fn (CourseEnrollConfig $config) => $config->schedule_id !== null && $config->status === 'open')
             ->groupBy(fn (CourseEnrollConfig $config) => $config->schedule->class_type_id)
+            ->reject(fn ($configs, $classTypeId) => in_array((int) $classTypeId, $closedTypeIds, true))
             ->map(fn ($configs, $classTypeId): array => [
                 'class_type_id' => (int) $classTypeId,
                 'time_ids' => $configs->pluck('time_id')->unique()->values()->all(),

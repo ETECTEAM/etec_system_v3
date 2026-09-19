@@ -19,7 +19,18 @@ export function useUserCreate() {
     password_confirmation: '',
     role: roleOptions[0] ?? 'admin',
     account_status: 'active',
+    // Gender applies to every role; students also need a phone (students.phone is NOT NULL).
+    gender: '',
+    student_phone: '',
   })
+
+  const isStudent = computed(() => form.role === 'student')
+
+  // Values match the gender enum ('male' | 'female'); SelectSearch translates the labels.
+  const genderSelectOptions = [
+    { label: 'Male', value: 'male' },
+    { label: 'Female', value: 'female' },
+  ]
 
   // Map raw role slugs to the label/value pairs SelectSearch expects.
   const roleSelectOptions = computed(() => roleOptions.map((role) => ({
@@ -50,6 +61,8 @@ export function useUserCreate() {
     form,
     roleSelectOptions,
     statusSelectOptions,
+    genderSelectOptions,
+    isStudent,
     nameLocked,
     submit,
   }
