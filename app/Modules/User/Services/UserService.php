@@ -182,6 +182,7 @@ class UserService
             'id' => $user->id,
             'name' => $user->role === 'student' ? ($user->student?->full_name ?? $user->name) : ($user->role === 'instructor' ? ($user->instructorData?->full_name ?? $user->name) : $user->name),
             'email' => $user->email,
+            'gender' => $user->gender,
             'role' => $user->getRoleNames()->first(),
             'status' => $user->status,
             'roles' => $user->getRoleNames()->values(),
@@ -204,6 +205,7 @@ class UserService
             $user = User::create([
                 'name' => $data->name, 'email' => $data->email, 'password' => $data->password,
                 'role' => $data->role, 'status' => $data->status, 'created_by' => $creatorId,
+                'gender' => $data->gender,
             ]);
             $user->syncRoles([$data->role]);
             // FILE: disabled - not using file uploads
@@ -222,6 +224,7 @@ class UserService
         $user = DB::transaction(function () use ($user, $data): User {
             $attributes = ['name' => $data->name, 'email' => $data->email, 'role' => $data->role, 'status' => $data->status];
             if ($data->password !== null && $data->password !== '') { $attributes['password'] = $data->password; }
+            if ($data->gender !== null) { $attributes['gender'] = $data->gender; }
             $user->update($attributes);
             // FILE: disabled - not using file uploads
             // $this->syncPhoto($user, $data->avatar);

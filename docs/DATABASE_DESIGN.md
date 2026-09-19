@@ -44,6 +44,7 @@ Table users {
   created_by bigint [null, note: 'admin who created this account']
   name varchar(255) [null]
   email varchar(255) [unique, not null]
+  gender enum('male','female') [null, note: 'set when the account is created; students.gender / instructor_data.gender are written from it']
   recovery_email varchar(255) [null]
   recovery_verified boolean [default: false]
   email_verified_at timestamp [null]

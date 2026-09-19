@@ -19,14 +19,14 @@ export function useUserCreate() {
     password_confirmation: '',
     role: roleOptions[0] ?? 'admin',
     account_status: 'active',
-    // Student profile: the students table requires both, so a student can't be created without them.
-    student_gender: '',
+    // Gender applies to every role; students also need a phone (students.phone is NOT NULL).
+    gender: '',
     student_phone: '',
   })
 
   const isStudent = computed(() => form.role === 'student')
 
-  // Values match the students.gender enum ('male' | 'female'); SelectSearch translates the labels.
+  // Values match the gender enum ('male' | 'female'); SelectSearch translates the labels.
   const genderSelectOptions = [
     { label: 'Male', value: 'male' },
     { label: 'Female', value: 'female' },

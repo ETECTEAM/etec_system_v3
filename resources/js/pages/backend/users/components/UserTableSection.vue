@@ -110,10 +110,10 @@ function formatDateTime(isoString) {
   })
 }
 
-// Gender lives on the role's own profile: students.gender (male/female enum) or
-// instructor_data.gender (free text). Other roles have none, so this returns ''.
+// The account's own gender wins; older rows may only have it on the student/instructor
+// profile (instructor_data.gender is free text). Returns '' when none is known.
 function genderLabel(user) {
-  const raw = String(user.student?.gender ?? user.instructor_data?.gender ?? '').trim()
+  const raw = String(user.gender ?? user.student?.gender ?? user.instructor_data?.gender ?? '').trim()
   const key = raw.toLowerCase()
 
   if (key === 'male') return t('Male')
