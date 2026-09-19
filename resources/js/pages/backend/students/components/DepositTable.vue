@@ -15,7 +15,7 @@ const props = defineProps({
     default: () => [],
   },
 });
-const emit = defineEmits(["record-deposit"]);
+const emit = defineEmits(["record-deposit", "view-student"]);
 
 const search = ref("");
 function refresh() {
@@ -149,15 +149,16 @@ function formatGender(value) {
             <TableCell>
               <div class="flex justify-center gap-1.5">
                 <button
+                  @click="emit('view-student', student)"
                   class="rounded-lg bg-blue-50 p-2 text-blue-600 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
-                  :title="$t('View Payment')"
+                  :title="$t('View Student Deposit')"
                 >
                   <Eye class="h-4 w-4" />
                 </button>
                 <button
                   @click="emit('record-deposit', student)"
                   class="rounded-lg bg-amber-50 p-2 text-amber-600 transition-colors hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
-                  :title="$t('Edit Deposit')"
+                  :title="$t('Edit Student Deposit')"
                 >
                   <Pencil class="h-4 w-4" />
                 </button>
