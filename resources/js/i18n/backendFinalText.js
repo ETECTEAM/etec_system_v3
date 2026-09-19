@@ -976,5 +976,10 @@ export const backendFinalTranslations = {
     "Attendance Rule Settings": "ការកំណត់ច្បាប់វត្តមាន",
     "Absence Block Audit": "កំណត់ហេតុការទប់ស្កាត់អវត្តមាន",
     "Showing :from-:to of :total": "កំពុងបង្ហាញ :from-:to នៃ :total",
+    // Inline class capacity edit (class cards)
+    "Edit class capacity": "កែប្រែចំនួនអតិបរមារបស់ថ្នាក់",
+    "Class capacity updated.": "បានធ្វើបច្ចុប្បន្នភាពចំនួនអតិបរមារបស់ថ្នាក់។",
+    "Failed to update capacity. Please try again.": "មិនអាចធ្វើបច្ចុប្បន្នភាពចំនួនអតិបរមាបានទេ។ សូមព្យាយាមម្តងទៀត។",
+    "Capacity can't be lower than the :count students already in this class.": "ចំនួនអតិបរមាមិនអាចតិចជាង :count សិស្សដែលមានក្នុងថ្នាក់នេះទេ។",
   },
 }
