@@ -109,6 +109,11 @@ nearly empty (only `Controller.php` base + `LocaleController.php`) and is not th
   rename/harmonize the folders or namespaces during a normal task (PSR-4 is case-sensitive on
   Linux). The UI string `"Start EnRoll"` in `commonText.js` / `ClassForm.vue` is **legitimate
   copy**, not a typo pointing at the module.
+  **macOS trap:** the two folders are one directory there (currently spelled `EnRoll` on
+  disk), so a *new* file under `app/Modules/Enroll/` is staged under the on-disk `EnRoll/`
+  spelling and fails to autoload on Linux — tests pass locally, the deploy breaks. Before
+  committing a new file there, check `git status` / `git ls-files` for the `Enroll/` spelling
+  and, if wrong, record it with `git update-index --add --cacheinfo 100644,<blob>,app/Modules/Enroll/...`.
 - **`Floor` and `building` use `Controller/` (singular)** while all others use `Controllers/`.
   Match whichever the module you're editing already uses.
 - **`Course` module has root-level controllers** — don't create a `Controllers/` folder there
