@@ -978,6 +978,10 @@ export const backendFinalTranslations = {
     "Showing :from-:to of :total": "កំពុងបង្ហាញ :from-:to នៃ :total",
     // Collapse Class: Basic IT's Code / Network split is suggested from specialization
     "This class is split into :first and :second. The suggestion follows each instructor's specialization - you can change it.": "ថ្នាក់នេះត្រូវបានបំបែកជា :first និង :second។ ការណែនាំនេះផ្អែកលើជំនាញរបស់គ្រូនីមួយៗ - អ្នកអាចកែប្រែបាន។",
+    // Collapse Class: the second-instructor list follows the half the owner isn't taking
+    "Showing only instructors who teach :subject.": "បង្ហាញតែគ្រូដែលបង្រៀន :subject ប៉ុណ្ណោះ។",
+    "No instructor teaches :subject yet, so everyone is listed.": "មិនទាន់មានគ្រូបង្រៀន :subject ទេ ដូច្នេះបង្ហាញគ្រូទាំងអស់។",
+    "Show all instructors": "បង្ហាញគ្រូទាំងអស់",
     // Instructor Create Class: the lesson list follows the chosen course
     "Select course first": "ជ្រើសវគ្គសិក្សាជាមុន",
     // Attendance settings save as you change them (no Save button)

@@ -11,6 +11,7 @@ use App\Models\Room;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
+use App\Models\SubCategory;
 use App\Models\User;
 use App\Modules\Enroll\Actions\CreateClassStudent;
 use App\Modules\Enroll\Actions\CreateStudyClass;
@@ -413,9 +414,10 @@ class EnrollmentClassController extends Controller
         // is a pair, each instructor gets a suggestion from their specialization so the dialog can
         // fill "Teaches" for them - see CollapseSubjects.
         $subjects = CollapseSubjects::forCourse($studyClass->course);
+        $subCategoryNames = $subjects === [] ? [] : SubCategory::query()->pluck('name', 'id')->all();
         $suggest = fn (?User $user): ?string => $subjects === []
             ? null
-            : CollapseSubjects::forSpecialization($user?->instructorData?->specialization);
+            : CollapseSubjects::forSpecialization($user?->instructorData?->specialization, $subCategoryNames);
 
         return response()->json([
             'owner' => $studyClass->teacher ? [
@@ -445,6 +447,11 @@ class EnrollmentClassController extends Controller
                     'id' => $teacher->id,
                     'name' => InstructorDisplayName::format($teacher->name, 'Unknown'),
                     'suggested_subject' => $suggest($teacher),
+                    // Every half they can teach (both when they have both skills) - the dialog offers
+                    // only the instructors who cover the half the owner isn't taking.
+                    'covers' => $subjects === []
+                        ? []
+                        : CollapseSubjects::halvesFor($teacher->instructorData?->specialization, $subCategoryNames),
                 ]),
             'schedules' => $this->shareableSchedules($studyClass, $options),
         ]);

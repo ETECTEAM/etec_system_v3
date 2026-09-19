@@ -49,10 +49,6 @@ const instructorTermOptions = computed(() =>
   termOptions.value.filter((option) => option.value !== form.value.owner_term_id),
 );
 
-const teacherOptions = computed(() =>
-  (options.value?.teachers ?? []).map((teacher) => ({ label: teacher.name, value: String(teacher.id) })),
-);
-
 const sharedInstructors = computed(() =>
   (options.value?.shared ?? []).filter((item) => !item.is_owner),
 );
@@ -64,8 +60,13 @@ const ownerName = computed(() => options.value?.owner?.name ?? "-");
 const subjects = computed(() => options.value?.subjects ?? []);
 
 // The other half of the pair ("" when the subject isn't one of the pair, e.g. old free text).
-const partnerOf = (subject) =>
-  subjects.value.includes(subject) ? subjects.value.find((item) => item !== subject) : "";
+// Case and spaces are ignored, so a hand-typed "code" still counts.
+const partnerOf = (subject) => {
+  const key = String(subject ?? "").trim().toLowerCase();
+  const own = subjects.value.find((item) => item.toLowerCase() === key);
+
+  return own ? subjects.value.find((item) => item !== own) : "";
+};
 
 // Fills only what is still empty, so a saved or hand-typed subject is never overwritten. The class
 // owner's specialization decides; the second instructor's is used only when the owner has none.
@@ -82,6 +83,35 @@ function suggestSubjects() {
   if (!form.value.owner_subject) form.value.owner_subject = mine;
   if (!form.value.instructor_subject && mine) form.value.instructor_subject = partnerOf(mine);
 }
+
+// The second instructor is picked from those who can teach the half the owner isn't taking (an owner
+// on Code is offered Network instructors, and vice versa); someone with both skills counts for either.
+// "Show all instructors" is the way out when specialization data is incomplete, and when nobody covers
+// that half yet the list simply shows everyone.
+const showAllInstructors = ref(false);
+
+const partnerHalf = computed(() => partnerOf(form.value.owner_subject));
+
+const matchingTeachers = computed(() =>
+  (options.value?.teachers ?? []).filter((teacher) => (teacher.covers ?? []).includes(partnerHalf.value)),
+);
+
+const filteringTeachers = computed(
+  () => partnerHalf.value !== "" && !showAllInstructors.value && matchingTeachers.value.length > 0,
+);
+
+const noTeacherCoversPartner = computed(() => partnerHalf.value !== "" && matchingTeachers.value.length === 0);
+
+const teacherOptions = computed(() =>
+  (options.value?.teachers ?? [])
+    .filter(
+      (teacher) =>
+        !filteringTeachers.value ||
+        (teacher.covers ?? []).includes(partnerHalf.value) ||
+        String(teacher.id) === String(form.value.instructor_id),
+    )
+    .map((teacher) => ({ label: teacher.name, value: String(teacher.id) })),
+);
 
 watch(
   () => props.show,
@@ -100,6 +130,7 @@ async function load() {
   try {
     const response = await axios.get(`/dashboard/enroll/${props.classData.id}/instructors`);
     options.value = response.data;
+    showAllInstructors.value = false;
 
     const owner = (response.data.shared ?? []).find((item) => item.is_owner);
 
@@ -263,6 +294,14 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
                   placeholder="Select instructor"
                   empty-text="No other instructors found"
                 />
+                <div v-if="partnerHalf" class="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-gray-400">
+                  <span v-if="filteringTeachers">{{ t('Showing only instructors who teach :subject.', { subject: partnerHalf }) }}</span>
+                  <span v-else-if="noTeacherCoversPartner">{{ t('No instructor teaches :subject yet, so everyone is listed.', { subject: partnerHalf }) }}</span>
+                  <label v-if="matchingTeachers.length" class="ml-auto inline-flex cursor-pointer items-center gap-1.5 font-semibold text-slate-600 dark:text-gray-300">
+                    <input v-model="showAllInstructors" type="checkbox" class="h-3.5 w-3.5 rounded border-slate-300" />
+                    {{ t('Show all instructors') }}
+                  </label>
+                </div>
               </div>
               <div class="grid gap-3 sm:grid-cols-2">
                 <div>
