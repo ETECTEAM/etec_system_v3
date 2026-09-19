@@ -84,15 +84,21 @@ class InstructorScheduleBlockController extends Controller
             ->filter(fn ($wst) => $wst->time)
             ->mapWithKeys(fn ($wst) => [$wst->time_id => $wst->time]);
 
-        // Group by day_of_week, deduplicate by time_name per day.
+        // One row per start time per day, keeping the shortest range. The times table has
+        // overlapping records (09:00-10:30 and 09:00-11:00, 02:00-03:15 and 02:00-05:00, ...)
+        // that would otherwise show as duplicate rows; the block/class checks below already
+        // match by range overlap, so the shortest record still covers the longer ones.
         $dayTimeIds = $workScheduleTimes->groupBy('day_of_week')
             ->map(fn ($entries) => $entries
-                ->map(fn ($wst) => [
-                    'time_id' => $wst->time_id,
-                    'time_name' => $wst->time?->time_name ?? '',
-                ])
-                ->unique('time_name')
-                ->pluck('time_id')
+                ->map(function ($wst): array {
+                    $range = StudyClass::parseTimeRange($wst->time?->time_name);
+
+                    return ['time_id' => $wst->time_id, 'start' => $range['start'] ?? null, 'end' => $range['end'] ?? null];
+                })
+                ->filter(fn (array $slot): bool => $slot['start'] !== null && $slot['end'] !== null)
+                ->sortBy([['start', 'asc'], ['end', 'asc']])
+                ->groupBy('start')
+                ->map(fn ($group) => $group->first()['time_id'])
                 ->values()
             );
 
