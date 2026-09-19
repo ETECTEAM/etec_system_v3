@@ -27,6 +27,10 @@ class ClassResultPdfGenerator
 
     private array $pangoCache = [];
 
+    private bool $pangoResolved = false;
+
+    private ?string $pangoBinary = null;
+
     public function generate(array $classData, Collection $students): string
     {
         $sortedStudents = $this->sortStudents($students)->values()->all();
@@ -317,6 +321,11 @@ class ClassResultPdfGenerator
         bool $ellipsize,
         ?string $language = null,
     ): void {
+        if ($this->pangoViewBinary() === null) {
+            $this->drawGdKhmerText($canvas, $text, $font, $x, $y, $width, $height, $align, $foreground);
+            return;
+        }
+
         $path = $this->pangoTextPath($tempDir, $text, $font, $width, $height, $align, $foreground, $wrap, $ellipsize, $language);
         $image = @imagecreatefrompng($path);
         if ($image === false) {
@@ -327,6 +336,44 @@ class ClassResultPdfGenerator
         imagesavealpha($canvas, true);
         imagecopy($canvas, $image, $x, $y, 0, 0, imagesx($image), imagesy($image));
         imagedestroy($image);
+    }
+
+    /**
+     * Production images do not always include pango-view. The app ships Khmer
+     * fonts, so GD provides a dependency-free fallback for the PDF renderer.
+     */
+    private function drawGdKhmerText($canvas, string $text, string $pangoFont, int $x, int $y, int $width, int $height, string $align, string $foreground): void
+    {
+        $text = $this->normalizeUtf8Text($text);
+        if ($text === '') {
+            return;
+        }
+
+        $font = str_contains(strtolower($pangoFont), 'bold')
+            ? $this->khmerBoldFont()
+            : $this->khmerRegularFont();
+        $fontSize = max(11, min(28, (int) floor($height * 0.72)));
+        $text = $this->fitLatinText($text, $font, $fontSize, max(1, $width - 8));
+        $box = imagettfbbox($fontSize, 0, $font, $text);
+
+        if ($box === false) {
+            return;
+        }
+
+        $textWidth = abs($box[4] - $box[0]);
+        $textHeight = abs($box[5] - $box[1]);
+        $drawX = $x + 4;
+
+        if ($align === 'center') {
+            $drawX = $x + max(0, (int) (($width - $textWidth) / 2));
+        } elseif ($align === 'right') {
+            $drawX = $x + max(0, $width - $textWidth - 4);
+        }
+
+        $drawY = $y + max(0, (int) (($height - $textHeight) / 2)) - $box[1];
+        [$red, $green, $blue] = sscanf($foreground, '#%02x%02x%02x');
+        $color = imagecolorallocate($canvas, $red ?? 17, $green ?? 17, $blue ?? 17);
+        imagettftext($canvas, $fontSize, 0, $drawX, $drawY, $color, $font, $text);
     }
 
     private function pangoTextPath(
@@ -368,7 +415,7 @@ class ClassResultPdfGenerator
         $sourcePath = $this->writePangoSourceFile($tempDir, $key, $text);
 
         $command = [
-            '/usr/bin/pango-view',
+            $this->pangoViewBinary(),
             '--no-display',
             '--background=transparent',
             '--margin=0',
@@ -496,6 +543,40 @@ class ClassResultPdfGenerator
     private function pangoFontKhmerBold(): string
     {
         return 'Noto Sans Khmer Bold 18';
+    }
+
+    private function khmerRegularFont(): string
+    {
+        return $this->resolveFont([
+            public_path('assets/fonts/Battambang-Regular.ttf'),
+            '/usr/share/fonts/truetype/noto/NotoSansKhmer-Regular.ttf',
+            'Noto Sans Khmer',
+        ], 'Khmer regular');
+    }
+
+    private function khmerBoldFont(): string
+    {
+        return $this->resolveFont([
+            public_path('assets/fonts/KhmerUIb.ttf'),
+            '/usr/share/fonts/truetype/noto/NotoSansKhmer-Bold.ttf',
+            'Noto Sans Khmer Bold',
+        ], 'Khmer bold');
+    }
+
+    private function pangoViewBinary(): ?string
+    {
+        if ($this->pangoResolved) {
+            return $this->pangoBinary;
+        }
+
+        $this->pangoResolved = true;
+        foreach (['/usr/bin/pango-view', '/usr/local/bin/pango-view'] as $candidate) {
+            if (is_executable($candidate)) {
+                return $this->pangoBinary = $candidate;
+            }
+        }
+
+        return null;
     }
 
     private function writePdf(array $pageImages, string $pdfPath): void
