@@ -976,6 +976,8 @@ export const backendFinalTranslations = {
     "Attendance Rule Settings": "ការកំណត់ច្បាប់វត្តមាន",
     "Absence Block Audit": "កំណត់ហេតុការទប់ស្កាត់អវត្តមាន",
     "Showing :from-:to of :total": "កំពុងបង្ហាញ :from-:to នៃ :total",
+    // Attendance settings save as you change them (no Save button)
+    "Changes save automatically.": "ការផ្លាស់ប្តូរត្រូវបានរក្សាទុកដោយស្វ័យប្រវត្តិ។",
     // Inline class capacity edit (class cards)
     "Edit class capacity": "កែប្រែចំនួនអតិបរមារបស់ថ្នាក់",
     "Class capacity updated.": "បានធ្វើបច្ចុប្បន្នភាពចំនួនអតិបរមារបស់ថ្នាក់។",
