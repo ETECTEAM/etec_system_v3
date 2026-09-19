@@ -345,8 +345,8 @@
                 <div class="heading">
                     <h1 class="khmer-title">លទ្ធផលប្រឡងបញ្ចប់</h1>
                     <div class="meta khmer">
-                        <span><strong>វគ្គសិក្សា៖</strong> {{ $course }}</span>
-                        <span><strong>ម៉ោងសិក្សា៖</strong> {{ $time }}</span>
+                        <span><strong>វគ្គសិក្សារ៖</strong> {{ $course }}</span>
+                        <span><strong>ម៉ោងសិក្សារ៖</strong> {{ $time }}</span>
                         <span><strong>កាលបរិច្ឆេទ៖</strong> <span class="date">{{ $toKhmerDigits($date->format('d-m-Y')) }}</span></span>
                     </div>
                 </div>

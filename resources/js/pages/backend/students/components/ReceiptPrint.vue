@@ -188,9 +188,9 @@ function timeWithTerm() {
           <strong class="line time-term">{{ formatGender(student.gender) }}</strong>
         </div>
         <div class="receipt-row">
-          <span class="label">វគ្គសិក្សា / Course</span>
+          <span class="label">វគ្គសិក្សារ / Course</span>
           <strong class="line">{{ valueOrDash(classData?.course) }}</strong>
-          <span class="label tiny">ម៉ោងសិក្សា</span>
+          <span class="label tiny">ម៉ោងសិក្សារ</span>
           <strong class="line time-term">{{ timeWithTerm() }}</strong>
         </div>
         <div class="receipt-row">

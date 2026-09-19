@@ -41,8 +41,8 @@
     "classList": "បញ្ជីថ្នាក់",
     "classManagement": "គ្រប់គ្រងថ្នាក់",
     "classType": "ប្រភេទថ្នាក់",
-    "courseManagement": "គ្រប់គ្រងវគ្គសិក្សា",
-    "courses": "វគ្គសិក្សា",
+    "courseManagement": "គ្រប់គ្រងវគ្គសិក្សារ",
+    "courses": "វគ្គសិក្សារ",
     "dashboard": "ផ្ទាំងគ្រប់គ្រង",
     "holiday": "ថ្ងៃឈប់សម្រាក",
     "certificate": "សញ្ញាបត្រ",
@@ -51,6 +51,7 @@
     "certificateMeal": "សញ្ញាបត្រអាហាររួបករណ៏",
     "certificateScholarship": "សញ្ញាបត្រអាហាររូបករណ៍",
     "certificateInternship": "សញ្ញាបត្រថ្នាក់ Internship",
+    "certificateOffice": "សញ្ញាបត្រការិយាល័យ",
     "certificateReport": "របាយការណ៍សញ្ញាបត្រ",
     "enrollConfig": "កំណត់ការចុះឈ្មោះ",
     "enrollManagement": "គ្រប់គ្រងការចុះឈ្មោះ",
@@ -85,7 +86,7 @@
     "schoolSettings": "ការកំណត់សាលា",
     "students": "សិស្ស",
     "subCategories": "ប្រភេទរង",
-    "terms": "វគ្គសិក្សា/ឆមាស",
+    "terms": "វគ្គសិក្សារ/ឆមាស",
     "times": "ម៉ោង",
     "tracks": "ជំនាញ",
     "user": "អ្នកប្រើប្រាស់",
@@ -138,14 +139,14 @@
       "studentName": "ឈ្មោះសិស្ស / STUDENT NAME"
     },
     "free": {
-      "course": "វគ្គសិក្សា",
-      "endDate": "ថ្ងៃបញ្ចប់វគ្គសិក្សា",
-      "selectCourse": "ជ្រើសរើសវគ្គសិក្សា",
+      "course": "វគ្គសិក្សារ",
+      "endDate": "ថ្ងៃបញ្ចប់វគ្គសិក្សារ",
+      "selectCourse": "ជ្រើសរើសវគ្គសិក្សារ",
       "studentNameEnglish": "ឈ្មោះសិស្សជាភាសាអង់គ្លេស"
     },
     "modal": {
       "certificatesReady": "មានវិញ្ញាបនបត្រ :count សម្រាប់បោះពុម្ព",
-      "editHint": "កែតែឈ្មោះ វគ្គសិក្សា និងថ្ងៃខែឆ្នាំប៉ុណ្ណោះ។",
+      "editHint": "កែតែឈ្មោះ វគ្គសិក្សារ និងថ្ងៃខែឆ្នាំប៉ុណ្ណោះ។",
       "editInfo": "កែប្រែព័ត៌មាន",
       "preview": "មើលជាមុន",
       "printCertificate": "បោះពុម្ពសញ្ញាបត្រ",
@@ -153,8 +154,8 @@
       "studentsReady": "សិស្សទាំងអស់ដែលត្រូវបោះពុម្ពសញ្ញាបត្រ"
     },
     "sections": {
-      "classInfo": "ព័ត៌មានវគ្គសិក្សា",
-      "classInfoKh": "ព័ត៌មានវគ្គសិក្សា",
+      "classInfo": "ព័ត៌មានវគ្គសិក្សារ",
+      "classInfoKh": "ព័ត៌មានវគ្គសិក្សារ",
       "courseType": ":category",
       "studentList": "បញ្ជីឈ្មោះសិស្ស",
       "studentListKh": "បញ្ជីឈ្មោះសិស្ស"
@@ -162,11 +163,11 @@
     "states": {
       "loadingData": "កំពុងទាញយកទិន្នន័យ...",
       "loadingStudents": "កំពុងទាញយកសិស្ស...",
-      "noClasses": "មិនមានវគ្គសិក្សាសម្រាប់ប្រភេទសញ្ញាបត្រនេះទេ",
+      "noClasses": "មិនមានវគ្គសិក្សារសម្រាប់ប្រភេទសញ្ញាបត្រនេះទេ",
       "openRegularPage": "សូមបើកសញ្ញាបត្រថ្នាក់ធម្មតាសម្រាប់ទំព័រដែលបានបញ្ចប់។"
     },
     "stats": {
-      "totalCourseFinish": "ចំនួនវគ្គសិក្សាបញ្ចប់",
+      "totalCourseFinish": "ចំនួនវគ្គសិក្សារបញ្ចប់",
       "totalDone": "ចំនួនសញ្ញាបត្ររួចរាល់",
       "totalRequested": "ចំនួនសិស្សស្នើសុំសញ្ញាបត្រ"
     },
@@ -196,6 +197,7 @@
       "internship": "សញ្ញាបត្រថ្នាក់ Internship",
       "meal": "សញ្ញាបត្រអាហាររូបករណ៍",
       "normal": "តារាង សញ្ញាបត្រធម្មតា",
+      "office": "សញ្ញាបត្រការិយាល័យ",
       "report": "របាយការណ៍សញ្ញាបត្រ",
       "scholarship": "សញ្ញាបត្រអាហាររូបករណ៍"
     },
@@ -204,10 +206,11 @@
       "internship": "Internship",
       "meal": "Meal",
       "normal": "ធម្មតា",
+      "office": "ការិយាល័យ",
       "scholarship": "អាហារូបករណ៍"
     },
     "validation": {
-      "courseRequired": "ត្រូវការវគ្គសិក្សា!",
+      "courseRequired": "ត្រូវការវគ្គសិក្សារ!",
       "endDateRequired": "ត្រូវការថ្ងៃបញ្ចប់!",
       "fullNameRequired": "ត្រូវការឈ្មោះពេញ!"
     }

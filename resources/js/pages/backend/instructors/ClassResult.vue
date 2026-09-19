@@ -202,8 +202,8 @@ onMounted(async () => {
                 លទ្ធផលនៃការប្រលងបញ្ចប់
               </h2>
               <p class="mt-2 text-sm font-semibold text-slate-600 dark:text-gray-300">
-                វគ្គសិក្សា៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.course }}</span>
-                · ម៉ោងសិក្សា៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.time }}</span>
+                វគ្គសិក្សារ៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.course }}</span>
+                · ម៉ោងសិក្សារ៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.time }}</span>
               </p>
               <p class="mt-1 text-sm font-semibold text-slate-600 dark:text-gray-300">
                 ថ្ងៃទី៖ <span class="font-black text-rose-600 dark:text-rose-400">{{ new Date().toLocaleDateString("en-GB") }}</span>
@@ -345,8 +345,8 @@ onMounted(async () => {
               លទ្ធផលនៃការប្រលងបញ្ចប់
             </h2>
             <p class="mt-2 text-sm font-semibold text-slate-600 dark:text-gray-300">
-              វគ្គសិក្សា៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.course }}</span>
-              · ម៉ោងសិក្សា៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.time }}</span>
+              វគ្គសិក្សារ៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.course }}</span>
+              · ម៉ោងសិក្សារ៖ <span class="font-black text-slate-950 dark:text-gray-100">{{ classData.time }}</span>
             </p>
             <p class="mt-1 text-sm font-semibold text-slate-600 dark:text-gray-300">
               ថ្ងៃទី៖ <span class="font-black text-rose-600 dark:text-rose-400">{{ new Date().toLocaleDateString("en-GB") }}</span>
