@@ -370,6 +370,10 @@ async function saveCapacity() {
         <!-- Instructor dashboard: compact, read-only class information. -->
         <div v-if="instructorSummary" class="mt-4 space-y-3 flex-1">
             <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><GraduationCap class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Class ID') }}</span></div>
+                <span class="text-xs sm:text-sm font-semibold tabular-nums text-slate-800 dark:text-gray-200">#{{ classData.id }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><BookOpen class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Course') }}</span></div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.course }}</span>
             </div>
