@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from "vue";
-import { UserPlus, Users, Clock3, CalendarDays, DoorOpen, BookOpen, Search } from "@lucide/vue";
+import { router } from "@inertiajs/vue3";
+import { UserPlus, Users, Clock3, CalendarDays, DoorOpen, BookOpen, Search, Eye } from "@lucide/vue";
 import RegisterStudentModal from "./RegisterStudentModal.vue";
 import EmptyState from "../../../../components/ui/empty-state/EmptyState.vue";
 import SelectSearch from "@/components/ui/select-search/SelectSearch.vue";
@@ -14,6 +15,11 @@ const { t } = useI18n();
 // Student needs an assign modal this tab doesn't have, and Switch Teacher is an
 // unfinished stub - changing the teacher goes through Edit Class.
 const HIDDEN_MENU_ITEMS = ["Register Student", "Add Existing Student", "Switch Teacher"];
+
+// Added after Edit Class / Copy Class through the menu's extraItems hook.
+function extraMenuItems(item) {
+  return [{ label: "View Class", icon: Eye, action: () => router.get(`/dashboard/enroll/view/${item.id}`) }];
+}
 
 const props = defineProps({
   // Eligible classes only (open seats + recently started / upcoming),
@@ -163,7 +169,12 @@ const inputClass = "w-full rounded-xl border border-slate-300 bg-white px-4 py-2
             </h3>
             <p class="mt-0.5 truncate text-xs text-slate-500 dark:text-gray-400">{{ item.course }}</p>
           </div>
-          <ClassActionMenu :class-data="item" :hidden-items="HIDDEN_MENU_ITEMS" class="-mr-2 -mt-1 ml-auto shrink-0" />
+          <ClassActionMenu
+            :class-data="item"
+            :hidden-items="HIDDEN_MENU_ITEMS"
+            :extra-items="extraMenuItems(item)"
+            class="-mr-2 -mt-1 ml-auto shrink-0"
+          />
         </div>
 
         <div class="mt-4 space-y-2.5 text-sm">
