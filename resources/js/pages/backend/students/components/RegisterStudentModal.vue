@@ -27,6 +27,10 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  phoneRequired: {
+    type: Boolean,
+    default: true,
+  },
   // Optional richer summary for the "Register to Class" flow — when set, a
   // compact "Selected Class" panel replaces the one-line subtitle.
   classInfo: {
@@ -177,7 +181,7 @@ function submit() {
           </p>
         </div>
 
-        <div>
+        <div v-if="phoneRequired">
           <label class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">
             {{ $t('Phone') }}
           </label>

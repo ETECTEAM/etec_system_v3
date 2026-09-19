@@ -1272,7 +1272,7 @@ class InstructorClassService
         });
     }
 
-    public function transferStudent(int $studyClassId, int $studentId, StudyClass $targetClass): void
+    public function transferStudent(int $studyClassId, int $studentId, StudyClass $targetClass): StudentEnrollment
     {
         $enrollment = $this->activeEnrollmentForStudent($studyClassId, $studentId);
 
@@ -1328,6 +1328,8 @@ class InstructorClassService
                     'updated_at' => now(),
                 ]);
         });
+
+        return $enrollment;
     }
 
     private function activeEnrollmentForStudent(int $studyClassId, int $studentId): StudentEnrollment

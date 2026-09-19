@@ -13,6 +13,10 @@ Broadcast::channel('admin-notifications', function ($user) {
     return $user->hasRole('super_admin') || $user->hasRole('admin');
 });
 
+Broadcast::channel('instructor-notifications.{userId}', function ($user, int $userId) {
+    return (int) $user->id === $userId && $user->hasRole('instructor');
+});
+
 Broadcast::channel('attendance.class.{studyClassId}', function ($user, int $studyClassId) {
     if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
         return true;

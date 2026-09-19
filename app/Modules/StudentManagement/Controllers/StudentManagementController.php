@@ -12,6 +12,7 @@ use App\Models\StudentPermission;
 use App\Models\StudyClass;
 use App\Models\Time;
 use App\Modules\Enroll\Actions\MoveStudentEnrollment;
+use App\Modules\Instructor\Events\StudentTransferred;
 use App\Modules\Instructor\Services\InstructorClassService;
 use App\Modules\StudentManagement\Requests\GrantPermissionRequest;
 use App\Modules\StudentManagement\Requests\TransferStudentRequest;
@@ -94,7 +95,11 @@ class StudentManagementController extends Controller
 
     public function transfer(TransferStudentRequest $request, StudentEnrollment $enrollment, MoveStudentEnrollment $move): RedirectResponse
     {
-        $move->handle($enrollment->load('student'), StudyClass::findOrFail($request->integer('study_class_id')), $request->boolean('force'));
+        $enrollment->load('student');
+        $targetClass = StudyClass::findOrFail($request->integer('study_class_id'));
+        $move->handle($enrollment, $targetClass, $request->boolean('force'));
+
+        event(StudentTransferred::forClass($targetClass, $enrollment->student?->full_name ?? 'Student'));
 
         return back()->with('success', 'Student transferred successfully.');
     }
