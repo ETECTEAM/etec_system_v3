@@ -56,7 +56,9 @@ class UpdateUserRequest extends FormRequest
     public function toData(): UpdateUserData
     {
         $data = $this->validated();
-        return new UpdateUserData($this->displayName($data), $data['email'], $data['password'] ?? null, $data['role'], $data['account_status'], null /* FILE: disabled - $this->file('avatar') */, $this->student($data), $this->instructorData($data));
+        // No avatar argument: UpdateUserData's avatar parameter is disabled (FILE: disabled),
+        // so passing one shifts every later argument and $student receives null.
+        return new UpdateUserData($this->displayName($data), $data['email'], $data['password'] ?? null, $data['role'], $data['account_status'], $this->student($data), $this->instructorData($data));
     }
 
     /**

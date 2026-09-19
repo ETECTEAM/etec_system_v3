@@ -87,7 +87,8 @@ class StoreUserRequest extends FormRequest
             $data['password'], 
             $data['role'], 
             $data['account_status'], 
-            null, // FILE: disabled - $this->file('avatar')
+            // No avatar argument: StoreUserData's avatar parameter is disabled (FILE: disabled),
+            // so passing one shifts every later argument and $student receives null.
             $this->student($data), 
             $this->instructorData($data)
         );
