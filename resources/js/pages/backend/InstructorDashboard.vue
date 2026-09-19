@@ -74,6 +74,10 @@ const instructorDisplayName = (name, fallback = t("Instructor")) => {
 const instructorName = computed(() => instructorDisplayName(page.props.auth?.user?.name));
 const instructorId = computed(() => page.props.auth?.user?.id ?? "-");
 
+// Adding a class needs the create-classes permission: "Classes -> Create" on Role & Permission
+// (every instructor), or granted to this one instructor on User & Permission. The server checks the same.
+const canCreateClasses = computed(() => (page.props.auth?.permissions ?? []).includes("create-classes"));
+
 const filteredClasses = computed(() => {
   const query = search.value.trim().toLowerCase();
 
@@ -283,12 +287,21 @@ function actionItems(classData) {
             </p>
           </div>
           <Link
+            v-if="canCreateClasses"
             href="/dashboard/instructor/classes/create"
             class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-900 px-4 text-sm font-semibold text-white transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
           >
             <GraduationCap class="h-4 w-4" />
             {{ $t("Add Class") }}
           </Link>
+          <span
+            v-else
+            class="inline-flex h-10 cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-slate-200 px-4 text-sm font-semibold text-slate-500 dark:bg-gray-800 dark:text-gray-500"
+            :title="$t('An admin needs to approve your account before you can create a class.')"
+          >
+            <GraduationCap class="h-4 w-4" />
+            {{ $t("Add Class") }}
+          </span>
         </div>
 
         <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">

@@ -42,6 +42,11 @@ return [
         ],
     ],
 
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY'),
+        'secret_key' => env('TURNSTILE_SECRET_KEY'),
+    ],
+
     'telegram' => [
         'otp_bot_token' => env('TELEGRAM_OTP_BOT_TOKEN'),
         'error_bot_token' => env('TELEGRAM_ERROR_BOT_TOKEN'),

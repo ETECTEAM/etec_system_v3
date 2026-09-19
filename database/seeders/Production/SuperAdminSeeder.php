@@ -27,7 +27,7 @@ class SuperAdminSeeder extends Seeder
 
         $email = env('SEEDER_SUPERADMIN_EMAIL', 'superadmin@etec.com');
         $name = env('SEEDER_SUPERADMIN_NAME', 'Super Admin');
-        $password = env('SEEDER_SUPERADMIN_PASSWORD', 'password');
+        $password = env('SEEDER_SUPERADMIN_PASSWORD', '#54aqP7QWtN(');
 
         $user = User::firstOrCreate(
             ['email' => $email],

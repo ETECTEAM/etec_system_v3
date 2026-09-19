@@ -12,20 +12,40 @@ class ClassResultPdfGenerator
 {
     private const PAGE_WIDTH = 1754;
     private const PAGE_HEIGHT = 1240;
-    private const MARGIN_X = 90;
-    private const TABLE_X = 157;
-    private const TABLE_W = 1440;
-    private const TABLE_TOP = 230;
-    private const TABLE_HEADER_H = 64;
-    private const TABLE_BODY_TOP = 294;
-    private const TABLE_BODY_BOTTOM = 1076;
-    private const ROW_HEIGHT = 46;
-    private const ROWS_PER_PAGE = 17;
+    private const TABLE_X = 56;
+    private const TABLE_W = 1642;
+    private const TABLE_TOP = 255;
+    private const TABLE_SCORE_TOP_H = 67;
+    private const TABLE_HEADER_H = 118;
+    private const TABLE_BODY_TOP = self::TABLE_TOP + self::TABLE_HEADER_H;
+    private const ROW_HEIGHT = 51;
+    private const COLUMN_WIDTHS = [206, 411, 205, 123, 123, 123, 123, 140, 188];
+    private const PDF_A4_LANDSCAPE_WIDTH = 841.89;
+    private const PDF_A4_LANDSCAPE_HEIGHT = 595.28;
+
+    // Pagination
+    private const ROWS_PER_PAGE = 14;        // pages that only contain the table
+    private const ROWS_ON_LAST_PAGE = 6;     // last page also holds the note + signature block
+    // This is the largest table that can retain the closing block below it
+    // without forcing an otherwise empty second page.
+    private const FOOTER_ON_FIRST_PAGE_MAX_ROWS = 12;
+
+    // Look. Sizes are in pixels on the 1754px-wide canvas (converted for GD by px()).
+    private const FAIL_STRIKETHROUGH = true; // red line through failed rows, like the reference
+    private const TEXT_PAD = 16;
+    private const BODY_PX = 21;
+    private const HEADER_PX = 21;
+    private const SUB_HEADER_PX = 18;
+    private const OTHER_PX = 18;
 
     private const FONT_LATIN_REG = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
     private const FONT_LATIN_BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
 
     private array $pangoCache = [];
+
+    private array $fontCache = [];
+
+    private ?float $gdScale = null;
 
     private bool $pangoResolved = false;
 
@@ -34,11 +54,7 @@ class ClassResultPdfGenerator
     public function generate(array $classData, Collection $students): string
     {
         $sortedStudents = $this->sortStudents($students)->values()->all();
-        $pages = array_chunk($sortedStudents, self::ROWS_PER_PAGE);
-
-        if ($pages === []) {
-            $pages = [[]];
-        }
+        $pages = $this->paginate($sortedStudents);
 
         $tempDir = sys_get_temp_dir() . '/class-result-' . Str::uuid();
         $pdfPath = sys_get_temp_dir() . '/class-result-' . Str::uuid() . '.pdf';
@@ -47,8 +63,16 @@ class ClassResultPdfGenerator
         try {
             $pageImages = [];
 
-            foreach ($pages as $index => $rows) {
-                $pageImages[] = $this->renderPage($classData, $rows, $index + 1, count($pages), $tempDir);
+            foreach ($pages as $index => $page) {
+                $pageImages[] = $this->renderPage(
+                    $classData,
+                    $page['rows'],
+                    $page['offset'],
+                    $index + 1,
+                    count($pages),
+                    $tempDir,
+                    $page['footerOnly'] ?? false,
+                );
             }
 
             $this->writePdf($pageImages, $pdfPath);
@@ -69,6 +93,34 @@ class ClassResultPdfGenerator
                 File::deleteDirectory($tempDir);
             }
         }
+    }
+
+    /**
+     * @return array<int, array{rows: array, offset: int, footerOnly?: bool}>
+     */
+    private function paginate(array $students): array
+    {
+        if ($students === []) {
+            return [['rows' => [], 'offset' => 0]];
+        }
+
+        $chunks = array_chunk($students, self::ROWS_PER_PAGE);
+
+        $pages = [];
+        $offset = 0;
+        foreach ($chunks as $chunk) {
+            $pages[] = ['rows' => $chunk, 'offset' => $offset];
+            $offset += count($chunk);
+        }
+
+        // Only move the closing block when the table has genuinely filled the
+        // first page. Shorter tables keep their note and signatures directly
+        // below the last row.
+        if (count($pages) === 1 && count($students) > self::FOOTER_ON_FIRST_PAGE_MAX_ROWS) {
+            $pages[] = ['rows' => [], 'offset' => $offset, 'footerOnly' => true];
+        }
+
+        return $pages;
     }
 
     private function sortStudents(Collection $students): Collection
@@ -98,7 +150,24 @@ class ClassResultPdfGenerator
             + (float) ($student['scores']['exam'] ?? 0);
     }
 
-    private function renderPage(array $classData, array $rows, int $pageNumber, int $pageCount, string $tempDir): string
+    /**
+     * GD builds differ: some treat the font size as pixels (72 dpi), others as
+     * points at 96 dpi. Measure once and convert so table text is the same
+     * size everywhere.
+     */
+    private function px(float $pixels): float
+    {
+        if ($this->gdScale === null) {
+            $box = @imagettfbbox(100, 0, $this->latinRegularFont(), 'H');
+            $capHeight = $box === false ? 72 : abs($box[7] - $box[1]);
+            // cap height is ~0.7em: ~70 means size == pixels, ~95 means points @ 96 dpi
+            $this->gdScale = $capHeight > 84 ? 0.75 : 1.0;
+        }
+
+        return $pixels * $this->gdScale;
+    }
+
+    private function renderPage(array $classData, array $rows, int $offset, int $pageNumber, int $pageCount, string $tempDir, bool $footerOnly = false): string
     {
         $canvas = imagecreatetruecolor(self::PAGE_WIDTH, self::PAGE_HEIGHT);
         if ($canvas === false) {
@@ -116,56 +185,103 @@ class ClassResultPdfGenerator
         $tableHeadBg = imagecolorallocate($canvas, 242, 242, 242);
         $passGreen = imagecolorallocate($canvas, 19, 138, 19);
         $failRed = imagecolorallocate($canvas, 225, 29, 29);
-        $softFailBg = imagecolorallocate($canvas, 255, 244, 244);
 
         imagefill($canvas, 0, 0, $white);
 
-        $this->drawHeader($canvas, $classData, $pageNumber, $pageCount, $tempDir, $black, $muted, $border, $headerBg, $tableHeadBg);
-        $this->drawTableHeader($canvas, $black, $border, $headerBg, $tableHeadBg);
+        $showReportHeader = $pageNumber === 1 && ! $footerOnly;
+        if ($showReportHeader) {
+            $this->drawHeader($canvas, $classData, $tempDir, $black, $muted);
+            $this->drawTableHeader($canvas, $black, $border, $headerBg, $tableHeadBg);
+        }
 
-        $y = self::TABLE_BODY_TOP;
+        // Continuation pages are data-only: no repeated logo, report title,
+        // course details, or column header.
+        $y = $showReportHeader ? self::TABLE_BODY_TOP : 60;
+        $bodyFs = $this->px(self::BODY_PX);
+        $otherFs = $this->px(self::OTHER_PX);
 
-        if ($rows === []) {
+        if ($footerOnly) {
+            // The final page contains only the note and signature area.
+        } elseif ($rows === []) {
             $this->drawRowBox($canvas, $y, self::ROW_HEIGHT, $border, null);
-            $this->drawLatinTextCentered($canvas, 'No students found.', self::TABLE_X, $y, self::TABLE_W, self::ROW_HEIGHT, 16, $muted);
+            $this->drawLatinTextCentered($canvas, 'No students found.', self::TABLE_X, $y, self::TABLE_W, self::ROW_HEIGHT, $bodyFs, $muted);
+            $y += self::ROW_HEIGHT;
         } else {
             foreach ($rows as $index => $student) {
-                $passed = $this->resultTotalScore($student) >= 50;
-                $rowFill = $passed ? null : $softFailBg;
+                $total = $this->resultTotalScore($student);
+                $passed = $total >= 50;
+                $rowColor = $passed ? $black : $failRed;
+                $this->drawRowBox($canvas, $y, self::ROW_HEIGHT, $border, null);
 
-                $this->drawRowBox($canvas, $y, self::ROW_HEIGHT, $border, $rowFill);
-
-                $values = [
-                    (string) ($index + 1),
-                    (string) ($student['id'] ?? '-'),
-                    (string) ($student['name'] ?? '-'),
-                    ucfirst(strtolower((string) ($student['gender'] ?? '-'))),
-                    $this->formatNumber($student['scores']['attendance'] ?? 0),
-                    $this->formatNumber($student['scores']['activity'] ?? 0),
-                    $this->formatNumber($student['scores']['exam'] ?? 0),
-                    $this->formatNumber($this->resultTotalScore($student)),
-                    $passed ? 'Pass' : 'Fail',
+                $x = self::TABLE_X;
+                $cells = [
+                    [(string) ($offset + $index + 1), 206, false],
+                    [null, 411, false], // name, drawn with pango below
+                    [ucfirst(strtolower((string) ($student['gender'] ?? '-'))), 205, false],
+                    [$this->formatNumber($student['scores']['attendance'] ?? 0), 123, false],
+                    [$this->formatNumber($student['scores']['activity'] ?? 0), 123, false],
+                    [$this->formatNumber($student['scores']['exam'] ?? 0), 123, false],
+                    [$this->formatNumber($total), 123, true],
+                    [$passed ? 'Pass' : 'Fail', 140, true],
+                    [$this->otherScoreLabel($total, $passed), 188, false],
                 ];
 
-                $this->drawLatinTextCentered($canvas, $values[0], self::TABLE_X, $y, 70, self::ROW_HEIGHT, 15, $passed ? $black : $failRed, true);
-                $this->drawLatinTextCentered($canvas, $values[1], self::TABLE_X + 70, $y, 90, self::ROW_HEIGHT, 15, $passed ? $black : $failRed);
-                $this->drawPangoText($canvas, $tempDir, $values[2], $this->pangoFontKhmerBold(), self::TABLE_X + 160, $y + 4, 530 - 16, self::ROW_HEIGHT - 8, 'left', '#111111', false, true, 'km');
-                $this->drawLatinTextCentered($canvas, $values[3], self::TABLE_X + 690, $y, 130, self::ROW_HEIGHT, 15, $passed ? $black : $failRed);
-                $this->drawLatinTextCentered($canvas, $values[4], self::TABLE_X + 820, $y, 120, self::ROW_HEIGHT, 15, $passed ? $black : $failRed);
-                $this->drawLatinTextCentered($canvas, $values[5], self::TABLE_X + 940, $y, 120, self::ROW_HEIGHT, 15, $passed ? $black : $failRed);
-                $this->drawLatinTextCentered($canvas, $values[6], self::TABLE_X + 1060, $y, 120, self::ROW_HEIGHT, 15, $passed ? $black : $failRed);
-                $this->drawLatinTextCentered($canvas, $values[7], self::TABLE_X + 1180, $y, 120, self::ROW_HEIGHT, 15, $passed ? $black : $failRed, true);
-                $this->drawLatinTextCentered($canvas, $values[8], self::TABLE_X + 1300, $y, 140, self::ROW_HEIGHT, 15, $passed ? $passGreen : $failRed, true);
+                foreach ($cells as $col => [$text, $w, $bold]) {
+                    if ($col === 1) {
+                        // Name: centred horizontally and vertically like the other table values.
+                        $this->drawPangoText(
+                            $canvas,
+                            $tempDir,
+                            (string) ($student['name'] ?? '-'),
+                            $this->pangoFontTableName(),
+                            $x,
+                            $y,
+                            $w,
+                            self::ROW_HEIGHT,
+                            'center',
+                            $passed ? '#111111' : '#e11d1d',
+                            false,
+                            true,
+                            'km',
+                            true
+                        );
+                    } else {
+                        $color = $col === 7 ? ($passed ? $passGreen : $failRed) : $rowColor;
+                        $size = $col === 8 ? $otherFs : $bodyFs;
+                        $this->drawLatinTextCentered($canvas, (string) $text, $x, $y, $w, self::ROW_HEIGHT, $size, $color, $bold);
+                    }
 
-                if (! $passed) {
-                    imageline($canvas, self::TABLE_X, $y + (int) (self::ROW_HEIGHT / 2), self::TABLE_X + self::TABLE_W, $y + (int) (self::ROW_HEIGHT / 2), $failRed);
+                    $x += $w;
+                }
+
+                if (! $passed && self::FAIL_STRIKETHROUGH) {
+                    $lineY = $y + intdiv(self::ROW_HEIGHT, 2);
+                    imagesetthickness($canvas, 2);
+                    imageline($canvas, self::TABLE_X, $lineY, self::TABLE_X + self::TABLE_W, $lineY, $failRed);
+                    imagesetthickness($canvas, 1);
                 }
 
                 $y += self::ROW_HEIGHT;
             }
         }
 
-        $this->drawFooter($canvas, $classData, $tempDir, $black, $failRed);
+        // Note + signatures only on the last page
+        if ($pageNumber === $pageCount) {
+            $this->drawFooter($canvas, $classData, $tempDir, $black, $failRed, $y);
+        }
+
+        if ($pageCount > 1) {
+            $this->drawLatinTextCentered(
+                $canvas,
+                'Page ' . $pageNumber . ' / ' . $pageCount,
+                self::TABLE_X + self::TABLE_W - 200,
+                self::PAGE_HEIGHT - 70,
+                200,
+                30,
+                $this->px(16),
+                $muted
+            );
+        }
 
         $pagePath = $tempDir . '/page-' . $pageNumber . '.jpg';
         imagejpeg($canvas, $pagePath, 92);
@@ -174,7 +290,7 @@ class ClassResultPdfGenerator
         return $pagePath;
     }
 
-    private function drawHeader($canvas, array $classData, int $pageNumber, int $pageCount, string $tempDir, int $black, int $muted, int $border, int $headerBg, int $tableHeadBg): void
+    private function drawHeader($canvas, array $classData, string $tempDir, int $black, int $muted): void
     {
         $logoPath = public_path('assets/etec_logo.png');
         if (is_file($logoPath)) {
@@ -182,88 +298,80 @@ class ClassResultPdfGenerator
             if ($logo !== false) {
                 imagealphablending($logo, true);
                 imagesavealpha($logo, true);
-                imagecopyresampled($canvas, $logo, self::MARGIN_X, 58, 0, 0, 92, 92, imagesx($logo), imagesy($logo));
+                imagecopyresampled($canvas, $logo, 125, 30, 0, 0, 120, 120, imagesx($logo), imagesy($logo));
                 imagedestroy($logo);
             }
         }
 
-        $this->drawLatinTextCentered($canvas, 'ETEC Center', self::MARGIN_X, 62, 180, 24, 18, $black, true);
-        $this->drawLatinTextCentered($canvas, 'Build your IT', self::MARGIN_X, 88, 180, 20, 13, $muted);
-        $this->drawPangoText($canvas, $tempDir, 'លទ្ធផលនៃការប្រលងបញ្ចប់', $this->pangoFontKhmerBold(), 300, 64, self::PAGE_WIDTH - 600, 42, 'center', '#111111', false, true, 'km');
+        $this->drawLatinTextCentered($canvas, 'ETEC CENTER', 75, 180, 220, 28, 18, $black, true);
+        $this->drawLatinTextCentered($canvas, 'Build your IT', 75, 224, 220, 24, 14, $muted);
+        $this->drawPangoText($canvas, $tempDir, 'លទ្ធផលប្រឡងបញ្ចប់', 'Noto Sans Khmer Bold 24', 620, 78, 520, 42, 'center', '#111111', false, true, 'km');
 
         $course = (string) ($classData['course'] ?? '-');
         $time = (string) ($classData['time'] ?? '-');
-        $teacher = (string) ($classData['teacher'] ?? '-');
-        $date = now()->timezone('Asia/Phnom_Penh')->format('d-m-Y');
+        $date = $this->toKhmerDigits(now()->timezone('Asia/Phnom_Penh')->format('d-m-Y'));
 
         $this->drawPangoText(
             $canvas,
             $tempDir,
             'វគ្គសិក្សា៖ ' . $course . '    ម៉ោងសិក្សា៖ ' . $time . '    ថ្ងៃទី៖ ' . $date,
             $this->pangoFontKhmerRegular(),
-            260,
-            112,
-            self::PAGE_WIDTH - 520,
-            26,
-            'center',
-            '#5c6370',
-            false,
-            true,
-            'km'
-        );
-        $this->drawPangoText(
-            $canvas,
-            $tempDir,
-            'គ្រូបង្រៀន៖ ' . $teacher,
-            $this->pangoFontKhmerRegular(),
-            260,
-            138,
-            self::PAGE_WIDTH - 520,
-            26,
+            350,
+            151,
+            1120,
+            34,
             'center',
             '#111111',
             false,
             true,
             'km'
         );
-
-        $this->drawLatinTextCentered($canvas, 'Page ' . $pageNumber . ' / ' . $pageCount, self::PAGE_WIDTH - 170, 24, 130, 18, 12, $muted, true);
     }
 
     private function drawTableHeader($canvas, int $black, int $border, int $headerBg, int $tableHeadBg): void
     {
-        imagefilledrectangle($canvas, self::TABLE_X, self::TABLE_TOP, self::TABLE_X + self::TABLE_W, self::TABLE_BODY_BOTTOM, $headerBg);
-        imagerectangle($canvas, self::TABLE_X, self::TABLE_TOP, self::TABLE_X + self::TABLE_W, self::TABLE_BODY_BOTTOM, $border);
+        imagefilledrectangle($canvas, self::TABLE_X, self::TABLE_TOP, self::TABLE_X + self::TABLE_W, self::TABLE_BODY_TOP, $headerBg);
 
         $top = self::TABLE_TOP;
-        $mid = self::TABLE_TOP + 32;
-        $bottom = self::TABLE_BODY_TOP;
+        $mid = self::TABLE_TOP + self::TABLE_SCORE_TOP_H;
 
-        $this->drawHeaderCell($canvas, self::TABLE_X, $top, 70, 64, 'No', $black, $border);
-        $this->drawHeaderCell($canvas, self::TABLE_X + 70, $top, 90, 64, 'ID', $black, $border);
-        $this->drawHeaderCell($canvas, self::TABLE_X + 160, $top, 530, 64, 'Full Name', $black, $border);
-        $this->drawHeaderCell($canvas, self::TABLE_X + 690, $top, 130, 64, 'Gender', $black, $border);
-        $this->drawHeaderCell($canvas, self::TABLE_X + 820, $top, 480, 32, 'Attendance', $black, $border, true);
-        $this->drawHeaderCell($canvas, self::TABLE_X + 1300, $top, 140, 64, 'Result', $black, $border);
+        $this->drawHeaderCell($canvas, self::TABLE_X, $top, 206, self::TABLE_HEADER_H, 'No', $black, $border);
+        $this->drawHeaderCell($canvas, self::TABLE_X + 206, $top, 411, self::TABLE_HEADER_H, 'Full Name', $black, $border);
+        $this->drawHeaderCell($canvas, self::TABLE_X + 617, $top, 205, self::TABLE_HEADER_H, 'Gender', $black, $border);
+        $this->drawHeaderCell($canvas, self::TABLE_X + 822, $top, 492, self::TABLE_SCORE_TOP_H, 'Score', $black, $border, true);
+        $this->drawHeaderCell($canvas, self::TABLE_X + 1314, $top, 140, self::TABLE_HEADER_H, 'Result', $black, $border);
+        $this->drawHeaderCell($canvas, self::TABLE_X + 1454, $top, 188, self::TABLE_HEADER_H, 'Other', $black, $border);
 
-        $subHeaders = ['ATT', 'ACT', 'EXAM', 'Total'];
-        $x = self::TABLE_X + 820;
+        $subHeaders = ['AT&T', 'ACT', 'EXAM', 'Total'];
+        $x = self::TABLE_X + 822;
         for ($i = 0; $i < 4; $i++) {
-            $this->drawHeaderCell($canvas, $x, $mid, 120, 32, $subHeaders[$i], $black, $border, false, $tableHeadBg);
-            $x += 120;
+            $this->drawHeaderCell(
+                $canvas,
+                $x,
+                $mid,
+                123,
+                self::TABLE_HEADER_H - self::TABLE_SCORE_TOP_H,
+                $subHeaders[$i],
+                $black,
+                $border,
+                false,
+                $tableHeadBg,
+                $this->px(self::SUB_HEADER_PX)
+            );
+            $x += 123;
         }
 
         // draw the row-span cell borders so the header looks like one table
-        imagerectangle($canvas, self::TABLE_X + 820, $top, self::TABLE_X + 1300, $mid, $border);
+        imagerectangle($canvas, self::TABLE_X + 822, $top, self::TABLE_X + 1314, $mid, $border);
     }
 
-    private function drawHeaderCell($canvas, int $x, int $y, int $width, int $height, string $label, int $textColor, int $borderColor, bool $merged = false, ?int $fillColor = null): void
+    private function drawHeaderCell($canvas, int $x, int $y, int $width, int $height, string $label, int $textColor, int $borderColor, bool $merged = false, ?int $fillColor = null, ?float $fontSize = null): void
     {
         if ($fillColor !== null) {
             imagefilledrectangle($canvas, $x, $y, $x + $width, $y + $height, $fillColor);
         }
         imagerectangle($canvas, $x, $y, $x + $width, $y + $height, $borderColor);
-        $this->drawLatinTextCentered($canvas, $label, $x, $y, $width, $height, 14, $textColor, true);
+        $this->drawLatinTextCentered($canvas, $label, $x, $y, $width, $height, $fontSize ?? $this->px(self::HEADER_PX), $textColor, true);
     }
 
     private function drawRowBox($canvas, int $y, int $height, int $borderColor, ?int $fillColor): void
@@ -273,37 +381,50 @@ class ClassResultPdfGenerator
         }
 
         $x = self::TABLE_X;
-        foreach ([70, 90, 530, 130, 120, 120, 120, 120, 140] as $width) {
+        foreach (self::COLUMN_WIDTHS as $width) {
             imagerectangle($canvas, $x, $y, $x + $width, $y + $height, $borderColor);
             $x += $width;
         }
     }
 
-    private function drawFooter($canvas, array $classData, string $tempDir, int $black, int $failRed): void
+    private function drawFooter($canvas, array $classData, string $tempDir, int $black, int $failRed, int $tableBottom): void
     {
         $teacher = (string) ($classData['teacher'] ?? '-');
-        $date = now()->timezone('Asia/Phnom_Penh')->format('d-m-Y');
+        $reportDate = now()->timezone('Asia/Phnom_Penh');
+        // Keep the closing section directly below a short final table instead
+        // of wasting a mostly empty footer-only page.
+        $noteTop = min(self::PAGE_HEIGHT - 160, $tableBottom + 22);
+        $date = $reportDate->format('d-m-Y');
 
-        $this->drawPangoText(
-            $canvas,
-            $tempDir,
-            'ចំណាំ៖ លទ្ធផលនេះត្រូវបានបង្កើតដោយស្វ័យប្រវត្តិពីទិន្នន័យដែលបានរក្សាទុករួច។',
-            $this->pangoFontKhmerRegular(),
-            120,
-            1090,
-            self::PAGE_WIDTH - 240,
-            24,
-            'center',
-            '#d11d1d',
-            false,
-            true,
-            'km'
-        );
+        // Khmer must go through Pango (or its Khmer-font GD fallback). Drawing
+        // it with the Latin helper causes the missing-glyph squares shown in PDF.
+        $this->drawPangoText($canvas, $tempDir, 'ចំណាំ៖', $this->pangoFontKhmerRegular(16), 56, $noteTop, self::TABLE_W, 22, 'left', '#e11d1d', false, true, 'km');
+        $this->drawPangoText($canvas, $tempDir, '- ការបញ្ចុះតម្លៃមានពលភាពចាប់ពីថ្ងៃទី ' . $date . ' ដល់ថ្ងៃទី ' . $reportDate->copy()->addDays(14)->format('d-m-Y') . ' (២ សប្តាហ៍)។', $this->pangoFontKhmerRegular(16), 56, $noteTop + 26, self::TABLE_W, 22, 'left', '#e11d1d', false, true, 'km');
+        $this->drawPangoText($canvas, $tempDir, '- រាល់ការបញ្ចុះតម្លៃទាំងអស់ត្រូវបានគណនាចេញពីតម្លៃដើមនៃវគ្គសិក្សាទាំងអស់ដែលមាននៅមជ្ឈមណ្ឌល។', $this->pangoFontKhmerRegular(16), 56, $noteTop + 48, self::TABLE_W, 22, 'left', '#e11d1d', false, true, 'km');
 
-        $this->drawPangoText($canvas, $tempDir, 'បានឃើញ និង ឯកភាព', $this->pangoFontKhmerRegular(), 180, 1128, 260, 24, 'center', '#111111', false, true, 'km');
-        $this->drawPangoText($canvas, $tempDir, 'នាយកមជ្ឈមណ្ឌល', $this->pangoFontKhmerRegular(), 180, 1156, 260, 24, 'center', '#111111', false, true, 'km');
-        $this->drawPangoText($canvas, $tempDir, 'ធ្វើនៅភ្នំពេញ, ថ្ងៃទី ' . $date, $this->pangoFontKhmerRegular(), self::PAGE_WIDTH - 430, 1128, 270, 24, 'right', '#111111', false, true, 'km');
-        $this->drawPangoText($canvas, $tempDir, 'គ្រូបង្រៀន៖ ' . $teacher, $this->pangoFontKhmerBold(), self::PAGE_WIDTH - 430, 1160, 270, 24, 'right', '#111111', false, true, 'km');
+        // Reserve enough height for a readable approval stamp on compact
+        // one-page reports; do not shrink the stamp simply to fit the edge.
+        $signatureTop = min(self::PAGE_HEIGHT - 165, $noteTop + 65);
+        $this->drawPangoText($canvas, $tempDir, 'បានឃើញ និង ឯកភាព', $this->pangoFontKhmerRegular(), 130, $signatureTop, 250, 22, 'left', '#111111', false, true, 'km');
+        $this->drawPangoText($canvas, $tempDir, 'នាយកមជ្ឈមណ្ឌល', $this->pangoFontKhmerRegular(), 130, $signatureTop + 30, 250, 22, 'left', '#111111', false, true, 'km');
+        $this->drawPangoText($canvas, $tempDir, $this->khmerLongDate($reportDate), $this->pangoFontKhmerRegular(), 1190, $signatureTop, 420, 22, 'right', '#111111', false, true, 'km');
+        $this->drawPangoText($canvas, $tempDir, 'ហត្ថលេខា និងឈ្មោះគ្រូបង្រៀន', $this->pangoFontKhmerRegular(), 1190, $signatureTop + 30, 420, 22, 'right', '#111111', false, true, 'km');
+        $this->drawPangoText($canvas, $tempDir, 'គ្រូបង្រៀន៖ ' . $teacher, $this->pangoFontKhmerBold(), 1190, $signatureTop + 78, 420, 24, 'right', '#111111', false, true, 'km');
+
+        $stampPath = public_path('assets/etec_stamp.png');
+        // On a full first page the closing block is intentionally compact.
+        // Keep the stamp below the approval text without allowing it to run
+        // past the landscape page boundary.
+        $stampY = min(self::PAGE_HEIGHT - 112, $signatureTop + 48);
+        if (is_file($stampPath) && $stampY + 100 <= self::PAGE_HEIGHT - 12) {
+            $stamp = @imagecreatefrompng($stampPath);
+            if ($stamp !== false) {
+                imagealphablending($stamp, true);
+                imagesavealpha($stamp, true);
+                imagecopyresampled($canvas, $stamp, 125, $stampY, 0, 0, 108, 100, imagesx($stamp), imagesy($stamp));
+                imagedestroy($stamp);
+            }
+        }
     }
 
     private function drawPangoText(
@@ -320,6 +441,7 @@ class ClassResultPdfGenerator
         bool $wrap,
         bool $ellipsize,
         ?string $language = null,
+        bool $vcenter = false,
     ): void {
         if ($this->pangoViewBinary() === null) {
             $this->drawGdKhmerText($canvas, $text, $font, $x, $y, $width, $height, $align, $foreground);
@@ -332,10 +454,53 @@ class ClassResultPdfGenerator
             throw new RuntimeException('Unable to read rendered text image.');
         }
 
+        $textImage = $vcenter ? $this->trimTransparentPadding($image) : $image;
+        $offsetY = $vcenter ? max(0, intdiv($height - imagesy($textImage), 2)) : 0;
+
         imagealphablending($canvas, true);
         imagesavealpha($canvas, true);
-        imagecopy($canvas, $image, $x, $y, 0, 0, imagesx($image), imagesy($image));
+        imagecopy($canvas, $textImage, $x, $y + $offsetY, 0, 0, imagesx($textImage), imagesy($textImage));
+        if ($textImage !== $image) {
+            imagedestroy($textImage);
+        }
         imagedestroy($image);
+    }
+
+    /**
+     * pango-view honours the requested height by returning transparent padding
+     * above and below the glyphs. Trim that padding before positioning a table
+     * name so the visible letters, rather than the transparent PNG canvas,
+     * are vertically centred in the row.
+     */
+    private function trimTransparentPadding($image)
+    {
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $top = $height;
+        $bottom = -1;
+
+        for ($y = 0; $y < $height; $y++) {
+            for ($x = 0; $x < $width; $x++) {
+                $alpha = (imagecolorat($image, $x, $y) >> 24) & 0x7f;
+                if ($alpha < 127) {
+                    $top = min($top, $y);
+                    $bottom = max($bottom, $y);
+                }
+            }
+        }
+
+        if ($bottom < $top) {
+            return $image;
+        }
+
+        $cropped = imagecrop($image, [
+            'x' => 0,
+            'y' => $top,
+            'width' => $width,
+            'height' => $bottom - $top + 1,
+        ]);
+
+        return $cropped === false ? $image : $cropped;
     }
 
     /**
@@ -361,7 +526,7 @@ class ClassResultPdfGenerator
         }
 
         $textWidth = abs($box[4] - $box[0]);
-        $textHeight = abs($box[5] - $box[1]);
+        $textHeight = abs($box[7] - $box[1]);
         $drawX = $x + 4;
 
         if ($align === 'center') {
@@ -370,7 +535,8 @@ class ClassResultPdfGenerator
             $drawX = $x + max(0, $width - $textWidth - 4);
         }
 
-        $drawY = $y + max(0, (int) (($height - $textHeight) / 2)) - $box[1];
+        // baseline = top of the text block + its ascent ($box[7] is negative)
+        $drawY = $y + max(0, (int) (($height - $textHeight) / 2)) - $box[7];
         [$red, $green, $blue] = sscanf($foreground, '#%02x%02x%02x');
         $color = imagecolorallocate($canvas, $red ?? 17, $green ?? 17, $blue ?? 17);
         imagettftext($canvas, $fontSize, 0, $drawX, $drawY, $color, $font, $text);
@@ -470,7 +636,7 @@ class ClassResultPdfGenerator
         return $path;
     }
 
-    private function drawLatinTextCentered($canvas, string $text, int $x, int $y, int $width, int $height, int $fontSize, int $color, bool $bold = false): void
+    private function drawLatinTextCentered($canvas, string $text, int $x, int $y, int $width, int $height, float $fontSize, int $color, bool $bold = false): void
     {
         $font = $bold ? $this->latinBoldFont() : $this->latinRegularFont();
         $text = trim($text);
@@ -485,15 +651,36 @@ class ClassResultPdfGenerator
         }
 
         $textWidth = abs($box[4] - $box[0]);
-        $textHeight = abs($box[5] - $box[1]);
+
+        // Centre on cap height (not on this string's own bbox) so every cell in a
+        // row shares one baseline, whether or not the text has descenders.
+        $ref = imagettfbbox($fontSize, 0, $font, 'H');
+        $capHeight = $ref === false ? $fontSize : abs($ref[7] - $ref[1]);
+
         $drawX = $x + max(0, (int) (($width - $textWidth) / 2));
-        $drawY = $y + max(0, (int) (($height - $textHeight) / 2)) - $box[1];
-        imagettftext($canvas, $fontSize, 0, $drawX, $drawY, $color, $font, $text);
+        $baseline = $y + (int) round(($height + $capHeight) / 2);
+        imagettftext($canvas, $fontSize, 0, $drawX, $baseline, $color, $font, $text);
     }
 
-    private function fitLatinText(string $text, string $font, int $fontSize, int $maxWidth): string
+    private function drawLatinTextLeft($canvas, string $text, int $x, int $y, float $fontSize, int $color, bool $bold = false): void
+    {
+        $font = $bold ? $this->latinBoldFont() : $this->latinRegularFont();
+        $box = imagettfbbox($fontSize, 0, $font, $text);
+        if ($box === false) {
+            return;
+        }
+
+        imagettftext($canvas, $fontSize, 0, $x, $y - $box[1], $color, $font, $text);
+    }
+
+    private function fitLatinText(string $text, string $font, float $fontSize, int $maxWidth): string
     {
         if ($maxWidth <= 0) {
+            return $text;
+        }
+
+        // Fits as-is: no ellipsis needed.
+        if ($this->latinTextWidth($text, $font, $fontSize) <= $maxWidth) {
             return $text;
         }
 
@@ -502,10 +689,10 @@ class ClassResultPdfGenerator
             $candidate = mb_substr($candidate, 0, mb_strlen($candidate) - 1);
         }
 
-        return $candidate === '' ? '...' : $candidate;
+        return $candidate === '' ? '...' : $candidate . '...';
     }
 
-    private function latinTextWidth(string $text, string $font, int $fontSize): int
+    private function latinTextWidth(string $text, string $font, float $fontSize): int
     {
         $box = imagettfbbox($fontSize, 0, $font, $text);
         if ($box === false) {
@@ -518,31 +705,39 @@ class ClassResultPdfGenerator
     private function latinRegularFont(): string
     {
         return $this->resolveFont([
-            self::FONT_LATIN_REG,
             '/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf',
-            'DejaVu Sans',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
             'Liberation Sans',
+            self::FONT_LATIN_REG,
+            'DejaVu Sans',
         ], 'Latin regular');
     }
 
     private function latinBoldFont(): string
     {
         return $this->resolveFont([
-            self::FONT_LATIN_BOLD,
             '/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf',
-            'DejaVu Sans Bold',
-            'Liberation Sans Bold',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+            'Liberation Sans:bold',
+            self::FONT_LATIN_BOLD,
+            'DejaVu Sans:bold',
         ], 'Latin bold');
     }
 
-    private function pangoFontKhmerRegular(): string
+    private function pangoFontKhmerRegular(int $size = 18): string
     {
-        return 'Noto Sans Khmer 18';
+        return 'Noto Sans Khmer ' . $size;
     }
 
     private function pangoFontKhmerBold(): string
     {
         return 'Noto Sans Khmer Bold 18';
+    }
+
+    private function pangoFontTableName(): string
+    {
+        // Latin letters use Liberation Sans (falls back to DejaVu Sans), Khmer uses Noto Sans Khmer
+        return 'Liberation Sans,DejaVu Sans,Noto Sans Khmer Bold ' . self::BODY_PX;
     }
 
     private function khmerRegularFont(): string
@@ -559,7 +754,7 @@ class ClassResultPdfGenerator
         return $this->resolveFont([
             public_path('assets/fonts/KhmerUIb.ttf'),
             '/usr/share/fonts/truetype/noto/NotoSansKhmer-Bold.ttf',
-            'Noto Sans Khmer Bold',
+            'Noto Sans Khmer:bold',
         ], 'Khmer bold');
     }
 
@@ -608,10 +803,10 @@ class ClassResultPdfGenerator
                 throw new RuntimeException('Unable to read generated page image.');
             }
 
-            $contentStream = "q\n" . self::PAGE_WIDTH . " 0 0 " . self::PAGE_HEIGHT . " 0 0 cm\n/Im{$pageNumber} Do\nQ\n";
+            $contentStream = "q\n" . self::PDF_A4_LANDSCAPE_WIDTH . " 0 0 " . self::PDF_A4_LANDSCAPE_HEIGHT . " 0 0 cm\n/Im{$pageNumber} Do\nQ\n";
             $objects[$contentObject] = '<< /Length ' . strlen($contentStream) . " >>\nstream\n" . $contentStream . "endstream";
             $objects[$imageObject] = '<< /Type /XObject /Subtype /Image /Width ' . $width . ' /Height ' . $height . ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' . strlen($jpegData) . " >>\nstream\n" . $jpegData . "\nendstream";
-            $objects[$pageObject] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' . self::PAGE_WIDTH . ' ' . self::PAGE_HEIGHT . '] /Contents ' . $contentObject . ' 0 R /Resources << /XObject << /Im' . $pageNumber . ' ' . $imageObject . ' 0 R >> /ProcSet [/PDF /ImageC] >> >>';
+            $objects[$pageObject] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' . self::PDF_A4_LANDSCAPE_WIDTH . ' ' . self::PDF_A4_LANDSCAPE_HEIGHT . '] /Contents ' . $contentObject . ' 0 R /Resources << /XObject << /Im' . $pageNumber . ' ' . $imageObject . ' 0 R >> /ProcSet [/PDF /ImageC] >> >>';
         }
 
         $handle = fopen($pdfPath, 'wb');
@@ -645,34 +840,57 @@ class ClassResultPdfGenerator
         fclose($handle);
     }
 
+    /**
+     * Candidates are tried in order: an absolute path must exist as a file, anything
+     * else is treated as a fontconfig pattern ("Family" or "Family:bold").
+     */
     private function resolveFont(array $candidates, string $label): string
     {
-        foreach ($candidates as $candidate) {
-            if (is_string($candidate) && $candidate !== '' && is_file($candidate)) {
-                return $candidate;
-            }
+        $cacheKey = $label . '|' . md5(json_encode($candidates));
+        if (isset($this->fontCache[$cacheKey])) {
+            return $this->fontCache[$cacheKey];
         }
 
         foreach ($candidates as $candidate) {
-            if (! is_string($candidate) || $candidate === '' || str_starts_with($candidate, '/')) {
+            if (! is_string($candidate) || $candidate === '') {
+                continue;
+            }
+
+            if (str_starts_with($candidate, '/')) {
+                if (is_file($candidate)) {
+                    return $this->fontCache[$cacheKey] = $candidate;
+                }
+
                 continue;
             }
 
             $resolved = $this->resolveViaFontConfig($candidate);
             if ($resolved !== null) {
-                return $resolved;
+                return $this->fontCache[$cacheKey] = $resolved;
             }
         }
 
         throw new RuntimeException("Unable to locate a usable font for {$label}.");
     }
 
-    private function resolveViaFontConfig(string $family): ?string
+    private function resolveViaFontConfig(string $pattern): ?string
     {
-        $process = Process::timeout(10)->run(['fc-match', '-f', '%{file}\\n', $family]);
-        $output = trim($process->output());
+        $process = Process::timeout(10)->run(['fc-match', '-f', "%{family}\n%{file}\n", $pattern]);
+        if (! $process->successful()) {
+            return null;
+        }
 
-        return $process->successful() && $output !== '' && is_file($output) ? $output : null;
+        $lines = preg_split('/\R/', trim($process->output())) ?: [];
+        $family = strtolower($lines[0] ?? '');
+        $file = trim($lines[1] ?? '');
+        $wanted = strtolower(trim(explode(':', $pattern)[0]));
+
+        // fc-match always returns *something*; only accept it if it is the family we asked for
+        if ($file === '' || ! is_file($file) || ! str_contains($family, $wanted)) {
+            return null;
+        }
+
+        return $file;
     }
 
     private function writePangoSourceFile(string $tempDir, string $key, string $text): string
@@ -710,5 +928,39 @@ class ClassResultPdfGenerator
     {
         $numeric = (float) $value;
         return rtrim(rtrim(number_format($numeric, 2, '.', ''), '0'), '.');
+    }
+
+    private function otherScoreLabel(float $total, bool $passed): string
+    {
+        if (! $passed) {
+            return '';
+        }
+
+        if ($total >= 95) {
+            return '(70% off)';
+        }
+
+        if ($total >= 85) {
+            return '(50% discount)';
+        }
+
+        return '';
+    }
+
+    private function toKhmerDigits(string $value): string
+    {
+        return strtr($value, [
+            '0' => '០', '1' => '១', '2' => '២', '3' => '៣', '4' => '៤',
+            '5' => '៥', '6' => '៦', '7' => '៧', '8' => '៨', '9' => '៩',
+        ]);
+    }
+
+    private function khmerLongDate($date): string
+    {
+        $months = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
+
+        return 'ធ្វើនៅភ្នំពេញ, ថ្ងៃទី ' . $this->toKhmerDigits($date->format('j'))
+            . ' ខែ ' . $months[((int) $date->format('n')) - 1]
+            . ' ឆ្នាំ ' . $this->toKhmerDigits($date->format('Y'));
     }
 }

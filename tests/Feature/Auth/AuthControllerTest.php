@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Enums\UserStatus;
 use App\Models\OtpVerification;
+use App\Models\OtpVerificationSetting;
 use App\Models\User;
 use App\Modules\Auth\Events\PendingUserRegistered;
 use App\Modules\Auth\Services\OtpService;
@@ -346,14 +347,14 @@ class AuthControllerTest extends TestCase
 
     public function test_otp_disabled_registration_login_mints_the_role_expiry(): void
     {
-        config(['auth.otp.enabled' => false]);
+        OtpVerificationSetting::current()->update(['is_enabled' => false]);
 
         $this->post('/instructor-register', [
             'name' => 'OTP Disabled Instructor',
             'email' => 'otp.off@etec.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-        ])->assertRedirect('/dashboard');
+        ])->assertRedirect('/dashboard/instructor/onboarding');
 
         $user = User::where('email', 'otp.off@etec.com')->first();
         $this->assertTrue($user->fresh()->access_expires_at->isSameDay(now()->addMonth()));
@@ -451,14 +452,14 @@ class AuthControllerTest extends TestCase
 
     public function test_register_activates_user_immediately_when_otp_is_disabled(): void
     {
-        config(['auth.otp.enabled' => false]);
+        OtpVerificationSetting::current()->update(['is_enabled' => false]);
 
         $this->post('/instructor-register', [
             'name' => 'New Instructor',
             'email' => 'no.otp@etec.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-        ])->assertRedirect('/dashboard');
+        ])->assertRedirect('/dashboard/instructor/onboarding');
 
         $user = User::where('email', 'no.otp@etec.com')->first();
         $this->assertSame(UserStatus::Active, $user->status);

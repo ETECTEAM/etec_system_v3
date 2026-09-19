@@ -12,6 +12,11 @@ const statusOptions = [
   { label: 'Active', value: 'active' },
   { label: 'Inactive', value: 'inactive' },
 ]
+// Values match the students.gender enum ('male' | 'female').
+const genderOptions = [
+  { label: 'Male', value: 'male' },
+  { label: 'Female', value: 'female' },
+]
 const student = computed(() => props.form.role === 'student')
 const instructor = computed(() => props.form.role === 'instructor')
 const showPassword = ref(false)
@@ -67,6 +72,12 @@ const showPasswordConfirmation = ref(false)
       </label>
     </div>
 
+    <label class="block">
+      <span class="mb-2 block text-sm font-semibold text-slate-700">{{ $t('Gender') }}</span>
+      <SelectSearch v-model="form.gender" :options="genderOptions" :placeholder="$t('Select gender')" />
+      <span v-if="form.errors.gender" class="text-xs text-red-600">{{ form.errors.gender }}</span>
+    </label>
+
     <template v-if="student">
       <div class="sm:col-span-2 border-t pt-4 text-base font-semibold text-slate-900">{{ $t('Student Profile') }}</div>
       <label class="block">
@@ -87,16 +98,13 @@ const showPasswordConfirmation = ref(false)
         <input v-model="form.student_full_name_kh" placeholder="ឈ្មោះពេញ" class="input" />
       </label>
       <label class="block">
-        <span>{{ $t('Gender') }}</span>
-        <input v-model="form.student_gender" :placeholder="$t('Male / Female')" class="input" />
-      </label>
-      <label class="block">
         <span>{{ $t('Date of Birth') }}</span>
         <input v-model="form.student_date_of_birth" type="date" :placeholder="$t('YYYY-MM-DD')" class="input" />
       </label>
       <label class="block">
         <span>{{ $t('Student Phone') }}</span>
         <input v-model="form.student_phone" :placeholder="$t('e.g. 012 345 678')" class="input" />
+        <span v-if="form.errors.student_phone" class="text-xs text-red-600">{{ form.errors.student_phone }}</span>
       </label>
       <label class="block">
         <span>{{ $t('Contact Email') }}</span>
@@ -151,10 +159,6 @@ const showPasswordConfirmation = ref(false)
       <label class="block">
         <span>{{ $t('Full Name Khmer') }}</span>
         <input v-model="form.instructor_full_name_kh" placeholder="ឈ្មោះពេញ" class="input" />
-      </label>
-      <label class="block">
-        <span>{{ $t('Gender') }}</span>
-        <input v-model="form.instructor_gender" :placeholder="$t('Male / Female')" class="input" />
       </label>
       <label class="block">
         <span>{{ $t('Date of Birth') }}</span>

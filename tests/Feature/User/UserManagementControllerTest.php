@@ -102,7 +102,7 @@ class UserManagementControllerTest extends TestCase
 
         $this->assertDatabaseHas('roles', [
             'name' => 'editor',
-            'guard_name' => 'sanctum',
+            'guard_name' => 'web',
         ]);
     }
 
@@ -124,7 +124,7 @@ class UserManagementControllerTest extends TestCase
 
     public function test_creating_duplicate_role_fails_validation(): void
     {
-        Role::findOrCreate('editor', 'sanctum');
+        Role::findOrCreate('editor', 'web');
 
         $this->actingAs($this->superAdmin())
             ->postJson('/dashboard/users/roles', ['name' => 'Editor'])

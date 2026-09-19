@@ -27,8 +27,8 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
         Route::post('/attendance-block/request', [InstructorClassController::class, 'requestAttendanceUnblock'])->middleware('throttle:10,1')->name('instructor.attendance-block.request');
         // Route to list this instructor's ended classes so they can re-open a finished class's result sheet / re-download its PDF.
         Route::get('/class-history', [InstructorClassController::class, 'history'])->name('instructor.classes.history');
-        Route::get('/classes/create', [InstructorClassController::class, 'create'])->name('instructor.classes.create');
-        Route::post('/classes', [InstructorClassController::class, 'store'])->name('instructor.classes.store');
+        Route::get('/classes/create', [InstructorClassController::class, 'create'])->middleware('can-create-classes')->name('instructor.classes.create');
+        Route::post('/classes', [InstructorClassController::class, 'store'])->middleware('can-create-classes')->name('instructor.classes.store');
         Route::get('/classes/{studyClass}', [InstructorClassController::class, 'show'])->name('instructor.classes.show');
         Route::get('/classes/{studyClass}/attendance', [InstructorClassController::class, 'attendance'])->name('instructor.classes.attendance');
         Route::get('/classes/{studyClass}/result', [InstructorClassController::class, 'result'])->name('instructor.classes.result');

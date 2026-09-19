@@ -179,9 +179,14 @@ function courseHasClassType(course) {
   return (course.class_schedules ?? []).some((ct) => String(ct.class_type_id) === selectedClassType.value)
 }
 
+// Open/Closed belongs to the class type on the current tab, not the course.
+function classTypeStatus(course) {
+  return getCourseClassType(course)?.status ?? 'open'
+}
+
 function courseMatchesStatus(course) {
   if (selectedStatus.value === '') return true
-  return course.config?.enroll_status === selectedStatus.value
+  return classTypeStatus(course) === selectedStatus.value
 }
 
 // AND-combined filters on the already-loaded tree; empty groups are pruned.
@@ -320,6 +325,8 @@ async function saveConfig(course, changes) {
 
   try {
     const payload = {
+      // Legacy course-wide value, passed back unchanged (the API still requires
+      // it). Open/Closed is edited per class type - see toggleClassTypeStatus().
       status: course.config.enroll_status,
       start_date: course.config.start_date ?? null,
       unit_price: course.config.unit_price,
@@ -343,10 +350,6 @@ async function saveConfig(course, changes) {
   } finally {
     savingId.value = null
   }
-}
-
-function toggleStatus(course) {
-  saveConfig(course, { enroll_status: course.config.enroll_status === 'open' ? 'closed' : 'open' })
 }
 
 function updateStartDate(course, value) {
@@ -487,6 +490,31 @@ function onToggleTime(course, term, time) {
 function setAllForCourse(course, open) {
   const ct = getCourseClassType(course)
   if (ct) setClassTypeAvailability(course, ct, open)
+}
+
+// Open/close the course under the class type on the current tab only. Its
+// other class types and every time slot keep their state, so re-opening
+// restores it exactly as it was.
+async function toggleClassTypeStatus(course) {
+  const classType = getCourseClassType(course)
+  if (!classType) return
+
+  const previous = classType.status
+  classType.status = previous === 'open' ? 'closed' : 'open'
+  pendingKey.value = `status:${course.id}:${classType.class_type_id}`
+
+  try {
+    await axios.put(`/dashboard/enroll/config/course/${course.id}/class-type-status`, {
+      class_type_id: classType.class_type_id,
+      status: classType.status,
+    })
+  } catch (error) {
+    console.error('Failed to save class type status', error)
+    classType.status = previous
+    toast.error(error.response?.data?.message ?? t('Failed to save. Please try again.'))
+  } finally {
+    pendingKey.value = null
+  }
 }
 
 function niceDate(value) {
@@ -736,15 +764,16 @@ const numCell =
 
                           <div class="flex items-center gap-2 pt-0.5">
                             <button
+                              v-if="getCourseClassType(course)"
                               type="button"
-                              :disabled="savingId === course.config.id"
+                              :disabled="pendingKey === `status:${course.id}:${getCourseClassType(course).class_type_id}`"
                               class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold transition disabled:opacity-50"
-                              :class="course.config.enroll_status === 'open'
+                              :class="classTypeStatus(course) === 'open'
                                 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
                                 : 'bg-slate-100 text-slate-600 dark:bg-gray-700 dark:text-gray-300'"
-                              @click="toggleStatus(course)"
+                              @click="toggleClassTypeStatus(course)"
                             >
-                              {{ course.config.enroll_status === 'open' ? $t('Open') : $t('Closed') }}
+                              {{ classTypeStatus(course) === 'open' ? $t('Open') : $t('Closed') }}
                             </button>
                             <span class="ml-auto flex items-center gap-1 text-[11px] text-slate-400 dark:text-gray-500">
                               <button
@@ -771,7 +800,11 @@ const numCell =
                         :key="term"
                         class="border-r border-slate-200 p-2 align-top last:border-r-0 dark:border-gray-800"
                       >
-                        <div v-if="termSlots(course, term).times.length" class="space-y-1.5">
+                        <div
+                          v-if="termSlots(course, term).times.length"
+                          class="space-y-1.5"
+                          :class="{ 'opacity-60': classTypeStatus(course) === 'closed' }"
+                        >
                           <div
                             v-for="time in termSlots(course, term).times"
                             :key="time.time_id"

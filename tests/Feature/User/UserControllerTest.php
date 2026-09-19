@@ -4,8 +4,9 @@ namespace Tests\Feature\User;
 
 use App\Enums\UserStatus;
 use App\Models\User;
-use Database\Seeders\Core\PermissionSeeder;
-use Database\Seeders\Core\RoleSeeder;
+use Database\Seeders\Permission\AssignPermissionSeeder;
+use Database\Seeders\Permission\PermissionSeeder;
+use Database\Seeders\Permission\RoleSeeder;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -19,7 +20,10 @@ class UserControllerTest extends TestCase
         parent::setUp();
 
         $this->withoutMiddleware(ValidateCsrfToken::class);
-        $this->seed([PermissionSeeder::class, RoleSeeder::class]);
+        // The real permission set (see ProductionSeeder), not Database\Seeders\Core\*
+        // - UserPolicy now also requires the matching *-users permission, which
+        // only this trio (including AssignPermissionSeeder) actually grants to admin.
+        $this->seed([PermissionSeeder::class, RoleSeeder::class, AssignPermissionSeeder::class]);
     }
 
     // Explicit status is required here: the users table only defaults
@@ -311,7 +315,7 @@ class UserControllerTest extends TestCase
                 'role' => 'student',
                 'account_status' => 'active',
                 'student_full_name' => 'New Student',
-                'student_gender' => 'male',
+                'gender' => 'male',
                 'student_phone' => '012345678',
             ]);
 
@@ -321,5 +325,8 @@ class UserControllerTest extends TestCase
         $user = User::where('email', 'new.student@etec.com')->first();
         $this->assertTrue($user->hasRole('student'));
         $this->assertSame('New Student', $user->student?->full_name);
+        // The one gender field lands on the account and is copied into the student profile.
+        $this->assertSame('male', $user->gender);
+        $this->assertSame('male', $user->student?->gender);
     }
 }

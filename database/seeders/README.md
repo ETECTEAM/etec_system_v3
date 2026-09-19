@@ -4,7 +4,7 @@ Seeders are split into two groups:
 
 | Folder | Class | Contains | Runs in production? |
 | --- | --- | --- | --- |
-| `Production/` | `Production\ProductionSeeder` | Reference / lookup data (permissions, roles, settings, categories, class types, terms, times, work schedules, buildings, courses, schedule grid, website menu) + **one real super-admin login**. Every seeder here is idempotent. | **Yes** |
+| `Production/` | `Production\ProductionSeeder` | Reference / lookup data (permissions, roles, settings, categories, class types, terms, times, work schedules, buildings, courses, schedule grid, website menu) + **the two real logins: super-admin and admin**. Every seeder here is idempotent. | **Yes** |
 | `Dev/` | `Dev\DevSeeder` | `Dev\DevAdminSeeder` (`admin@etec.com`) + `Dev\InstructorWorkScheduleSeeder` (`instructor1@etec.com` … `instructorN@etec.com`, one per work schedule) + `Dev\CourseEnrollConfigSeeder` (every course open on Physical Class slots, $100 unit / $89 course, no start date, Basic IT first) + any other demo data for trying out a new feature locally. | **No** |
 
 The per-domain folders (`Permission/`, `Course/`, `Class/`, `Feature/`, ...) still
@@ -51,18 +51,23 @@ php artisan db:seed --class="Database\Seeders\Dev\InstructorWorkScheduleSeeder"
 php artisan db:seed --class="Database\Seeders\Dev\CourseEnrollConfigSeeder"
 ```
 
-## Production super-admin credentials
+## Production super-admin / admin credentials
 
-`Production\SuperAdminSeeder` creates a single login and never truncates
-`users`. Override the defaults with env vars before deploying:
+`Production\SuperAdminSeeder` and `Production\AdminSeeder` each create a
+single login and never truncate `users`. Override the defaults with env vars
+before deploying:
 
 ```dotenv
 SEEDER_SUPERADMIN_EMAIL=superadmin@etec.com
 SEEDER_SUPERADMIN_NAME="Super Admin"
 SEEDER_SUPERADMIN_PASSWORD=change-me
+
+SEEDER_ADMIN_EMAIL=admin@etec.com
+SEEDER_ADMIN_NAME="Admin User"
+SEEDER_ADMIN_PASSWORD=change-me
 ```
 
-Default password is `password` — change it for any real environment.
+Default password for both is `password` — change it for any real environment.
 
 ## One-off scenario seeders (`Feature/*`)
 

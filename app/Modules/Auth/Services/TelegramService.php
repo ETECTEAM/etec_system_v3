@@ -14,15 +14,17 @@ use Throwable;
  */
 class TelegramService
 {
-    public function sendAdminApprovalRequest(User $user, OtpVerification $otp, string $plainCode, ?string $ipAddress = null): void
+    public function sendAdminApprovalRequest(User $user, ?OtpVerification $otp, ?string $plainCode, ?string $ipAddress = null): void
     {
         $chatId = (string) config('services.telegram.otp_chat_id');
         $botToken = (string) config('services.telegram.otp_bot_token');
-        $lockKey = "telegram:approval-request:{$otp->id}";
+        // OTP-disabled registrations have no OtpVerification row to key the
+        // dedupe lock on, so fall back to the user id.
+        $lockKey = $otp !== null ? "telegram:approval-request:{$otp->id}" : "telegram:registration-log:{$user->id}";
 
         if ($chatId === '') {
             Log::warning('Telegram OTP approval not sent: TELEGRAM_OTP_CHAT_ID is missing.', [
-                'otp_id' => $otp->id,
+                'otp_id' => $otp?->id,
                 'user_id' => $user->id,
             ]);
 
@@ -31,7 +33,7 @@ class TelegramService
 
         if ($botToken === '') {
             Log::warning('Telegram OTP approval not sent: TELEGRAM_OTP_BOT_TOKEN is missing.', [
-                'otp_id' => $otp->id,
+                'otp_id' => $otp?->id,
                 'user_id' => $user->id,
             ]);
 
@@ -45,28 +47,34 @@ class TelegramService
         $message = $this->buildMessage($user, $plainCode, $ipAddress);
 
         try {
+            $payload = [
+                'chat_id' => $chatId,
+                'text' => $message,
+                'parse_mode' => 'HTML',
+            ];
+
+            // No copy-code button when there's no OTP to copy.
+            if ($plainCode !== null) {
+                $payload['reply_markup'] = json_encode([
+                    'inline_keyboard' => [
+                        [
+                            ['text' => $plainCode, 'copy_text' => ['text' => $plainCode]],
+                        ],
+                    ],
+                ]);
+            }
+
             $response = Http::asForm()
                 ->acceptJson()
                 ->connectTimeout(5)
                 ->timeout(10)
-                ->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
-                    'chat_id' => $chatId,
-                    'text' => $message,
-                    'parse_mode' => 'HTML',
-                    'reply_markup' => json_encode([
-                        'inline_keyboard' => [
-                            [
-                                ['text' => $plainCode, 'copy_text' => ['text' => $plainCode]],
-                            ],
-                        ],
-                    ]),
-                ]);
+                ->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
 
             if (! $response->successful()) {
                 Cache::forget($lockKey);
 
                 Log::warning('Telegram OTP approval failed.', [
-                    'otp_id' => $otp->id,
+                    'otp_id' => $otp?->id,
                     'user_id' => $user->id,
                     'status' => $response->status(),
                 ]);
@@ -75,28 +83,36 @@ class TelegramService
             Cache::forget($lockKey);
 
             Log::error('Telegram OTP approval failed.', [
-                'otp_id' => $otp->id,
+                'otp_id' => $otp?->id,
                 'user_id' => $user->id,
                 'exception' => $e::class,
             ]);
         }
     }
 
-    private function buildMessage(User $user, string $plainCode, ?string $ipAddress = null): string
+    private function buildMessage(User $user, ?string $plainCode, ?string $ipAddress = null): string
     {
         $email = $user->email ?? 'n/a';
 
-        return implode("\n", [
+        $lines = [
             'New Instructor Registration',
             '',
             'Name: '.$this->escapeHtml($user->name),
             'Email: '.$this->escapeHtml($this->maskEmail($email)),
             'Location: '.$this->escapeHtml($this->resolveLocation($ipAddress)),
-            '',
-            'OTP: '.$plainCode,
-            '',
-            'Tap the OTP button below to copy the code.',
-        ]);
+        ];
+
+        if ($plainCode !== null) {
+            $lines[] = '';
+            $lines[] = 'OTP: '.$plainCode;
+            $lines[] = '';
+            $lines[] = 'Tap the OTP button below to copy the code.';
+        } else {
+            $lines[] = '';
+            $lines[] = 'OTP verification is off - account is already active.';
+        }
+
+        return implode("\n", $lines);
     }
 
     /**

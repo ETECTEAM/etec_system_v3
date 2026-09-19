@@ -25,8 +25,16 @@ echo "==> Building images"
 docker compose -f "${COMPOSE_FILE}" build app reverb nginx
 
 echo "==> Installing dependencies and building assets"
+# This builds in place while the old containers keep serving from the same bind
+# mount. By default Vite empties public/build before it writes the new bundle,
+# so for that stretch there is no manifest.json and every full page load throws
+# "Vite manifest not found" (one Telegram alert per hit, on every deploy).
+# --no-emptyOutDir leaves the previous build in place until the new manifest
+# replaces it, so the site always has a complete build - including when this
+# step is killed partway. Old hashed files then linger for tabs that are still
+# open; the find drops the ones no build has rewritten in 30 days.
 docker compose -f "${COMPOSE_FILE}" run --rm --no-deps app sh -c \
-  "composer install --no-dev --optimize-autoloader --no-interaction && rm -rf node_modules && npm ci && npm run build"
+  "composer install --no-dev --optimize-autoloader --no-interaction && rm -rf node_modules && npm ci && npm run build -- --no-emptyOutDir && (find public/build/assets -type f -mtime +30 -delete || true)"
 
 # Docker's container removal is asynchronous under the hood (the daemon
 # returns before overlay/volume cleanup finishes), so recreating a container

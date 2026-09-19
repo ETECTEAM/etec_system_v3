@@ -976,5 +976,16 @@ export const backendFinalTranslations = {
     "Attendance Rule Settings": "ការកំណត់ច្បាប់វត្តមាន",
     "Absence Block Audit": "កំណត់ហេតុការទប់ស្កាត់អវត្តមាន",
     "Showing :from-:to of :total": "កំពុងបង្ហាញ :from-:to នៃ :total",
+    // Collapse Class: Basic IT's Code / Network split is suggested from specialization
+    "This class is split into :first and :second. The suggestion follows each instructor's specialization - you can change it.": "ថ្នាក់នេះត្រូវបានបំបែកជា :first និង :second។ ការណែនាំនេះផ្អែកលើជំនាញរបស់គ្រូនីមួយៗ - អ្នកអាចកែប្រែបាន។",
+    // Instructor Create Class: the lesson list follows the chosen course
+    "Select course first": "ជ្រើសវគ្គសិក្សាជាមុន",
+    // Attendance settings save as you change them (no Save button)
+    "Changes save automatically.": "ការផ្លាស់ប្តូរត្រូវបានរក្សាទុកដោយស្វ័យប្រវត្តិ។",
+    // Inline class capacity edit (class cards)
+    "Edit class capacity": "កែប្រែចំនួនអតិបរមារបស់ថ្នាក់",
+    "Class capacity updated.": "បានធ្វើបច្ចុប្បន្នភាពចំនួនអតិបរមារបស់ថ្នាក់។",
+    "Failed to update capacity. Please try again.": "មិនអាចធ្វើបច្ចុប្បន្នភាពចំនួនអតិបរមាបានទេ។ សូមព្យាយាមម្តងទៀត។",
+    "Capacity can't be lower than the :count students already in this class.": "ចំនួនអតិបរមាមិនអាចតិចជាង :count សិស្សដែលមានក្នុងថ្នាក់នេះទេ។",
   },
 }
