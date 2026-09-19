@@ -147,6 +147,7 @@ class GetClassList
         return [
             'id' => $studyClass->id,
             'slug' => $studyClass->slug,
+            'join_token' => $studyClass->join_token,
             'title' => $studyClass->title,
             'course' => $studyClass->course?->title,
             'course_price' => $studyClass->course?->price !== null ? (float) $studyClass->course->price : null,

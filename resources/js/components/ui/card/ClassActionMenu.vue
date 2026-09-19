@@ -60,7 +60,8 @@ const page = usePage();
 const roles = computed(() => page.props.auth?.roles ?? []);
 const isAdminUser = computed(() => roles.value.includes("super_admin") || roles.value.includes("admin"));
 const isInstructor = computed(() => roles.value.includes("instructor") && !isAdminUser.value);
-const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.slug ?? props.classData.id}`);
+// The link carries the class's random join_token, never its guessable slug.
+const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.join_token}`);
 const qrCopied = ref(false);
 const qrZoomed = ref(false);
 
@@ -142,7 +143,7 @@ const menus = computed(() => [
     label: "Generate QR",
     icon: QrCode,
     action: () => { showQr.value = true; open.value = false; },
-    disabled: lockedStudentActions.value,
+    disabled: lockedStudentActions.value || !props.classData?.join_token,
   },
   {
     label: "Copy Class",

@@ -91,6 +91,8 @@ class InstructorClassService
         return DB::table('study_classes')->insertGetId([
             'title' => $data['title'],
             'slug' => StudyClass::uniqueSlug($data['title']),
+            // DB::table() skips the model's creating hook, so the join-link secret is set here.
+            'join_token' => StudyClass::uniqueJoinToken(),
             'course_id' => $data['course_id'],
             'lesson_id' => $data['lesson_id'] ?? null,
             'term_id' => $data['term_id'] ?? null,
@@ -780,6 +782,7 @@ class InstructorClassService
         return [
             'id' => $class->id,
             'slug' => $class->slug,
+            'join_token' => $class->join_token ?? null,
             'title' => $class->title,
             'course' => $class->course_title,
             'lesson' => $class->lesson_title ?? 'No lesson',
@@ -873,6 +876,7 @@ class InstructorClassService
             ->select([
                 'study_classes.id',
                 'study_classes.slug',
+                'study_classes.join_token',
                 'study_classes.title',
                 'study_classes.capacity',
                 'study_classes.status as class_status',

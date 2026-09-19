@@ -187,7 +187,8 @@ const menuItems = computed(() => [
         ]
         : []),
 ]);
-const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.slug ?? props.classData.id}`);
+// The link carries the class's random join_token, never its guessable slug.
+const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.join_token}`);
 const qrCopied = ref(false);
 const qrZoomed = ref(false);
 
@@ -219,6 +220,8 @@ function showAddStudent() {
 }
 
 function showQr() {
+    if (!props.classData.join_token) return;
+
     emit("qr", props.classData);
     showQrDialog.value = true;
 }

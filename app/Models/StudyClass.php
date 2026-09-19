@@ -167,6 +167,28 @@ class StudyClass extends Model
         return $this->isOnline() ? 'online' : 'physical';
     }
 
+    protected static function booted(): void
+    {
+        static::creating(function (StudyClass $studyClass): void {
+            $studyClass->join_token ??= static::uniqueJoinToken();
+        });
+    }
+
+    /**
+     * The secret behind the public QR join link (/join-class/{join_token}). Unlike the slug - the
+     * course title plus the creation second - it can't be guessed, so knowing a class exists is not
+     * enough to open its join page. Code that inserts with DB::table() skips the creating hook
+     * above and has to set this itself.
+     */
+    public static function uniqueJoinToken(): string
+    {
+        do {
+            $token = Str::random(40);
+        } while (static::query()->where('join_token', $token)->exists());
+
+        return $token;
+    }
+
     public static function uniqueSlug(string $title, ?int $ignoreId = null, mixed $timestamp = null): string
     {
         $dateTime = $timestamp ? Carbon::parse($timestamp) : now();

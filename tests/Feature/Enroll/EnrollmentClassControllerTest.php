@@ -204,7 +204,7 @@ class EnrollmentClassControllerTest extends TestCase
         $studyClass = $this->createStudyClass();
 
         // The dashboard route is staff-only now; the public entrypoint is
-        // /join-class/{id} (covered by test_public_qr_join_page_is_available_to_guests).
+        // /join-class/{join_token} (covered by test_public_qr_join_page_is_available_to_guests).
         $this->get("/dashboard/enroll/{$studyClass->id}/students/create")
             ->assertRedirect('/login');
     }
@@ -314,16 +314,37 @@ class EnrollmentClassControllerTest extends TestCase
     {
         $studyClass = $this->createStudyClass();
 
-        $this->get("/join-class/{$studyClass->id}")
+        $this->get("/join-class/{$studyClass->join_token}")
             ->assertOk()
             ->assertInertia(fn ($page) => $page->component('frontend/class-join/JoinClass'));
+    }
+
+    public function test_public_join_page_opens_only_with_the_random_token_not_the_guessable_slug(): void
+    {
+        // The slug is the course title plus the creation second - anyone can guess it.
+        $studyClass = $this->createStudyClass(['slug' => 'basic-it-20260919232902']);
+
+        $this->get('/join-class/basic-it-20260919232902')->assertNotFound();
+        $this->get("/join-class/{$studyClass->id}")->assertNotFound();
+        $this->get('/join-class/not-a-real-token')->assertNotFound();
+
+        $this->get("/join-class/{$studyClass->join_token}")->assertOk();
+    }
+
+    public function test_every_class_gets_its_own_random_join_token(): void
+    {
+        $first = $this->createStudyClass(['title' => 'Class One']);
+        $second = $this->createStudyClass(['title' => 'Class Two']);
+
+        $this->assertSame(40, strlen($first->join_token));
+        $this->assertNotSame($first->join_token, $second->join_token);
     }
 
     public function test_public_qr_join_page_rejects_pre_end_classes(): void
     {
         $studyClass = $this->createStudyClass(['status' => 'pre_end']);
 
-        $this->get("/join-class/{$studyClass->id}")
+        $this->get("/join-class/{$studyClass->join_token}")
             ->assertRedirect('/student-register')
             ->assertSessionHas('error', 'This class is no longer accepting join requests.');
     }
@@ -333,7 +354,7 @@ class EnrollmentClassControllerTest extends TestCase
         $studyClass = $this->createStudyClass();
 
         $this->withSession(['qr_joined_class_ids' => [$studyClass->id]])
-            ->get("/join-class/{$studyClass->id}")
+            ->get("/join-class/{$studyClass->join_token}")
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('frontend/class-join/JoinClass')
@@ -346,25 +367,25 @@ class EnrollmentClassControllerTest extends TestCase
         $secondClass = $this->createStudyClass(['title' => 'Class Two']);
 
         $lockedResponse = $this->withSession(['qr_joined_class_ids' => [$firstClass->id]])
-            ->from("/join-class/{$firstClass->id}")
-            ->post("/join-class/{$firstClass->id}", [
+            ->from("/join-class/{$firstClass->join_token}")
+            ->post("/join-class/{$firstClass->join_token}", [
                 'name' => 'Repeat Student',
                 'gender' => 'male',
                 'phone' => '012345670',
             ]);
 
-        $lockedResponse->assertRedirect("/join-class/{$firstClass->id}");
+        $lockedResponse->assertRedirect("/join-class/{$firstClass->join_token}");
         $lockedResponse->assertSessionHas('error', 'You have already requested this class from this device.');
 
         $allowedResponse = $this->withSession(['qr_joined_class_ids' => [$firstClass->id]])
-            ->from("/join-class/{$secondClass->id}")
-            ->post("/join-class/{$secondClass->id}", [
+            ->from("/join-class/{$secondClass->join_token}")
+            ->post("/join-class/{$secondClass->join_token}", [
                 'name' => 'Repeat Student',
                 'gender' => 'male',
                 'phone' => '012345671',
             ]);
 
-        $allowedResponse->assertRedirect("/join-class/{$secondClass->id}");
+        $allowedResponse->assertRedirect("/join-class/{$secondClass->join_token}");
         $allowedResponse->assertSessionHas('success', 'Your request was sent. An instructor will review it before approval.');
 
         $this->assertDatabaseHas('student_enrollments', [

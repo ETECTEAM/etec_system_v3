@@ -470,6 +470,7 @@ Table study_classes {
   id bigint [pk, increment]
   title varchar(255) [not null]
   slug varchar(255) [unique, null]
+  join_token varchar(64) [unique, null, note: 'random secret in the public QR join link /join-class/{join_token}; the slug is guessable and no longer opens anything']
   course_id bigint [not null, note: 'RESTRICT on delete']
   lesson_id bigint [null]
   teacher_id bigint [null, note: 'primary instructor -> users']

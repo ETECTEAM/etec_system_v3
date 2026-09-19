@@ -79,7 +79,7 @@ class ClassJoinController extends Controller
         ]);
 
         return redirect()
-            ->route('frontend.class-join.create', $studyClass->slug)
+            ->route('frontend.class-join.create', $studyClass->join_token)
             ->with('success', 'Your request was sent. Save these Student Portal credentials while you wait for instructor approval.')
             ->with('student_portal_email', $student->email)
             ->with('attendance_code', $student->attendance_code);

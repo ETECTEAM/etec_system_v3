@@ -93,7 +93,7 @@ nearly empty (only `Controller.php` base + `LocaleController.php`) and is not th
 | `Schedules` | live | plural name; route file is the misspelled `schdule.php` |
 | `Terms` / `Times` | live | plural module names, singular route files `term.php`/`time.php` |
 | `User` | live | richest module: `Controllers/`, `Data/`, `Policies/`, `Requests/`, `Services/` |
-| `Website` | live | `Actions/` + `Services/`; also owns the public `/join-class/{studyClass}` flow (`ClassJoinController`) alongside `/student-register` |
+| `Website` | live | `Actions/` + `Services/`; also owns the public `/join-class/{studyClass}` flow (`ClassJoinController`, resolved by the random `study_classes.join_token`, never the guessable slug) alongside `/student-register` |
 | `building` | live | **lowercase directory name** |
 | `Attendance` | live | `Actions/`, `Queries/`, `Requests/`, `Controllers/` (settings only) — **no `Services/`**. Its `Actions/` (`GenerateClassSessions`, `AutoRecordSession`, `FinalizeAutoRecordedSession`, `OverrideAttendanceRecord`) are driven by scheduled console commands (see §5) and consumed from `Instructor` — the actual attendance-recording UI/routes live under `Instructor`, not here. |
 | `WorkSchedule` | live | **only `Controllers/WorkScheduleController.php`** — no `Requests/`/`Data/`/`Services/`; validation is inline `$request->validate()` in the controller. **Replaced the old `ShiftTemplate` module** (deleted outright — see traps below). |
