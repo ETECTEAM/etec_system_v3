@@ -72,7 +72,6 @@ class StoreUserRequest extends FormRequest
             'shift_preference' => ['nullable', Rule::in(['morning_afternoon', 'morning_evening', 'afternoon_evening_11', 'afternoon_evening_1230'])],
             'available_for_class' => ['nullable', 'boolean'], 'hire_date' => ['nullable', 'date'],
             'instructor_address' => ['nullable', 'string'], 'instructor_status' => ['nullable', 'boolean'],
-            'can_create_classes' => ['nullable', 'boolean'],
         ];
     }
 
@@ -164,9 +163,6 @@ class StoreUserRequest extends FormRequest
             'shift_group' => $data['shift_preference'] ?? null, 
             'available_for_class' => $data['available_for_class'] ?? true,
             'status' => $data['instructor_status'] ?? true,
-            // Requires explicit admin approval before this instructor can
-            // self-service "Add Class" - see EnsureInstructorCanCreateClasses.
-            'can_create_classes' => $data['can_create_classes'] ?? false,
         ];
     }
 }

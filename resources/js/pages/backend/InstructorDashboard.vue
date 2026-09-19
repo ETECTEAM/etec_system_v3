@@ -74,6 +74,10 @@ const instructorDisplayName = (name, fallback = t("Instructor")) => {
 const instructorName = computed(() => instructorDisplayName(page.props.auth?.user?.name));
 const instructorId = computed(() => page.props.auth?.user?.id ?? "-");
 
+// Adding a class needs the create-classes permission: "Classes -> Create" on Role & Permission
+// (every instructor), or granted to this one instructor on User & Permission. The server checks the same.
+const canCreateClasses = computed(() => (page.props.auth?.permissions ?? []).includes("create-classes"));
+
 const filteredClasses = computed(() => {
   const query = search.value.trim().toLowerCase();
 
@@ -281,7 +285,7 @@ function actionItems(classData) {
             </p>
           </div>
           <Link
-            v-if="instructorData?.can_create_classes"
+            v-if="canCreateClasses"
             href="/dashboard/instructor/classes/create"
             class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-900 px-4 text-sm font-semibold text-white transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
           >

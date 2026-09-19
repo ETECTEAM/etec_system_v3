@@ -896,7 +896,7 @@ Table instructor_data {
   employment_type varchar(255) [null]
   shift_group varchar(255) [null]
   available_for_class boolean [default: true]
-  can_create_classes boolean [default: false]
+  can_create_classes boolean [default: false, note: 'legacy - no longer read; Add Class is controlled by the create-classes permission']
   status boolean [default: true]
   headline varchar(255) [null]
   bio text [null]
