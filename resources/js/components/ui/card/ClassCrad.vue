@@ -387,6 +387,14 @@ async function saveCapacity() {
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.class_type_label }}</span>
             </div>
             <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><CalendarDays class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Study Term') }}</span></div>
+                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.term }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><Clock3 class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Study Time') }}</span></div>
+                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.time }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
                 <span class="text-xs sm:text-sm text-slate-500 dark:text-gray-400">{{ $t('Status') }}</span>
                 <span :class="['inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ring-1 ring-inset', statusStyle]">
                     <span :class="['w-1.5 h-1.5 rounded-full', normalizedLifecycleStatus === 'active' ? 'bg-emerald-500' : normalizedLifecycleStatus === 'pre_end' ? 'bg-amber-500' : normalizedLifecycleStatus === 'ended' ? 'bg-slate-400' : 'bg-blue-500']"></span>
