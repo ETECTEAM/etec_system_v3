@@ -59,12 +59,39 @@ const sharedInstructors = computed(() =>
 
 const ownerName = computed(() => options.value?.owner?.name ?? "-");
 
+// Basic IT splits into a fixed pair - Code and Network - so the dialog suggests who teaches which
+// from each instructor's specialization instead of making anyone type it. Empty for other courses.
+const subjects = computed(() => options.value?.subjects ?? []);
+
+// The other half of the pair ("" when the subject isn't one of the pair, e.g. old free text).
+const partnerOf = (subject) =>
+  subjects.value.includes(subject) ? subjects.value.find((item) => item !== subject) : "";
+
+// Fills only what is still empty, so a saved or hand-typed subject is never overwritten. The class
+// owner's specialization decides; the second instructor's is used only when the owner has none.
+function suggestSubjects() {
+  if (!subjects.value.length || !options.value) return;
+
+  const second = (options.value.teachers ?? []).find(
+    (teacher) => String(teacher.id) === String(form.value.instructor_id),
+  );
+
+  let mine = form.value.owner_subject || options.value.owner?.suggested_subject || "";
+  if (!mine && second?.suggested_subject) mine = partnerOf(second.suggested_subject);
+
+  if (!form.value.owner_subject) form.value.owner_subject = mine;
+  if (!form.value.instructor_subject && mine) form.value.instructor_subject = partnerOf(mine);
+}
+
 watch(
   () => props.show,
   (open) => {
     if (open) load();
   },
 );
+
+// Picking the second instructor can settle the split when the owner's specialization couldn't.
+watch(() => form.value.instructor_id, suggestSubjects);
 
 async function load() {
   loading.value = true;
@@ -83,6 +110,8 @@ async function load() {
       owner_term_id: String(owner?.term_id ?? response.data.termId ?? ""),
       owner_subject: owner?.subject ?? "",
     };
+
+    suggestSubjects();
   } catch (requestError) {
     error.value = requestError.response?.data?.message ?? t("Could not load the class instructors.");
   } finally {
@@ -161,6 +190,14 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
               {{ error }}
             </p>
 
+            <!-- Basic IT only: the fixed pair, suggested from specialization and offered as quick picks -->
+            <p v-if="subjects.length" class="rounded-xl bg-indigo-50 px-4 py-3 text-xs font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+              {{ t("This class is split into :first and :second. The suggestion follows each instructor's specialization - you can change it.", { first: subjects[0], second: subjects[1] }) }}
+            </p>
+            <datalist v-if="subjects.length" id="collapse-subjects">
+              <option v-for="subject in subjects" :key="subject" :value="subject" />
+            </datalist>
+
             <!-- Already sharing -->
             <div v-if="sharedInstructors.length" class="rounded-xl border border-slate-200 dark:border-gray-800">
               <p class="border-b border-slate-200 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:border-gray-800 dark:text-gray-400">
@@ -208,6 +245,7 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
                   <input
                     v-model="form.owner_subject"
                     type="text"
+                    :list="subjects.length ? 'collapse-subjects' : undefined"
                     :placeholder="t('e.g. Code')"
                     :class="selectClass"
                   />
@@ -241,6 +279,7 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
                   <input
                     v-model="form.instructor_subject"
                     type="text"
+                    :list="subjects.length ? 'collapse-subjects' : undefined"
                     :placeholder="t('e.g. Network')"
                     :class="selectClass"
                   />

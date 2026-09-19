@@ -38,6 +38,7 @@ use App\Modules\Enroll\Requests\UpdatePublicRegistrationRequest;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
+use App\Support\CollapseSubjects;
 use App\Support\InstructorDisplayName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -401,13 +402,28 @@ class EnrollmentClassController extends Controller
     {
         $this->ensureInstructorOwnsClass($studyClass);
 
-        $studyClass->load(['instructors:id,name', 'teacher:id,name']);
+        $studyClass->load([
+            'instructors:id,name',
+            'teacher:id,name',
+            'teacher.instructorData:id,user_id,specialization',
+            'course.track:id,name',
+        ]);
+
+        // Basic IT splits into a fixed pair (Code / Network); other courses have none. When there
+        // is a pair, each instructor gets a suggestion from their specialization so the dialog can
+        // fill "Teaches" for them - see CollapseSubjects.
+        $subjects = CollapseSubjects::forCourse($studyClass->course);
+        $suggest = fn (?User $user): ?string => $subjects === []
+            ? null
+            : CollapseSubjects::forSpecialization($user?->instructorData?->specialization);
 
         return response()->json([
             'owner' => $studyClass->teacher ? [
                 'id' => $studyClass->teacher->id,
                 'name' => InstructorDisplayName::format($studyClass->teacher->name, 'Unknown'),
+                'suggested_subject' => $suggest($studyClass->teacher),
             ] : null,
+            'subjects' => $subjects,
             'classTypeId' => $studyClass->class_type_id,
             'termId' => $studyClass->term_id,
             'timeId' => $studyClass->time_id,
@@ -422,11 +438,13 @@ class EnrollmentClassController extends Controller
             'teachers' => User::role('instructor')
                 ->where('id', '!=', $studyClass->teacher_id)
                 ->select('id', 'name')
+                ->with('instructorData:id,user_id,specialization')
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $teacher) => [
                     'id' => $teacher->id,
                     'name' => InstructorDisplayName::format($teacher->name, 'Unknown'),
+                    'suggested_subject' => $suggest($teacher),
                 ]),
             'schedules' => $this->shareableSchedules($studyClass, $options),
         ]);
@@ -807,7 +825,7 @@ class EnrollmentClassController extends Controller
         abort_unless($enrollment->studyClass !== null, 404);
 
         $this->ensureInstructorOwnsClass($enrollment->studyClass);
-        $registrations->ensureClassHasSeat($enrollment->studyClass, 'student_id');
+        $registrations->expandCapacityToFit($enrollment->studyClass);
 
         $enrollment->update([
             'enrollment_status' => 'active',

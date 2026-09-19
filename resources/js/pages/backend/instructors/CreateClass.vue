@@ -34,7 +34,7 @@ const form = useForm({
   term_id: '',
   time_id: '',
   room_id: '',
-  status: 'upcoming',
+  status: 'active',
   attendance_latitude: '',
   attendance_longitude: '',
   attendance_radius_meters: '',
@@ -52,7 +52,20 @@ const toOptions = (items, valueKey = 'id') =>
   (items || []).map((item) => ({ label: optionLabel(item), value: String(item[valueKey]) }));
 
 const courseOptions = computed(() => toOptions(props.courses));
-const lessonOptions = computed(() => toOptions(lessons.value));
+// A lesson belongs to one course, so only the chosen course's lessons are offered.
+const lessonOptions = computed(() => {
+  if (!form.course_id) return [];
+
+  return toOptions((props.lessons || []).filter((lesson) => String(lesson.course_id) === String(form.course_id)));
+});
+
+// Lesson is optional. Until a course is chosen, or when the course has no lessons at all, the
+// field is disabled and simply stays empty (SelectSearch translates the placeholder itself).
+const lessonPlaceholder = computed(() => {
+  if (!form.course_id) return 'Select course first';
+
+  return lessonOptions.value.length ? 'Select lesson' : 'No lessons yet';
+});
 const roomOptions = computed(() => toOptions(props.rooms));
 
 // --- Class Type -> Term -> Time cascade, sourced from scheduleGroups ---
@@ -109,6 +122,11 @@ const noSlots = computed(() => props.scheduleGroups.length === 0);
 
 // Changing a parent clears its children — the child's valid options come from
 // the newly selected parent.
+// The chosen lesson belongs to the previous course, so it can't stay selected.
+watch(() => form.course_id, () => {
+  form.lesson_id = '';
+});
+
 watch(() => form.class_type_id, () => {
   form.term_id = '';
   form.time_id = '';
@@ -201,8 +219,8 @@ onMounted(() => {
             <SelectSearch
               v-model="form.lesson_id"
               :options="lessonOptions"
-              :disabled="isLoadingLessons || !form.course_id"
-              :placeholder="isLoadingLessons ? $t('Loading lessons...') : $t(form.course_id ? 'Select lesson' : 'Select course first')"
+              :disabled="!form.course_id || lessonOptions.length === 0"
+              :placeholder="lessonPlaceholder"
               :button-class="selectClass"
             />
             <span v-if="form.errors.lesson_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.lesson_id }}</span>
@@ -252,6 +270,17 @@ onMounted(() => {
               :button-class="selectClass"
             />
             <span v-if="form.errors.room_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.room_id }}</span>
+          </label>
+
+          <label class="block">
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Capacity') }}</span>
+            <input
+              type="text"
+              value="12"
+              readonly
+              class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 outline-none dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-400"
+            />
+            <span class="mt-1 block text-xs text-slate-400 dark:text-gray-500">{{ $t('Class capacity starts at 12. It grows automatically as students enroll.') }}</span>
           </label>
 
           <label class="block">

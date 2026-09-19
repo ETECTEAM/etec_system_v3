@@ -76,12 +76,12 @@ class InstructorClassController extends Controller
             // Not asked for on the form - the class title is the course title.
             'title' => ['nullable', 'string', 'max:255'],
             'course_id' => ['required', 'exists:courses,id'],
-            'lesson_id' => ['nullable', 'exists:course_lessons,id'],
+            // The lesson has to belong to the chosen course, not just exist.
+            'lesson_id' => ['nullable', Rule::exists('course_lessons', 'id')->where('course_id', $request->input('course_id'))],
             'term_id' => ['required', 'exists:terms,id'],
             'time_id' => ['required', 'exists:times,id'],
             'room_id' => ['nullable', 'exists:rooms,id'],
             'class_type_id' => ['nullable', 'exists:class_type,class_type_id'],
-            'capacity' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', 'string', Rule::in(GetClassFormOptions::STATUSES)],
             'attendance_latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'attendance_longitude' => ['nullable', 'numeric', 'between:-180,180'],
@@ -104,6 +104,10 @@ class InstructorClassController extends Controller
         // for the admin class form).
         $validated['title'] = Course::query()->whereKey($validated['course_id'])->value('title')
             ?? ($validated['title'] ?: 'New Class');
+
+        // Capacity is not instructor-configurable: every class starts at the
+        // fixed default and grows automatically as students are enrolled past it.
+        $validated['capacity'] = InstructorClassService::DEFAULT_CAPACITY;
 
         $this->instructorClasses->createClass($request->user(), $validated);
 

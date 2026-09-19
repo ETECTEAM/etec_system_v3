@@ -29,6 +29,10 @@ class InstructorClassService
 {
     public const ATTENDANCE_STATUSES = ['absent', 'present', 'permission'];
 
+    // Instructors can't choose a class capacity; every class starts at this
+    // fixed default and grows automatically as students are enrolled past it.
+    public const DEFAULT_CAPACITY = 12;
+
     public function __construct(
         private readonly FindActiveInstructorAttendanceBlock $findActiveBlock,
     ) {}
@@ -72,7 +76,8 @@ class InstructorClassService
 
         return [
             'courses' => DB::table('courses')->select('id', 'title')->orderBy('title')->get(),
-            'lessons' => DB::table('course_lessons')->select('id', 'title')->orderBy('title')->get(),
+            // course_id lets the form offer only the chosen course's lessons, in lesson order.
+            'lessons' => DB::table('course_lessons')->select('id', 'course_id', 'title')->orderBy('order_number')->orderBy('title')->get(),
             'rooms' => DB::table('rooms')->select('id', 'room_number')->orderBy('room_number')->get(),
             'classTypes' => DB::table('class_type')->select('class_type_id', 'type_name')->orderBy('class_type_id')->get(),
             'scheduleGroups' => $scheduleGroups,
@@ -92,8 +97,8 @@ class InstructorClassService
             'time_id' => $data['time_id'] ?? null,
             'room_id' => $data['room_id'] ?? null,
             'class_type_id' => $data['class_type_id'] ?? null,
-            'capacity' => $data['capacity'] ?? 20,
-            'status' => $data['status'] ?? 'upcoming',
+            'capacity' => $data['capacity'] ?? self::DEFAULT_CAPACITY,
+            'status' => $data['status'] ?? 'active',
             'attendance_latitude' => $data['attendance_latitude'] ?? null,
             'attendance_longitude' => $data['attendance_longitude'] ?? null,
             'attendance_radius_meters' => $data['attendance_radius_meters'] ?? null,
@@ -1255,18 +1260,21 @@ class InstructorClassService
             ]);
         }
 
-        $targetHasSeat = StudentEnrollment::query()
-            ->where('study_class_id', $targetClass->id)
-            ->where('enrollment_status', 'active')
-            ->count() < (int) $targetClass->capacity;
-
-        if (! $targetHasSeat) {
-            throw ValidationException::withMessages([
-                'study_class_id' => 'This class is full.',
-            ]);
-        }
-
+        // Capacity grows to fit: transferring a student into a full target
+        // class bumps the class to the exact seat count needed (12 -> 13 -> ...).
         DB::transaction(function () use ($enrollment, $studentId, $targetClass): void {
+            $seatsNeeded = StudentEnrollment::query()
+                ->where('study_class_id', $targetClass->id)
+                ->where('enrollment_status', 'active')
+                ->count() + 1;
+
+            if ($seatsNeeded > (int) $targetClass->capacity) {
+                $targetClass->update([
+                    'capacity' => $seatsNeeded,
+                    'updated_at' => now(),
+                ]);
+            }
+
             $enrollment->update([
                 'study_class_id' => $targetClass->id,
                 'updated_at' => now(),
