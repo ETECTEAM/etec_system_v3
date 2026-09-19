@@ -370,6 +370,10 @@ async function saveCapacity() {
         <!-- Instructor dashboard: compact, read-only class information. -->
         <div v-if="instructorSummary" class="mt-4 space-y-3 flex-1">
             <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><GraduationCap class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Class ID') }}</span></div>
+                <span class="text-xs sm:text-sm font-semibold tabular-nums text-slate-800 dark:text-gray-200">#{{ classData.id }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><BookOpen class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Course') }}</span></div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.course }}</span>
             </div>
@@ -396,6 +400,19 @@ async function saveCapacity() {
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><Clock3 class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Study Time') }}</span></div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.time }}</span>
+            </div>
+            <div>
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><Users class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Students') }}</span></div>
+                    <span class="text-xs sm:text-sm font-semibold tabular-nums text-slate-800 dark:text-gray-200">{{ classData.students ?? 0 }} / {{ capacity ?? 0 }}</span>
+                </div>
+                <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-gray-700">
+                    <div class="h-full rounded-full bg-blue-600 transition-all duration-700 dark:bg-blue-500" :style="{ width: Math.min(fill, 100) + '%' }"></div>
+                </div>
+                <div class="mt-1 flex items-center justify-between text-[11px] tabular-nums text-slate-500 dark:text-gray-400">
+                    <span>{{ Math.round(fill) }}% {{ $t('filled') }}</span>
+                    <span>{{ Math.max(0, (capacity ?? 0) - (classData.students ?? 0)) }} {{ $t('left') }}</span>
+                </div>
             </div>
             <div class="flex items-center justify-between gap-2">
                 <span class="text-xs sm:text-sm text-slate-500 dark:text-gray-400">{{ $t('Status') }}</span>

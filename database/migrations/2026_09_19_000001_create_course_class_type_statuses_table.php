@@ -18,19 +18,26 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('course_class_type_statuses', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('course_id')->constrained('courses')->cascadeOnDelete();
-            $table->foreignId('class_type_id')
-                ->constrained('class_type', 'class_type_id')
-                ->cascadeOnDelete();
-            $table->string('status', 20)->default('open');
-            $table->timestamps();
+        // MySQL doesn't roll back DDL, so a run that failed after creating the table
+        // would otherwise block every retry with "table already exists".
+        if (! Schema::hasTable('course_class_type_statuses')) {
+            Schema::create('course_class_type_statuses', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('course_id')->constrained('courses')->cascadeOnDelete();
+                $table->foreignId('class_type_id')
+                    ->constrained('class_type', 'class_type_id')
+                    ->cascadeOnDelete();
+                $table->string('status', 20)->default('open');
+                $table->timestamps();
 
-            $table->unique(['course_id', 'class_type_id']);
-        });
+                $table->unique(['course_id', 'class_type_id']);
+            });
+        }
 
-        $this->carryOverClosedCourses();
+        // All-or-nothing, and skipped once rows exist so a retry can't duplicate them.
+        if (DB::table('course_class_type_statuses')->doesntExist()) {
+            DB::transaction(fn () => $this->carryOverClosedCourses());
+        }
     }
 
     public function down(): void
