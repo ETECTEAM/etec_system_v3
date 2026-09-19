@@ -526,12 +526,20 @@ categories ─< sub_categories ─< course_tracks ─< courses ─< course_enrol
 
 - `courses.enroll_order` orders courses on the public register list.
 - **`course_enroll_configs`** is dual-purpose per `(course_id, schedule_id, time_id)`:
-  - `schedule_id` **NULL** + `time_id` NULL → the *course-wide* row: the open/closed
-    master switch + the charged `unit_price` / `course_price` / `document_price` +
-    `start_date`. `Course::enrollConfig` / `enrollConfigForTime()`.
+  - `schedule_id` **NULL** + `time_id` NULL → the *course-wide* row: the charged
+    `unit_price` / `course_price` / `document_price` + `start_date`.
+    `Course::enrollConfig` / `enrollConfigForTime()`. Its `status` is **legacy and no
+    longer read** — Open/Closed is per class type now (next bullet).
   - `schedule_id` **set** → an *availability toggle*: this course is open for that
     `(schedule, time)` slot. Always $0. Carries `max_classes`. Row exists ⇒ slot open.
   - `CourseEnrollConfig::forCourseTime()` / `::forClassSlot()` resolve which row applies.
+- **`course_class_type_statuses`** (`CourseClassTypeStatus`, `Course::classTypeStatuses()`)
+  is the Open/Closed switch, one row per `(course_id, class_type_id)`; **no row ⇒ open**.
+  Set from the Enroll Config pill (`PUT /dashboard/enroll/config/course/{course}/class-type-status`),
+  exposed to that page as `status` on each `class_schedules` node, and applied by the
+  public `/student-register` list. Closing pauses a class type without deleting its
+  slots, `max_classes` or start dates — which is why it's a separate table rather than
+  a status on the slot rows above.
 
 ### Scheduling reference data ("Schedule Management")
 

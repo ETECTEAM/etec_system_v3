@@ -66,6 +66,12 @@ class Course extends Model
         return $this->hasMany(CourseEnrollConfig::class);
     }
 
+    // Open/Closed per class type. A class type with no row here is open.
+    public function classTypeStatuses()
+    {
+        return $this->hasMany(CourseClassTypeStatus::class);
+    }
+
     // The config that applies to a given time slot: the time-specific config if
     // one exists, otherwise the course's default (time_id NULL) config.
     //
