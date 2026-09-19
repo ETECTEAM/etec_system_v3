@@ -17,6 +17,8 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         Route::post('/config/bulk-start-date', [CourseEnrollConfigController::class, 'bulkUpdateStartDate'])->name('enroll.config.bulk-start-date');
         // Route to set a course's display order (1 shows first) on the public student-register list.
         Route::put('/config/course/{course}/order', [CourseEnrollConfigController::class, 'updateCourseOrder'])->name('enroll.config.course-order');
+        // Route to open or close a course under one class type, without affecting its other class types.
+        Route::put('/config/course/{course}/class-type-status', [CourseEnrollConfigController::class, 'updateClassTypeStatus'])->name('enroll.config.class-type-status');
         // Route to add a new enrollment schedule (time slot) for a course.
         Route::post('/config/{course}/schedules', [CourseEnrollConfigController::class, 'store'])->name('enroll.config.store');
         // Route to update an existing schedule's status/start date/prices.
@@ -39,6 +41,8 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         // Pre-register a student with no class yet — they're enrolled into one later.
         Route::get('/students/create', [EnrollmentClassController::class, 'createRegisteredStudent'])->name('enroll.students.create');
         Route::post('/students', [EnrollmentClassController::class, 'storeRegisteredStudent'])->name('enroll.students.store');
+        // Full student profile — reached from the View Class student table's eye button.
+        Route::get('/students/{student}', [EnrollmentClassController::class, 'showStudent'])->name('enroll.students.show');
         // "Manual Register" tab — hand-record an old registration + payment.
         Route::post('/manual-registrations', [EnrollmentClassController::class, 'storeManualRegistration'])
             ->middleware('throttle:20,1')
@@ -54,7 +58,8 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
     Route::middleware(['auth', 'active', 'role:super_admin|admin|instructor'])->group(function (): void {
         // An instructor only reaches this by copying one of their own classes, so the
         // controller pins the copy to them rather than letting them assign a teacher.
-        Route::post('/', [EnrollmentClassController::class, 'store'])->name('enroll.store');
+        // It creates a class, so an instructor needs the create-classes permission here too.
+        Route::post('/', [EnrollmentClassController::class, 'store'])->middleware('can-create-classes')->name('enroll.store');
         Route::get('/edit/{studyClass}', [EnrollmentClassController::class, 'edit'])->name('enroll.edit');
         // Pre-fill the create form with an existing class's values so it can be duplicated with a new term/time.
         Route::get('/copy/{studyClass}', [EnrollmentClassController::class, 'copy'])->name('enroll.copy');

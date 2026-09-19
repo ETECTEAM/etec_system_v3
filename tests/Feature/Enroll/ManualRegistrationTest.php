@@ -463,7 +463,7 @@ class ManualRegistrationTest extends TestCase
         $this->assertNull($enrollment->fresh()->study_class_id);
     }
 
-    public function test_assign_is_rejected_when_the_class_is_full(): void
+    public function test_assign_grows_capacity_to_fit_a_full_class(): void
     {
         $instructor = $this->instructor();
         $studyClass = $this->createStudyClass(['teacher_id' => $instructor->id, 'capacity' => 1]);
@@ -483,13 +483,16 @@ class ManualRegistrationTest extends TestCase
 
         $enrollment = $this->createManualRegistration();
 
+        // Assigning past the current limit bumps the class's capacity to fit
+        // (1 -> 2) instead of rejecting the assignment.
         $this->actingAs($instructor)
             ->postJson("/dashboard/enroll/{$studyClass->id}/assign-registration", [
                 'enrollment_id' => $enrollment->id,
             ])
-            ->assertStatus(422);
+            ->assertOk();
 
-        $this->assertNull($enrollment->fresh()->study_class_id);
+        $this->assertSame(2, $studyClass->fresh()->capacity);
+        $this->assertSame($studyClass->id, $enrollment->fresh()->study_class_id);
     }
 
     // ---------------------------------------------------------------------

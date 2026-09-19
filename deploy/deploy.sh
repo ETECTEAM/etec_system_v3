@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 # Production deploy script
-# Usage: ./deploy/deploy.sh [branch] [--migrate]
+# Usage: ./deploy/deploy.sh [branch] [--migrate] [--sync-schedules]
 
 set -euo pipefail
 
 COMPOSE_FILE="docker-compose.prod.yml"
 BRANCH="${1:-${DEPLOY_BRANCH:-production}}"
 RUN_MIGRATE=false
+RUN_SYNC_SCHEDULES=false
 
 for arg in "$@"; do
   case "$arg" in
     --migrate) RUN_MIGRATE=true ;;
+    --sync-schedules) RUN_SYNC_SCHEDULES=true ;;
   esac
 done
 
@@ -25,8 +27,16 @@ echo "==> Building images"
 docker compose -f "${COMPOSE_FILE}" build app reverb nginx
 
 echo "==> Installing dependencies and building assets"
+# This builds in place while the old containers keep serving from the same bind
+# mount. By default Vite empties public/build before it writes the new bundle,
+# so for that stretch there is no manifest.json and every full page load throws
+# "Vite manifest not found" (one Telegram alert per hit, on every deploy).
+# --no-emptyOutDir leaves the previous build in place until the new manifest
+# replaces it, so the site always has a complete build - including when this
+# step is killed partway. Old hashed files then linger for tabs that are still
+# open; the find drops the ones no build has rewritten in 30 days.
 docker compose -f "${COMPOSE_FILE}" run --rm --no-deps app sh -c \
-  "composer install --no-dev --optimize-autoloader --no-interaction && rm -rf node_modules && npm ci && npm run build"
+  "composer install --no-dev --optimize-autoloader --no-interaction && rm -rf node_modules && npm ci && npm run build -- --no-emptyOutDir && (find public/build/assets -type f -mtime +30 -delete || true)"
 
 # Docker's container removal is asynchronous under the hood (the daemon
 # returns before overlay/volume cleanup finishes), so recreating a container
@@ -117,6 +127,11 @@ docker compose -f "${COMPOSE_FILE}" exec -T nginx nginx -s reload 2>/dev/null ||
 if [ "$RUN_MIGRATE" = true ]; then
   echo "==> Running migrations"
   docker compose -f "${COMPOSE_FILE}" exec -T app php artisan migrate --force
+fi
+
+if [ "$RUN_SYNC_SCHEDULES" = true ]; then
+  echo "==> Syncing work schedules and instructor availability"
+  docker compose -f "${COMPOSE_FILE}" exec -T app php artisan work-schedules:sync
 fi
 
 # Hygiene only (shrinks the bind-mounted node_modules / reclaims disk) - not

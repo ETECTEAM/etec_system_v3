@@ -13,6 +13,7 @@ import DepositSummaryCard from "./components/DepositSummaryCard.vue";
 import QuickActions from "./components/QuickActions.vue";
 import RecordDepositModal from "./components/RecordDepositModal.vue";
 import AddStudentModal from "./components/AddStudentModal.vue";
+import StudentDepositDetailsModal from "./components/StudentDepositDetailsModal.vue";
 
 const props = defineProps({
   classData: {
@@ -52,9 +53,14 @@ const lockedStudentActions = computed(() => ['pre_end', 'ended', 'cancelled'].in
 
 const depositEnrollment = ref(null);
 const showEnrollExistingStudent = ref(false);
+const viewedStudent = ref(null);
 
 function openDeposit(enrollment) {
   depositEnrollment.value = enrollment;
+}
+
+function viewStudent(student) {
+  viewedStudent.value = student;
 }
 
 function addStudent() {
@@ -118,6 +124,7 @@ function goBack() {
           <DepositTable
             :students="students"
             @record-deposit="openDeposit"
+            @view-student="viewStudent"
           />
         </div>
 
@@ -132,6 +139,12 @@ function goBack() {
           :classId="classData.id"
           :students="studentsForSelect"
           @close="showEnrollExistingStudent = false"
+        />
+
+        <StudentDepositDetailsModal
+          :show="Boolean(viewedStudent)"
+          :student="viewedStudent"
+          @close="viewedStudent = null"
         />
       </template>
     </div>

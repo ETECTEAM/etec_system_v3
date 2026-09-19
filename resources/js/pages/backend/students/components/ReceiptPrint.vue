@@ -188,9 +188,9 @@ function timeWithTerm() {
           <strong class="line time-term">{{ formatGender(student.gender) }}</strong>
         </div>
         <div class="receipt-row">
-          <span class="label">វគ្គសិក្សា / Course</span>
+          <span class="label">វគ្គសិក្សារ / Course</span>
           <strong class="line">{{ valueOrDash(classData?.course) }}</strong>
-          <span class="label tiny">ម៉ោងសិក្សា</span>
+          <span class="label tiny">ម៉ោងសិក្សារ</span>
           <strong class="line time-term">{{ timeWithTerm() }}</strong>
         </div>
         <div class="receipt-row">
@@ -209,26 +209,33 @@ function timeWithTerm() {
         </div>
         <div class="note">
           <div class="note-left">
-            <span>***ប្រាក់ដែលបានបង់រួច មិនអាចដកវិញបានទេ/None refundable***</span>
+            <div v-if="attendanceUrl" class="receipt-qr">
+              <QrcodeVue :value="attendanceUrl" :size="85" level="M" render-as="svg" />
+              <span>ស្កេនមើលវត្តមាន</span>
+            </div>
 
-            <div v-if="!hideClassInfo" class="class-info">
-              <p class="class-info-title">ព័ត៌មានថ្នាក់រៀន / Class Info</p>
-              <div class="class-info-grid">
-                <div class="class-info-item">
-                  <span class="label tiny">គ្រូបង្រៀន / Instructor:</span>
-                  <strong>{{ valueOrDash(classData?.teacher) }}</strong>
-                </div>
-                <div class="class-info-item">
-                  <span class="label tiny">អាគារ / Building:</span>
-                  <strong>{{ valueOrDash(classData?.building) }}</strong>
-                </div>
-                <div class="class-info-item">
-                  <span class="label tiny">ជាន់ / Floor:</span>
-                  <strong>{{ valueOrDash(classData?.floor) }}</strong>
-                </div>
-                <div class="class-info-item">
-                  <span class="label tiny">បន្ទប់ / Room:</span>
-                  <strong>{{ valueOrDash(classData?.room) }}</strong>
+            <div class="note-left-text">
+              <span>***ប្រាក់ដែលបានបង់រួច មិនអាចដកវិញបានទេ/None refundable***</span>
+
+              <div v-if="!hideClassInfo" class="class-info">
+                <p class="class-info-title">ព័ត៌មានថ្នាក់រៀន / Class Info</p>
+                <div class="class-info-grid">
+                  <div class="class-info-item">
+                    <span class="label tiny">គ្រូបង្រៀន / Instructor:</span>
+                    <strong>{{ valueOrDash(classData?.teacher) }}</strong>
+                  </div>
+                  <div class="class-info-item">
+                    <span class="label tiny">អាគារ / Building:</span>
+                    <strong>{{ valueOrDash(classData?.building) }}</strong>
+                  </div>
+                  <div class="class-info-item">
+                    <span class="label tiny">ជាន់ / Floor:</span>
+                    <strong>{{ valueOrDash(classData?.floor) }}</strong>
+                  </div>
+                  <div class="class-info-item">
+                    <span class="label tiny">បន្ទប់ / Room:</span>
+                    <strong>{{ valueOrDash(classData?.room) }}</strong>
+                  </div>
                 </div>
               </div>
             </div>
@@ -241,11 +248,6 @@ function timeWithTerm() {
                 <strong class="line">{{ valueOrDash(student.payment_date ?? today) }}</strong>
                 <strong class="cashier">បេឡា/Cashier</strong>
               </div>
-             </div>
-
-             <div v-if="attendanceUrl" class="receipt-qr">
-               <QrcodeVue :value="attendanceUrl" :size="85" level="M" render-as="svg" />
-               <span>ស្កេនមើលវត្តមាន</span>
              </div>
 
              <strong class="sigature">គ្រូអាយធីចិត្តល្អ</strong>
@@ -558,12 +560,25 @@ function timeWithTerm() {
     justify-content: space-between;
     gap: 6mm;
     margin-top: 3mm;
-    padding-top: 1mm;
+    padding-top: 3mm;
     border-top: 0.50mm solid #3d4048;
     padding-bottom: 2mm;
   }
 
+  /* QR on the left, then a thin rule, then the note + Class Info. */
   .note-left {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 4mm;
+  }
+
+  .note-left .receipt-qr {
+    flex: 0 0 auto;
+  }
+
+  .note-left-text {
     display: flex;
     min-width: 0;
     flex: 1 1 auto;
@@ -571,23 +586,36 @@ function timeWithTerm() {
     gap: 2mm;
   }
 
-  .note-left > span {
+  /* The rule only exists when there is a QR to divide from. */
+  .receipt-qr + .note-left-text {
+    padding-left: 4mm;
+    border-left: 0.3mm solid #9ca3af;
+  }
+
+  .note-left-text > span {
     font-size: 8pt;
     font-weight: 700;
     white-space: nowrap;
     opacity: 0.85;
   }
 
-  .note > div {
+  /* minmax(0, 1fr) lets a long value ellipsize instead of running into the right column. */
+  .note-left-text .class-info-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Only the right column is fixed; the left one takes the rest of the row. */
+  .note > .note-right {
     flex: 0 0 58mm;
   }
 
-  /* Right column: date on top, signature pinned to the bottom (margin-top:auto)
-     so the QR, when present, sits in the gap between them instead of being
-     crammed under Class Info on the left. */
+  /* Right column: date on top, signature pinned to the bottom (margin-top:auto).
+     The attendance QR sits at the left of the row, in .note-left. */
   .note-right {
     display: flex;
-    min-height: 40mm;
+    /* 2mm less than before to pay for .note's extra padding-top, so the fixed-height
+       receipt doesn't squeeze the footer bar. */
+    min-height: 38mm;
     flex-direction: column;
     align-items: center;
     gap: 2mm;

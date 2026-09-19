@@ -34,6 +34,9 @@ class UserManagementController extends Controller
 
         return Inertia::render('backend/users/UserRoles', [
             'roles' => Role::query()
+                // The seeders create every role once per guard, but users only ever
+                // hold the 'web' ones (User::$guard_name) - without this filter each
+                // role showed up twice, the second copy with no users.
                 ->where('guard_name', 'web')
                 ->with('permissions')
                 ->withCount('users')
@@ -109,6 +112,7 @@ class UserManagementController extends Controller
                 'max:255',
                 // web guard: this role needs to actually grant dashboard access,
                 // which is checked against the web guard, not sanctum (API tokens).
+                // Unique check scoped to the web guard (name + guard_name must be unique).
                 Rule::unique('roles', 'name')->where('guard_name', 'web'),
             ],
         ], [
@@ -116,6 +120,8 @@ class UserManagementController extends Controller
             'name.unique'   => 'A role with this name already exists.',
         ]);
 
+        // Must be a 'web' role: users are assigned roles by name under their own
+        // guard, so a role created under any other guard could never be assigned.
         $role = Role::findOrCreate($request->input('name'), 'web');
 
         return redirect('/dashboard/users/roles')->with('success', "Role '{$role->name}' created successfully.");

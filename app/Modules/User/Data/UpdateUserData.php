@@ -16,6 +16,8 @@ readonly class UpdateUserData
         // public ?UploadedFile $avatar, // FILE: disabled - not using file uploads
         public array $student,
         public array $instructorData,
+        // 'male' | 'female'. Last and optional; null leaves the account's current gender unchanged.
+        public ?string $gender = null,
     ) {}
 
     /**

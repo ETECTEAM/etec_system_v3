@@ -47,6 +47,12 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    // The instructor dashboard is a read-only class overview, not the admin
+    // class-management card.
+    instructorSummary: {
+        type: Boolean,
+        default: false,
+    },
     // Labels the action menu should leave out, e.g. "Copy Class" for instructors.
     hiddenItems: {
         type: Array,
@@ -181,7 +187,8 @@ const menuItems = computed(() => [
         ]
         : []),
 ]);
-const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.slug ?? props.classData.id}`);
+// The link carries the class's random join_token, never its guessable slug.
+const qrUrl = computed(() => `${window.location.origin}/join-class/${props.classData.join_token}`);
 const qrCopied = ref(false);
 const qrZoomed = ref(false);
 
@@ -213,6 +220,8 @@ function showAddStudent() {
 }
 
 function showQr() {
+    if (!props.classData.join_token) return;
+
     emit("qr", props.classData);
     showQrDialog.value = true;
 }
@@ -318,7 +327,7 @@ async function saveCapacity() {
                         <h3
                             class="text-sm sm:text-base font-semibold text-slate-900 truncate group-hover:text-indigo-600 transition-colors dark:text-gray-100 dark:group-hover:text-indigo-400"
                         >
-                            {{ classData.title }}
+                            {{ instructorSummary ? classData.course : classData.title }}
                         </h3>
                         <span
                             v-if="classData.is_shared"
@@ -329,7 +338,7 @@ async function saveCapacity() {
                         </span>
                     </div>
 
-                    <div class="flex items-center gap-2 mt-1.5">
+                    <div v-if="!instructorSummary" class="flex items-center gap-2 mt-1.5">
                         <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-gray-500">
                             ID
                         </span>
@@ -340,7 +349,7 @@ async function saveCapacity() {
                         </span>
                     </div>
 
-                    <p v-if="classData.is_shared" class="mt-1 truncate text-[11px] font-medium text-slate-500 dark:text-gray-400">
+                    <p v-if="!instructorSummary && classData.is_shared" class="mt-1 truncate text-[11px] font-medium text-slate-500 dark:text-gray-400">
                         {{ $t('Shared with') }}: <span class="font-semibold text-slate-700 dark:text-gray-300">{{ classData.shared_with }}</span>
                         <span v-if="classData.subject"> · {{ $t('Teaching') }}: <span class="font-semibold text-slate-700 dark:text-gray-300">{{ classData.subject }}</span></span>
                     </p>
@@ -358,6 +367,63 @@ async function saveCapacity() {
             />
         </div>
 
+        <!-- Instructor dashboard: compact, read-only class information. -->
+        <div v-if="instructorSummary" class="mt-4 space-y-3 flex-1">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><GraduationCap class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Class ID') }}</span></div>
+                <span class="text-xs sm:text-sm font-semibold tabular-nums text-slate-800 dark:text-gray-200">#{{ classData.id }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><BookOpen class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Course') }}</span></div>
+                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.course }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><Building2 class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Building') }}</span></div>
+                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.building }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><Building2 class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Floor') }}</span></div>
+                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.floor }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><DoorOpen class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Room') }}</span></div>
+                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.room }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><GraduationCap class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Class Type') }}</span></div>
+                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.class_type_label }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><CalendarDays class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Study Term') }}</span></div>
+                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.term }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><Clock3 class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Study Time') }}</span></div>
+                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.time }}</span>
+            </div>
+            <div>
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><Users class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Students') }}</span></div>
+                    <span class="text-xs sm:text-sm font-semibold tabular-nums text-slate-800 dark:text-gray-200">{{ classData.students ?? 0 }} / {{ capacity ?? 0 }}</span>
+                </div>
+                <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-gray-700">
+                    <div class="h-full rounded-full bg-blue-600 transition-all duration-700 dark:bg-blue-500" :style="{ width: Math.min(fill, 100) + '%' }"></div>
+                </div>
+                <div class="mt-1 flex items-center justify-between text-[11px] tabular-nums text-slate-500 dark:text-gray-400">
+                    <span>{{ Math.round(fill) }}% {{ $t('filled') }}</span>
+                    <span>{{ Math.max(0, (capacity ?? 0) - (classData.students ?? 0)) }} {{ $t('left') }}</span>
+                </div>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-xs sm:text-sm text-slate-500 dark:text-gray-400">{{ $t('Status') }}</span>
+                <span :class="['inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ring-1 ring-inset', statusStyle]">
+                    <span :class="['w-1.5 h-1.5 rounded-full', normalizedLifecycleStatus === 'active' ? 'bg-emerald-500' : normalizedLifecycleStatus === 'pre_end' ? 'bg-amber-500' : normalizedLifecycleStatus === 'ended' ? 'bg-slate-400' : 'bg-blue-500']"></span>
+                    {{ lifecycleLabel }}
+                </span>
+            </div>
+        </div>
+
+        <template v-else>
         <!-- Information -->
         <div class="mt-4 sm:mt-5 space-y-3 flex-1">
 
@@ -527,6 +593,7 @@ async function saveCapacity() {
                 </span>
             </div>
         </div>
+        </template>
 
         <!-- ─── Footer ─── -->
         <button
@@ -551,6 +618,7 @@ async function saveCapacity() {
     :class-id="classData.id"
     :class-title="classData.title"
     :seats-left="Math.max(0, (capacity ?? 0) - (classData.students ?? 0))"
+    :phone-required="isAdmin"
     @close="showRegisterModal = false"
 />
 

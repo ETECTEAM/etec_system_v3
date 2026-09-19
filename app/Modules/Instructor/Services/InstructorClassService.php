@@ -29,6 +29,10 @@ class InstructorClassService
 {
     public const ATTENDANCE_STATUSES = ['absent', 'present', 'permission'];
 
+    // Instructors can't choose a class capacity; every class starts at this
+    // fixed default and grows automatically as students are enrolled past it.
+    public const DEFAULT_CAPACITY = 12;
+
     public function __construct(
         private readonly FindActiveInstructorAttendanceBlock $findActiveBlock,
     ) {}
@@ -53,6 +57,9 @@ class InstructorClassService
 
     private const VISIBLE_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
 
+    // Basic IT is taught by two instructors through Collapse Class, so it only runs on these terms.
+    public const COURSE_TERM_RESTRICTIONS = ['Basic IT' => ['Mon & Thu', 'Sat & Sun']];
+
     private ?array $termLabels = null;
 
     /**
@@ -72,11 +79,38 @@ class InstructorClassService
 
         return [
             'courses' => DB::table('courses')->select('id', 'title')->orderBy('title')->get(),
-            'lessons' => DB::table('course_lessons')->select('id', 'title')->orderBy('title')->get(),
+            // course_id lets the form offer only the chosen course's lessons, in lesson order.
+            'lessons' => DB::table('course_lessons')->select('id', 'course_id', 'title')->orderBy('order_number')->orderBy('title')->get(),
             'rooms' => DB::table('rooms')->select('id', 'room_number')->orderBy('room_number')->get(),
             'classTypes' => DB::table('class_type')->select('class_type_id', 'type_name')->orderBy('class_type_id')->get(),
             'scheduleGroups' => $scheduleGroups,
+            'courseTermIds' => $this->courseTermIds(),
         ];
+    }
+
+    /**
+     * Term ids a restricted course may be scheduled on, keyed by course id. A course is left out
+     * (unrestricted) when none of its allowed terms exist yet, so a missing term can't lock it out.
+     *
+     * @return array<int, list<int>>
+     */
+    public function courseTermIds(): array
+    {
+        $restrictions = [];
+
+        foreach (self::COURSE_TERM_RESTRICTIONS as $courseTitle => $termNames) {
+            $termIds = DB::table('terms')->whereIn('term_name', $termNames)->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+            if ($termIds === []) {
+                continue;
+            }
+
+            foreach (DB::table('courses')->where('title', $courseTitle)->pluck('id') as $courseId) {
+                $restrictions[(int) $courseId] = $termIds;
+            }
+        }
+
+        return $restrictions;
     }
 
     public function createClass(User $instructor, array $data): int
@@ -86,14 +120,16 @@ class InstructorClassService
         return DB::table('study_classes')->insertGetId([
             'title' => $data['title'],
             'slug' => StudyClass::uniqueSlug($data['title']),
+            // DB::table() skips the model's creating hook, so the join-link secret is set here.
+            'join_token' => StudyClass::uniqueJoinToken(),
             'course_id' => $data['course_id'],
             'lesson_id' => $data['lesson_id'] ?? null,
             'term_id' => $data['term_id'] ?? null,
             'time_id' => $data['time_id'] ?? null,
             'room_id' => $data['room_id'] ?? null,
             'class_type_id' => $data['class_type_id'] ?? null,
-            'capacity' => $data['capacity'] ?? 20,
-            'status' => $data['status'] ?? 'upcoming',
+            'capacity' => $data['capacity'] ?? self::DEFAULT_CAPACITY,
+            'status' => $data['status'] ?? 'active',
             'attendance_latitude' => $data['attendance_latitude'] ?? null,
             'attendance_longitude' => $data['attendance_longitude'] ?? null,
             'attendance_radius_meters' => $data['attendance_radius_meters'] ?? null,
@@ -775,6 +811,7 @@ class InstructorClassService
         return [
             'id' => $class->id,
             'slug' => $class->slug,
+            'join_token' => $class->join_token ?? null,
             'title' => $class->title,
             'course' => $class->course_title,
             'lesson' => $class->lesson_title ?? 'No lesson',
@@ -868,6 +905,7 @@ class InstructorClassService
             ->select([
                 'study_classes.id',
                 'study_classes.slug',
+                'study_classes.join_token',
                 'study_classes.title',
                 'study_classes.capacity',
                 'study_classes.status as class_status',
@@ -1234,7 +1272,7 @@ class InstructorClassService
         });
     }
 
-    public function transferStudent(int $studyClassId, int $studentId, StudyClass $targetClass): void
+    public function transferStudent(int $studyClassId, int $studentId, StudyClass $targetClass): StudentEnrollment
     {
         $enrollment = $this->activeEnrollmentForStudent($studyClassId, $studentId);
 
@@ -1255,18 +1293,21 @@ class InstructorClassService
             ]);
         }
 
-        $targetHasSeat = StudentEnrollment::query()
-            ->where('study_class_id', $targetClass->id)
-            ->where('enrollment_status', 'active')
-            ->count() < (int) $targetClass->capacity;
-
-        if (! $targetHasSeat) {
-            throw ValidationException::withMessages([
-                'study_class_id' => 'This class is full.',
-            ]);
-        }
-
+        // Capacity grows to fit: transferring a student into a full target
+        // class bumps the class to the exact seat count needed (12 -> 13 -> ...).
         DB::transaction(function () use ($enrollment, $studentId, $targetClass): void {
+            $seatsNeeded = StudentEnrollment::query()
+                ->where('study_class_id', $targetClass->id)
+                ->where('enrollment_status', 'active')
+                ->count() + 1;
+
+            if ($seatsNeeded > (int) $targetClass->capacity) {
+                $targetClass->update([
+                    'capacity' => $seatsNeeded,
+                    'updated_at' => now(),
+                ]);
+            }
+
             $enrollment->update([
                 'study_class_id' => $targetClass->id,
                 'updated_at' => now(),
@@ -1287,6 +1328,8 @@ class InstructorClassService
                     'updated_at' => now(),
                 ]);
         });
+
+        return $enrollment;
     }
 
     private function activeEnrollmentForStudent(int $studyClassId, int $studentId): StudentEnrollment

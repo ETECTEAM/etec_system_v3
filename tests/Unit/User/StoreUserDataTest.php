@@ -15,7 +15,6 @@ class StoreUserDataTest extends TestCase
             password: 'hashed-password',
             role: 'instructor',
             status: 'active',
-            avatar: null,
             student: [],
             instructorData: ['full_name' => 'Jane Doe'],
         );

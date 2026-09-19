@@ -3,8 +3,8 @@
 namespace App\Modules\Instructor\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\ClassCertificateRequest;
 use App\Models\AttendanceSession;
+use App\Models\ClassCertificateRequest;
 use App\Models\ClassSession;
 use App\Models\Course;
 use App\Models\Holiday;
@@ -17,9 +17,10 @@ use App\Modules\Attendance\Queries\GetSessionBanner;
 use App\Modules\Attendance\Services\AttendanceQrService;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Modules\Instructor\Events\StudentTransferred;
 use App\Modules\Instructor\Services\ClassResultPdfGenerator;
-use App\Modules\Instructor\Services\InstructorClassService;
 use App\Modules\Instructor\Services\ImportInstructorAttendanceCsv;
+use App\Modules\Instructor\Services\InstructorClassService;
 use App\Support\InstructorDisplayName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -76,17 +77,27 @@ class InstructorClassController extends Controller
             // Not asked for on the form - the class title is the course title.
             'title' => ['nullable', 'string', 'max:255'],
             'course_id' => ['required', 'exists:courses,id'],
-            'lesson_id' => ['nullable', 'exists:course_lessons,id'],
+            // The lesson has to belong to the chosen course, not just exist.
+            'lesson_id' => ['nullable', Rule::exists('course_lessons', 'id')->where('course_id', $request->input('course_id'))],
             'term_id' => ['required', 'exists:terms,id'],
             'time_id' => ['required', 'exists:times,id'],
             'room_id' => ['nullable', 'exists:rooms,id'],
             'class_type_id' => ['nullable', 'exists:class_type,class_type_id'],
-            'capacity' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', 'string', Rule::in(GetClassFormOptions::STATUSES)],
             'attendance_latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'attendance_longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'attendance_radius_meters' => ['nullable', 'integer', 'min:1', 'max:5000'],
         ]);
+
+        // Some courses (Basic IT) only run on set terms; the form hides the rest, this stops a direct POST.
+        $allowedTermIds = $this->instructorClasses->courseTermIds()[(int) $validated['course_id']] ?? null;
+
+        if ($allowedTermIds !== null && ! in_array((int) $validated['term_id'], $allowedTermIds, true)) {
+            $courseTitle = Course::query()->whereKey($validated['course_id'])->value('title');
+            $termNames = InstructorClassService::COURSE_TERM_RESTRICTIONS[$courseTitle] ?? [];
+
+            throw ValidationException::withMessages(['term_id' => 'This course can only be scheduled on '.implode(' or ', $termNames).'.']);
+        }
 
         // The form only offers slots the instructor is free for; re-check here so a
         // stale form or a direct POST can't book an overlapping / unavailable slot.
@@ -104,6 +115,10 @@ class InstructorClassController extends Controller
         // for the admin class form).
         $validated['title'] = Course::query()->whereKey($validated['course_id'])->value('title')
             ?? ($validated['title'] ?: 'New Class');
+
+        // Capacity is not instructor-configurable: every class starts at the
+        // fixed default and grows automatically as students are enrolled past it.
+        $validated['capacity'] = InstructorClassService::DEFAULT_CAPACITY;
 
         $this->instructorClasses->createClass($request->user(), $validated);
 
@@ -419,6 +434,7 @@ class InstructorClassController extends Controller
     {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
         $request->validate(['file' => ['required', 'file', 'mimes:csv,txt', 'max:10240']]);
+
         return response()->json(['message' => 'Legacy students and attendance imported successfully.', 'summary' => $this->importAttendanceCsv->handle($class, $request->file('file'), (int) $request->user()->id)]);
     }
 
@@ -550,7 +566,9 @@ class InstructorClassController extends Controller
 
         $targetClass = StudyClass::query()->findOrFail((int) $validated['study_class_id']);
 
-        $this->instructorClasses->transferStudent($class->id, (int) $student, $targetClass);
+        $movedEnrollment = $this->instructorClasses->transferStudent($class->id, (int) $student, $targetClass);
+
+        event(StudentTransferred::forClass($targetClass, $movedEnrollment->student?->full_name ?? 'Student'));
 
         $request->session()->forget(['error', 'warning', 'info', 'retryAfter', 'isHardBlock']);
 

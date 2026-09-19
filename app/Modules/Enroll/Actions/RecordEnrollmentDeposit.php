@@ -3,6 +3,7 @@
 namespace App\Modules\Enroll\Actions;
 
 use App\Models\StudentEnrollment;
+use App\Models\StudentEnrollmentPayment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -27,6 +28,17 @@ class RecordEnrollmentDeposit
                 'payment_status' => $this->paymentStatus($newAmountPaid, $totalDue),
                 'paid_at' => now(),
             ])->save();
+
+            StudentEnrollmentPayment::create([
+                'student_enrollment_id' => $enrollment->id,
+                'study_class_id' => $enrollment->study_class_id,
+                'student_id' => $enrollment->student_id,
+                'amount' => $depositAmount,
+                'payment_method' => 'cash',
+                'payment_date' => now(),
+                'payment_status' => 'completed',
+                'recorded_by' => auth()->id(),
+            ]);
 
             return $enrollment;
         });

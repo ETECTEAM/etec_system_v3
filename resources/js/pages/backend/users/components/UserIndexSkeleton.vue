@@ -38,6 +38,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from '../../../../
             <TableHead>{{ $t('Name') }}</TableHead>
             <TableHead>{{ $t('Email') }}</TableHead>
             <TableHead>{{ $t('Roles') }}</TableHead>
+            <TableHead>{{ $t('Gender') }}</TableHead>
             <TableHead>{{ $t('Status') }}</TableHead>
             <TableHead>{{ $t('Created By') }}</TableHead>
             <TableHead>{{ $t('Created At') }}</TableHead>
@@ -53,6 +54,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from '../../../../
               { width: '70%' },
               { width: '85%' },
               { width: '5rem', rounded: 'rounded-full' },
+              { width: '3rem' },
               { width: '4rem', rounded: 'rounded-full' },
               { width: '60%' },
               { width: '75%' },

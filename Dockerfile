@@ -10,12 +10,17 @@ WORKDIR /var/www
 # exist in the php-fpm container. fonts-liberation is the base font set
 # headless Chrome expects; Khmer text in the PDF uses a Battambang @font-face
 # embedded by the Blade view, so no system Khmer font is needed.
+# pango1.0-tools + fonts-noto-core: the current ClassResultPdfGenerator draws
+# with GD and shapes Khmer through pango-view (Noto Sans Khmer). Without them
+# it falls back to plain GD text, which is oversized, truncated and unshaped.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         curl \
         unzip \
         chromium \
         fonts-liberation \
+        fonts-noto-core \
+        pango1.0-tools \
         libpng-dev \
         libjpeg62-turbo-dev \
         libwebp-dev \

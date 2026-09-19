@@ -81,7 +81,12 @@ class SaveStudyClassRequest extends FormRequest
             'term_id' => $termRules,
             'time_id' => $timeRules,
             'status' => ['required', 'string', Rule::in(GetClassFormOptions::STATUSES)],
-            'capacity' => ['required', 'integer', 'min:1'],
+            // Instructors do not manage capacity from their class form. Physical
+            // classes inherit it from their selected room; an omitted online
+            // capacity keeps the class's existing value during an update.
+            'capacity' => $this->user()?->hasRole('instructor')
+                ? ['nullable', 'integer', 'min:1']
+                : ['required', 'integer', 'min:1'],
             'price' => ['required', 'numeric', 'min:0'],
             'document_price' => ['nullable', 'numeric', 'min:0'],
             'attendance_latitude' => ['nullable', 'numeric', 'between:-90,90'],

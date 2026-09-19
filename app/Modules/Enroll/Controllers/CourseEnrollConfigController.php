@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseEnrollConfig;
 use App\Modules\Enroll\Actions\SetClassTypeStartDates;
+use App\Modules\Enroll\Actions\SetCourseClassTypeStatus;
 use App\Modules\Enroll\Actions\SetCourseEnrollConfig;
+use App\Modules\Enroll\Queries\GetCourseClassSchedules;
 use App\Modules\Enroll\Queries\GetCourseEnrollConfigs;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -111,6 +113,36 @@ class CourseEnrollConfigController extends Controller
         return response()->json([
             'id' => $course->id,
             'enroll_order' => $course->enroll_order,
+        ]);
+    }
+
+    // Open/Closed for one course under one class type. Independent of every
+    // other class type, so closing Scholarship never closes Physical or Online,
+    // and the class type's time slots are kept as they are.
+    public function updateClassTypeStatus(
+        Request $request,
+        Course $course,
+        GetCourseClassSchedules $classSchedules,
+        SetCourseClassTypeStatus $setStatus,
+    ): JsonResponse {
+        $validated = $request->validate([
+            'class_type_id' => ['required', 'integer', 'exists:class_type,class_type_id'],
+            'status' => ['required', 'string', 'in:open,closed'],
+        ]);
+
+        // Same guard the slot toggles use: only a class type this course can
+        // actually be offered under on the Enroll Config page.
+        abort_unless(
+            $classSchedules->classTypeIdsForCourse($course)->contains((int) $validated['class_type_id']),
+            422,
+            'This class type is not available for this course.'
+        );
+
+        $saved = $setStatus->handle($course, (int) $validated['class_type_id'], $validated['status']);
+
+        return response()->json([
+            'class_type_id' => $saved->class_type_id,
+            'status' => $saved->status,
         ]);
     }
 

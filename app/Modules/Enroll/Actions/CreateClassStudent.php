@@ -16,7 +16,7 @@ class CreateClassStudent
     {
         return DB::transaction(function () use ($studyClass, $data): stdClass {
             $class = $this->registrations->lockStudyClass($studyClass->id);
-            $this->registrations->ensureClassHasSeat($class, 'name');
+            $this->registrations->expandCapacityToFit($class);
 
             $student = $this->registrations->createStudent($data, auth()->id());
 

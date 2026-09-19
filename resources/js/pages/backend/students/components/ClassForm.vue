@@ -140,6 +140,10 @@ const courseOptions = computed(() =>
   options.value.courses.map((course) => ({ label: course.title, value: String(course.id) }))
 );
 
+const lessonOptions = computed(() =>
+  lessons.value.map((lesson) => ({ label: lesson.title, value: String(lesson.id) }))
+);
+
 const teacherOptions = computed(() =>
   options.value.teachers.map((teacher) => ({ label: teacher.name, value: String(teacher.id) }))
 );
@@ -398,6 +402,18 @@ function submit(copy = false) {
         </p>
       </div>
 
+      <div v-if="!isAdminUser && props.mode === 'edit'">
+        <label class="font-semibold mb-2 block">{{ $t('Lesson') }}</label>
+        <SelectSearch
+          v-model="form.lesson_id"
+          :options="lessonOptions"
+          :disabled="loading.lessons || !form.course_id"
+          :placeholder="$t(form.course_id ? 'Select Lesson' : 'Select Course first')"
+          :button-class="selectClass"
+        />
+        <p v-if="form.errors.lesson_id" class="mt-1 text-xs text-red-600">{{ form.errors.lesson_id }}</p>
+      </div>
+
       <div v-if="!isAdminUser">
         <label class="font-semibold mb-2 block">{{ $t('Building') }}</label>
         <SelectSearch
@@ -459,7 +475,7 @@ function submit(copy = false) {
         <p v-if="form.errors.status" class="mt-1 text-xs text-red-600">{{ form.errors.status }}</p>
       </div>
 
-      <div>
+      <div v-if="isAdminUser || props.mode !== 'edit'">
         <label class="font-semibold mb-2 block">{{ $t('Study Term') }}</label>
         <SelectSearch
           v-model="selectedTerm"
@@ -470,7 +486,7 @@ function submit(copy = false) {
         />
       </div>
 
-      <div>
+      <div v-if="isAdminUser || props.mode !== 'edit'">
         <label class="font-semibold mb-2 block">{{ $t('Study Time') }}</label>
         <SelectSearch
           v-model="selectedTime"
@@ -482,31 +498,31 @@ function submit(copy = false) {
         <p v-if="form.errors.time_id" class="mt-1 text-xs text-red-600">{{ form.errors.time_id }}</p>
       </div>
 
-      <div>
+      <div v-if="isAdminUser || props.mode !== 'edit'">
         <label class="font-semibold mb-2 block">{{ $t('Capacity') }}</label>
         <input type="number" min="1" v-model="form.capacity" :readonly="isReadonlyCapacity" class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" :class="isReadonlyCapacity ? 'bg-slate-50 text-slate-500 dark:bg-gray-800/60 dark:text-gray-400' : ''" />
         <p v-if="form.errors.capacity" class="mt-1 text-xs text-red-600">{{ form.errors.capacity }}</p>
       </div>
 
-      <div>
+      <div v-if="isAdminUser || props.mode !== 'edit'">
         <label class="font-semibold mb-2 block">{{ $t('Price') }}</label>
         <input type="number" min="0" step="0.01" v-model="form.price" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
         <p v-if="form.errors.price" class="mt-1 text-xs text-red-600">{{ form.errors.price }}</p>
       </div>
 
-      <div>
+      <div v-if="isAdminUser || props.mode !== 'edit'">
         <label class="font-semibold mb-2 block">{{ $t('Document Price') }}</label>
         <input type="number" min="0" step="0.01" v-model="form.document_price" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
         <p v-if="form.errors.document_price" class="mt-1 text-xs text-red-600">{{ form.errors.document_price }}</p>
       </div>
 
-      <div>
+      <div v-if="isAdminUser || props.mode !== 'edit'">
         <label class="font-semibold mb-2 block">{{ $t('Start Date') }}</label>
         <input type="date" v-model="form.start_date" class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
         <p v-if="form.errors.start_date" class="mt-1 text-xs text-red-600">{{ form.errors.start_date }}</p>
       </div>
 
-      <div>
+      <div v-if="isAdminUser || props.mode !== 'edit'">
         <label class="font-semibold mb-2 block">{{ $t('Start EnRoll') }}</label>
         <input type="date" v-model="form.enrollment_start_date" class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" />
       </div>

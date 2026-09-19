@@ -18,10 +18,15 @@ const props = defineProps({
   // Class Type -> Term -> Time, already narrowed to the slots this instructor
   // is free for (see InstructorClassService::formOptions).
   scheduleGroups: { type: Array, default: () => [] },
+  // Restricted courses only: { [course_id]: [allowed term ids] } (see InstructorClassService::courseTermIds).
+  courseTermIds: { type: Object, default: () => ({}) },
 });
 
 const classTypeList = ref([...props.classTypes]);
 const isLoadingClassTypes = ref(false);
+const lessons = ref([]);
+const isLoadingLessons = ref(false);
+let lessonRequestId = 0;
 
 const form = useForm({
   // Title is not shown on the form - the server sets it to the course title.
@@ -31,8 +36,7 @@ const form = useForm({
   term_id: '',
   time_id: '',
   room_id: '',
-  capacity: 20,
-  status: 'upcoming',
+  status: 'active',
   attendance_latitude: '',
   attendance_longitude: '',
   attendance_radius_meters: '',
@@ -50,7 +54,20 @@ const toOptions = (items, valueKey = 'id') =>
   (items || []).map((item) => ({ label: optionLabel(item), value: String(item[valueKey]) }));
 
 const courseOptions = computed(() => toOptions(props.courses));
-const lessonOptions = computed(() => toOptions(props.lessons));
+// A lesson belongs to one course, so only the chosen course's lessons are offered.
+const lessonOptions = computed(() => {
+  if (!form.course_id) return [];
+
+  return toOptions((props.lessons || []).filter((lesson) => String(lesson.course_id) === String(form.course_id)));
+});
+
+// Lesson is optional. Until a course is chosen, or when the course has no lessons at all, the
+// field is disabled and simply stays empty (SelectSearch translates the placeholder itself).
+const lessonPlaceholder = computed(() => {
+  if (!form.course_id) return 'Select course first';
+
+  return lessonOptions.value.length ? 'Select lesson' : 'No lessons yet';
+});
 const roomOptions = computed(() => toOptions(props.rooms));
 
 // --- Class Type -> Term -> Time cascade, sourced from scheduleGroups ---
@@ -83,11 +100,15 @@ const selectedGroup = computed(() =>
   props.scheduleGroups.find((group) => String(group.class_type_id) === String(form.class_type_id)),
 );
 
+const allowedTermIds = computed(() => props.courseTermIds[form.course_id]?.map(String) ?? null);
+
 const termOptions = computed(() =>
-  (selectedGroup.value?.schedules ?? []).map((schedule) => ({
-    label: schedule.term_name,
-    value: String(schedule.term_id),
-  })),
+  (selectedGroup.value?.schedules ?? [])
+    .filter((schedule) => !allowedTermIds.value || allowedTermIds.value.includes(String(schedule.term_id)))
+    .map((schedule) => ({
+      label: schedule.term_name,
+      value: String(schedule.term_id),
+    })),
 );
 
 const selectedSchedule = computed(() =>
@@ -107,12 +128,50 @@ const noSlots = computed(() => props.scheduleGroups.length === 0);
 
 // Changing a parent clears its children — the child's valid options come from
 // the newly selected parent.
+// The chosen lesson belongs to the previous course, so it can't stay selected.
+watch(() => form.course_id, () => {
+  form.lesson_id = '';
+
+  if (form.term_id && !termOptions.value.some((option) => option.value === form.term_id)) {
+    form.term_id = '';
+  }
+});
+
 watch(() => form.class_type_id, () => {
   form.term_id = '';
   form.time_id = '';
 });
 watch(() => form.term_id, () => {
   form.time_id = '';
+});
+
+// A lesson belongs to one course. Do not expose every lesson in the selector;
+// load only the lessons for the newly selected course.
+watch(() => form.course_id, async (courseId) => {
+  const requestId = ++lessonRequestId;
+  form.lesson_id = '';
+  lessons.value = [];
+
+  if (!courseId) {
+    isLoadingLessons.value = false;
+    return;
+  }
+
+  isLoadingLessons.value = true;
+  try {
+    const response = await axios.get(`/dashboard/enroll/courses/${courseId}/lessons`);
+    if (requestId === lessonRequestId) {
+      lessons.value = response.data;
+    }
+  } catch (error) {
+    if (requestId === lessonRequestId) {
+      console.error('Failed to fetch lessons', error);
+    }
+  } finally {
+    if (requestId === lessonRequestId) {
+      isLoadingLessons.value = false;
+    }
+  }
 });
 
 const statusOptions = [
@@ -170,7 +229,8 @@ onMounted(() => {
             <SelectSearch
               v-model="form.lesson_id"
               :options="lessonOptions"
-              :placeholder="$t('Select lesson')"
+              :disabled="!form.course_id || lessonOptions.length === 0"
+              :placeholder="lessonPlaceholder"
               :button-class="selectClass"
             />
             <span v-if="form.errors.lesson_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.lesson_id }}</span>
@@ -225,12 +285,12 @@ onMounted(() => {
           <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Capacity') }}</span>
             <input
-              type="number"
-              min="1"
-              v-model="form.capacity"
-              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+              type="text"
+              value="12"
+              readonly
+              class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 outline-none dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-400"
             />
-            <span v-if="form.errors.capacity" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.capacity }}</span>
+            <span class="mt-1 block text-xs text-slate-400 dark:text-gray-500">{{ $t('Class capacity starts at 12. It grows automatically as students enroll.') }}</span>
           </label>
 
           <label class="block">

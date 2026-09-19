@@ -10,7 +10,9 @@ use App\Models\Floor;
 use App\Models\Room;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Models\StudentEnrollmentPayment;
 use App\Models\StudyClass;
+use App\Models\SubCategory;
 use App\Models\User;
 use App\Modules\Enroll\Actions\CreateClassStudent;
 use App\Modules\Enroll\Actions\CreateStudyClass;
@@ -21,7 +23,7 @@ use App\Modules\Enroll\Actions\RecordManualRegistration;
 use App\Modules\Enroll\Actions\RegisterStudent;
 use App\Modules\Enroll\Actions\ShareClassWithInstructor;
 use App\Modules\Enroll\Actions\UpdatePublicRegistrationDetails;
-use App\Modules\Enroll\Actions\UpdateStudyClass;
+use App\Modules\Enroll\Actions\UpdateEnrollment;
 use App\Modules\Enroll\Queries\GetClassDetails;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Queries\GetClassList;
@@ -34,15 +36,17 @@ use App\Modules\Enroll\Requests\SaveStudyClassRequest;
 use App\Modules\Enroll\Requests\ShareClassInstructorRequest;
 use App\Modules\Enroll\Requests\StoreClassStudentRequest;
 use App\Modules\Enroll\Requests\StoreManualRegistrationRequest;
-use App\Modules\Enroll\Requests\UpdatePublicRegistrationRequest;
+use App\Modules\Enroll\Requests\UpdateEnrollmentRequest;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
+use App\Support\CollapseSubjects;
 use App\Support\InstructorDisplayName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -193,6 +197,116 @@ class EnrollmentClassController extends Controller
         ]);
     }
 
+    /**
+     * Full student profile from the enrollment screens: contact info plus every
+     * enrollment (class / course / term / time, payment status) with its payment
+     * history. Reached from the View Class student table's eye button.
+     */
+    public function showStudent(Student $student): Response
+    {
+        $student->load([
+            'course:id,title',
+            'term:id,term_name',
+            'time:id,time_name',
+            'enrollments' => fn ($query) => $query->latest('id'),
+            'enrollments.studyClass:id,title,course_id,term_id,time_id,status',
+            'enrollments.studyClass.course:id,title',
+            'enrollments.studyClass.term:id,term_name',
+            'enrollments.studyClass.time:id,time_name',
+            'enrollments.course:id,title',
+            'enrollments.term:id,term_name',
+            'enrollments.time:id,time_name',
+            'enrollments.payments:id,student_enrollment_id,amount,payment_method,payment_date,payment_status,reference_number,remarks,recorded_by',
+            'enrollments.payments.recordedBy:id,name',
+        ]);
+
+        $enrollments = $student->enrollments
+            ->map(fn (StudentEnrollment $enrollment) => $this->presentStudentEnrollment($enrollment))
+            ->values()
+            ->all();
+
+        return Inertia::render('backend/students/ViewStudent', [
+            'student' => $this->presentStudentProfile($student),
+            'enrollments' => $enrollments,
+            'summary' => $this->studentSummary($student->enrollments),
+        ]);
+    }
+
+    private function presentStudentProfile(Student $student): array
+    {
+        return [
+            'id' => $student->id,
+            'full_name' => $student->full_name ?? '-',
+            'gender' => $student->gender ?? '-',
+            'phone' => $student->phone ?? '-',
+            'email' => $student->email ?? '-',
+            'date_of_birth' => $student->date_of_birth
+                ? Carbon::parse($student->date_of_birth)->format('Y-m-d')
+                : null,
+            'address' => $student->address ?? '-',
+            'student_status' => $student->student_status ?? '-',
+            'course' => $student->course?->title ?? '-',
+            'term' => $student->term?->term_name ?? '-',
+            'time' => $student->time?->time_name ?? '-',
+            'created_at' => optional($student->created_at)->format('M d, Y'),
+        ];
+    }
+
+    private function presentStudentEnrollment(StudentEnrollment $enrollment): array
+    {
+        $studyClass = $enrollment->studyClass;
+        $totalDue = (float) $enrollment->fee_amount + (float) $enrollment->document_fee_amount;
+        $amountPaid = (float) $enrollment->amount_paid;
+
+        return [
+            'id' => $enrollment->id,
+            'class_title' => $studyClass?->title ?? '-',
+            'class_status' => $studyClass?->status ?? null,
+            'course' => $studyClass?->course?->title ?? $enrollment->course?->title ?? '-',
+            'term' => $studyClass?->term?->term_name ?? $enrollment->term?->term_name ?? '-',
+            'time' => $studyClass?->time?->time_name ?? $enrollment->time?->time_name ?? '-',
+            'enrollment_status' => ucfirst((string) $enrollment->enrollment_status),
+            'payment_status' => ucfirst((string) $enrollment->payment_status),
+            'source' => $enrollment->source ?? '-',
+            'fee_amount' => (float) $enrollment->fee_amount,
+            'document_fee_amount' => (float) $enrollment->document_fee_amount,
+            'amount_paid' => $amountPaid,
+            'total_due' => $totalDue,
+            'remaining_balance' => max($totalDue - $amountPaid, 0),
+            'enrolled_at' => optional($enrollment->enrolled_at)->format('Y-m-d'),
+            'paid_at' => optional($enrollment->paid_at)->format('Y-m-d'),
+            'payments' => $enrollment->payments
+                ->map(fn (StudentEnrollmentPayment $payment) => [
+                    'id' => $payment->id,
+                    'amount' => (float) $payment->amount,
+                    'payment_method' => $payment->payment_method ?? '-',
+                    'payment_date' => optional($payment->payment_date)->format('Y-m-d'),
+                    'payment_status' => ucfirst((string) $payment->payment_status),
+                    'reference_number' => $payment->reference_number ?? '-',
+                    'remarks' => $payment->remarks ?? '-',
+                    'recorded_by' => $payment->recordedBy?->name ?? '-',
+                ])
+                ->all(),
+        ];
+    }
+
+    private function studentSummary($enrollments): array
+    {
+        $totalDue = $enrollments->sum(
+            fn (StudentEnrollment $enrollment) => (float) $enrollment->fee_amount + (float) $enrollment->document_fee_amount
+        );
+        $amountPaid = $enrollments->sum(fn (StudentEnrollment $enrollment) => (float) $enrollment->amount_paid);
+
+        return [
+            'enrollments' => $enrollments->count(),
+            'active' => $enrollments->where('enrollment_status', 'active')->count(),
+            'pending' => $enrollments->where('enrollment_status', 'pending')->count(),
+            'total_due' => $totalDue,
+            'amount_paid' => $amountPaid,
+            'remaining_balance' => max($totalDue - $amountPaid, 0),
+        ];
+    }
+
     public function edit(
         StudyClass $studyClass,
         GetClassFormOptions $options,
@@ -335,7 +449,7 @@ class EnrollmentClassController extends Controller
         ], 201);
     }
 
-    public function update(
+    public function updateClass(
         SaveStudyClassRequest $request,
         StudyClass $studyClass,
         UpdateStudyClass $updateStudyClass
@@ -401,13 +515,29 @@ class EnrollmentClassController extends Controller
     {
         $this->ensureInstructorOwnsClass($studyClass);
 
-        $studyClass->load(['instructors:id,name', 'teacher:id,name']);
+        $studyClass->load([
+            'instructors:id,name',
+            'teacher:id,name',
+            'teacher.instructorData:id,user_id,specialization',
+            'course.track:id,name',
+        ]);
+
+        // Basic IT splits into a fixed pair (Code / Network); other courses have none. When there
+        // is a pair, each instructor gets a suggestion from their specialization so the dialog can
+        // fill "Teaches" for them - see CollapseSubjects.
+        $subjects = CollapseSubjects::forCourse($studyClass->course);
+        $subCategoryNames = $subjects === [] ? [] : SubCategory::query()->pluck('name', 'id')->all();
+        $suggest = fn (?User $user): ?string => $subjects === []
+            ? null
+            : CollapseSubjects::forSpecialization($user?->instructorData?->specialization, $subCategoryNames);
 
         return response()->json([
             'owner' => $studyClass->teacher ? [
                 'id' => $studyClass->teacher->id,
                 'name' => InstructorDisplayName::format($studyClass->teacher->name, 'Unknown'),
+                'suggested_subject' => $suggest($studyClass->teacher),
             ] : null,
+            'subjects' => $subjects,
             'classTypeId' => $studyClass->class_type_id,
             'termId' => $studyClass->term_id,
             'timeId' => $studyClass->time_id,
@@ -422,11 +552,18 @@ class EnrollmentClassController extends Controller
             'teachers' => User::role('instructor')
                 ->where('id', '!=', $studyClass->teacher_id)
                 ->select('id', 'name')
+                ->with('instructorData:id,user_id,specialization')
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $teacher) => [
                     'id' => $teacher->id,
                     'name' => InstructorDisplayName::format($teacher->name, 'Unknown'),
+                    'suggested_subject' => $suggest($teacher),
+                    // Every half they can teach (both when they have both skills) - the dialog offers
+                    // only the instructors who cover the half the owner isn't taking.
+                    'covers' => $subjects === []
+                        ? []
+                        : CollapseSubjects::halvesFor($teacher->instructorData?->specialization, $subCategoryNames),
                 ]),
             'schedules' => $this->shareableSchedules($studyClass, $options),
         ]);
@@ -738,6 +875,31 @@ class EnrollmentClassController extends Controller
         return back()->with('success', 'Deposit recorded successfully.');
     }
 
+    public function update(
+        UpdateEnrollmentRequest $request,
+        StudentEnrollment $enrollment,
+        UpdateEnrollment $updateEnrollment
+    ): RedirectResponse|JsonResponse {
+        $updateEnrollment->handle($enrollment, $request->validated());
+
+        if ($request->expectsJson()) {
+            $totalDue = (float) $enrollment->fee_amount + (float) $enrollment->document_fee_amount;
+
+            return response()->json([
+                'id' => $enrollment->student_id,
+                'enrollment_id' => $enrollment->id,
+                'name' => $enrollment->student?->full_name ?? '-',
+                'enrollment_status' => $enrollment->enrollment_status,
+                'payment_status' => ucfirst($enrollment->payment_status),
+                'payment_date' => $enrollment->paid_at?->format('Y-m-d'),
+                'amount_paid' => (float) $enrollment->amount_paid,
+                'remaining_balance' => max($totalDue - (float) $enrollment->amount_paid, 0),
+            ]);
+        }
+
+        return back()->with('success', 'Enrollment updated successfully.');
+    }
+
     public function updateRegistration(
         UpdatePublicRegistrationRequest $request,
         StudentEnrollment $enrollment,
@@ -807,7 +969,7 @@ class EnrollmentClassController extends Controller
         abort_unless($enrollment->studyClass !== null, 404);
 
         $this->ensureInstructorOwnsClass($enrollment->studyClass);
-        $registrations->ensureClassHasSeat($enrollment->studyClass, 'student_id');
+        $registrations->expandCapacityToFit($enrollment->studyClass);
 
         $enrollment->update([
             'enrollment_status' => 'active',

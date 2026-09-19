@@ -49,15 +49,69 @@ const instructorTermOptions = computed(() =>
   termOptions.value.filter((option) => option.value !== form.value.owner_term_id),
 );
 
-const teacherOptions = computed(() =>
-  (options.value?.teachers ?? []).map((teacher) => ({ label: teacher.name, value: String(teacher.id) })),
-);
-
 const sharedInstructors = computed(() =>
   (options.value?.shared ?? []).filter((item) => !item.is_owner),
 );
 
 const ownerName = computed(() => options.value?.owner?.name ?? "-");
+
+// Basic IT splits into a fixed pair - Code and Network - so the dialog suggests who teaches which
+// from each instructor's specialization instead of making anyone type it. Empty for other courses.
+const subjects = computed(() => options.value?.subjects ?? []);
+
+// The other half of the pair ("" when the subject isn't one of the pair, e.g. old free text).
+// Case and spaces are ignored, so a hand-typed "code" still counts.
+const partnerOf = (subject) => {
+  const key = String(subject ?? "").trim().toLowerCase();
+  const own = subjects.value.find((item) => item.toLowerCase() === key);
+
+  return own ? subjects.value.find((item) => item !== own) : "";
+};
+
+// Fills only what is still empty, so a saved or hand-typed subject is never overwritten. The class
+// owner's specialization decides; the second instructor's is used only when the owner has none.
+function suggestSubjects() {
+  if (!subjects.value.length || !options.value) return;
+
+  const second = (options.value.teachers ?? []).find(
+    (teacher) => String(teacher.id) === String(form.value.instructor_id),
+  );
+
+  let mine = form.value.owner_subject || options.value.owner?.suggested_subject || "";
+  if (!mine && second?.suggested_subject) mine = partnerOf(second.suggested_subject);
+
+  if (!form.value.owner_subject) form.value.owner_subject = mine;
+  if (!form.value.instructor_subject && mine) form.value.instructor_subject = partnerOf(mine);
+}
+
+// The second instructor is picked from those who can teach the half the owner isn't taking (an owner
+// on Code is offered Network instructors, and vice versa); someone with both skills counts for either.
+// "Show all instructors" is the way out when specialization data is incomplete, and when nobody covers
+// that half yet the list simply shows everyone.
+const showAllInstructors = ref(false);
+
+const partnerHalf = computed(() => partnerOf(form.value.owner_subject));
+
+const matchingTeachers = computed(() =>
+  (options.value?.teachers ?? []).filter((teacher) => (teacher.covers ?? []).includes(partnerHalf.value)),
+);
+
+const filteringTeachers = computed(
+  () => partnerHalf.value !== "" && !showAllInstructors.value && matchingTeachers.value.length > 0,
+);
+
+const noTeacherCoversPartner = computed(() => partnerHalf.value !== "" && matchingTeachers.value.length === 0);
+
+const teacherOptions = computed(() =>
+  (options.value?.teachers ?? [])
+    .filter(
+      (teacher) =>
+        !filteringTeachers.value ||
+        (teacher.covers ?? []).includes(partnerHalf.value) ||
+        String(teacher.id) === String(form.value.instructor_id),
+    )
+    .map((teacher) => ({ label: teacher.name, value: String(teacher.id) })),
+);
 
 watch(
   () => props.show,
@@ -66,6 +120,9 @@ watch(
   },
 );
 
+// Picking the second instructor can settle the split when the owner's specialization couldn't.
+watch(() => form.value.instructor_id, suggestSubjects);
+
 async function load() {
   loading.value = true;
   error.value = "";
@@ -73,6 +130,7 @@ async function load() {
   try {
     const response = await axios.get(`/dashboard/enroll/${props.classData.id}/instructors`);
     options.value = response.data;
+    showAllInstructors.value = false;
 
     const owner = (response.data.shared ?? []).find((item) => item.is_owner);
 
@@ -83,6 +141,8 @@ async function load() {
       owner_term_id: String(owner?.term_id ?? response.data.termId ?? ""),
       owner_subject: owner?.subject ?? "",
     };
+
+    suggestSubjects();
   } catch (requestError) {
     error.value = requestError.response?.data?.message ?? t("Could not load the class instructors.");
   } finally {
@@ -161,6 +221,14 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
               {{ error }}
             </p>
 
+            <!-- Basic IT only: the fixed pair, suggested from specialization and offered as quick picks -->
+            <p v-if="subjects.length" class="rounded-xl bg-indigo-50 px-4 py-3 text-xs font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+              {{ t("This class is split into :first and :second. The suggestion follows each instructor's specialization - you can change it.", { first: subjects[0], second: subjects[1] }) }}
+            </p>
+            <datalist v-if="subjects.length" id="collapse-subjects">
+              <option v-for="subject in subjects" :key="subject" :value="subject" />
+            </datalist>
+
             <!-- Already sharing -->
             <div v-if="sharedInstructors.length" class="rounded-xl border border-slate-200 dark:border-gray-800">
               <p class="border-b border-slate-200 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:border-gray-800 dark:text-gray-400">
@@ -208,6 +276,7 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
                   <input
                     v-model="form.owner_subject"
                     type="text"
+                    :list="subjects.length ? 'collapse-subjects' : undefined"
                     :placeholder="t('e.g. Code')"
                     :class="selectClass"
                   />
@@ -225,6 +294,14 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
                   placeholder="Select instructor"
                   empty-text="No other instructors found"
                 />
+                <div v-if="partnerHalf" class="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-gray-400">
+                  <span v-if="filteringTeachers">{{ t('Showing only instructors who teach :subject.', { subject: partnerHalf }) }}</span>
+                  <span v-else-if="noTeacherCoversPartner">{{ t('No instructor teaches :subject yet, so everyone is listed.', { subject: partnerHalf }) }}</span>
+                  <label v-if="matchingTeachers.length" class="ml-auto inline-flex cursor-pointer items-center gap-1.5 font-semibold text-slate-600 dark:text-gray-300">
+                    <input v-model="showAllInstructors" type="checkbox" class="h-3.5 w-3.5 rounded border-slate-300" />
+                    {{ t('Show all instructors') }}
+                  </label>
+                </div>
               </div>
               <div class="grid gap-3 sm:grid-cols-2">
                 <div>
@@ -241,6 +318,7 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-600 dark:text-
                   <input
                     v-model="form.instructor_subject"
                     type="text"
+                    :list="subjects.length ? 'collapse-subjects' : undefined"
                     :placeholder="t('e.g. Network')"
                     :class="selectClass"
                   />

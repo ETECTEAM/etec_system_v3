@@ -14,6 +14,7 @@ import {
 
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import { useConfirm } from '../../../composables/useConfirm'
+import { useToast } from '../../../composables/useToast'
 import { useI18n } from '../../../i18n'
 
 const props = defineProps({
@@ -52,6 +53,7 @@ const transferForm = useForm({
 const availableClasses = computed(() => props.classes || [])
 const { confirm } = useConfirm()
 const { t } = useI18n()
+const toast = useToast()
 
 function emptyValue(value) {
     return value === '-' ? '' : (value ?? '')
@@ -188,15 +190,37 @@ function submitTransfer() {
     transferForm.put(
         `/dashboard/student-management/enrollments/${selected.value.enrollment_id}/transfer`,
         {
-            onSuccess: close,
+            onSuccess: () => {
+                toast.success(t('Student transferred successfully.'))
+                close()
+            },
+            onError: (errors) => {
+                const message = Object.values(errors).flat()[0] ?? t('Failed to transfer student.')
+
+                toast.error(message)
+            },
         },
     )
 }
 
 function markLate(row) {
+    if (!row.late_action?.enabled) {
+        return
+    }
+
     router.post(
         `/dashboard/student-management/enrollments/${row.enrollment_id}/late`,
     )
+}
+
+function lateActionLabel(row) {
+    return {
+        already_marked: t('Already marked late today'),
+        attendance_recorded: t('Attendance already recorded today'),
+        no_session: t('No class session scheduled today'),
+        before_class: t('Late can only be marked during the scheduled class time'),
+        after_class: t('Late can only be marked during the scheduled class time'),
+    }[row.late_action?.reason] ?? t('Mark this student as late')
 }
 
 async function remove(row) {
@@ -491,8 +515,9 @@ function openAttendance(row) {
 
                                         <!-- Late -->
                                         <button
-                                            :title="$t('Mark this student as late')"
-                                            :aria-label="$t('Mark this student as late')"
+                                            :title="lateActionLabel(row)"
+                                            :aria-label="lateActionLabel(row)"
+                                            :disabled="!row.late_action?.enabled"
                                             class="inline-flex items-center
                                                    gap-1.5 rounded-lg
                                                    bg-amber-100 px-3 py-2
@@ -501,11 +526,15 @@ function openAttendance(row) {
                                                    hover:bg-amber-200
                                                    dark:bg-amber-500/10
                                                    dark:text-amber-300
-                                                   dark:hover:bg-amber-500/20"
+                                                   dark:hover:bg-amber-500/20
+                                                   disabled:cursor-not-allowed
+                                                   disabled:opacity-50
+                                                   disabled:hover:bg-amber-100
+                                                   dark:disabled:hover:bg-amber-500/10"
                                             @click.stop="markLate(row)"
                                         >
                                             <Clock3 class="h-3.5 w-3.5" />
-                                            {{ $t('Late') }}
+                                            {{ row.late_action?.reason === 'already_marked' ? $t('Late marked') : $t('Late') }}
                                         </button>
 
                                       

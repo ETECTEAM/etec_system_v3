@@ -147,6 +147,7 @@ class GetClassList
         return [
             'id' => $studyClass->id,
             'slug' => $studyClass->slug,
+            'join_token' => $studyClass->join_token,
             'title' => $studyClass->title,
             'course' => $studyClass->course?->title,
             'course_price' => $studyClass->course?->price !== null ? (float) $studyClass->course->price : null,
@@ -199,7 +200,8 @@ class GetClassList
             'total_students' => (clone $active)->count(),
             'paid_students' => (clone $active)->where('payment_status', 'paid')->count(),
             'partial_students' => (clone $active)->where('payment_status', 'partial')->count(),
-            'unpaid_students' => (clone $active)->whereIn('payment_status', ['unpaid', 'partial'])->count(),
+            'unpaid_students' => (clone $active)->where('payment_status', 'unpaid')->count(),
+            'students_with_balance' => (clone $active)->whereIn('payment_status', ['partial', 'unpaid'])->count(),
             'total_deposit_collected' => (float) (clone $active)->sum('amount_paid'),
         ];
     }

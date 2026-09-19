@@ -47,7 +47,8 @@ const form = useForm({
   phone: "",
 });
 
-const joinUrl = computed(() => `/join-class/${props.classData.slug ?? props.classData.id}`);
+// Submit and approval-polling go back to the same secret link the student opened.
+const joinUrl = computed(() => `/join-class/${props.classData.join_token}`);
 
 function submit() {
   if (props.isLocked) {

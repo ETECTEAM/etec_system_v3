@@ -4,6 +4,7 @@ namespace App\Modules\Enroll\Queries;
 
 use App\Models\ClassType;
 use App\Models\Course;
+use App\Models\CourseClassTypeStatus;
 use App\Models\CourseEnrollConfig;
 use App\Models\CourseTrack;
 use App\Models\Schedule;
@@ -77,6 +78,15 @@ class GetCourseClassSchedules
             ->groupBy('course_id')
             ->map(fn (Collection $rows) => $rows->keyBy(fn (CourseEnrollConfig $config) => "{$config->schedule_id}:{$config->time_id}"));
 
+        // Class Types each course has closed, by course id. A class type with no
+        // row is open, so only the closed ones need carrying.
+        $closedTypeIdsByCourse = CourseClassTypeStatus::query()
+            ->whereIn('course_id', $courseIds)
+            ->where('status', '!=', 'open')
+            ->get(['course_id', 'class_type_id'])
+            ->groupBy('course_id')
+            ->map(fn (Collection $rows) => $rows->pluck('class_type_id')->all());
+
         $schedules = Schedule::query()
             ->whereIn('class_type_id', $neededTypeIds->all())
             ->with([
@@ -87,7 +97,7 @@ class GetCourseClassSchedules
             ->get();
 
         return $courseIds
-            ->mapWithKeys(function (int $courseId) use ($schedules, $openConfigsByCourse, $mappedTypeByCourse, $defaultTypeIds) {
+            ->mapWithKeys(function (int $courseId) use ($schedules, $openConfigsByCourse, $closedTypeIdsByCourse, $mappedTypeByCourse, $defaultTypeIds) {
                 $mappedTypeId = $mappedTypeByCourse->get($courseId);
 
                 $courseSchedules = $mappedTypeId !== null
@@ -98,6 +108,7 @@ class GetCourseClassSchedules
                     $courseId => $this->build(
                         $courseSchedules->values(),
                         $openConfigsByCourse->get($courseId) ?? collect(),
+                        $closedTypeIdsByCourse->get($courseId, []),
                     ),
                 ];
             })
@@ -143,14 +154,17 @@ class GetCourseClassSchedules
     /**
      * @param  Collection<int, Schedule>  $schedules  the schedules this one course may show
      * @param  Collection<string, CourseEnrollConfig>  $openConfigs  open rows keyed "scheduleId:timeId" for one course
+     * @param  array<int, int|string>  $closedTypeIds  Class Type ids this course is closed under
      * @return array<int, array<string, mixed>>
      */
-    private function build(Collection $schedules, Collection $openConfigs): array
+    private function build(Collection $schedules, Collection $openConfigs, array $closedTypeIds = []): array
     {
+        $closedTypeIds = array_map('intval', $closedTypeIds);
+
         return $schedules
             ->groupBy(fn (Schedule $schedule) => $schedule->classType->type_name)
             ->sortBy(fn ($group, $typeName) => array_search($typeName, self::AVAILABLE_CLASS_TYPES))
-            ->map(function ($group) use ($openConfigs) {
+            ->map(function ($group) use ($openConfigs, $closedTypeIds) {
                 $terms = $group
                     ->sortBy(fn (Schedule $schedule) => $schedule->term?->term_name ?? '')
                     ->map(fn (Schedule $schedule) => [
@@ -192,6 +206,9 @@ class GetCourseClassSchedules
                 return [
                     'class_type_id' => $first->class_type_id,
                     'class_type_name' => $first->classType->type_name,
+                    // The class type's own Open/Closed switch - separate from
+                    // its slots (is_enabled), which keep their state when closed.
+                    'status' => in_array((int) $first->class_type_id, $closedTypeIds, true) ? 'closed' : 'open',
                     'start_date' => $startDates->count() === 1 ? $startDates->first() : null,
                     'terms' => $terms,
                     'is_enabled' => collect($terms)->contains(

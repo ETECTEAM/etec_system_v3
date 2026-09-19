@@ -19,8 +19,8 @@ use Inertia\Response;
 
 class CertificateController extends Controller
 {
-    private const TYPES = ['free', 'normal', 'scholarship', 'meal', 'internship'];
-    private const PAGE_TYPES = ['free', 'normal', 'scholarship', 'meal', 'internship', 'report'];
+    private const TYPES = ['free', 'normal', 'scholarship', 'meal', 'internship', 'office'];
+    private const PAGE_TYPES = ['free', 'normal', 'scholarship', 'meal', 'internship', 'office', 'report'];
     private const REQUEST_VISIBLE_CLASS_STATUSES = ['upcoming', 'pre_end', 'ended', 'completed', 'active'];
     private const SPECIAL_CLASS_KEYWORDS = [
         'free' => ['free'],
@@ -67,8 +67,8 @@ class CertificateController extends Controller
             ->when($track !== '' && $track !== 'all', fn (Builder $query) => $query
                 ->whereHas('course.track', fn (Builder $trackQuery) => $trackQuery->where('name', $track))
             )
-            ->when($type === 'normal', fn (Builder $query) => $this->whereRegularCertificateClass($query))
-            ->when($type !== 'normal', fn (Builder $query) => $this->whereTypedCertificateClass($query, $type))
+            ->when(in_array($type, ['normal', 'office'], true), fn (Builder $query) => $this->whereRegularCertificateClass($query))
+            ->when(! in_array($type, ['normal', 'office'], true), fn (Builder $query) => $this->whereTypedCertificateClass($query, $type))
             ->latest('id')
             ->get();
 
@@ -81,7 +81,7 @@ class CertificateController extends Controller
 
         $printedCounts = DB::table('student_certificate_normal')
             ->select('study_class_id', DB::raw('COUNT(DISTINCT student_id) as printed_students'))
-            ->where('certificate_type', $type)
+            ->where('certificate_type', $this->storageTypeFor($type))
             ->whereIn('study_class_id', $classes->pluck('id'))
             ->groupBy('study_class_id')
             ->pluck('printed_students', 'study_class_id');
@@ -210,7 +210,7 @@ class CertificateController extends Controller
                 'student:id,full_name,gender,phone',
                 'student.certificates' => fn ($query) => $query
                     ->where('study_class_id', $studyClass->id)
-                    ->where('certificate_type', $type),
+                    ->where('certificate_type', $this->storageTypeFor($type)),
             ])
             ->where('study_class_id', $studyClass->id)
             ->where('enrollment_status', 'active')
@@ -272,7 +272,7 @@ class CertificateController extends Controller
             [
                 'student_id' => $validated['student_id'],
                 'study_class_id' => $validated['study_class_id'],
-                'certificate_type' => $validated['certificate_type'],
+                'certificate_type' => $this->storageTypeFor($validated['certificate_type']),
             ],
             [
                 'student_name' => $validated['student_name'],
@@ -354,7 +354,7 @@ class CertificateController extends Controller
 
     private function applyCertificateClassTypeFilter(Builder $query, string $type): void
     {
-        if ($type === 'normal') {
+        if ($type === 'normal' || $type === 'office') {
             $this->whereRegularCertificateClass($query);
 
             return;
@@ -462,7 +462,8 @@ class CertificateController extends Controller
         return match ($type) {
             // Legacy non-internship requests may have been saved as free or scholarship.
             // The current rule is: every non-internship class belongs to Regular.
-            'normal' => ['normal', 'free', 'scholarship'],
+            // Office uses the exact same class list and request types as Regular.
+            'normal', 'office' => ['normal', 'free', 'scholarship'],
             'meal' => ['meal', 'internship'],
             default => [$type],
         };
@@ -524,6 +525,15 @@ class CertificateController extends Controller
     private function normaliseType(string $type): string
     {
         return in_array($type, self::TYPES, true) ? $type : 'free';
+    }
+
+    /**
+     * Office certificates share the regular certificate storage,
+     * so a student printed from either page is marked printed on both.
+     */
+    private function storageTypeFor(string $type): string
+    {
+        return $type === 'office' ? 'normal' : $type;
     }
 
     private function classTime(StudyClass $studyClass): string

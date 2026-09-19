@@ -50,7 +50,7 @@ function toggleSidebarCollapse() {
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import axios from 'axios'
-import { usePage } from '@inertiajs/vue3'
+import { router, usePage } from '@inertiajs/vue3'
 import { useToast } from '@/composables/useToast'
 import Sidebar from './Sidebar.vue'
 import DashboardHeader from './DashboardHeader.vue'
@@ -58,6 +58,7 @@ import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { PageLoading } from '../components/ui/page-loading'
 import { useRouteLoading } from '../composables/useRouteLoading'
 import { getEcho } from '../echo'
+import { useI18n } from '../i18n'
 
 const isSidebarOpen = ref(false)
 const isSidebarCollapsed = ref(false)
@@ -90,6 +91,7 @@ const { isNavigating } = useRouteLoading()
 // and toast the newest unread item while the chime plays.
 const page = usePage()
 const toast = useToast()
+const { t } = useI18n()
 
 const isAdmin = computed(() => {
     const roles = page.props.auth?.roles ?? []
@@ -98,11 +100,24 @@ const isAdmin = computed(() => {
 })
 
 let notificationChannel = null
+let instructorNotificationChannel = null
 
 function playChime() {
     // Browsers reject autoplay until the user has interacted with the tab at
     // least once - swallow that rejection instead of surfacing it as an error.
     new Audio('/sounds/notification.mp3').play().catch(() => {})
+}
+
+function announceTransferredStudent(studentName) {
+    if (!('speechSynthesis' in window)) return
+
+    const announcement = new SpeechSynthesisUtterance(`Received student named ${studentName}`)
+
+    announcement.lang = 'en-US'
+    announcement.rate = 0.95
+
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(announcement)
 }
 
 async function announceLatestNotification() {
@@ -126,15 +141,46 @@ function handleNotificationsUpdated() {
     announceLatestNotification()
 }
 
-onMounted(() => {
-    if (!isAdmin.value) return
+function handleStudentTransferred(event) {
+    playChime()
+    const studentName = event.student_name ?? t('Student')
+    const classTitle = event.class_title ?? t('your class')
 
-    notificationChannel = getEcho()?.private('admin-notifications')
-        .listen('.notifications.updated', handleNotificationsUpdated)
+    announceTransferredStudent(studentName)
+    toast.info(t(':name was transferred into :class.', {
+        name: studentName,
+        class: classTitle,
+    }), {
+        timeout: 8000,
+    })
+
+    if (Array.isArray(page.props.classes)) {
+        router.reload({
+            only: ['classes', 'summary'],
+            preserveScroll: true,
+        })
+    }
+}
+
+onMounted(() => {
+    const userId = page.props.auth?.user?.id
+    const roles = page.props.auth?.roles ?? []
+
+    if (isAdmin.value) {
+        notificationChannel = getEcho()?.private('admin-notifications')
+            .listen('.notifications.updated', handleNotificationsUpdated)
+    }
+
+    if (userId && roles.includes('instructor')) {
+        instructorNotificationChannel = getEcho()?.private(`instructor-notifications.${userId}`)
+            .listen('.student.transferred', handleStudentTransferred)
+    }
 })
 
 onBeforeUnmount(() => {
     notificationChannel?.stopListening('.notifications.updated', handleNotificationsUpdated)
+    instructorNotificationChannel?.stopListening('.student.transferred', handleStudentTransferred)
+
 })
 </script>
 

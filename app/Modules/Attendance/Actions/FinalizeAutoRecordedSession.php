@@ -31,6 +31,11 @@ class FinalizeAutoRecordedSession
                 return;
             }
 
+            // A pre-ended class is no longer teaching: don't mark its students absent or auto-block them.
+            if ($session->studyClass?->status === 'pre_end') {
+                return;
+            }
+
             if (Holiday::isHoliday($session->session_date)) {
                 $this->holidays->skipUnresolvedSession($session);
 

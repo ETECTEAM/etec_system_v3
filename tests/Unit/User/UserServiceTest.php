@@ -120,7 +120,6 @@ class UserServiceTest extends TestCase
             password: 'password123',
             role: 'student',
             status: 'active',
-            avatar: null,
             student: [
                 'full_name' => 'New Student',
                 'gender' => 'male',
@@ -147,7 +146,6 @@ class UserServiceTest extends TestCase
             password: 'password123',
             role: 'instructor',
             status: 'active',
-            avatar: null,
             student: [],
             instructorData: [
                 'instructor_code' => null,
@@ -173,7 +171,6 @@ class UserServiceTest extends TestCase
             password: 'password123',
             role: 'student',
             status: 'active',
-            avatar: null,
             student: ['full_name' => 'Switching User', 'gender' => 'male', 'phone' => '012345678'],
             instructorData: [],
         ));
@@ -186,7 +183,6 @@ class UserServiceTest extends TestCase
             password: null,
             role: 'instructor',
             status: 'active',
-            avatar: null,
             student: [],
             instructorData: ['full_name' => 'Switching User', 'phone' => '012345678'],
         ));
@@ -209,7 +205,6 @@ class UserServiceTest extends TestCase
             password: null,
             role: 'instructor',
             status: 'active',
-            avatar: null,
             student: [],
             instructorData: [],
         ));
@@ -254,7 +249,6 @@ class UserServiceTest extends TestCase
             password: 'password123',
             role: 'student',
             status: 'active',
-            avatar: null,
             student: ['full_name' => 'Student Display Name', 'gender' => 'male', 'phone' => '012345678'],
             instructorData: [],
         ));

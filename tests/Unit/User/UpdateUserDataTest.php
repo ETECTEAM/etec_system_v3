@@ -15,7 +15,6 @@ class UpdateUserDataTest extends TestCase
             password: null,
             role: 'instructor',
             status: 'active',
-            avatar: null,
             student: [],
             instructorData: [],
         );
@@ -34,7 +33,6 @@ class UpdateUserDataTest extends TestCase
             password: '',
             role: 'instructor',
             status: 'active',
-            avatar: null,
             student: [],
             instructorData: [],
         );
@@ -50,7 +48,6 @@ class UpdateUserDataTest extends TestCase
             password: 'new-hashed-password',
             role: 'instructor',
             status: 'active',
-            avatar: null,
             student: [],
             instructorData: [],
         );
