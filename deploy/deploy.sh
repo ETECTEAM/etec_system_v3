@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 # Production deploy script
-# Usage: ./deploy/deploy.sh [branch] [--migrate]
+# Usage: ./deploy/deploy.sh [branch] [--migrate] [--sync-schedules]
 
 set -euo pipefail
 
 COMPOSE_FILE="docker-compose.prod.yml"
 BRANCH="${1:-${DEPLOY_BRANCH:-production}}"
 RUN_MIGRATE=false
+RUN_SYNC_SCHEDULES=false
 
 for arg in "$@"; do
   case "$arg" in
     --migrate) RUN_MIGRATE=true ;;
+    --sync-schedules) RUN_SYNC_SCHEDULES=true ;;
   esac
 done
 
@@ -125,6 +127,11 @@ docker compose -f "${COMPOSE_FILE}" exec -T nginx nginx -s reload 2>/dev/null ||
 if [ "$RUN_MIGRATE" = true ]; then
   echo "==> Running migrations"
   docker compose -f "${COMPOSE_FILE}" exec -T app php artisan migrate --force
+fi
+
+if [ "$RUN_SYNC_SCHEDULES" = true ]; then
+  echo "==> Syncing work schedules and instructor availability"
+  docker compose -f "${COMPOSE_FILE}" exec -T app php artisan work-schedules:sync
 fi
 
 # Hygiene only (shrinks the bind-mounted node_modules / reclaims disk) - not
