@@ -82,11 +82,9 @@ class MoveStudentEnrollment
         $class = $this->registrations->lockStudyClass($targetClass->id);
         $this->registrations->ensureStudentIsNotEnrolledInClass((int) $class->id, (int) $enrollment->student_id);
 
-        if ($force) {
-            $this->registrations->expandCapacityToFit($class);
-        } else {
-            $this->registrations->ensureClassHasSeat($class);
-        }
+        // Capacity grows to fit (12 -> 13 -> ...) instead of rejecting the
+        // assignment when the target class is already full.
+        $this->registrations->expandCapacityToFit($class);
 
         // The course-level price snapshotted while parked (see
         // RegisterStudentForSchedule::saveUnassignedEnrollment) can differ

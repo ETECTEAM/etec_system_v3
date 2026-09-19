@@ -19,15 +19,14 @@ class EnrollStudent
     // student_id are always the ones this method resolves, never the caller's.
     public function handle(StudyClass $studyClass, int $studentId, bool $force = false, array $overrides = []): stdClass
     {
-        return DB::transaction(function () use ($studyClass, $studentId, $force, $overrides): stdClass {
+        return DB::transaction(function () use ($studyClass, $studentId, $overrides): stdClass {
             $class = $this->registrations->lockStudyClass($studyClass->id);
             $this->registrations->ensureStudentIsNotEnrolledInClass($class->id, $studentId);
 
-            if ($force) {
-                $this->registrations->expandCapacityToFit($class);
-            } else {
-                $this->registrations->ensureClassHasSeat($class);
-            }
+            // Capacity grows to fit: adding a student past the current limit
+            // bumps the class to the exact seat count needed (12 -> 13 -> ...)
+            // rather than rejecting the enrollment.
+            $this->registrations->expandCapacityToFit($class);
 
             $config = $this->resolveEnrollConfig($class);
             $resolvedFee = $config?->resolvedPrice() ?? (float) $class->price;
