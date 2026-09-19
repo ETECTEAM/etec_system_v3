@@ -3,7 +3,6 @@ import { computed, ref } from "vue";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 import axios from "axios";
 import {
-  Award,
   BookOpen,
   GraduationCap,
   Mars,
@@ -189,24 +188,6 @@ function attendanceItem(classData) {
   ];
 }
 
-function openCertificateRequest(classData) {
-  router.get(`/dashboard/instructor/classes/${classData.id}/certificate-request`);
-}
-
-function certificateItem(classData) {
-  const requestedTypes = classData.certificate_request_types ?? [];
-  const hasRequest = requestedTypes.length > 0;
-
-  return [
-    {
-      label: hasRequest ? t("Certificate Requested") : t("Request Certificate"),
-      icon: Award,
-      disabled: hasRequest,
-      action: () => openCertificateRequest(classData),
-    },
-  ];
-}
-
 function actionItems(classData) {
   return [
     {
@@ -216,7 +197,6 @@ function actionItems(classData) {
       action: () => importLegacyCsv(classData),
     },
     ...attendanceItem(classData),
-    ...certificateItem(classData),
   ];
 }
 </script>

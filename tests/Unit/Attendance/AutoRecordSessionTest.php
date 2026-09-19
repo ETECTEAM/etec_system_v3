@@ -346,4 +346,37 @@ class AutoRecordSessionTest extends TestCase
             'source' => StudentAttendance::SOURCE_MANUAL,
         ]);
     }
+
+    // ─── Pre-ended class ────────────────────────────────────────────────────
+
+    public function test_pre_ended_class_session_is_skipped_and_does_not_block_the_instructor(): void
+    {
+        $now = Carbon::parse('2026-08-18 09:30:00', 'Asia/Phnom_Penh');
+        Carbon::setTestNow($now);
+
+        $class = $this->makeStudyClass(['status' => 'pre_end']);
+        $this->enroll($class, $this->makeStudent());
+        $session = $this->makeSession(Carbon::parse('2026-08-18 09:00:00', 'Asia/Phnom_Penh'), 0, ['class' => $class]);
+
+        $this->action->handle($session->id);
+
+        $this->assertSame(ClassSession::STATUS_SKIPPED, $session->fresh()->status);
+        $this->assertDatabaseCount('instructor_attendance_blocks', 0);
+    }
+
+    public function test_pre_ended_class_is_not_finalized_to_absent(): void
+    {
+        $now = Carbon::parse('2026-08-20 10:00:00', 'Asia/Phnom_Penh');
+        Carbon::setTestNow($now);
+
+        $class = $this->makeStudyClass(['status' => 'pre_end']);
+        $this->enroll($class, $this->makeStudent());
+        $session = $this->makeSession(Carbon::parse('2026-08-18 09:00:00', 'Asia/Phnom_Penh'), 0, ['class' => $class]);
+        $session->update(['status' => ClassSession::STATUS_PRE_ATTENDANCE, 'recorded_at' => $now->copy()->subDays(2)]);
+
+        app(FinalizeAutoRecordedSession::class)->handle($session->id);
+
+        $this->assertSame(ClassSession::STATUS_PRE_ATTENDANCE, $session->fresh()->status);
+        $this->assertDatabaseCount('student_attendances', 0);
+    }
 }

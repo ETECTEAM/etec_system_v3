@@ -88,6 +88,16 @@ class InstructorClassController extends Controller
             'attendance_radius_meters' => ['nullable', 'integer', 'min:1', 'max:5000'],
         ]);
 
+        // Some courses (Basic IT) only run on set terms; the form hides the rest, this stops a direct POST.
+        $allowedTermIds = $this->instructorClasses->courseTermIds()[(int) $validated['course_id']] ?? null;
+
+        if ($allowedTermIds !== null && ! in_array((int) $validated['term_id'], $allowedTermIds, true)) {
+            $courseTitle = Course::query()->whereKey($validated['course_id'])->value('title');
+            $termNames = InstructorClassService::COURSE_TERM_RESTRICTIONS[$courseTitle] ?? [];
+
+            throw ValidationException::withMessages(['term_id' => 'This course can only be scheduled on '.implode(' or ', $termNames).'.']);
+        }
+
         // The form only offers slots the instructor is free for; re-check here so a
         // stale form or a direct POST can't book an overlapping / unavailable slot.
         $reason = $availability->unavailableReason(

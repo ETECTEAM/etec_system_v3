@@ -57,6 +57,9 @@ class InstructorClassService
 
     private const VISIBLE_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
 
+    // Basic IT is taught by two instructors through Collapse Class, so it only runs on these terms.
+    public const COURSE_TERM_RESTRICTIONS = ['Basic IT' => ['Mon & Thu', 'Sat & Sun']];
+
     private ?array $termLabels = null;
 
     /**
@@ -81,7 +84,33 @@ class InstructorClassService
             'rooms' => DB::table('rooms')->select('id', 'room_number')->orderBy('room_number')->get(),
             'classTypes' => DB::table('class_type')->select('class_type_id', 'type_name')->orderBy('class_type_id')->get(),
             'scheduleGroups' => $scheduleGroups,
+            'courseTermIds' => $this->courseTermIds(),
         ];
+    }
+
+    /**
+     * Term ids a restricted course may be scheduled on, keyed by course id. A course is left out
+     * (unrestricted) when none of its allowed terms exist yet, so a missing term can't lock it out.
+     *
+     * @return array<int, list<int>>
+     */
+    public function courseTermIds(): array
+    {
+        $restrictions = [];
+
+        foreach (self::COURSE_TERM_RESTRICTIONS as $courseTitle => $termNames) {
+            $termIds = DB::table('terms')->whereIn('term_name', $termNames)->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+            if ($termIds === []) {
+                continue;
+            }
+
+            foreach (DB::table('courses')->where('title', $courseTitle)->pluck('id') as $courseId) {
+                $restrictions[(int) $courseId] = $termIds;
+            }
+        }
+
+        return $restrictions;
     }
 
     public function createClass(User $instructor, array $data): int

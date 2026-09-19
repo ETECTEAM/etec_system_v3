@@ -35,6 +35,15 @@ class AutoRecordSession
                 return;
             }
 
+            // A pre-ended class is no longer teaching: nothing to record and no instructor block.
+            if ($session->studyClass?->status === 'pre_end') {
+                if ($session->status === ClassSession::STATUS_PENDING) {
+                    $session->update(['status' => ClassSession::STATUS_SKIPPED]);
+                }
+
+                return;
+            }
+
             if (Holiday::isHoliday($session->session_date)) {
                 $this->holidays->skipUnresolvedSession($session);
 

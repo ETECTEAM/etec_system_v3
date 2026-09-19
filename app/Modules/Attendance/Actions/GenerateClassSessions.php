@@ -32,7 +32,8 @@ class GenerateClassSessions
 
         $activeStudentCounts = StudyClass::query()
             ->withCount(['enrollments as active_students' => fn ($query) => $query->where('enrollment_status', 'active')])
-            ->whereIn('status', ['upcoming', 'active', 'pre_end'])
+            // pre_end is left out: a pre-ended class is no longer teaching, so no new sessions.
+            ->whereIn('status', ['upcoming', 'active'])
             ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', $date))
             ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', $date))
             ->with(['term', 'time', 'instructors'])

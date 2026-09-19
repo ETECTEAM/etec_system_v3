@@ -18,6 +18,8 @@ const props = defineProps({
   // Class Type -> Term -> Time, already narrowed to the slots this instructor
   // is free for (see InstructorClassService::formOptions).
   scheduleGroups: { type: Array, default: () => [] },
+  // Restricted courses only: { [course_id]: [allowed term ids] } (see InstructorClassService::courseTermIds).
+  courseTermIds: { type: Object, default: () => ({}) },
 });
 
 const classTypeList = ref([...props.classTypes]);
@@ -98,11 +100,15 @@ const selectedGroup = computed(() =>
   props.scheduleGroups.find((group) => String(group.class_type_id) === String(form.class_type_id)),
 );
 
+const allowedTermIds = computed(() => props.courseTermIds[form.course_id]?.map(String) ?? null);
+
 const termOptions = computed(() =>
-  (selectedGroup.value?.schedules ?? []).map((schedule) => ({
-    label: schedule.term_name,
-    value: String(schedule.term_id),
-  })),
+  (selectedGroup.value?.schedules ?? [])
+    .filter((schedule) => !allowedTermIds.value || allowedTermIds.value.includes(String(schedule.term_id)))
+    .map((schedule) => ({
+      label: schedule.term_name,
+      value: String(schedule.term_id),
+    })),
 );
 
 const selectedSchedule = computed(() =>
@@ -125,6 +131,10 @@ const noSlots = computed(() => props.scheduleGroups.length === 0);
 // The chosen lesson belongs to the previous course, so it can't stay selected.
 watch(() => form.course_id, () => {
   form.lesson_id = '';
+
+  if (form.term_id && !termOptions.value.some((option) => option.value === form.term_id)) {
+    form.term_id = '';
+  }
 });
 
 watch(() => form.class_type_id, () => {
