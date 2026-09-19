@@ -3,7 +3,6 @@ import { computed, ref } from "vue";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 import axios from "axios";
 import {
-  Award,
   BookOpen,
   GraduationCap,
   Mars,
@@ -73,6 +72,10 @@ const instructorDisplayName = (name, fallback = t("Instructor")) => {
 
 const instructorName = computed(() => instructorDisplayName(page.props.auth?.user?.name));
 const instructorId = computed(() => page.props.auth?.user?.id ?? "-");
+
+// Adding a class needs the create-classes permission: "Classes -> Create" on Role & Permission
+// (every instructor), or granted to this one instructor on User & Permission. The server checks the same.
+const canCreateClasses = computed(() => (page.props.auth?.permissions ?? []).includes("create-classes"));
 
 const filteredClasses = computed(() => {
   const query = search.value.trim().toLowerCase();
@@ -164,7 +167,9 @@ function viewUrl(classData) {
 const OWNER_ONLY_ACTIONS = ["Edit Class", "Collapse Class", "Pre-End", "End"];
 
 function hiddenItems(classData) {
-  return classData.is_owner ? ["Copy Class", "Switch Teacher"] : ["Copy Class", "Switch Teacher", ...OWNER_ONLY_ACTIONS];
+  const instructorHiddenItems = ["Copy Class", "Switch Teacher"];
+
+  return classData.is_owner ? instructorHiddenItems : [...instructorHiddenItems, ...OWNER_ONLY_ACTIONS];
 }
 
 // Appended to the shared action menu: attendance tracking is instructor-only, so it
@@ -183,24 +188,6 @@ function attendanceItem(classData) {
   ];
 }
 
-function openCertificateRequest(classData) {
-  router.get(`/dashboard/instructor/classes/${classData.id}/certificate-request`);
-}
-
-function certificateItem(classData) {
-  const requestedTypes = classData.certificate_request_types ?? [];
-  const hasRequest = requestedTypes.length > 0;
-
-  return [
-    {
-      label: hasRequest ? t("Certificate Requested") : t("Request Certificate"),
-      icon: Award,
-      disabled: hasRequest,
-      action: () => openCertificateRequest(classData),
-    },
-  ];
-}
-
 function actionItems(classData) {
   return [
     {
@@ -210,7 +197,6 @@ function actionItems(classData) {
       action: () => importLegacyCsv(classData),
     },
     ...attendanceItem(classData),
-    ...certificateItem(classData),
   ];
 }
 </script>
@@ -281,7 +267,7 @@ function actionItems(classData) {
             </p>
           </div>
           <Link
-            v-if="instructorData?.can_create_classes"
+            v-if="canCreateClasses"
             href="/dashboard/instructor/classes/create"
             class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-900 px-4 text-sm font-semibold text-white transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500"
           >
@@ -361,6 +347,7 @@ function actionItems(classData) {
               :viewUrl="viewUrl(classData)"
               :extraItems="actionItems(classData)"
               :showInstructor="false"
+              :instructorSummary="true"
               :hiddenItems="hiddenItems(classData)"
             />
           </div>

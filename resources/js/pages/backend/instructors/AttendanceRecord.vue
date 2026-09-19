@@ -816,14 +816,14 @@ async function approveAllPendingRegistrations() {
                   <div class="flex justify-center gap-2">
                     <Link
                       :href="`/dashboard/instructor/classes/${classData.id}/attendance/students/${student.id}`"
-                      class="grid h-9 w-9 place-items-center rounded-lg border border-slate-700/70 bg-slate-800/80 text-slate-100 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-500 hover:bg-slate-700 hover:shadow-md hover:shadow-slate-950/30 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-slate-950 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:bg-slate-800"
+                      class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-white dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:hover:border-slate-500 dark:hover:bg-slate-800 dark:hover:shadow-slate-950/30 dark:focus:ring-offset-gray-950"
                       title="View student attendance"
                     >
                       <Eye class="h-4 w-4" />
                     </Link>
                     <button
                       type="button"
-                      class="grid h-9 w-9 place-items-center rounded-lg border border-amber-400/20 bg-amber-500/10 text-amber-300 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-400/40 hover:bg-amber-500/20 hover:text-amber-100 hover:shadow-md hover:shadow-amber-950/20 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:ring-offset-2 focus:ring-offset-slate-950 dark:focus:ring-offset-gray-900"
+                      class="grid h-9 w-9 place-items-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100 hover:text-amber-900 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:ring-offset-2 focus:ring-offset-white dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:border-amber-400/40 dark:hover:bg-amber-500/20 dark:hover:text-amber-100 dark:hover:shadow-amber-950/20 dark:focus:ring-offset-gray-900"
                       title="Transfer student"
                       @click="openTransferModal(student)"
                     >
@@ -831,7 +831,7 @@ async function approveAllPendingRegistrations() {
                     </button>
                     <button
                       type="button"
-                      class="grid h-9 w-9 place-items-center rounded-lg border border-sky-400/20 bg-sky-500/10 text-sky-300 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-400/40 hover:bg-sky-500/20 hover:text-sky-100 hover:shadow-md hover:shadow-sky-950/20 focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:ring-offset-2 focus:ring-offset-slate-950 dark:focus:ring-offset-gray-900"
+                      class="grid h-9 w-9 place-items-center rounded-lg border border-sky-200 bg-sky-50 text-sky-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-100 hover:text-sky-900 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:ring-offset-2 focus:ring-offset-white dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-300 dark:hover:border-sky-400/40 dark:hover:bg-sky-500/20 dark:hover:text-sky-100 dark:hover:shadow-sky-950/20 dark:focus:ring-offset-gray-900"
                       title="Edit student information"
                       @click="openEditModal(student)"
                     >

@@ -51,6 +51,7 @@
     "certificateMeal": "Meal Certificate",
     "certificateScholarship": "Scholarship Certificate",
     "certificateInternship": "Internship Certificate",
+    "certificateOffice": "Office Certificate",
     "certificateReport": "Certificate Report",
     "enrollConfig": "Enroll Config",
     "enrollManagement": "Enrollment Management",
@@ -197,6 +198,7 @@
       "internship": "Internship Certificate",
       "meal": "Meal Certificate",
       "normal": "Regular Certificate",
+      "office": "Office Certificate",
       "report": "Certificate Report",
       "scholarship": "Scholarship Certificate"
     },
@@ -205,6 +207,7 @@
       "internship": "Internship",
       "meal": "Meal",
       "normal": "Regular",
+      "office": "Office",
       "scholarship": "Scholarship"
     },
     "validation": {

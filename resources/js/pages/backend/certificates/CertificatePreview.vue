@@ -10,6 +10,7 @@ const props = defineProps({
 
 const isInternship = computed(() => props.certificate.certificate_type === 'internship')
 const isScholarship = computed(() => props.certificate.certificate_type === 'scholarship')
+const isOffice = computed(() => props.certificate.certificate_type === 'office')
 const internshipCourseName = computed(() => {
     return String(props.certificate.course || '')
         .toLowerCase()
@@ -134,6 +135,7 @@ const internshipCourseName = computed(() => {
         :class="{
             'regular-certificate-preview': !isScholarship,
             'scholarship-certificate-preview': isScholarship,
+            'office-certificate-preview': isOffice,
         }"
     >
         <div class="certificate-wrap">
@@ -173,7 +175,7 @@ const internshipCourseName = computed(() => {
 
                         <div class="cert-desc">
                             has successfully completed all requirements for completion<br>
-                            of the I.T Training Courses in
+                            of the {{ isOffice ? 'Computer' : 'I.T' }} Training Courses in
                         </div>
                         <h4 class="cert-course">{{ certificate.course }}</h4>
                         <div class="cert-granted">Granted: {{ certificate.granted_date }}</div>
@@ -350,10 +352,9 @@ const internshipCourseName = computed(() => {
     border-radius: 4px;
 }
 
-.regular-certificate-preview .cert-school-kh span,
-.regular-certificate-preview .cert-school-en span {
-    color: #111;
-}
+/* Office Certificate — currently identical to the regular layout
+   (it also carries .regular-certificate-preview). Override styles under
+   .office-certificate-preview to give the office letter its own design. */
 
 .cert-kingdom {
     margin-bottom: 20px;

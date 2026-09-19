@@ -48,6 +48,16 @@ class GenerateClassSessionsTest extends TestCase
         ]);
     }
 
+    public function test_pre_ended_class_gets_no_session(): void
+    {
+        $class = $this->makeStudyClass(['term' => $this->makeTerm('Mon & Tue'), 'status' => 'pre_end']);
+        $this->enroll($class, $this->makeStudent());
+
+        $this->action->handle($this->aTuesday());
+
+        $this->assertDatabaseMissing('class_sessions', ['study_class_id' => $class->id]);
+    }
+
     public function test_does_not_create_a_session_for_a_class_not_meeting_that_weekday(): void
     {
         $class = $this->makeStudyClass(['term' => $this->makeTerm('Wed & Thu')]);

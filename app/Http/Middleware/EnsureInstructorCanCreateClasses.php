@@ -7,11 +7,11 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Blocks an instructor's self-service "Add Class" until an admin has
- * approved them - separate from the create-classes permission every
- * instructor gets from their role, which controls the broader ability to
- * manage classes at all (attendance, results, etc. on classes assigned to
- * them), not whether they can create new ones unsupervised.
+ * Blocks an instructor's self-service "Add Class" unless they hold the
+ * create-classes permission: the "Classes -> Create" tick on the Role &
+ * Permission page (for every instructor), or the same permission granted to
+ * one instructor on the User & Permission page. The Add Class button on the
+ * instructor dashboard reads that same permission, so the two always agree.
  */
 class EnsureInstructorCanCreateClasses
 {
@@ -19,7 +19,7 @@ class EnsureInstructorCanCreateClasses
     {
         $user = $request->user();
 
-        if ($user?->hasRole('instructor') && ! $user->instructorData?->can_create_classes) {
+        if ($user?->hasRole('instructor') && ! $user->can('create-classes')) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => 'An admin needs to approve your account before you can create a class.',

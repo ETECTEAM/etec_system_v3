@@ -60,7 +60,6 @@ export function useUserEdit() {
     hire_date: i.hire_date ?? '',
     instructor_address: i.address ?? '',
     instructor_status: i.status ?? true,
-    can_create_classes: i.can_create_classes ?? false,
   })
 
   // Map raw role slugs to the label/value pairs SelectSearch expects.

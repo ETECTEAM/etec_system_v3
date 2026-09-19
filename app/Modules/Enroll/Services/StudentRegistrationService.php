@@ -175,18 +175,9 @@ class StudentRegistrationService
         ], $data));
     }
 
-    public function ensureClassHasSeat(StudyClass|stdClass $studyClass, string $field = 'student_id'): void
-    {
-        if ($this->activeEnrollmentCount((int) $studyClass->id) >= (int) $studyClass->capacity) {
-            throw ValidationException::withMessages([
-                $field => 'This class is full.',
-            ]);
-        }
-    }
-
-    // Force-enrolling past capacity is a deliberate override (see EnrollStudent),
-    // not an error case - bump capacity to fit instead of leaving the class
-    // permanently reading as over 100% filled.
+    // Capacity is a soft floor, not a ceiling: enrolling a student past the
+    // current limit grows the class to fit (12 -> 13 -> 14 -> ...) instead of
+    // rejecting the registration.
     public function expandCapacityToFit(StudyClass|stdClass $studyClass): void
     {
         $seatsNeeded = $this->activeEnrollmentCount((int) $studyClass->id) + 1;

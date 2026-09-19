@@ -55,6 +55,14 @@ export function build(ctx) {
         isActive: isType("internship"),
       },
       {
+        label: "Office Certificate",
+        labelKey: "navigation.certificateOffice",
+        href: "/dashboard/certificates?type=office",
+        match: ["/dashboard/certificates"],
+        exact: false,
+        isActive: isType("office"),
+      },
+      {
         label: "Certificate Report",
         labelKey: "navigation.certificateReport",
         href: "/dashboard/certificates?type=report",

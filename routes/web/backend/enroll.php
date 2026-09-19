@@ -56,7 +56,8 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
     Route::middleware(['auth', 'active', 'role:super_admin|admin|instructor'])->group(function (): void {
         // An instructor only reaches this by copying one of their own classes, so the
         // controller pins the copy to them rather than letting them assign a teacher.
-        Route::post('/', [EnrollmentClassController::class, 'store'])->name('enroll.store');
+        // It creates a class, so an instructor needs the create-classes permission here too.
+        Route::post('/', [EnrollmentClassController::class, 'store'])->middleware('can-create-classes')->name('enroll.store');
         Route::get('/edit/{studyClass}', [EnrollmentClassController::class, 'edit'])->name('enroll.edit');
         // Pre-fill the create form with an existing class's values so it can be duplicated with a new term/time.
         Route::get('/copy/{studyClass}', [EnrollmentClassController::class, 'copy'])->name('enroll.copy');
