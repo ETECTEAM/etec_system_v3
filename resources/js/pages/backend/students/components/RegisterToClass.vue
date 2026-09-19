@@ -4,9 +4,16 @@ import { UserPlus, Users, Clock3, CalendarDays, DoorOpen, BookOpen, Search } fro
 import RegisterStudentModal from "./RegisterStudentModal.vue";
 import EmptyState from "../../../../components/ui/empty-state/EmptyState.vue";
 import SelectSearch from "@/components/ui/select-search/SelectSearch.vue";
+import ClassActionMenu from "@/components/ui/card/ClassActionMenu.vue";
 import { useI18n } from "@/i18n";
 
 const { t } = useI18n();
+
+// The card's ⋯ menu keeps Edit Class (teacher, room, time...) and Copy Class. The rest
+// is left out here: the card has its own Register New Student button, Add Existing
+// Student needs an assign modal this tab doesn't have, and Switch Teacher is an
+// unfinished stub - changing the teacher goes through Edit Class.
+const HIDDEN_MENU_ITEMS = ["Register Student", "Add Existing Student", "Switch Teacher"];
 
 const props = defineProps({
   // Eligible classes only (open seats + recently started / upcoming),
@@ -156,6 +163,7 @@ const inputClass = "w-full rounded-xl border border-slate-300 bg-white px-4 py-2
             </h3>
             <p class="mt-0.5 truncate text-xs text-slate-500 dark:text-gray-400">{{ item.course }}</p>
           </div>
+          <ClassActionMenu :class-data="item" :hidden-items="HIDDEN_MENU_ITEMS" class="-mr-2 -mt-1 ml-auto shrink-0" />
         </div>
 
         <div class="mt-4 space-y-2.5 text-sm">
