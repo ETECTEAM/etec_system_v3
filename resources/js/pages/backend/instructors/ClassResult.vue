@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { Head, Link, router } from "@inertiajs/vue3";
 import { ArrowLeft, Download, LoaderCircle } from "@lucide/vue";
 
@@ -83,6 +83,7 @@ const summary = computed(() => {
 
 let html2CanvasPromise = null;
 let jsPdfPromise = null;
+let stopDownloadNavigationListener = null;
 
 function ensureHtml2Canvas() {
   if (typeof window !== "undefined" && window.html2canvas) {
@@ -160,10 +161,22 @@ async function downloadPdf() {
 }
 
 onMounted(async () => {
+  // The overlay blocks pointer events; this also blocks Inertia navigation
+  // triggered through browser history or keyboard controls while downloading.
+  stopDownloadNavigationListener = router.on("before", (event) => {
+    if (html2PdfLoading.value) {
+      event.preventDefault();
+    }
+  });
+
   if (props.autoDownload && !autoDownloaded.value) {
     autoDownloaded.value = true;
     window.location.href = `/dashboard/instructor/classes/${props.classData.id}/result?download=1`;
   }
+});
+
+onBeforeUnmount(() => {
+  stopDownloadNavigationListener?.();
 });
 </script>
 
