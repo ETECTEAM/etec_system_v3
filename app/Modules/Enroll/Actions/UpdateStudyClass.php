@@ -42,7 +42,9 @@ class UpdateStudyClass
                 'term_id' => $data['term_id'] ?? null,
                 'time_id' => $data['time_id'] ?? null,
                 'status' => $data['status'],
-                'capacity' => $online ? $data['capacity'] : ($room?->capacity ?? $data['capacity']),
+                'capacity' => $online
+                    ? ($data['capacity'] ?? $studyClass->capacity)
+                    : ($room?->capacity ?? $data['capacity'] ?? $studyClass->capacity),
                 'price' => $data['price'],
                 'document_price' => $data['document_price'] ?? 0,
                 'attendance_latitude' => $data['attendance_latitude'] ?? null,
