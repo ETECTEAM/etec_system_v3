@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -45,6 +46,14 @@ class ClassSession extends Model
             'recorded_at' => 'datetime',
             'grace_minutes_used' => 'integer',
         ];
+    }
+
+    // Only sessions dated after the class's first real tracked day are auto-recorded.
+    public function scopeAutoRecordArmed(Builder $query): Builder
+    {
+        return $query->whereHas('studyClass', fn (Builder $class) => $class
+            ->whereNotNull('auto_record_started_on')
+            ->whereColumn('study_classes.auto_record_started_on', '<', 'class_sessions.session_date'));
     }
 
     public function studyClass()

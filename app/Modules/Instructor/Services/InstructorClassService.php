@@ -471,6 +471,11 @@ class InstructorClassService
                 ]);
             }
 
+            // The first real save arms auto-record from the next class day (a legacy CSV import doesn't).
+            if ($class && $class->auto_record_started_on === null) {
+                $class->update(['auto_record_started_on' => $attendanceDate]);
+            }
+
             $settledAbsent = [];
 
             foreach ($data['records'] as $record) {

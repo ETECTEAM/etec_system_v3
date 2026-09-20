@@ -14,6 +14,7 @@ class GetSessionsDueForAutoRecord
     public function handle(Carbon $now, int $graceMinutes): Collection
     {
         return ClassSession::query()
+            ->autoRecordArmed()
             ->whereIn('status', [
                 ClassSession::STATUS_PENDING,
                 ClassSession::STATUS_PRE_ATTENDANCE,
