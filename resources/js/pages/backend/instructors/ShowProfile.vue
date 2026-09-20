@@ -8,6 +8,7 @@ const instructorData = page.props.instructorData ?? null
 const profilePhoto = page.props.profilePhoto ?? null
 const cvFile = page.props.cvFile ?? null
 const otherAttachments = page.props.otherAttachments ?? []
+const workSchedule = page.props.workSchedule ?? null
 
 const user = computed(() => page.props.auth?.user ?? {})
 const userEmail = computed(() => user.value?.email ?? 'Not provided')
@@ -239,6 +240,29 @@ function formatFileSize(bytes) {
                 </span>
               </div>
             </div>
+          </div>
+
+          <!-- Work Schedule -->
+          <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-semibold text-slate-900 dark:text-gray-100">{{ $t('Work Schedule') }}</h3>
+              <Link href="/dashboard/instructor/profile" class="text-blue-900 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </Link>
+            </div>
+            <template v-if="workSchedule">
+              <p class="mt-3 text-sm font-semibold text-slate-900 dark:text-gray-100">{{ workSchedule.name }}</p>
+              <p v-if="workSchedule.description" class="mt-0.5 text-xs text-slate-500 dark:text-gray-400">{{ workSchedule.description }}</p>
+              <ul class="mt-4 space-y-3">
+                <li v-for="entry in workSchedule.days" :key="entry.day" class="text-sm">
+                  <span class="font-semibold text-slate-700 dark:text-gray-200">{{ $t(entry.day) }}</span>
+                  <div class="mt-1 flex flex-wrap gap-1.5">
+                    <span v-for="time in entry.times" :key="time" class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-gray-800 dark:text-gray-300">{{ time }}</span>
+                  </div>
+                </li>
+              </ul>
+            </template>
+            <p v-else class="mt-3 text-sm text-slate-500 dark:text-gray-400">{{ $t('No work schedule selected yet. Pick one in Edit Profile.') }}</p>
           </div>
 
           <!-- Profile Details -->

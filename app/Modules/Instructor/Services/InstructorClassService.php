@@ -60,8 +60,8 @@ class InstructorClassService
 
     private const VISIBLE_CLASS_STATUSES = ['upcoming', 'active', 'pre_end'];
 
-    // Basic IT is taught by two instructors through Collapse Class, so it only runs on these terms.
-    public const COURSE_TERM_RESTRICTIONS = ['Basic IT' => ['Mon & Thu', 'Sat & Sun']];
+    // Instructors create a class on these two terms only; other days come later by sharing it (Collapse Class).
+    public const INSTRUCTOR_TERM_NAMES = ['Mon & Thu', 'Sat & Sun'];
 
     private ?array $termLabels = null;
 
@@ -89,33 +89,21 @@ class InstructorClassService
             'busyRooms' => app(RoomAvailability::class)->busyRoomIdsBySlot(),
             'classTypes' => DB::table('class_type')->select('class_type_id', 'type_name')->orderBy('class_type_id')->get(),
             'scheduleGroups' => $scheduleGroups,
-            'courseTermIds' => $this->courseTermIds(),
+            'instructorTermIds' => $this->allowedTermIds(),
         ];
     }
 
     /**
-     * Term ids a restricted course may be scheduled on, keyed by course id. A course is left out
-     * (unrestricted) when none of its allowed terms exist yet, so a missing term can't lock it out.
+     * Ids of the terms an instructor may create a class on. Null (no limit) when neither term
+     * exists yet, so a missing term can't lock every instructor out.
      *
-     * @return array<int, list<int>>
+     * @return list<int>|null
      */
-    public function courseTermIds(): array
+    public function allowedTermIds(): ?array
     {
-        $restrictions = [];
+        $termIds = DB::table('terms')->whereIn('term_name', self::INSTRUCTOR_TERM_NAMES)->pluck('id')->map(fn ($id) => (int) $id)->all();
 
-        foreach (self::COURSE_TERM_RESTRICTIONS as $courseTitle => $termNames) {
-            $termIds = DB::table('terms')->whereIn('term_name', $termNames)->pluck('id')->map(fn ($id) => (int) $id)->all();
-
-            if ($termIds === []) {
-                continue;
-            }
-
-            foreach (DB::table('courses')->where('title', $courseTitle)->pluck('id') as $courseId) {
-                $restrictions[(int) $courseId] = $termIds;
-            }
-        }
-
-        return $restrictions;
+        return $termIds === [] ? null : $termIds;
     }
 
     public function createClass(User $instructor, array $data): int

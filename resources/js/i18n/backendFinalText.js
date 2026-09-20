@@ -1008,6 +1008,9 @@ export const backendFinalTranslations = {
     // Room Availability page
     "Room Availability": "ភាពទំនេររបស់បន្ទប់",
     "No room is free at this time.": "គ្មានបន្ទប់ទំនេរនៅពេលនេះទេ។",
+    "Work Schedule": "កាលវិភាគការងារ",
+    "No work schedule selected yet. Pick one in Edit Profile.": "មិនទាន់បានជ្រើសរើសកាលវិភាគការងារនៅឡើយទេ។ សូមជ្រើសរើសក្នុងកែប្រែប្រវត្តិរូប។",
+    "Instructors can only create classes on Mon & Thu or Sat & Sun. This class type has neither, so ask an admin.": "គ្រូអាចបង្កើតថ្នាក់បានតែនៅថ្ងៃច័ន្ទ & ព្រហស្បតិ៍ ឬសៅរ៍ & អាទិត្យប៉ុណ្ណោះ។ ប្រភេទថ្នាក់នេះមិនមានទាំងពីរទេ សូមសួរអ្នកគ្រប់គ្រង។",
     "See which rooms are free or taken at each class time, following the class schedule.": "មើលថាបន្ទប់ណាទំនេរ ឬត្រូវបានប្រើនៅម៉ោងរៀននីមួយៗ តាមកាលវិភាគថ្នាក់។",
     ":count rooms can be booked": "អាចកក់បាន :count បន្ទប់",
     "Taken by a class": "ត្រូវបានប្រើដោយថ្នាក់",
