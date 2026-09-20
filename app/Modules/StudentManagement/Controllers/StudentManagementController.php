@@ -8,12 +8,12 @@ use App\Models\Course;
 use App\Models\Student;
 use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
-use App\Models\StudentPermission;
 use App\Models\StudyClass;
 use App\Models\Time;
 use App\Modules\Enroll\Actions\MoveStudentEnrollment;
 use App\Modules\Instructor\Events\StudentTransferred;
 use App\Modules\Instructor\Services\InstructorClassService;
+use App\Modules\StudentManagement\Actions\GrantStudentPermission;
 use App\Modules\StudentManagement\Requests\GrantPermissionRequest;
 use App\Modules\StudentManagement\Requests\TransferStudentRequest;
 use App\Modules\StudentManagement\Requests\UpdateStudentRequest;
@@ -86,9 +86,9 @@ class StudentManagementController extends Controller
         return back()->with('success', 'Student updated successfully.');
     }
 
-    public function permission(GrantPermissionRequest $request, Student $student): RedirectResponse
+    public function permission(GrantPermissionRequest $request, Student $student, GrantStudentPermission $grant): RedirectResponse
     {
-        StudentPermission::create([...$request->validated(), 'student_id' => $student->id, 'approved_by' => $request->user()->id]);
+        $grant->handle($student, $request->user(), $request->validated());
 
         return back()->with('success', 'Permission added successfully.');
     }

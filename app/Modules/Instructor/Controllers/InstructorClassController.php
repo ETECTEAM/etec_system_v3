@@ -9,6 +9,7 @@ use App\Models\ClassSession;
 use App\Models\Course;
 use App\Models\Holiday;
 use App\Models\InstructorAttendanceBlock;
+use App\Models\StudentAttendance;
 use App\Models\StudyClass;
 use App\Models\User;
 use App\Modules\Attendance\Actions\OverrideAttendanceRecord;
@@ -21,6 +22,7 @@ use App\Modules\Instructor\Events\StudentTransferred;
 use App\Modules\Instructor\Services\ClassResultPdfGenerator;
 use App\Modules\Instructor\Services\ImportInstructorAttendanceCsv;
 use App\Modules\Instructor\Services\InstructorClassService;
+use App\Modules\StudentManagement\Actions\CorrectPermissionAttendance;
 use App\Support\InstructorDisplayName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -428,6 +430,19 @@ class InstructorClassController extends Controller
             'backUrl' => "/dashboard/instructor/classes/{$class->id}/attendance",
             'student' => $this->instructorClasses->studentAttendanceDetail($class->id, (int) $student),
         ]);
+    }
+
+    public function correctPermissionAttendance(Request $request, string $studyClass, StudentAttendance $attendance): RedirectResponse
+    {
+        $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
+        abort_unless($attendance->study_class_id === (int) $class->id, 404);
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['present', 'absent', 'permission', 'late'])],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+        app(CorrectPermissionAttendance::class)->handle($request->user(), $attendance, $data);
+
+        return back()->with('success', 'Attendance correction saved successfully.');
     }
 
     public function importAttendanceCsv(Request $request, string $studyClass): JsonResponse

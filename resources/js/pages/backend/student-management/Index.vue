@@ -40,6 +40,7 @@ const editForm = useForm({
 })
 
 const permissionForm = useForm({
+    study_class_id: null,
     start_date: '',
     end_date: '',
     reason: '',
@@ -137,6 +138,7 @@ function open(type, row) {
 
     if (type === 'permission') {
         permissionForm.defaults({
+            study_class_id: row.study_class_id,
             start_date: '',
             end_date: '',
             reason: '',

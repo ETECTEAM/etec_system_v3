@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link } from "@inertiajs/vue3";
+import { Head, Link, useForm } from "@inertiajs/vue3";
 import { ArrowLeft, CalendarDays, Clock, Mars, User, Venus } from "@lucide/vue";
 
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
@@ -18,6 +18,13 @@ const props = defineProps({
     default: '',
   },
 });
+
+const correction = useForm({ status: 'permission', note: '' });
+function saveCorrection(record, status) {
+  correction.status = status;
+  correction.note = record.note === '-' ? '' : record.note;
+  correction.put(`/dashboard/instructor/classes/${props.classData.id}/attendance/permissions/${record.id}`, { preserveScroll: true });
+}
 
 const statusClasses = {
   present: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300",
@@ -85,6 +92,7 @@ const displayStatus = (status) => statusClasses[status] ? status : "absent";
           Attendance Detail
         </div>
         <div class="overflow-x-auto">
+          <p v-if="correction.errors.status" class="px-4 py-2 text-sm text-red-600">{{ correction.errors.status }}</p>
           <table class="min-w-[760px] w-full border-collapse text-sm">
             <thead>
               <tr class="bg-slate-50 text-left text-xs font-black uppercase tracking-[0.08em] text-slate-500 dark:bg-gray-950 dark:text-gray-400">
@@ -99,7 +107,13 @@ const displayStatus = (status) => statusClasses[status] ? status : "absent";
               <tr v-for="record in student.records" :key="`${record.date}-${record.status}`" class="align-middle hover:bg-slate-50/80 dark:hover:bg-gray-800/50">
                 <td class="border-b border-slate-100 px-4 py-4 font-mono font-bold text-slate-700 dark:border-gray-800 dark:text-gray-300">{{ record.date }}</td>
                 <td class="border-b border-slate-100 px-4 py-4 dark:border-gray-800">
-                  <span :class="['inline-flex rounded-lg border px-3 py-1 text-xs font-black capitalize', statusClasses[displayStatus(record.status)] ?? statusClasses.absent]">{{ displayStatus(record.status) }}</span>
+                  <select v-if="!backUrl.includes('student-management') && record.can_correct_permission" :value="record.status" :disabled="correction.processing" :aria-label="$t('Status')" class="rounded-lg border border-slate-300 bg-white px-3 py-1 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" @change="saveCorrection(record, $event.target.value)">
+                    <option value="present">{{ $t('Present') }}</option>
+                    <option value="permission">{{ $t('Permission') }}</option>
+                    <option value="absent">{{ $t('Absent') }}</option>
+                    <option value="late">{{ $t('Late') }}</option>
+                  </select>
+                  <span v-else :class="['inline-flex rounded-lg border px-3 py-1 text-xs font-black capitalize', statusClasses[displayStatus(record.status)] ?? statusClasses.absent]">{{ displayStatus(record.status) }}</span>
                 </td>
                 <td class="border-b border-slate-100 px-4 py-4 font-semibold text-slate-600 dark:border-gray-800 dark:text-gray-300">{{ record.note }}</td>
                 <td class="border-b border-slate-100 px-4 py-4 font-semibold text-slate-600 dark:border-gray-800 dark:text-gray-300">{{ record.tracked_by }}</td>
