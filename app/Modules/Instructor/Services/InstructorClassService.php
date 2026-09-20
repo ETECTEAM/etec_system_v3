@@ -7,6 +7,7 @@ use App\Models\ClassSession;
 use App\Models\Holiday;
 use App\Models\InstructorAttendanceBlock;
 use App\Models\PreAttendanceRequest;
+use App\Models\Student;
 use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
 use App\Models\StudyClass;
@@ -1268,7 +1269,7 @@ class InstructorClassService
             $student->forceFill([
                 'full_name' => $data['full_name'],
                 'gender' => $data['gender'],
-                'date_of_birth' => $data['date_of_birth'] ?: null,
+                'date_of_birth' => ($data['date_of_birth'] ?? null) ?: null,
                 'phone' => $data['phone'],
             ])->save();
 
