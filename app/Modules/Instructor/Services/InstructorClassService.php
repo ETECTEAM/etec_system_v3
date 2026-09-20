@@ -16,6 +16,7 @@ use App\Modules\AbsenceBlock\Services\AbsenceBlockEvaluator;
 use App\Modules\AbsenceBlock\Services\PermissionLimitEvaluator;
 use App\Modules\AbsenceBlock\Support\LockState;
 use App\Modules\Attendance\Queries\FindActiveInstructorAttendanceBlock;
+use App\Modules\Attendance\Queries\HasApprovedPermission;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Support\InstructorDisplayName;
@@ -265,6 +266,7 @@ class InstructorClassService
                 'students_user.email',
                 'students.gender',
                 'students.phone',
+                'students.attendance_code',
                 'students.date_of_birth',
                 'student_scores.attendance_score',
                 'student_scores.activity_score',
@@ -769,6 +771,7 @@ class InstructorClassService
             ->where('student_attendances.student_id', $studentId)
             ->orderByDesc('student_attendances.attendance_date')
             ->select([
+                'student_attendances.id',
                 'student_attendances.attendance_date',
                 'student_attendances.present',
                 'student_attendances.absent',
@@ -782,6 +785,8 @@ class InstructorClassService
             ])
             ->get()
             ->map(fn (stdClass $record) => [
+                'id' => $record->id,
+                'can_correct_permission' => ! $record->locked && app(HasApprovedPermission::class)->handle($studentId, $studyClassId, $record->attendance_date),
                 'date' => Carbon::parse($record->attendance_date)->format('Y-m-d'),
                 'status' => StudentAttendance::labelForFlags($record),
                 'note' => $record->note ?? '-',
@@ -1018,6 +1023,7 @@ class InstructorClassService
             'email' => $student->email ?? '-',
             'gender' => $student->gender ?? '-',
             'phone' => $student->phone ?? '-',
+            'attendance_code' => $student->attendance_code ?? null,
             'date_of_birth' => $student->date_of_birth ? Carbon::parse($student->date_of_birth)->format('Y-m-d') : null,
             'attendance' => [
                 'total' => (int) ($attendanceStats->total ?? 0),
