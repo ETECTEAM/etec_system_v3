@@ -44,9 +44,13 @@ class ImportInstructorAttendanceCsv
             throw ValidationException::withMessages(['file' => 'CSV headers must include Name, Gender, Tel, Date, Present, Absent, and Permission.']);
         }
         $index = array_flip($header);
-        $result = ['students_created' => 0, 'enrollments_created' => 0, 'attendance_imported' => 0, 'rows_skipped' => 0];
+        $result = ['students_created' => 0, 'enrollments_created' => 0, 'attendance_imported' => 0, 'rows_skipped' => 0, 'scores_imported' => 0];
+        $scores = [];
+        // Latest date already stored per enrollment, read before this file writes anything,
+        // so an older export can never roll a newer score back.
+        $lastStoredDate = DB::table('student_attendances')->where('study_class_id', $class->id)->groupBy('student_enrollment_id')->pluck(DB::raw('max(attendance_date)'), 'student_enrollment_id');
 
-        DB::transaction(function () use ($handle, $index, $class, $trackedBy, &$result): void {
+        DB::transaction(function () use ($handle, $index, $class, $trackedBy, $lastStoredDate, &$result, &$scores): void {
             while (($row = fgetcsv($handle)) !== false) {
                 $name = trim((string) ($row[$index['name']] ?? ''));
                 $phone = trim((string) ($row[$index['tel']] ?? ''));
@@ -64,9 +68,10 @@ class ImportInstructorAttendanceCsv
                     ], null, ['course_id' => $class->course_id, 'term_id' => $class->term_id, 'time_id' => $class->time_id]);
                     $result['students_created']++;
                 }
+                // Legacy students already paid in the old system; amount/paid_at stay empty so revenue reports don't count them.
                 $enrollment = StudentEnrollment::query()->firstOrCreate(
                     ['study_class_id' => $class->id, 'student_id' => $student->id],
-                    ['course_id' => $class->course_id, 'term_id' => $class->term_id, 'time_id' => $class->time_id, 'enrollment_status' => 'active', 'payment_status' => 'unpaid', 'source' => 'legacy_csv', 'fee_amount' => 0, 'document_fee_amount' => 0, 'amount_paid' => 0, 'enrolled_at' => $date]
+                    ['course_id' => $class->course_id, 'term_id' => $class->term_id, 'time_id' => $class->time_id, 'enrollment_status' => 'active', 'payment_status' => 'paid', 'source' => 'legacy_csv', 'fee_amount' => 0, 'document_fee_amount' => 0, 'amount_paid' => 0, 'enrolled_at' => $date]
                 );
                 if ($enrollment->wasRecentlyCreated) $result['enrollments_created']++;
                 $status = ((int) ($row[$index['permission']] ?? 0) === 1) ? 'permission' : (((int) ($row[$index['absent']] ?? 0) === 1) ? 'absent' : (((int) ($row[$index['present']] ?? 0) === 1) ? 'present' : 'pending'));
@@ -75,6 +80,34 @@ class ImportInstructorAttendanceCsv
                     ['student_id' => $student->id, 'tracked_by' => $trackedBy, ...StudentAttendance::flagsFor($status), 'source' => StudentAttendance::SOURCE_MANUAL, 'note' => trim((string) ($row[$index['reason']] ?? '')) ?: 'Imported from legacy CSV', 'updated_at' => now(), 'created_at' => now()]
                 );
                 $result['attendance_imported']++;
+
+                if ((isset($index['act score']) || isset($index['exam score'])) && $date >= ($scores[$enrollment->id]['date'] ?? '')) {
+                    $scores[$enrollment->id] = [
+                        'student_id' => $student->id,
+                        'date' => $date,
+                        'activity' => $this->score($row[$index['act score'] ?? -1] ?? null),
+                        'exam' => $this->score($row[$index['exam score'] ?? -1] ?? null),
+                    ];
+                }
+            }
+
+            foreach ($scores as $enrollmentId => $score) {
+                // Only the newest export wins: skip when the class already has attendance dated after this file's last row.
+                if (($lastStoredDate[$enrollmentId] ?? '') > $score['date']) {
+                    continue;
+                }
+
+                $existing = DB::table('student_scores')->where('student_enrollment_id', $enrollmentId)->first();
+
+                if ($existing && (float) $existing->activity_score === $score['activity'] && (float) $existing->exam_score === $score['exam']) {
+                    continue;
+                }
+
+                DB::table('student_scores')->updateOrInsert(
+                    ['student_enrollment_id' => $enrollmentId],
+                    ['study_class_id' => $class->id, 'student_id' => $score['student_id'], 'activity_score' => $score['activity'], 'exam_score' => $score['exam'], 'updated_at' => now(), 'created_at' => $existing->created_at ?? now()]
+                );
+                $result['scores_imported']++;
             }
         });
         fclose($handle);
@@ -88,5 +121,11 @@ class ImportInstructorAttendanceCsv
         }
 
         return $result;
+    }
+
+    // Scores are 0-30 in this system; blank or non-numeric cells count as 0.
+    private function score(mixed $value): float
+    {
+        return is_numeric($value) ? min(30.0, max(0.0, round((float) $value, 2))) : 0.0;
     }
 }
