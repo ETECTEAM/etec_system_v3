@@ -8,7 +8,6 @@ import {
     Search,
     Shuffle,
     Trash2,
-    UserCheck,
     X,
 } from '@lucide/vue'
 
@@ -252,18 +251,9 @@ function openAttendance(row) {
             <!-- Page Header -->
             <!-- ========================= -->
 
-            <div
-                class="flex items-center gap-3 border-b border-slate-200 pb-4
+<div class="flex items-center gap-3 border-b border-slate-200 pb-4
                        dark:border-gray-800"
-            >
-                <div
-                    class="grid h-10 w-10 place-items-center rounded-lg
-                           bg-indigo-50 text-indigo-700
-                           dark:bg-indigo-500/10 dark:text-indigo-300"
                 >
-                    <UserCheck class="h-5 w-5" />
-                </div>
-
                 <div>
                     <h1
                         class="text-xl font-bold text-slate-900

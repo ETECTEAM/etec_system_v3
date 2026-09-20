@@ -25,6 +25,7 @@ export const menuDomains = [
   enroll,
   studentManagement,
   classes,
+  instructorAvailability,
   attendance,
   officialLeave,
   classHistory,
@@ -35,7 +36,6 @@ export const menuDomains = [
   schedule,
   building,
   holiday,
-  instructorAvailability,
   certificate,
   // Rules & security
   absenceBlock,
