@@ -3,8 +3,10 @@
 namespace App\Modules\Instructor\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\StudyClass;
 use App\Models\SubCategory;
 use App\Models\WorkSchedule;
+use App\Models\WorkScheduleTime;
 use App\Modules\Instructor\Requests\InstructorProfileRequest;
 use App\Modules\Instructor\Services\InstructorOnboardingService;
 use App\Modules\Instructor\Services\InstructorProfileService;
@@ -26,7 +28,7 @@ class InstructorProfileController extends Controller
         abort_unless($request->user()?->can('instructor_profile.view'), 403);
 
         $instructorData = $request->user()?->instructorData()
-            ->with(['profilePhoto', 'cvFile', 'attachments', 'workSchedule'])
+            ->with(['profilePhoto', 'cvFile', 'attachments', 'workSchedule.times.time'])
             ->first();
 
         return Inertia::render('backend/instructors/ShowProfile', [
@@ -36,8 +38,42 @@ class InstructorProfileController extends Controller
             'otherAttachments' => $instructorData?->attachments
                 ->whereNotIn('type', ['profile_photo', 'cv'])
                 ->values(),
-            'workSchedule' => $instructorData?->workSchedule,
+            'workSchedule' => $this->presentWorkSchedule($instructorData?->workSchedule),
         ]);
+    }
+
+    /**
+     * The chosen work schedule as a day-by-day list of time slots, for the profile page.
+     *
+     * @return array{name: string, description: ?string, days: list<array{day: string, times: list<string>}>}|null
+     */
+    private function presentWorkSchedule(?WorkSchedule $workSchedule): ?array
+    {
+        if ($workSchedule === null) {
+            return null;
+        }
+
+        $dayNames = [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'];
+
+        return [
+            'name' => $workSchedule->name,
+            'description' => $workSchedule->description,
+            'days' => $workSchedule->times
+                ->groupBy('day_of_week')
+                ->sortKeys()
+                ->map(fn ($entries, $day): array => [
+                    'day' => $dayNames[$day] ?? (string) $day,
+                    // Chronological, not the string sort a database returns ("02:00 pm" would come before "09:00 am").
+                    'times' => $entries
+                        ->map(fn (WorkScheduleTime $entry) => $entry->time?->time_name)
+                        ->filter()
+                        ->sortBy(fn (string $name) => StudyClass::parseTimeRange($name)['start'] ?? '99:99')
+                        ->values()
+                        ->all(),
+                ])
+                ->values()
+                ->all(),
+        ];
     }
 
     public function edit(Request $request): Response

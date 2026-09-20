@@ -20,8 +20,8 @@ const props = defineProps({
   // Class Type -> Term -> Time, already narrowed to the slots this instructor
   // is free for (see InstructorClassService::formOptions).
   scheduleGroups: { type: Array, default: () => [] },
-  // Restricted courses only: { [course_id]: [allowed term ids] } (see InstructorClassService::courseTermIds).
-  courseTermIds: { type: Object, default: () => ({}) },
+  // The only terms an instructor may create a class on, or null for no limit (see InstructorClassService::allowedTermIds).
+  instructorTermIds: { type: Array, default: null },
 });
 
 const classTypeList = ref([...props.classTypes]);
@@ -104,7 +104,7 @@ const selectedGroup = computed(() =>
   props.scheduleGroups.find((group) => String(group.class_type_id) === String(form.class_type_id)),
 );
 
-const allowedTermIds = computed(() => props.courseTermIds[form.course_id]?.map(String) ?? null);
+const allowedTermIds = computed(() => props.instructorTermIds?.map(String) ?? null);
 
 const termOptions = computed(() =>
   (selectedGroup.value?.schedules ?? [])
@@ -265,6 +265,7 @@ onMounted(() => {
               :button-class="selectClass"
             />
             <span v-if="form.errors.term_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.term_id }}</span>
+            <span v-else-if="form.class_type_id && !termOptions.length" class="text-xs text-amber-600 dark:text-amber-400">{{ $t('Instructors can only create classes on Mon & Thu or Sat & Sun. This class type has neither, so ask an admin.') }}</span>
           </label>
 
           <label class="block">
