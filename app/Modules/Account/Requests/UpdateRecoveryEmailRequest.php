@@ -3,6 +3,7 @@
 namespace App\Modules\Account\Requests;
 
 use App\Modules\Account\Data\UpdateRecoveryEmailData;
+use App\Modules\Account\Services\RecoveryEmailService;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -26,8 +27,16 @@ class UpdateRecoveryEmailRequest extends FormRequest
             'recovery_email' => [
                 'required', 'string', 'email', 'max:255',
                 function (string $attribute, mixed $value, Closure $fail): void {
-                    if (strcasecmp(trim((string) $value), (string) $this->user()?->email) === 0) {
+                    $email = trim((string) $value);
+
+                    if (RecoveryEmailService::canonical($email) === RecoveryEmailService::canonical((string) $this->user()?->email)) {
                         $fail('Your recovery email must be different from your login email.');
+
+                        return;
+                    }
+
+                    if (app(RecoveryEmailService::class)->takenByAnotherAccount($email, $this->user()?->id)) {
+                        $fail('This email is already used by another account. Use a different email for recovery.');
                     }
                 },
             ],

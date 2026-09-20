@@ -81,6 +81,11 @@ const transferClasses = computed(() => {
     return availableClasses.value.filter((item) => item.id !== selected.value?.study_class_id)
 })
 
+const transferClassOptions = computed(() => transferClasses.value.map((item) => ({
+    label: classOptionLabel(item),
+    value: String(item.id),
+})))
+
 // =========================
 // Filters
 // =========================
@@ -694,24 +699,12 @@ function openAttendance(row) {
                             {{ $t('New class') }}
                         </label>
 
-                        <select
+                        <SelectSearch
                             v-model="transferForm.study_class_id"
-                            required
-                            class="input truncate"
-                        >
-                            <option value="">
-                                {{ $t('Select a class') }}
-                            </option>
-
-                            <option
-                                v-for="item in transferClasses"
-                                :key="item.id"
-                                :value="item.id"
-                                :title="classOptionLabel(item)"
-                            >
-                                {{ classOptionLabel(item) }}
-                            </option>
-                        </select>
+                            :options="transferClassOptions"
+                            :placeholder="$t('Select a class')"
+                            :clearable="false"
+                        />
                         <p v-if="transferForm.errors.study_class_id" class="error">
                             {{ transferForm.errors.study_class_id }}
                         </p>
