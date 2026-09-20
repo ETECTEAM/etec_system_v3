@@ -8,6 +8,7 @@ export function build(ctx) {
     match: ["/dashboard/instructor-availability"],
     exact: false,
     icon: "schedule",
+    section: "setup",
     isActive: (path) => path.startsWith("/dashboard/instructor-availability"),
   };
 }

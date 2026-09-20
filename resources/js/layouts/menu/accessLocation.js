@@ -14,6 +14,7 @@ export function build(ctx) {
     href: "/dashboard/access-locations",
     match: ["/dashboard/access-locations"],
     icon: "access_locations",
+    section: "system",
     isActive: (path) => path.startsWith("/dashboard/access-locations"),
   };
 }

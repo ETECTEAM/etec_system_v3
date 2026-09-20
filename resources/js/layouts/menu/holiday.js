@@ -14,6 +14,7 @@ export function build(ctx) {
     href: "/dashboard/holidays",
     match: ["/dashboard/holidays"],
     icon: "holiday",
+    section: "setup",
     isActive: (path) => path.startsWith("/dashboard/holidays"),
   };
 }

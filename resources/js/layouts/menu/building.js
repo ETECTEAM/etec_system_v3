@@ -18,6 +18,7 @@ export function build(ctx) {
     key,
     match: ["/dashboard/buildings", "/dashboard/floors", "/dashboard/rooms"],
     icon: "building_management",
+    section: "setup",
     children: [
       {
         label: "Buildings",

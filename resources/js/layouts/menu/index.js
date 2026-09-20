@@ -5,7 +5,6 @@ import * as classes from "./classes";
 import * as classHistory from "./classHistory";
 import * as enroll from "./enroll";
 import * as certificate from "./certificate";
-import * as enrollConfig from "./enrollConfig";
 import * as course from "./course";
 import * as profile from "./profile";
 import * as attendance from "./attendance";
@@ -20,26 +19,29 @@ import * as officialLeave from "./officialLeave";
 import * as absenceBlock from "./absenceBlock";
 // import * as website from "./website";
 
+// Display order. Each item's `section` (daily by default, setup, system) decides its heading in Sidebar.vue.
 export const menuDomains = [
-  building,
-  classes,
-  classHistory,
+  // Daily work
   enroll,
-  certificate,
-  enrollConfig,
-  course,
-  profile,
+  studentManagement,
+  classes,
   attendance,
-  user,
-  // website,
+  officialLeave,
+  classHistory,
+  profile,
   instructorScheduleBlocks,
-  instructorAvailability,
+  // Setup
+  course,
   schedule,
+  building,
+  holiday,
+  instructorAvailability,
+  certificate,
+  // Rules & security
+  absenceBlock,
+  user,
   loginSecurity,
   otpSettings,
-  holiday,
-  officialLeave,
-  absenceBlock,
   accessLocation,
-  studentManagement,
+  // website,
 ];

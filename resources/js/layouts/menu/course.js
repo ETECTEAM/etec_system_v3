@@ -21,6 +21,7 @@ export function build(ctx) {
     key,
     match: ["/dashboard/course"],
     icon: "course",
+    section: "setup",
     children: [
       {
         label: "Categories",

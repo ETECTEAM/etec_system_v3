@@ -13,6 +13,7 @@ export function build(ctx) {
     key,
     match: ["/dashboard/users"],
     icon: "user",
+    section: "system",
     children: [
       {
         label: "User",

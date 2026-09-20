@@ -41,12 +41,24 @@ export function build(ctx) {
     },
   ];
 
+  // Auto-record config sits with the other attendance rules; only super_admin can open it.
+  if (ctx.isSuperAdmin) {
+    children.push({
+      label: "Auto-Record Settings",
+      labelKey: "navigation.attendanceSettings",
+      href: "/dashboard/attendance-settings",
+      match: ["/dashboard/attendance-settings"],
+      isActive: (path) => path.startsWith("/dashboard/attendance-settings"),
+    });
+  }
+
   return {
     label: "Absence Blocks",
     labelKey: "navigation.absenceBlocks",
     key,
     match: ["/dashboard/absence-blocks"],
     icon: "absence_block",
+    section: "system",
     children,
   };
 }

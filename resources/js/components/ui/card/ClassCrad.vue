@@ -1,6 +1,6 @@
 <script setup>
 import { router, usePage } from "@inertiajs/vue3";
-import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,Pencil,X,Maximize2,} from "@lucide/vue";
+import {GraduationCap,Building2,DoorOpen,CalendarDays,Clock3,Users,Users2,BookOpen,UserRound,Pencil,X,Maximize2,MonitorSmartphone,} from "@lucide/vue";
 import { ref, computed, watch } from "vue";
 import { QrcodeCanvas } from "qrcode.vue";
 import axios from "axios";
@@ -17,6 +17,20 @@ import { useI18n } from "@/i18n";
 const { t } = useI18n();
 const toast = useToast();
 const page = usePage();
+
+// "09:00 - 10:30" → "9:00 AM - 10:30 AM" so users read the study time at a glance.
+function to12h(hhmm) {
+    if (!hhmm) return hhmm;
+    const [hour, minute] = hhmm.split(":").map(Number);
+    if (Number.isNaN(hour) || Number.isNaN(minute)) return hhmm;
+    const suffix = hour >= 12 ? "PM" : "AM";
+    return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+function formatTime12h(time) {
+    if (!time) return time;
+    return (time.split(" - ").map(to12h).filter(Boolean)).join(" - ");
+}
 
 // Inline capacity editing is an admin/super-admin action; instructors see the
 // number as plain text on their dashboard cards.
@@ -315,7 +329,7 @@ async function saveCapacity() {
 
         <!-- Header -->
         <div class="flex items-start justify-between gap-3">
-            <div class="flex items-start gap-3 min-w-0">
+            <div class="flex items-center gap-3 min-w-0">
                 <div
                     class="shrink-0 flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:ring-indigo-500/20"
                 >
@@ -374,8 +388,16 @@ async function saveCapacity() {
                 <span class="text-xs sm:text-sm font-semibold tabular-nums text-slate-800 dark:text-gray-200">#{{ classData.id }}</span>
             </div>
             <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><BookOpen class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Course') }}</span></div>
-                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.course }}</span>
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><Clock3 class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Study Time') }}</span></div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-900 text-white text-xs font-semibold tabular-nums ring-1 ring-inset ring-blue-900/20 dark:bg-blue-600 dark:text-white dark:ring-blue-500/20">{{ formatTime12h(classData.time) }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><CalendarDays class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Study Term') }}</span></div>
+                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.term }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><MonitorSmartphone class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Class Type') }}</span></div>
+                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.class_type_label }}</span>
             </div>
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><Building2 class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Building') }}</span></div>
@@ -388,18 +410,6 @@ async function saveCapacity() {
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><DoorOpen class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Room') }}</span></div>
                 <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.room }}</span>
-            </div>
-            <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><GraduationCap class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Class Type') }}</span></div>
-                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.class_type_label }}</span>
-            </div>
-            <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><CalendarDays class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Study Term') }}</span></div>
-                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.term }}</span>
-            </div>
-            <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 text-slate-500 dark:text-gray-400"><Clock3 class="w-3.5 h-3.5 shrink-0" /><span class="text-xs sm:text-sm">{{ $t('Study Time') }}</span></div>
-                <span class="text-xs sm:text-sm font-medium text-slate-800 text-right truncate dark:text-gray-200">{{ classData.time }}</span>
             </div>
             <div>
                 <div class="flex items-center justify-between gap-2">

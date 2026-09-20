@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { usePage } from "@inertiajs/vue3";
-import { Pen } from "@lucide/vue";
+import { ChevronDown, Pen } from "@lucide/vue";
 import { menuDomains } from "./menu";
 import SidebarMenuTree from "./SidebarMenuTree.vue";
 import BugAnnotationOverlay from "../components/ui/bug-annotation/BugAnnotationOverlay.vue";
@@ -73,11 +73,27 @@ const menuItems = computed(() => {
     if (item) base.push(item);
   }
 
-  const singleItems = base.filter((item) => !item.children);
-  const dropdownItems = base.filter((item) => item.children);
-
-  return [...singleItems, ...dropdownItems];
+  return base;
 });
+
+const SECTIONS = [
+  { id: "daily", labelKey: "navigation.sectionDaily" },
+  { id: "setup", labelKey: "navigation.sectionSetup" },
+  { id: "system", labelKey: "navigation.sectionSystem" },
+];
+
+const menuSections = computed(() => SECTIONS
+  .map((section) => ({ ...section, items: menuItems.value.filter((item) => (item.section ?? "daily") === section.id) }))
+  .filter((section) => section.items.length));
+
+// One section (e.g. an instructor's four links) needs no heading.
+const showHeadings = computed(() => menuSections.value.length > 1);
+
+const openSections = ref({ daily: true, setup: false, system: false });
+
+function toggleSection(id) {
+  openSections.value[id] = !openSections.value[id];
+}
 
 function itemKey(item, parentKey = "root") {
   return `${parentKey}:${item.key ?? item.href ?? item.labelKey ?? item.label}`;
@@ -113,9 +129,22 @@ function isChildActive(children = []) {
   });
 }
 
+// Keys look like "root:<item>"; nested ones add more segments.
+const isTopLevelKey = (key) => key.split(":").length === 2;
+
 function toggleMenu(key) {
   if (props.collapsed) return;
-  openMenus.value[key] = !openMenus.value[key];
+
+  const opening = !openMenus.value[key];
+
+  // Accordion: opening one top-level group closes the others.
+  if (opening && isTopLevelKey(key)) {
+    for (const other of Object.keys(openMenus.value)) {
+      if (isTopLevelKey(other)) openMenus.value[other] = false;
+    }
+  }
+
+  openMenus.value[key] = opening;
 }
 
 function openActiveMenus(items = menuItems.value, parentKey = "root") {
@@ -156,12 +185,23 @@ async function revealActiveItem() {
   }
 }
 
+// A collapsed section holding the current page opens itself so the active link is never hidden.
+function openActiveSections() {
+  for (const section of menuSections.value) {
+    if (section.items.some((item) => isActive(item) || (item.children && isChildActive(item.children)))) {
+      openSections.value[section.id] = true;
+    }
+  }
+}
+
 watch(currentPath, () => {
+  openActiveSections();
   openActiveMenus();
   revealActiveItem();
 });
 
 watch(menuItems, () => {
+  openActiveSections();
   openActiveMenus();
 }, { immediate: true });
 
@@ -239,19 +279,27 @@ onBeforeUnmount(() => {
         </div>
 
         <nav ref="navRef" class="mt-6 min-h-0 flex-1 overflow-y-auto">
-          <p v-if="!props.collapsed" class="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-gray-500">
+          <p v-if="!props.collapsed && !showHeadings" class="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-gray-500">
             {{ t("navigation.navigation") }}
           </p>
-          <SidebarMenuTree
-            :items="menuItems"
-            :open-menus="openMenus"
-            :collapsed="props.collapsed"
-            :is-active="isActive"
-            :is-child-active="isChildActive"
-            :item-key="itemKey"
-            @close="emit('close')"
-            @toggle="toggleMenu"
-          />
+          <div v-for="(section, index) in menuSections" :key="section.id" :class="showHeadings && index > 0 ? 'mt-4' : ''">
+            <button v-if="showHeadings && !props.collapsed" type="button" :aria-expanded="openSections[section.id]" class="mb-2 flex w-full items-center justify-between rounded-lg px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 transition hover:text-slate-600 dark:text-gray-500 dark:hover:text-gray-300" @click="toggleSection(section.id)">
+              <span>{{ t(section.labelKey) }}</span>
+              <ChevronDown class="h-3.5 w-3.5 transition" :class="openSections[section.id] ? 'rotate-180' : ''" />
+            </button>
+            <div v-else-if="showHeadings && index > 0" class="mb-3 border-t border-slate-200 dark:border-gray-700" />
+            <SidebarMenuTree
+              v-if="props.collapsed || !showHeadings || openSections[section.id]"
+              :items="section.items"
+              :open-menus="openMenus"
+              :collapsed="props.collapsed"
+              :is-active="isActive"
+              :is-child-active="isChildActive"
+              :item-key="itemKey"
+              @close="emit('close')"
+              @toggle="toggleMenu"
+            />
+          </div>
         </nav>
 
         <div class="mt-4 border-t border-slate-200 pt-4 dark:border-gray-700">
