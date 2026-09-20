@@ -15,6 +15,7 @@ const {
   scheduleLabel,
   requestedScheduleLabel,
   registrationTypeBadge,
+  hasReceipt,
   registrationPageLabel,
   goRegistrationPage,
   printReceipt,
@@ -188,12 +189,13 @@ const rowValue = "text-xs sm:text-sm font-medium text-slate-800 text-right trunc
           <button
             v-else
             type="button"
-            :disabled="printingId === row.enrollment_id"
+            :disabled="printingId === row.enrollment_id || (row.payment_status === 'Paid' && !hasReceipt(row))"
+            :title="row.payment_status === 'Paid' && !hasReceipt(row) ? $t('Paid outside this system, no receipt to print.') : undefined"
             class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-500 sm:mt-5"
             @click="row.payment_status === 'Paid' ? printReceipt(row) : openPartialPaymentModal(row)"
           >
             <Printer class="h-4 w-4" />
-            {{ row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record Payment') }}
+            {{ row.payment_status !== 'Paid' ? $t('Record Payment') : (hasReceipt(row) ? $t('Print Receipt') : $t('No receipt')) }}
           </button>
         </div>
       </div>

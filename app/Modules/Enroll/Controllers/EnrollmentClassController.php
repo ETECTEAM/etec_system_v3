@@ -272,7 +272,7 @@ class EnrollmentClassController extends Controller
             'document_fee_amount' => (float) $enrollment->document_fee_amount,
             'amount_paid' => $amountPaid,
             'total_due' => $totalDue,
-            'remaining_balance' => max($totalDue - $amountPaid, 0),
+            'remaining_balance' => $enrollment->payment_status === 'paid' ? 0 : max($totalDue - $amountPaid, 0),
             'enrolled_at' => optional($enrollment->enrolled_at)->format('Y-m-d'),
             'paid_at' => optional($enrollment->paid_at)->format('Y-m-d'),
             'payments' => $enrollment->payments
@@ -303,7 +303,9 @@ class EnrollmentClassController extends Controller
             'pending' => $enrollments->where('enrollment_status', 'pending')->count(),
             'total_due' => $totalDue,
             'amount_paid' => $amountPaid,
-            'remaining_balance' => max($totalDue - $amountPaid, 0),
+            // Enrollments marked paid owe nothing, even when no amount was recorded (paid at the desk).
+            'remaining_balance' => $enrollments->reject(fn (StudentEnrollment $enrollment) => $enrollment->payment_status === 'paid')
+                ->sum(fn (StudentEnrollment $enrollment) => max((float) $enrollment->fee_amount + (float) $enrollment->document_fee_amount - (float) $enrollment->amount_paid, 0)),
         ];
     }
 
@@ -801,7 +803,10 @@ class EnrollmentClassController extends Controller
         $this->ensureClassAcceptsMutations($studyClass);
         $this->ensureClassAcceptsRegistration($studyClass);
 
-        $createClassStudent->handle($studyClass, $request->validated());
+        // Students an instructor adds have already paid at the desk; admins keep the unpaid default.
+        $paidAtDesk = $request->user()->hasRole('instructor') && ! $request->user()->hasAnyRole(['super_admin', 'admin']);
+
+        $createClassStudent->handle($studyClass, $request->validated(), $paidAtDesk);
 
         // back() so the class list's inline register modal returns to the list
         // with the flash message and refreshed seat counts.
@@ -973,6 +978,8 @@ class EnrollmentClassController extends Controller
 
         $enrollment->update([
             'enrollment_status' => 'active',
+            // QR joiners have already paid at the desk; a partial payment already on record is left alone.
+            'payment_status' => $enrollment->payment_status === 'unpaid' ? 'paid' : $enrollment->payment_status,
             'source' => $enrollment->source ?? 'qr_code',
         ]);
     }
