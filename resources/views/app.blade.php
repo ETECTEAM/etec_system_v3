@@ -10,16 +10,7 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <meta name="apple-mobile-web-app-title" content="ETEC Center">
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-        <script>
-            // Set the `dark` class before first paint so the page never flashes
-            // the wrong theme while Vue/Inertia boots.
-            (function () {
-                var stored = localStorage.getItem('theme');
-                var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                var isDark = stored === 'dark' || (stored !== 'light' && prefersDark);
-                document.documentElement.classList.toggle('dark', isDark);
-            })();
-        </script>
+        <script src="/js/theme-init.js"></script>
         <style>
             .js-loading #app {
                 display: none;
