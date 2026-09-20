@@ -76,10 +76,10 @@ class GetClassDetails
 
         $totalDue = $feeAmount + $documentFeeAmount;
 
-        $remainingBalance = max(
-            $totalDue - $amountPaid,
-            0
-        );
+        // Marked paid means nothing is owed, even when no amount was recorded (paid at the desk).
+        $remainingBalance = $enrollment->payment_status === 'paid'
+            ? 0
+            : max($totalDue - $amountPaid, 0);
 
         return [
             'id' => $enrollment->student_id,

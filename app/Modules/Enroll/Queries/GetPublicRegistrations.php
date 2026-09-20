@@ -39,7 +39,7 @@ class GetPublicRegistrations
     private function baseQuery(string $search = ''): Builder
     {
         return StudentEnrollment::query()
-            ->whereIn('source', ['public_website', 'qr_code', 'admin_register', 'vip', 'manual'])
+            ->whereIn('source', ['public_website', 'qr_code', 'admin_register', 'vip', 'manual', 'legacy_csv'])
             ->whereIn('enrollment_status', ['active', 'pending', 'unassigned'])
             ->with([
                 'student:id,full_name,gender,phone',
@@ -145,6 +145,7 @@ class GetPublicRegistrations
         return match ($enrollment->source) {
             'vip' => 'vip',
             'manual' => 'manual',
+            'legacy_csv' => 'imported',
             default => 'normal',
         };
     }

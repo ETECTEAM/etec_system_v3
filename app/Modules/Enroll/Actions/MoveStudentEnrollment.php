@@ -54,7 +54,7 @@ class MoveStudentEnrollment
             $moved = $this->enrollStudent->handle($targetClass, $enrollment->student_id, $force, [
                 'source' => $enrollment->source,
                 'amount_paid' => $amountPaid,
-                'payment_status' => $this->paymentStatus($amountPaid, $totalDue),
+                'payment_status' => $this->paymentStatus($amountPaid, $totalDue, $enrollment->payment_status === 'paid'),
                 'paid_at' => $enrollment->paid_at,
                 'enrolled_at' => $enrollment->enrolled_at,
             ]);
@@ -100,7 +100,7 @@ class MoveStudentEnrollment
             'fee_amount' => $resolved['price'],
             'unit_price' => $resolved['unit_price'],
             'document_fee_amount' => $resolved['document_price'],
-            'payment_status' => $this->paymentStatus($amountPaid, $totalDue),
+            'payment_status' => $this->paymentStatus($amountPaid, $totalDue, $enrollment->payment_status === 'paid'),
             'no_room_and_instructor' => false,
             'no_instructor' => false,
             'no_room' => false,
@@ -143,10 +143,11 @@ class MoveStudentEnrollment
     // Mirrors RecordEnrollmentDeposit's tiering - the target class's price can
     // differ from the source class's, so payment_status is recomputed against
     // the carried-over amount_paid rather than copied as-is.
-    private function paymentStatus(float $amountPaid, float $totalDue): string
+    // $wasPaid: an enrollment already marked paid with no amount on record (paid at the desk) stays paid.
+    private function paymentStatus(float $amountPaid, float $totalDue, bool $wasPaid = false): string
     {
         if ($amountPaid <= 0) {
-            return 'unpaid';
+            return $wasPaid ? 'paid' : 'unpaid';
         }
 
         if ($amountPaid < $totalDue) {

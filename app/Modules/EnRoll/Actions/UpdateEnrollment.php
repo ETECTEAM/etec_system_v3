@@ -26,10 +26,13 @@ class UpdateEnrollment
             $amountPaid = (float) ($data['amount_paid'] ?? $enrollment->amount_paidende);
             $amountPaid = min($amountPaid, $totalDue);
 
+            // Paid with no amount on record = paid outside this system; keep it paid rather than reverting to unpaid.
+            $paidWithoutAmount = $enrollment->payment_status === 'paid' && (float) $enrollment->amount_paid <= 0;
+
             $enrollment->forceFill([
                 'enrollment_status' => $data['enrollment_status'] ?? $enrollment->enrollment_status,
                 'amount_paid' => $amountPaid,
-                'payment_status' => $this->paymentStatus($amountPaid, $totalDue),
+                'payment_status' => $this->paymentStatus($amountPaid, $totalDue, $paidWithoutAmount),
                 'paid_at' => ! empty($data['payment_date']) ? $data['payment_date'] : $enrollment->paid_at,
             ])->save();
 
@@ -53,10 +56,10 @@ class UpdateEnrollment
         });
     }
 
-    private function paymentStatus(float $amountPaid, float $totalDue): string
+    private function paymentStatus(float $amountPaid, float $totalDue, bool $paidWithoutAmount = false): string
     {
         if ($amountPaid <= 0) {
-            return 'unpaid';
+            return $paidWithoutAmount ? 'paid' : 'unpaid';
         }
 
         return $amountPaid < $totalDue ? 'partial' : 'paid';

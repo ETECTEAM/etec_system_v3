@@ -12,9 +12,9 @@ class CreateClassStudent
 {
     public function __construct(private readonly StudentRegistrationService $registrations) {}
 
-    public function handle(StudyClass $studyClass, array $data): stdClass
+    public function handle(StudyClass $studyClass, array $data, bool $paidAtDesk = false): stdClass
     {
-        return DB::transaction(function () use ($studyClass, $data): stdClass {
+        return DB::transaction(function () use ($studyClass, $data, $paidAtDesk): stdClass {
             $class = $this->registrations->lockStudyClass($studyClass->id);
             $this->registrations->expandCapacityToFit($class);
 
@@ -31,6 +31,7 @@ class CreateClassStudent
                 'fee_amount' => $resolvedFee,
                 'unit_price' => $unitPrice,
                 'document_fee_amount' => $resolvedDocFee,
+                'payment_status' => $paidAtDesk ? 'paid' : 'unpaid',
                 'source' => 'admin_register',
             ]);
         });

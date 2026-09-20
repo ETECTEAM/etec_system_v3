@@ -74,10 +74,16 @@ const REGISTRATION_TYPE_BADGES = {
   normal: { label: "Normal", classes: "bg-slate-100 text-slate-600 dark:bg-gray-700 dark:text-gray-300" },
   vip: { label: "VIP", classes: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400" },
   manual: { label: "Manual", classes: "bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400" },
+  imported: { label: "Imported", classes: "bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20 dark:bg-sky-500/10 dark:text-sky-400" },
 };
 
 function registrationTypeBadge(row) {
   return REGISTRATION_TYPE_BADGES[row.registration_type ?? "normal"] ?? REGISTRATION_TYPE_BADGES.normal;
+}
+
+// Paid with no amount on record (paid at the desk / in the old system): nothing to print a receipt for.
+function hasReceipt(row) {
+  return row.payment_status === "Paid" && Number(row.amount_paid) > 0;
 }
 
 function capitalizeStatus(status) {
@@ -308,6 +314,7 @@ export function useEnrollmentRegistrations() {
     requestedScheduleLabel,
     remainingBalance,
     registrationTypeBadge,
+    hasReceipt,
 
     fetchRegistrations,
     registrationPageLabel,

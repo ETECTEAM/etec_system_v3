@@ -1001,5 +1001,9 @@ export const backendFinalTranslations = {
     "Class capacity updated.": "បានធ្វើបច្ចុប្បន្នភាពចំនួនអតិបរមារបស់ថ្នាក់។",
     "Failed to update capacity. Please try again.": "មិនអាចធ្វើបច្ចុប្បន្នភាពចំនួនអតិបរមាបានទេ។ សូមព្យាយាមម្តងទៀត។",
     "Capacity can't be lower than the :count students already in this class.": "ចំនួនអតិបរមាមិនអាចតិចជាង :count សិស្សដែលមានក្នុងថ្នាក់នេះទេ។",
+    // Registrations tab: imported / paid-at-desk rows
+    "Imported": "នាំចូល",
+    "No receipt": "គ្មានបង្កាន់ដៃ",
+    "Paid outside this system, no receipt to print.": "បានបង់ក្រៅប្រព័ន្ធនេះ គ្មានបង្កាន់ដៃត្រូវបោះពុម្ព។",
   },
 }

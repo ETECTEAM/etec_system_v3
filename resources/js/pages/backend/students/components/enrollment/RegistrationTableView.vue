@@ -18,6 +18,7 @@ const {
   scheduleLabel,
   requestedScheduleLabel,
   registrationTypeBadge,
+  hasReceipt,
   registrationPageLabel,
   goRegistrationPage,
   printReceipt,
@@ -149,12 +150,12 @@ const {
                   v-if="!isPendingRegistration(row)"
                   type="button"
                   class="inline-flex h-8 w-[150px] items-center justify-center gap-1.5 rounded-lg bg-blue-100 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
-                  :disabled="printingId === row.enrollment_id"
-                  :title="row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record payment')"
+                  :disabled="printingId === row.enrollment_id || (row.payment_status === 'Paid' && !hasReceipt(row))"
+                  :title="row.payment_status !== 'Paid' ? $t('Record payment') : (hasReceipt(row) ? $t('Print Receipt') : $t('Paid outside this system, no receipt to print.'))"
                   @click="row.payment_status === 'Paid' ? printReceipt(row) : openPartialPaymentModal(row)"
                 >
                   <Printer class="h-4 w-4 shrink-0" />
-                  <span class="truncate">{{ row.payment_status === 'Paid' ? $t('Print Receipt') : $t('Record Payment') }}</span>
+                  <span class="truncate">{{ row.payment_status !== 'Paid' ? $t('Record Payment') : (hasReceipt(row) ? $t('Print Receipt') : $t('No receipt')) }}</span>
                 </button>
               </div>
             </TableCell>
