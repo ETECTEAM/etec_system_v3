@@ -8,6 +8,7 @@ import { useToast } from "@/composables/useToast";
 import DashboardLayout from "../../../layouts/DashboardLayout.vue";
 import { getEcho } from "../../../echo";
 import { useConfirm } from "../../../composables/useConfirm";
+import { formatTime12 } from "@/utils/formatTime12";
 
 const props = defineProps({
   classData: {
@@ -86,8 +87,8 @@ const timingHint = computed(() => {
     parts.push(`Created at ${props.classData.created_date}`);
   }
 
-  parts.push(`Starts at ${attendanceStartTime.value}`);
-  parts.push(`Auto-records at ${props.attendanceWindow.ends_at}`);
+  parts.push(`Starts at ${formatTime12(attendanceStartTime.value)}`);
+  parts.push(`Auto-records at ${formatTime12(props.attendanceWindow.ends_at)}`);
 
   return parts.join(" · ");
 });
@@ -566,7 +567,7 @@ const submit = (options = {}) => {
       >
         <Bot class="h-4 w-4 shrink-0" />
         <span>
-          The system recorded this class at {{ todaySession.recorded_at }} because attendance was not submitted in time.
+          The system recorded this class at {{ formatTime12(todaySession.recorded_at) }} because attendance was not submitted in time.
         </span>
       </div>
 

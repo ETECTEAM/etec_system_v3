@@ -68,6 +68,8 @@ trait CreatesAttendanceFixtures
             'status' => $overrides['status'] ?? 'active',
             'capacity' => $overrides['capacity'] ?? 20,
             'price' => 0,
+            // Armed long ago by default so auto-record applies; pass null to get a class that was never tracked.
+            'auto_record_started_on' => array_key_exists('autoRecordStartedOn', $overrides) ? $overrides['autoRecordStartedOn'] : '2020-01-01',
         ]);
     }
 

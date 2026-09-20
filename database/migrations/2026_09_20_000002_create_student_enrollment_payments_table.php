@@ -15,6 +15,30 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // A first run on MySQL created the table and then failed on the over-long index name below;
+        // DDL isn't rolled back there, so a retry must build on that leftover table instead of failing.
+        if (! Schema::hasTable('student_enrollment_payments')) {
+            $this->createTable();
+        }
+
+        Schema::table('student_enrollment_payments', function (Blueprint $table) {
+            // Explicit name: the generated one is 68 characters, over MySQL's 64-character limit.
+            if (! Schema::hasIndex('student_enrollment_payments', 'sep_enrollment_payment_date_index')) {
+                $table->index(['student_enrollment_id', 'payment_date'], 'sep_enrollment_payment_date_index');
+            }
+
+            if (! Schema::hasIndex('student_enrollment_payments', 'student_enrollment_payments_payment_status_index')) {
+                $table->index('payment_status');
+            }
+
+            if (! Schema::hasIndex('student_enrollment_payments', 'student_enrollment_payments_payment_date_index')) {
+                $table->index('payment_date');
+            }
+        });
+    }
+
+    private function createTable(): void
+    {
         Schema::create('student_enrollment_payments', function (Blueprint $table) {
             $table->id();
 
@@ -47,10 +71,6 @@ return new class extends Migration
             $table->string('remarks', 255)->nullable();
 
             $table->timestamps();
-
-            $table->index(['student_enrollment_id', 'payment_date']);
-            $table->index('payment_status');
-            $table->index('payment_date');
         });
     }
 

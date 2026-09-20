@@ -1,6 +1,7 @@
 <script setup>
 import axios from 'axios'
 import { onMounted, ref, watch } from 'vue'
+import { Loader2 } from '@lucide/vue'
 import { Head, Link } from '@inertiajs/vue3'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { PageHero } from '@/components/ui/page-hero'
@@ -109,7 +110,8 @@ watch(perPage, () => fetchClassTypes(1))
                 <TableCell><select :value="String(classType.is_active)" :disabled="savingId === classType.class_type_id" class="rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-medium text-slate-700 transition hover:border-slate-300 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-800 dark:focus:ring-blue-500/20" @change="saveClassTypeField(classType, 'is_active', $event.target.value)"><option value="true">{{ $t('Active') }}</option><option value="false">{{ $t('Inactive') }}</option></select></TableCell>
                 <TableCell class="text-right"><button type="button" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20" @click="deleteClassType(classType)">{{ $t('Delete') }}</button></TableCell>
               </TableRow>
-              <TableRow v-if="classTypes.length === 0"><TableCell colspan="5" class="py-10 text-center text-slate-500 dark:text-gray-400">{{ $t('No class types found.') }}</TableCell></TableRow>
+              <TableRow v-if="isLoading && classTypes.length === 0"><TableCell colspan="5" class="py-10 text-center"><span class="inline-flex items-center gap-2 text-slate-500 dark:text-gray-400"><Loader2 class="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" /> {{ $t('Loading...') }}</span></TableCell></TableRow>
+              <TableRow v-else-if="classTypes.length === 0"><TableCell colspan="5" class="py-10 text-center text-slate-500 dark:text-gray-400">{{ $t('No class types found.') }}</TableCell></TableRow>
             </TableBody>
           </Table>
         </div>

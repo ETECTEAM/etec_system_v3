@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Head, Link, router } from "@inertiajs/vue3";
 import axios from "axios";
 import { useToast } from "@/composables/useToast";
+import { formatTime12 } from "@/utils/formatTime12";
 import {
   ArrowRightLeft,
   Bot,
@@ -553,10 +554,10 @@ async function approveAllPendingRegistrations() {
       >
         <Bot class="h-4 w-4 shrink-0" />
         <span v-if="todaySession.can_override">
-          The system recorded today's class at {{ todaySession.recorded_at }}. You can correct it from Track Attendance until {{ todaySession.override_deadline }}.
+          The system recorded today's class at {{ formatTime12(todaySession.recorded_at) }}. You can correct it from Track Attendance until {{ formatTime12(todaySession.override_deadline) }}.
         </span>
         <span v-else>
-          The system recorded today's class at {{ todaySession.recorded_at }}. The window to correct it has closed.
+          The system recorded today's class at {{ formatTime12(todaySession.recorded_at) }}. The window to correct it has closed.
         </span>
       </div>
 
@@ -689,7 +690,7 @@ async function approveAllPendingRegistrations() {
                       {{ request.phone }}
                     </td>
                     <td class="border-b border-amber-100 px-4 py-3 text-slate-600 dark:border-amber-500/10 dark:text-gray-400">
-                      {{ request.requested_at }}
+                      {{ formatTime12(request.requested_at) }}
                     </td>
                     <td class="border-b border-amber-100 px-4 py-3 dark:border-amber-500/10">
                       <button

@@ -12,10 +12,12 @@ use App\Models\Term;
 use App\Models\Time;
 use App\Models\User;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
+use App\Modules\Room\Services\RoomAvailability;
 use App\Support\InstructorDisplayName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class ClassListController extends Controller
@@ -103,6 +105,8 @@ class ClassListController extends Controller
             ? $validated['title']
             : Course::findOrFail($validated['course_id'])->title;
 
+        $this->assertRoomFree($validated);
+
         StudyClass::create($validated);
 
         return redirect()->route('class-list.index')->with('success', 'Class created successfully.');
@@ -175,6 +179,8 @@ class ClassListController extends Controller
             'status'        => ['sometimes', 'nullable', 'string', Rule::in(GetClassFormOptions::STATUSES)],
         ]);
 
+        $this->assertRoomFree($validated, $classList);
+
         $classList->update($validated);
 
         return redirect()->route('class-list.index')->with('success', 'Class updated successfully.');
@@ -188,6 +194,31 @@ class ClassListController extends Controller
         $classList->delete();
 
         return redirect()->route('class-list.index')->with('success', 'Class deleted successfully.');
+    }
+
+    // A room holds one class at a time. Editing without touching room or slot is left alone.
+    private function assertRoomFree(array $validated, ?StudyClass $existing = null): void
+    {
+        $roomId = $validated['room_id'] ?? $existing?->room_id;
+        $termId = $validated['term_id'] ?? $existing?->term_id;
+        $timeId = $validated['time_id'] ?? $existing?->time_id;
+
+        if (! $roomId || ! $termId || ! $timeId) {
+            return;
+        }
+
+        if ($existing
+            && (int) $existing->room_id === (int) $roomId
+            && (int) $existing->term_id === (int) $termId
+            && (int) $existing->time_id === (int) $timeId) {
+            return;
+        }
+
+        $reason = app(RoomAvailability::class)->unavailableReason((int) $roomId, (int) $termId, (int) $timeId, $existing?->id);
+
+        if ($reason !== null) {
+            throw ValidationException::withMessages(['room_id' => $reason]);
+        }
     }
 
     private function teacherOptions()

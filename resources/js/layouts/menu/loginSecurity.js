@@ -42,6 +42,7 @@ export function build(ctx) {
       href: children[0].href,
       match: children[0].match,
       icon: "login_security",
+      section: "system",
       isActive: (path) => path.startsWith(children[0].href),
     };
   }
@@ -52,6 +53,7 @@ export function build(ctx) {
     key,
     match: ["/dashboard/login-security"],
     icon: "login_security",
+    section: "system",
     children,
   };
 }

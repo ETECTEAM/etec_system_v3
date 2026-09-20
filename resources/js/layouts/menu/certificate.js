@@ -20,6 +20,7 @@ export function build(ctx) {
     labelKey: "navigation.certificate",
     key,
     icon: "certificate",
+    section: "setup",
     match: ["/dashboard/certificates"],
     children: [
       {

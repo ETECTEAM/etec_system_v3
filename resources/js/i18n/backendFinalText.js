@@ -1005,5 +1005,17 @@ export const backendFinalTranslations = {
     "Imported": "នាំចូល",
     "No receipt": "គ្មានបង្កាន់ដៃ",
     "Paid outside this system, no receipt to print.": "បានបង់ក្រៅប្រព័ន្ធនេះ គ្មានបង្កាន់ដៃត្រូវបោះពុម្ព។",
+    // Room Availability page
+    "Room Availability": "ភាពទំនេររបស់បន្ទប់",
+    "No room is free at this time.": "គ្មានបន្ទប់ទំនេរនៅពេលនេះទេ។",
+    "See which rooms are free or taken at each class time, following the class schedule.": "មើលថាបន្ទប់ណាទំនេរ ឬត្រូវបានប្រើនៅម៉ោងរៀននីមួយៗ តាមកាលវិភាគថ្នាក់។",
+    ":count rooms can be booked": "អាចកក់បាន :count បន្ទប់",
+    "Taken by a class": "ត្រូវបានប្រើដោយថ្នាក់",
+    "Rooms under maintenance or closed are not counted.": "បន្ទប់ដែលកំពុងជួសជុល ឬបិទ មិនត្រូវបានរាប់ទេ។",
+    "No schedule is set up for this class type yet. Add terms and times under Schedule Management.": "មិនទាន់មានកាលវិភាគសម្រាប់ប្រភេទថ្នាក់នេះទេ។ សូមបន្ថែមវគ្គ និងម៉ោងក្នុងការគ្រប់គ្រងកាលវិភាគ។",
+    ":free free · :busy taken": ":free ទំនេរ · :busy ត្រូវបានប្រើ",
+    "No rooms are set up yet.": "មិនទាន់មានបន្ទប់ទេ។",
+    "Classes without a room yet": "ថ្នាក់ដែលមិនទាន់មានបន្ទប់",
+    "These in-person classes have no room, so they are not counted above. The instructor still has to pick one.": "ថ្នាក់ផ្ទាល់ទាំងនេះមិនទាន់មានបន្ទប់ ដូច្នេះមិនត្រូវបានរាប់ខាងលើទេ។ គ្រូនៅតែត្រូវជ្រើសរើសមួយ។",
   },
 }

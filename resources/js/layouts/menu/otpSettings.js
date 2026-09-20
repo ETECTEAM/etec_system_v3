@@ -15,6 +15,7 @@ export function build(ctx) {
     href: "/dashboard/otp-settings",
     match: ["/dashboard/otp-settings"],
     icon: "otp_settings",
+    section: "system",
     isActive: (path) => path.startsWith("/dashboard/otp-settings"),
   };
 }

@@ -19,6 +19,7 @@ export function build(ctx) {
     key,
     match: ["/dashboard/terms", "/dashboard/times", "/dashboard/schdule", "/dashboard/work-schedules"],
     icon: "schedule",
+    section: "setup",
     children: [
       {
         label: "Terms",

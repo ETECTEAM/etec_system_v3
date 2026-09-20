@@ -80,6 +80,13 @@ class AccountSecurityController extends Controller
     public function verifyRecoveryEmail(Request $request, int $user): RedirectResponse
     {
         $account = User::query()->findOrFail($user);
+
+        // Two accounts may have been sent a link for the same address; only the first to verify keeps it.
+        if ($account->recovery_email && $this->recoveryEmail->takenByAnotherAccount($account->recovery_email, $account->id)) {
+            return redirect()->route(Auth::check() ? 'account-security.edit' : 'login')
+                ->with('error', 'This email is already verified for another account. Add a different recovery email.');
+        }
+
         $account->forceFill(['recovery_verified' => true])->save();
 
         // Was this account still working through the guided setup before this

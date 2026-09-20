@@ -8,11 +8,11 @@ import {
     Search,
     Shuffle,
     Trash2,
-    UserCheck,
     X,
 } from '@lucide/vue'
 
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
+import { SelectSearch } from '../../../components/ui/select-search'
 import { useConfirm } from '../../../composables/useConfirm'
 import { useToast } from '../../../composables/useToast'
 import { useI18n } from '../../../i18n'
@@ -52,6 +52,9 @@ const transferForm = useForm({
 })
 
 const availableClasses = computed(() => props.classes || [])
+const courseOptions = computed(() => props.courses.map((course) => ({ label: course.title, value: String(course.id) })))
+const timeOptions = computed(() => props.times.map((time) => ({ label: time.time_name, value: String(time.id) })))
+const filterSelectClass = 'flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 text-left text-sm transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-blue-500 dark:focus:ring-blue-500/20'
 const { confirm } = useConfirm()
 const { t } = useI18n()
 const toast = useToast()
@@ -77,6 +80,11 @@ function classOptionLabel(item) {
 const transferClasses = computed(() => {
     return availableClasses.value.filter((item) => item.id !== selected.value?.study_class_id)
 })
+
+const transferClassOptions = computed(() => transferClasses.value.map((item) => ({
+    label: classOptionLabel(item),
+    value: String(item.id),
+})))
 
 // =========================
 // Filters
@@ -252,18 +260,9 @@ function openAttendance(row) {
             <!-- Page Header -->
             <!-- ========================= -->
 
-            <div
-                class="flex items-center gap-3 border-b border-slate-200 pb-4
+<div class="flex items-center gap-3 border-b border-slate-200 pb-4
                        dark:border-gray-800"
-            >
-                <div
-                    class="grid h-10 w-10 place-items-center rounded-lg
-                           bg-indigo-50 text-indigo-700
-                           dark:bg-indigo-500/10 dark:text-indigo-300"
                 >
-                    <UserCheck class="h-5 w-5" />
-                </div>
-
                 <div>
                     <h1
                         class="text-xl font-bold text-slate-900
@@ -283,7 +282,7 @@ function openAttendance(row) {
             <!-- ========================= -->
 
             <div
-                class="grid gap-3 rounded-lg bg-slate-50 p-4
+                class="grid gap-3 rounded-lg bg-slate-50 py-4
                        dark:bg-gray-900
                        sm:grid-cols-[minmax(220px,1fr)_200px_200px_auto]"
             >
@@ -306,48 +305,22 @@ function openAttendance(row) {
                 </label>
 
                 <!-- Course Filter -->
-                <select
+                <SelectSearch
                     v-model="courseId"
-                    class="h-10 rounded-md border border-slate-200
-                           bg-white px-3 text-sm
-                           dark:border-gray-700 dark:bg-gray-800
-                           dark:text-gray-100"
-                    @change="filter"
-                >
-                    <option value="">
-                        {{ $t('All Courses') }}
-                    </option>
-
-                    <option
-                        v-for="course in courses"
-                        :key="course.id"
-                        :value="course.id"
-                    >
-                        {{ course.title }}
-                    </option>
-                </select>
+                    :options="courseOptions"
+                    :placeholder="$t('All Courses')"
+                    :button-class="filterSelectClass"
+                    @update:modelValue="filter"
+                />
 
                 <!-- Time Filter -->
-                <select
+                <SelectSearch
                     v-model="timeId"
-                    class="h-10 rounded-md border border-slate-200
-                           bg-white px-3 text-sm
-                           dark:border-gray-700 dark:bg-gray-800
-                           dark:text-gray-100"
-                    @change="filter"
-                >
-                    <option value="">
-                        {{ $t('All Times') }}
-                    </option>
-
-                    <option
-                        v-for="time in times"
-                        :key="time.id"
-                        :value="time.id"
-                    >
-                        {{ time.time_name }}
-                    </option>
-                </select>
+                    :options="timeOptions"
+                    :placeholder="$t('All Times')"
+                    :button-class="filterSelectClass"
+                    @update:modelValue="filter"
+                />
             </div>
 
             <!-- ========================= -->
@@ -446,8 +419,9 @@ function openAttendance(row) {
 
                                 <!-- Instructor -->
                                 <td
-                                    class="px-4 py-4 text-slate-600
-                                           dark:text-gray-300"
+                                    class="max-w-[180px] truncate px-4 py-4
+                                           text-slate-600 dark:text-gray-300"
+                                    :title="row.instructor"
                                 >
                                     {{ row.instructor }}
                                 </td>
@@ -725,24 +699,12 @@ function openAttendance(row) {
                             {{ $t('New class') }}
                         </label>
 
-                        <select
+                        <SelectSearch
                             v-model="transferForm.study_class_id"
-                            required
-                            class="input truncate"
-                        >
-                            <option value="">
-                                {{ $t('Select a class') }}
-                            </option>
-
-                            <option
-                                v-for="item in transferClasses"
-                                :key="item.id"
-                                :value="item.id"
-                                :title="classOptionLabel(item)"
-                            >
-                                {{ classOptionLabel(item) }}
-                            </option>
-                        </select>
+                            :options="transferClassOptions"
+                            :placeholder="$t('Select a class')"
+                            :clearable="false"
+                        />
                         <p v-if="transferForm.errors.study_class_id" class="error">
                             {{ transferForm.errors.study_class_id }}
                         </p>

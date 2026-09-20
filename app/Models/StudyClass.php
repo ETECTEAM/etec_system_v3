@@ -40,6 +40,7 @@ class StudyClass extends Model
         'enrollment_start_date',
         'start_date',
         'end_date',
+        'auto_record_started_on',
         'meeting_link',
     ];
 
@@ -62,6 +63,7 @@ class StudyClass extends Model
             'enrollment_start_date' => 'date',
             'start_date' => 'date',
             'end_date' => 'date',
+            'auto_record_started_on' => 'date',
         ];
     }
 

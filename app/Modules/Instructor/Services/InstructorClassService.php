@@ -20,6 +20,7 @@ use App\Modules\Attendance\Queries\FindActiveInstructorAttendanceBlock;
 use App\Modules\Attendance\Queries\HasApprovedPermission;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Modules\Room\Services\RoomAvailability;
 use App\Support\InstructorDisplayName;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -83,7 +84,9 @@ class InstructorClassService
             'courses' => DB::table('courses')->select('id', 'title')->orderBy('title')->get(),
             // course_id lets the form offer only the chosen course's lessons, in lesson order.
             'lessons' => DB::table('course_lessons')->select('id', 'course_id', 'title')->orderBy('order_number')->orderBy('title')->get(),
-            'rooms' => DB::table('rooms')->select('id', 'room_number')->orderBy('room_number')->get(),
+            'rooms' => DB::table('rooms')->select('id', 'room_number')->where('status', 'available')->orderBy('room_number')->get(),
+            // Room ids already taken per "termId:timeId", so the form only offers free rooms once a slot is picked.
+            'busyRooms' => app(RoomAvailability::class)->busyRoomIdsBySlot(),
             'classTypes' => DB::table('class_type')->select('class_type_id', 'type_name')->orderBy('class_type_id')->get(),
             'scheduleGroups' => $scheduleGroups,
             'courseTermIds' => $this->courseTermIds(),
@@ -469,6 +472,11 @@ class InstructorClassService
                     'start_date' => $attendanceDate,
                     'status' => 'active',
                 ]);
+            }
+
+            // The first real save arms auto-record from the next class day (a legacy CSV import doesn't).
+            if ($class && $class->auto_record_started_on === null) {
+                $class->update(['auto_record_started_on' => $attendanceDate]);
             }
 
             $settledAbsent = [];

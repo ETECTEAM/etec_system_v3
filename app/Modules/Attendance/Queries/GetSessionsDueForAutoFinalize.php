@@ -14,6 +14,7 @@ class GetSessionsDueForAutoFinalize
     public function handle(Carbon $now, int $overrideHours): Collection
     {
         return ClassSession::query()
+            ->autoRecordArmed()
             ->whereIn('status', [
                 ClassSession::STATUS_PRE_ATTENDANCE,
                 ClassSession::STATUS_PARTIAL,

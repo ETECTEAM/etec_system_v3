@@ -10,6 +10,7 @@ use App\Models\Room;
 use App\Models\Schedule;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Modules\Room\Services\RoomAvailability;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -121,6 +122,38 @@ class SaveStudyClassRequest extends FormRequest
 
                 if ($reason !== null) {
                     $validator->errors()->add('teacher_id', $reason);
+                }
+            },
+
+            // A room holds one class at a time: reject a room another open class already uses at this term/time.
+            function (Validator $validator): void {
+                if ($validator->errors()->isNotEmpty()
+                    || ! $this->filled('room_id')
+                    || ! $this->filled('term_id')
+                    || ! $this->filled('time_id')
+                    || $this->isOnline()) {
+                    return;
+                }
+
+                $studyClass = $this->route('studyClass');
+
+                // Editing without touching room or slot must not fail because the room's status changed since.
+                if ($studyClass
+                    && (int) $studyClass->room_id === (int) $this->input('room_id')
+                    && (int) $studyClass->term_id === (int) $this->input('term_id')
+                    && (int) $studyClass->time_id === (int) $this->input('time_id')) {
+                    return;
+                }
+
+                $reason = app(RoomAvailability::class)->unavailableReason(
+                    (int) $this->input('room_id'),
+                    (int) $this->input('term_id'),
+                    (int) $this->input('time_id'),
+                    $studyClass?->id,
+                );
+
+                if ($reason !== null) {
+                    $validator->errors()->add('room_id', $reason);
                 }
             },
 
