@@ -9,6 +9,7 @@ import { SelectSearch } from '../../../components/ui/select-search'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useI18n } from '@/i18n'
+import { formatTime12 } from '@/utils/formatTime12'
 
 const props = defineProps({
   settings: Object,
@@ -103,7 +104,7 @@ const previewTime = computed(() => {
   const hh = String(Math.floor(total / 60) % 24).padStart(2, '0')
   const mm = String(total % 60).padStart(2, '0')
 
-  return `${hh}:${mm}`
+  return formatTime12(`${hh}:${mm}`)
 })
 
 async function toggleEnabled(event) {
