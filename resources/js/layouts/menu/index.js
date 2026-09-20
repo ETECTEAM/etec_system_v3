@@ -17,6 +17,7 @@ import * as otpSettings from "./otpSettings";
 import * as holiday from "./holiday";
 import * as officialLeave from "./officialLeave";
 import * as absenceBlock from "./absenceBlock";
+import * as roomAvailability from "./roomAvailability";
 // import * as website from "./website";
 
 // Display order. Each item's `section` (daily by default, setup, system) decides its heading in Sidebar.vue.
@@ -26,6 +27,7 @@ export const menuDomains = [
   studentManagement,
   classes,
   instructorAvailability,
+  roomAvailability,
   attendance,
   officialLeave,
   classHistory,

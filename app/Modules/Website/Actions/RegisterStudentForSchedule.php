@@ -16,6 +16,7 @@ use App\Models\Time;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Notification\Events\NotificationsUpdated;
+use App\Modules\Room\Services\RoomAvailability;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -359,14 +360,12 @@ class RegisterStudentForSchedule
         return null;
     }
 
+    // Overlap-aware (same weekday, overlapping hours), not just the same term and time record.
     private function roomHasConflict(int $roomId, array $data): bool
     {
-        return StudyClass::query()
-            ->where('room_id', $roomId)
-            ->where('term_id', $data['term_id'])
-            ->where('time_id', $data['time_id'])
-            ->whereIn('status', self::OPEN_CLASS_STATUSES)
-            ->exists();
+        return app(RoomAvailability::class)
+            ->bookingsFor((int) $data['term_id'], (int) $data['time_id'])
+            ->contains('room_id', $roomId);
     }
 
     private function availableInstructor(Course $course, array $data): ?InstructorData

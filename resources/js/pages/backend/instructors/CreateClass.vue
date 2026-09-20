@@ -11,6 +11,8 @@ const props = defineProps({
   courses: Array,
   lessons: Array,
   rooms: Array,
+  // Room ids already taken per "termId:timeId" (see RoomAvailability::busyRoomIdsBySlot).
+  busyRooms: { type: Object, default: () => ({}) },
   classTypes: {
     type: Array,
     default: () => [],
@@ -68,7 +70,9 @@ const lessonPlaceholder = computed(() => {
 
   return lessonOptions.value.length ? 'Select lesson' : 'No lessons yet';
 });
-const roomOptions = computed(() => toOptions(props.rooms));
+// Once a term and time are chosen, only rooms no other class holds at that slot are offered.
+const busyRoomIds = computed(() => (form.term_id && form.time_id ? props.busyRooms[`${form.term_id}:${form.time_id}`] ?? [] : []).map(String));
+const roomOptions = computed(() => toOptions((props.rooms || []).filter((room) => !busyRoomIds.value.includes(String(room.id)))));
 
 // --- Class Type -> Term -> Time cascade, sourced from scheduleGroups ---
 const classTypeOptions = computed(() =>
@@ -143,6 +147,10 @@ watch(() => form.class_type_id, () => {
 });
 watch(() => form.term_id, () => {
   form.time_id = '';
+});
+// A room picked earlier may be taken at the newly chosen slot.
+watch(busyRoomIds, (ids) => {
+  if (form.room_id && ids.includes(String(form.room_id))) form.room_id = '';
 });
 
 // A lesson belongs to one course. Do not expose every lesson in the selector;
@@ -280,6 +288,7 @@ onMounted(() => {
               :button-class="selectClass"
             />
             <span v-if="form.errors.room_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.room_id }}</span>
+            <span v-else-if="form.time_id && !roomOptions.length" class="text-xs text-amber-600 dark:text-amber-400">{{ $t('No room is free at this time.') }}</span>
           </label>
 
           <label class="block">

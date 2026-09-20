@@ -22,6 +22,7 @@ use App\Modules\Instructor\Events\StudentTransferred;
 use App\Modules\Instructor\Services\ClassResultPdfGenerator;
 use App\Modules\Instructor\Services\ImportInstructorAttendanceCsv;
 use App\Modules\Instructor\Services\InstructorClassService;
+use App\Modules\Room\Services\RoomAvailability;
 use App\Modules\StudentManagement\Actions\CorrectPermissionAttendance;
 use App\Support\InstructorDisplayName;
 use Illuminate\Http\JsonResponse;
@@ -111,6 +112,19 @@ class InstructorClassController extends Controller
 
         if ($reason !== null) {
             throw ValidationException::withMessages(['time_id' => $reason]);
+        }
+
+        // A room holds one class at a time; the form hides taken rooms, this stops a stale form or direct POST.
+        if (! empty($validated['room_id'])) {
+            $roomReason = app(RoomAvailability::class)->unavailableReason(
+                (int) $validated['room_id'],
+                (int) $validated['term_id'],
+                (int) $validated['time_id'],
+            );
+
+            if ($roomReason !== null) {
+                throw ValidationException::withMessages(['room_id' => $roomReason]);
+            }
         }
 
         // Title always mirrors the course title (like SaveStudyClassRequest does
