@@ -8,6 +8,7 @@ import {
   Bot,
   ClipboardCheck,
   Bell,
+  Copy,
   Eye,
   FileText,
   Mars,
@@ -226,6 +227,11 @@ function attendanceScoreFor(student) {
   const late = Number(attendance.late ?? 0);
 
   return Math.max(0, Number((40 - absent - permission * 0.5 - late * 0.3).toFixed(2)));
+}
+
+// The student's portal login code, so the instructor can hand it over.
+function copyStudentCode(code) {
+  navigator.clipboard?.writeText(code).then(() => toast.success(`Code ${code} copied.`));
 }
 
 function attendancePercentFor(student) {
@@ -759,6 +765,10 @@ async function approveAllPendingRegistrations() {
                   <p class="break-words text-sm font-black leading-snug text-slate-950 dark:text-gray-100">{{ student.name }}</p>
                   <p class="mt-1 break-words text-[11px] font-bold leading-snug">
                     ID: <span class="rounded-md bg-blue-900 px-2 py-0.5 text-white">#{{ student.id }}</span>
+                  </p>
+                  <p v-if="student.attendance_code" class="mt-1 flex items-center gap-1 text-[11px] font-bold leading-snug">
+                    Code: <span class="rounded-md border border-slate-300 bg-slate-100 px-2 py-0.5 font-mono tracking-wider text-slate-800 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">{{ student.attendance_code }}</span>
+                    <button type="button" title="Copy code" class="grid h-6 w-6 place-items-center rounded-md border border-slate-300 text-slate-600 transition hover:bg-slate-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800" @click="copyStudentCode(student.attendance_code)"><Copy class="h-3.5 w-3.5" /></button>
                   </p>
                   <p v-if="student.attendance?.is_locked" :title="student.attendance?.lock_reason" class="mt-1 inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
                     Blocked

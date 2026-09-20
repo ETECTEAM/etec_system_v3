@@ -265,6 +265,7 @@ class InstructorClassService
                 'students_user.email',
                 'students.gender',
                 'students.phone',
+                'students.attendance_code',
                 'students.date_of_birth',
                 'student_scores.attendance_score',
                 'student_scores.activity_score',
@@ -1018,6 +1019,7 @@ class InstructorClassService
             'email' => $student->email ?? '-',
             'gender' => $student->gender ?? '-',
             'phone' => $student->phone ?? '-',
+            'attendance_code' => $student->attendance_code ?? null,
             'date_of_birth' => $student->date_of_birth ? Carbon::parse($student->date_of_birth)->format('Y-m-d') : null,
             'attendance' => [
                 'total' => (int) ($attendanceStats->total ?? 0),
