@@ -43,6 +43,7 @@ Route::middleware(['auth', 'active', 'role:instructor'])->prefix('/dashboard/ins
         Route::post('/classes/{studyClass}/attendance/session', [InstructorClassController::class, 'startAttendanceSession'])->middleware('throttle:10,1')->name('instructor.classes.attendance.session.start');
         // Route to stop the current QR attendance session immediately.
         Route::delete('/classes/{studyClass}/attendance/session', [InstructorClassController::class, 'stopAttendanceSession'])->middleware('throttle:10,1')->name('instructor.classes.attendance.session.stop');
+        Route::put('/classes/{studyClass}/attendance/permissions/{attendance}', [InstructorClassController::class, 'correctPermissionAttendance'])->middleware('throttle:20,1')->name('instructor.classes.attendance.permissions.update');
         Route::get('/classes/{studyClass}/attendance/students/{student}', [InstructorClassController::class, 'studentAttendance'])->name('instructor.classes.attendance.students.show');
         // Route to import legacy student details and attendance rows for a class.
         Route::post('/classes/{studyClass}/attendance/import-csv', [InstructorClassController::class, 'importAttendanceCsv'])->middleware('throttle:5,1')->name('instructor.classes.attendance.import-csv');

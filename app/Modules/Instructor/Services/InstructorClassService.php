@@ -16,6 +16,7 @@ use App\Modules\AbsenceBlock\Services\AbsenceBlockEvaluator;
 use App\Modules\AbsenceBlock\Services\PermissionLimitEvaluator;
 use App\Modules\AbsenceBlock\Support\LockState;
 use App\Modules\Attendance\Queries\FindActiveInstructorAttendanceBlock;
+use App\Modules\Attendance\Queries\HasApprovedPermission;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
 use App\Support\InstructorDisplayName;
@@ -770,6 +771,7 @@ class InstructorClassService
             ->where('student_attendances.student_id', $studentId)
             ->orderByDesc('student_attendances.attendance_date')
             ->select([
+                'student_attendances.id',
                 'student_attendances.attendance_date',
                 'student_attendances.present',
                 'student_attendances.absent',
@@ -783,6 +785,8 @@ class InstructorClassService
             ])
             ->get()
             ->map(fn (stdClass $record) => [
+                'id' => $record->id,
+                'can_correct_permission' => ! $record->locked && app(HasApprovedPermission::class)->handle($studentId, $studyClassId, $record->attendance_date),
                 'date' => Carbon::parse($record->attendance_date)->format('Y-m-d'),
                 'status' => StudentAttendance::labelForFlags($record),
                 'note' => $record->note ?? '-',
