@@ -63,7 +63,7 @@ Route::prefix('/dashboard/enroll')->group(function (): void {
         Route::get('/edit/{studyClass}', [EnrollmentClassController::class, 'edit'])->name('enroll.edit');
         // Pre-fill the create form with an existing class's values so it can be duplicated with a new term/time.
         Route::get('/copy/{studyClass}', [EnrollmentClassController::class, 'copy'])->name('enroll.copy');
-        Route::put('/{studyClass}', [EnrollmentClassController::class, 'update'])->name('enroll.update');
+        Route::put('/{studyClass}', [EnrollmentClassController::class, 'updateClass'])->name('enroll.update');
         // Pre-End / End from the class action menu.
         Route::post('/{studyClass}/status', [EnrollmentClassController::class, 'updateStatus'])->name('enroll.status');
         // Inline capacity edit from the class card.
