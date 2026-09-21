@@ -24,6 +24,7 @@ use App\Modules\Enroll\Actions\RegisterStudent;
 use App\Modules\Enroll\Actions\ShareClassWithInstructor;
 use App\Modules\Enroll\Actions\UpdatePublicRegistrationDetails;
 use App\Modules\Enroll\Actions\UpdateEnrollment;
+use App\Modules\Enroll\Actions\UpdateStudyClass;
 use App\Modules\Enroll\Queries\GetClassDetails;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Queries\GetClassList;
