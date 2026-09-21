@@ -2,7 +2,7 @@
 
 namespace App\Modules\Enroll\Requests;
 
-use Illuminate\Foundation\Http\FormRequest<String>;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateEnrollmentRequest extends FormRequest

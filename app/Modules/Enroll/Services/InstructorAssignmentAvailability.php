@@ -44,11 +44,7 @@ class InstructorAssignmentAvailability
 
         // Not an exact time_id match: a block on 03:30-05:00 must also cover a
         // 03:30-05:30 assignment even though they're different Time records.
-        $activeBlocks = InstructorScheduleBlock::query()
-            ->where('instructor_id', $instructor->id)
-            ->where('status', InstructorScheduleBlock::STATUS_ACTIVE)
-            ->with('time:id,time_name')
-            ->get();
+        $activeBlocks = $this->loadActiveBlocks($instructor);
 
         if ($this->manualBlockOverlapsSlot($activeBlocks, $days, $range)) {
             return 'The selected instructor has blocked this class schedule.';
@@ -99,12 +95,60 @@ class InstructorAssignmentAvailability
     }
 
     /**
-     * Narrows scheduleGroups (from GetClassFormOptions::scheduleGroups()) to only the
-     * term/time slots this instructor can be assigned to teach: covered by an active
-     * availability window, not manually blocked, and not overlapping a class they
-     * already teach. Schedules and groups left with no times are dropped, so the
-     * class-create form only ever offers a slot the instructor is actually free for.
-     * $exceptClassId excludes one class from the overlap check (for the edit form).
+     * The subset of $days this instructor is genuinely free to teach $timeId on: covered by
+     * an active availability window, not manually blocked, and not already teaching.
+     *
+     * Where unavailableReason() answers "can they take this whole slot?", this answers "which
+     * days of it are still open?" - so "Mon & Thu" (Mon-Thu, a range - see
+     * StudyClass::parseTermDays) picked by someone who collapsed onto Mon & Tue comes back as
+     * [Wednesday, Thursday] instead of a flat no. InstructorClassTermResolver uses that
+     * remainder to move the class onto a term they are free for.
+     *
+     * @param  list<int>  $days  ISO weekday numbers (Monday = 1)
+     * @return list<int>
+     */
+    public function freeDays(int $userId, array $days, int $timeId, ?int $exceptClassId = null): array
+    {
+        $instructor = $this->loadAssignableInstructor($userId);
+
+        if ($instructor === null || $days === []) {
+            return [];
+        }
+
+        $range = StudyClass::parseTimeRange(Time::query()->whereKey($timeId)->value('time_name'));
+
+        if ($range['start'] === null || $range['end'] === null) {
+            return [];
+        }
+
+        $activeBlocks = $this->loadActiveBlocks($instructor);
+        $classes = $this->loadInstructorOpenClasses($userId, $exceptClassId);
+
+        return $this->freeDaysFor($instructor, $activeBlocks, $classes, $this->termNamesFor($classes), $userId, $days, $range);
+    }
+
+    /**
+     * ISO weekday numbers for a term name. A two-part name is a range, so "Mon & Thu" is
+     * [1, 2, 3, 4] rather than [1, 4] - see StudyClass::parseTermDays.
+     *
+     * @return list<int>
+     */
+    public function termDayNumbers(?string $termName): array
+    {
+        return $this->dayNumbers($termName);
+    }
+
+    /**
+     * Narrows scheduleGroups (from GetClassFormOptions::scheduleGroups()) to the term/time
+     * slots this instructor has at least one free day in: a day covered by an active
+     * availability window, not manually blocked, and not already spent on another class.
+     * Schedules and groups left with no times are dropped.
+     *
+     * A slot only partly free still shows, because a term name is a range of days and a
+     * Collapse Class share can take just some of them; InstructorClassTermResolver then moves
+     * the created class onto a term covering the days that remain. Only a slot with no free
+     * day at all disappears. $exceptClassId excludes one class from the overlap check (for
+     * the edit form).
      *
      * @param  array<int, array<string, mixed>>  $groups
      * @return array<int, array<string, mixed>>
@@ -117,11 +161,7 @@ class InstructorAssignmentAvailability
             return [];
         }
 
-        $activeBlocks = InstructorScheduleBlock::query()
-            ->where('instructor_id', $instructor->id)
-            ->where('status', InstructorScheduleBlock::STATUS_ACTIVE)
-            ->with('time:id,time_name')
-            ->get();
+        $activeBlocks = $this->loadActiveBlocks($instructor);
 
         $classes = $this->loadInstructorOpenClasses($userId, $exceptClassId);
         $termNames = $this->termNamesFor($classes);
@@ -144,11 +184,10 @@ class InstructorAssignmentAvailability
                                     return false;
                                 }
 
-                                return $this->windowCoversSlot($instructor, $days, $range)
-                                    && ! $this->manualBlockOverlapsSlot($activeBlocks, $days, $range)
-                                    && ! $classes->contains(
-                                        fn (StudyClass $class): bool => $this->classOverlapsSlot($userId, $class, $days, $range, $termNames)
-                                    );
+                                // One free day is enough to offer the slot: the instructor picks
+                                // it and InstructorClassTermResolver moves the class onto a term
+                                // they are free for. Dropping it only when every day collides.
+                                return $this->freeDaysFor($instructor, $activeBlocks, $classes, $termNames, $userId, $days, $range) !== [];
                             })
                             ->values()
                             ->all();
@@ -254,6 +293,38 @@ class InstructorAssignmentAvailability
                 'time:id,time_name',
                 'instructors' => fn ($query) => $query->where('users.id', $userId)->select('users.id'),
             ])
+            ->get();
+    }
+
+    /**
+     * @param  Collection<int, InstructorScheduleBlock>  $activeBlocks
+     * @param  Collection<int, StudyClass>  $classes
+     * @param  list<int>  $days
+     * @param  array{start: ?string, end: ?string}  $range
+     * @return list<int>
+     */
+    private function freeDaysFor(InstructorData $instructor, Collection $activeBlocks, Collection $classes, Collection $termNames, int $userId, array $days, array $range): array
+    {
+        // Each helper already takes a day list, so one day at a time reuses them unchanged.
+        return array_values(array_filter(
+            $days,
+            fn (int $day): bool => $this->windowCoversSlot($instructor, [$day], $range)
+                && ! $this->manualBlockOverlapsSlot($activeBlocks, [$day], $range)
+                && ! $classes->contains(
+                    fn (StudyClass $class): bool => $this->classOverlapsSlot($userId, $class, [$day], $range, $termNames)
+                )
+        ));
+    }
+
+    /**
+     * @return Collection<int, InstructorScheduleBlock>
+     */
+    private function loadActiveBlocks(InstructorData $instructor): Collection
+    {
+        return InstructorScheduleBlock::query()
+            ->where('instructor_id', $instructor->id)
+            ->where('status', InstructorScheduleBlock::STATUS_ACTIVE)
+            ->with('time:id,time_name')
             ->get();
     }
 

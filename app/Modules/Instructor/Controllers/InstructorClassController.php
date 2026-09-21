@@ -17,7 +17,7 @@ use App\Modules\Attendance\Queries\FindActiveInstructorAttendanceBlock;
 use App\Modules\Attendance\Queries\GetSessionBanner;
 use App\Modules\Attendance\Services\AttendanceQrService;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
-use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Modules\Enroll\Services\InstructorClassTermResolver;
 use App\Modules\Instructor\Events\StudentTransferred;
 use App\Modules\Instructor\Services\ClassResultPdfGenerator;
 use App\Modules\Instructor\Services\ImportInstructorAttendanceCsv;
@@ -74,7 +74,7 @@ class InstructorClassController extends Controller
         );
     }
 
-    public function store(Request $request, InstructorAssignmentAvailability $availability): RedirectResponse
+    public function store(Request $request, InstructorClassTermResolver $termResolver): RedirectResponse
     {
         $validated = $request->validate([
             // Not asked for on the form - the class title is the course title.
@@ -99,17 +99,21 @@ class InstructorClassController extends Controller
             throw ValidationException::withMessages(['term_id' => 'A class can only be created on '.implode(' or ', InstructorClassService::INSTRUCTOR_TERM_NAMES).'.']);
         }
 
-        // The form only offers slots the instructor is free for; re-check here so a
-        // stale form or a direct POST can't book an overlapping / unavailable slot.
-        $reason = $availability->unavailableReason(
+        // Instructors pick from two terms only, so a Collapse Class share can leave them free
+        // on just part of one: collapsing onto Mon & Tue means a later "Mon & Thu" pick (Mon-Thu,
+        // a range) loses Monday and Tuesday but keeps Wednesday and Thursday. The picker still
+        // offers that slot; this moves the class onto a term covering the days that are left -
+        // "Mon & Thu" becomes "Wed & Thu" - and rejects the create outright when no configured
+        // term is free. It also re-checks a fully free pick, so a stale form or a direct POST
+        // can't book an unavailable slot.
+        $placement = $termResolver->resolve(
             (int) $request->user()->id,
             (int) $validated['term_id'],
             (int) $validated['time_id'],
+            isset($validated['class_type_id']) ? (int) $validated['class_type_id'] : null,
         );
 
-        if ($reason !== null) {
-            throw ValidationException::withMessages(['time_id' => $reason]);
-        }
+        $validated['term_id'] = $placement['term_id'];
 
         // A room holds one class at a time; the form hides taken rooms, this stops a stale form or direct POST.
         if (! empty($validated['room_id'])) {
@@ -135,7 +139,24 @@ class InstructorClassController extends Controller
 
         $this->instructorClasses->createClass($request->user(), $validated);
 
-        return redirect()->route('dashboard')->with('success', 'Class created successfully.');
+        return redirect()->route('dashboard')->with('success', $this->createdMessage($placement));
+    }
+
+    /**
+     * Says so plainly when the class did not land on the term that was picked, rather than
+     * letting the instructor find out from their dashboard.
+     *
+     * @param  array{term_id: int, term_name: string, moved_from: ?string, taken_days: list<string>}  $placement
+     */
+    private function createdMessage(array $placement): string
+    {
+        if ($placement['moved_from'] === null) {
+            return 'Class created successfully.';
+        }
+
+        $taken = implode(' and ', $placement['taken_days']);
+
+        return "Class created on {$placement['term_name']} instead of {$placement['moved_from']} - you already teach on {$taken} at this time.";
     }
 
     public function show(Request $request, string $studyClass): RedirectResponse
