@@ -17,6 +17,7 @@ import * as otpSettings from "./otpSettings";
 import * as holiday from "./holiday";
 import * as officialLeave from "./officialLeave";
 import * as absenceBlock from "./absenceBlock";
+import * as absenceBlocklist from "./absenceBlocklist";
 import * as roomAvailability from "./roomAvailability";
 // import * as website from "./website";
 
@@ -29,6 +30,7 @@ export const menuDomains = [
   instructorAvailability,
   roomAvailability,
   attendance,
+  absenceBlocklist,
   officialLeave,
   classHistory,
   profile,
