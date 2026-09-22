@@ -10,6 +10,7 @@ use App\Models\Room;
 use App\Models\Schedule;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Modules\Enroll\Services\InstructorCourseEligibility;
 use App\Modules\Room\Services\RoomAvailability;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -104,6 +105,16 @@ class SaveStudyClassRequest extends FormRequest
         return [
             function (Validator $validator): void {
                 if ($validator->errors()->isNotEmpty() || ! $this->filled('teacher_id')) {
+                    return;
+                }
+
+                $teacher = \App\Models\User::query()
+                    ->with('instructorData:id,user_id,specialization')
+                    ->find($this->input('teacher_id'));
+                $course = Course::query()->with('track.subCategory')->find($this->input('course_id'));
+
+                if (! $teacher || ! $course || ! app(InstructorCourseEligibility::class)->canTeach($teacher, $course)) {
+                    $validator->errors()->add('teacher_id', 'This instructor does not have the required course specialization.');
                     return;
                 }
 

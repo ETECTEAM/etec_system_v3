@@ -39,6 +39,8 @@ use App\Modules\Enroll\Requests\StoreClassStudentRequest;
 use App\Modules\Enroll\Requests\StoreManualRegistrationRequest;
 use App\Modules\Enroll\Requests\UpdateEnrollmentRequest;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Modules\Enroll\Services\InstructorCourseEligibility;
+use App\Modules\Room\Services\RoomAvailability;
 use App\Modules\Enroll\Services\StudentRegistrationService;
 use App\Modules\Website\Actions\RegisterStudentForSchedule;
 use App\Support\CollapseSubjects;
@@ -500,6 +502,93 @@ class EnrollmentClassController extends Controller
             'capacity' => $studyClass->capacity,
             'message' => 'Class capacity updated successfully.',
         ]);
+    }
+
+    /**
+     * Instructors that can teach the selected term/time slot. The final class
+     * save validates this again, so a concurrent assignment cannot bypass it.
+     */
+    public function availableInstructors(
+        Request $request,
+        InstructorAssignmentAvailability $availability,
+        InstructorCourseEligibility $eligibility,
+    ): JsonResponse {
+        $data = $request->validate([
+            'term_id' => ['required', 'integer', 'exists:terms,id'],
+            'time_id' => ['required', 'integer', 'exists:times,id'],
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'except_class_id' => ['nullable', 'integer', 'exists:study_classes,id'],
+        ]);
+
+        $exceptClassId = isset($data['except_class_id']) ? (int) $data['except_class_id'] : null;
+
+        if ($exceptClassId !== null) {
+            $this->ensureInstructorOwnsClass(StudyClass::query()->findOrFail($exceptClassId));
+        }
+
+        $course = Course::query()->with('track.subCategory')->findOrFail($data['course_id']);
+
+        $teachers = User::role('instructor')
+            ->with('instructorData:id,user_id,specialization')
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get()
+            ->filter(fn (User $teacher): bool => $eligibility->canTeach($teacher, $course)
+                && $availability->unavailableReason($teacher->id, (int) $data['term_id'], (int) $data['time_id'], $exceptClassId) === null)
+            ->values()
+            ->map(fn (User $teacher): array => [
+                'id' => $teacher->id,
+                'name' => InstructorDisplayName::format($teacher->name, 'Unknown'),
+            ]);
+
+        return response()->json($teachers);
+    }
+
+    /**
+     * Rooms that are usable and not booked for the selected term/time slot.
+     * The class save repeats this check to protect against concurrent updates.
+     */
+    public function availableRooms(Request $request, RoomAvailability $availability): JsonResponse
+    {
+        $data = $request->validate([
+            'term_id' => ['required', 'integer', 'exists:terms,id'],
+            'time_id' => ['required', 'integer', 'exists:times,id'],
+            'except_class_id' => ['nullable', 'integer', 'exists:study_classes,id'],
+        ]);
+
+        $exceptClassId = isset($data['except_class_id']) ? (int) $data['except_class_id'] : null;
+
+        if ($exceptClassId !== null) {
+            $this->ensureInstructorOwnsClass(StudyClass::query()->findOrFail($exceptClassId));
+        }
+
+        $rooms = Room::query()
+            ->with('floor.building')
+            ->where('status', 'available')
+            ->get()
+            ->filter(fn (Room $room): bool => $availability->unavailableReason(
+                $room->id,
+                (int) $data['term_id'],
+                (int) $data['time_id'],
+                $exceptClassId,
+            ) === null)
+            ->sortBy(fn (Room $room): string => sprintf(
+                '%s|%s|%s',
+                $room->floor?->building?->name ?? '',
+                $room->floor?->level ?? '',
+                $room->room_number,
+            ), SORT_NATURAL)
+            ->values()
+            ->map(fn (Room $room): array => [
+                'id' => $room->id,
+                'room_number' => $room->room_number,
+                'capacity' => $room->capacity,
+                'location' => collect([$room->floor?->building?->name, $room->floor?->name])
+                    ->filter()
+                    ->implode(' · '),
+            ]);
+
+        return response()->json($rooms);
     }
 
     public function destroy(StudyClass $studyClass): RedirectResponse
