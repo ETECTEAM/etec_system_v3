@@ -102,6 +102,7 @@ const loading = ref({
 const selectedScheduleType = ref("");
 const selectedTerm = ref("");
 const selectedTime = ref("");
+let roomRequestId = 0;
 
 const form = useForm({
   title: props.classData?.title ?? "",
@@ -365,23 +366,34 @@ watch(
 );
 
 watch(
-  () => form.floor_id,
-  async (floorId, oldFloorId) => {
-    if (oldFloorId !== undefined) {
+  () => [form.floor_id, form.term_id, form.time_id],
+  async ([floorId, termId, timeId], previous) => {
+    const requestId = ++roomRequestId;
+
+    if (previous && previous.some((value, index) => value !== [floorId, termId, timeId][index])) {
       form.room_id = "";
     }
 
     rooms.value = [];
-    if (!floorId) return;
+    if (!floorId || !termId || !timeId || isOnlineClass.value) return;
 
     loading.value.rooms = true;
     try {
-      const response = await axios.get(`/dashboard/enroll/floors/${floorId}/rooms`);
+      const response = await axios.get("/dashboard/enroll/rooms/available", {
+        params: {
+          floor_id: floorId,
+          term_id: termId,
+          time_id: timeId,
+          ...(props.mode === "edit" ? { except_class_id: props.classData.id } : {}),
+        },
+      });
+      if (requestId !== roomRequestId) return;
       rooms.value = response.data;
     } finally {
-      loading.value.rooms = false;
+      if (requestId === roomRequestId) loading.value.rooms = false;
     }
-  }
+  },
+  { immediate: true }
 );
 
 watch(
@@ -471,7 +483,7 @@ function submit(copy = false) {
         <SelectSearch
           v-model="form.room_id"
           :options="roomOptions"
-          :disabled="isOnlineClass || loading.rooms || !form.floor_id"
+          :disabled="isOnlineClass || loading.rooms || !form.floor_id || !form.term_id || !form.time_id"
           :placeholder="$t(roomPlaceholder)"
           :button-class="selectClass"
         />

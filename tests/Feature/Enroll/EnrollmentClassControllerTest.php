@@ -4,6 +4,8 @@ namespace Tests\Feature\Enroll;
 
 use App\Models\ClassType;
 use App\Models\Course;
+use App\Models\Floor;
+use App\Models\Room;
 use App\Models\Schedule;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
@@ -197,6 +199,30 @@ class EnrollmentClassControllerTest extends TestCase
         $this->actingAs($this->superAdmin())
             ->get("/dashboard/enroll/view/{$studyClass->id}")
             ->assertOk();
+    }
+
+    public function test_available_rooms_only_returns_free_rooms_on_the_selected_floor_and_schedule(): void
+    {
+        $classType = $this->createPhysicalClassType();
+        ['term' => $term, 'time' => $time] = $this->createScheduleGrid($classType);
+        $floor = Floor::create(['name' => 'First Floor', 'level' => 1]);
+        $otherFloor = Floor::create(['name' => 'Second Floor', 'level' => 2]);
+        $busyRoom = Room::create(['floor_id' => $floor->id, 'room_number' => '101', 'capacity' => 20, 'status' => 'available']);
+        $freeRoom = Room::create(['floor_id' => $floor->id, 'room_number' => '102', 'capacity' => 20, 'status' => 'available']);
+        Room::create(['floor_id' => $otherFloor->id, 'room_number' => '201', 'capacity' => 20, 'status' => 'available']);
+
+        $this->createStudyClass([
+            'class_type_id' => $classType->class_type_id,
+            'term_id' => $term->id,
+            'time_id' => $time->id,
+            'room_id' => $busyRoom->id,
+        ]);
+
+        $this->actingAs($this->superAdmin())
+            ->getJson("/dashboard/enroll/rooms/available?floor_id={$floor->id}&term_id={$term->id}&time_id={$time->id}")
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.id', $freeRoom->id);
     }
 
     public function test_guest_cannot_reach_the_dashboard_add_student_route(): void
