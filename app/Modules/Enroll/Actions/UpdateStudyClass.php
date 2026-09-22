@@ -7,13 +7,18 @@ use App\Models\Course;
 use App\Models\CourseEnrollConfig;
 use App\Models\Room;
 use App\Models\StudyClass;
+use App\Models\User;
 use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Modules\Enroll\Services\InstructorCourseEligibility;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class UpdateStudyClass
 {
-    public function __construct(private readonly InstructorAssignmentAvailability $instructorAvailability) {}
+    public function __construct(
+        private readonly InstructorAssignmentAvailability $instructorAvailability,
+        private readonly InstructorCourseEligibility $courseEligibility,
+    ) {}
 
     public function handle(StudyClass $studyClass, array $data): StudyClass
     {
@@ -110,6 +115,13 @@ class UpdateStudyClass
     {
         if (empty($data['teacher_id'])) {
             return;
+        }
+
+        $teacher = User::query()->with('instructorData:id,user_id,specialization')->findOrFail($data['teacher_id']);
+        $course = Course::query()->with('track.subCategory')->findOrFail($data['course_id']);
+
+        if (! $this->courseEligibility->canTeach($teacher, $course)) {
+            throw ValidationException::withMessages(['teacher_id' => 'This instructor does not have the required course specialization.']);
         }
 
         if ((int) $studyClass->teacher_id === (int) $data['teacher_id']) {

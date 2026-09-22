@@ -12,6 +12,8 @@ use App\Models\Term;
 use App\Models\Time;
 use App\Models\User;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
+use App\Modules\Enroll\Services\InstructorAssignmentAvailability;
+use App\Modules\Enroll\Services\InstructorCourseEligibility;
 use App\Modules\Room\Services\RoomAvailability;
 use App\Support\InstructorDisplayName;
 use Illuminate\Database\Eloquent\Builder;
@@ -92,11 +94,11 @@ class ClassListController extends Controller
             'title'         => ['nullable', 'string', 'max:255'],
             'teacher_id'    => ['nullable', 'exists:users,id'],
             'course_id'     => ['required', 'exists:courses,id'],
-            'lesson_id'     => ['nullable', 'exists:course_lessons,id'],
-            'term_id'       => ['nullable', 'exists:terms,id'],
-            'time_id'       => ['nullable', 'exists:times,id'],
-            'room_id'       => ['nullable', 'exists:rooms,id'],
-            'class_type_id' => ['nullable', 'exists:class_type,class_type_id'],
+            'lesson_id'     => ['nullable', 'integer', Rule::exists('course_lessons', 'id')->where('course_id', $request->input('course_id'))],
+            'term_id'       => ['required', 'exists:terms,id'],
+            'time_id'       => ['required', 'exists:times,id'],
+            'room_id'       => ['required', 'exists:rooms,id'],
+            'class_type_id' => ['required', 'exists:class_type,class_type_id'],
             'capacity'      => ['nullable', 'integer', 'min:0'],
             'status'        => ['nullable', 'string', Rule::in(GetClassFormOptions::STATUSES)],
         ]);
@@ -106,6 +108,8 @@ class ClassListController extends Controller
             : Course::findOrFail($validated['course_id'])->title;
 
         $this->assertRoomFree($validated);
+        $this->assertInstructorCanTeachCourse($validated);
+        $this->assertInstructorFree($validated);
 
         StudyClass::create($validated);
 
@@ -115,16 +119,17 @@ class ClassListController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(GetClassFormOptions $formOptions)
     {
         return Inertia::render('backend/classes/class-list/ClassListCreate', [
             'teachers' => $this->teacherOptions(),
             'courses' => Course::select('id', 'title')->get(),
-            'lessons' => CourseLesson::select('id', 'title')->get(),
+            'lessons' => CourseLesson::select('id', 'course_id', 'title')->get(),
             'terms' => Term::select('id', 'term_name')->get(),
             'times' => Time::select('id', 'time_name')->get(),
             'rooms' => Room::select('id', 'room_number')->get(),
             'classTypes' => ClassType::select('class_type_id', 'type_name')->get(),
+            'scheduleGroups' => $formOptions->scheduleGroups(),
         ]);
     }
 
@@ -147,17 +152,18 @@ class ClassListController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(StudyClass $classList)
+    public function edit(StudyClass $classList, GetClassFormOptions $formOptions)
     {
         return Inertia::render('backend/classes/class-list/ClassListEdit', [
             'classList' => $classList->load(['course', 'lesson', 'term', 'time', 'room', 'classType']),
             'teachers' => $this->teacherOptions(),
             'courses' => Course::select('id', 'title')->get(),
-            'lessons' => CourseLesson::select('id', 'title')->get(),
+            'lessons' => CourseLesson::select('id', 'course_id', 'title')->get(),
             'terms' => Term::select('id', 'term_name')->get(),
             'times' => Time::select('id', 'time_name')->get(),
             'rooms' => Room::select('id', 'room_number')->get(),
             'classTypes' => ClassType::select('class_type_id', 'type_name')->get(),
+            'scheduleGroups' => $formOptions->scheduleGroups(),
         ]);
     }
 
@@ -167,19 +173,25 @@ class ClassListController extends Controller
     public function update(Request $request, StudyClass $classList)
     {
         $validated = $request->validate([
-            'title'         => ['sometimes', 'required', 'string', 'max:255'],
-            'teacher_id'    => ['sometimes', 'nullable', 'exists:users,id'],
-            'course_id'     => ['sometimes', 'required', 'exists:courses,id'],
-            'lesson_id'     => ['sometimes', 'nullable', 'exists:course_lessons,id'],
-            'term_id'       => ['sometimes', 'nullable', 'exists:terms,id'],
-            'time_id'       => ['sometimes', 'nullable', 'exists:times,id'],
-            'room_id'       => ['sometimes', 'nullable', 'exists:rooms,id'],
-            'class_type_id' => ['sometimes', 'nullable', 'exists:class_type,class_type_id'],
-            'capacity'      => ['sometimes', 'nullable', 'integer', 'min:0'],
-            'status'        => ['sometimes', 'nullable', 'string', Rule::in(GetClassFormOptions::STATUSES)],
+            'title'         => ['nullable', 'string', 'max:255'],
+            'teacher_id'    => ['nullable', 'exists:users,id'],
+            'course_id'     => ['required', 'exists:courses,id'],
+            'lesson_id'     => ['nullable', 'integer', Rule::exists('course_lessons', 'id')->where('course_id', $request->input('course_id'))],
+            'term_id'       => ['required', 'exists:terms,id'],
+            'time_id'       => ['required', 'exists:times,id'],
+            'room_id'       => ['required', 'exists:rooms,id'],
+            'class_type_id' => ['required', 'exists:class_type,class_type_id'],
+            'capacity'      => ['nullable', 'integer', 'min:0'],
+            'status'        => ['nullable', 'string', Rule::in(GetClassFormOptions::STATUSES)],
         ]);
 
+        $validated['title'] = filled($validated['title'] ?? null)
+            ? $validated['title']
+            : Course::findOrFail($validated['course_id'])->title;
+
         $this->assertRoomFree($validated, $classList);
+        $this->assertInstructorCanTeachCourse($validated);
+        $this->assertInstructorFree($validated, $classList);
 
         $classList->update($validated);
 
@@ -218,6 +230,38 @@ class ClassListController extends Controller
 
         if ($reason !== null) {
             throw ValidationException::withMessages(['room_id' => $reason]);
+        }
+    }
+
+    private function assertInstructorFree(array $validated, ?StudyClass $existing = null): void
+    {
+        if (empty($validated['teacher_id'])) {
+            return;
+        }
+
+        $reason = app(InstructorAssignmentAvailability::class)->unavailableReason(
+            (int) $validated['teacher_id'],
+            (int) $validated['term_id'],
+            (int) $validated['time_id'],
+            $existing?->id,
+        );
+
+        if ($reason !== null) {
+            throw ValidationException::withMessages(['teacher_id' => $reason]);
+        }
+    }
+
+    private function assertInstructorCanTeachCourse(array $validated): void
+    {
+        if (empty($validated['teacher_id'])) {
+            return;
+        }
+
+        $teacher = User::query()->with('instructorData:id,user_id,specialization')->findOrFail($validated['teacher_id']);
+        $course = Course::query()->with('track.subCategory')->findOrFail($validated['course_id']);
+
+        if (! app(InstructorCourseEligibility::class)->canTeach($teacher, $course)) {
+            throw ValidationException::withMessages(['teacher_id' => 'This instructor does not have the required course specialization.']);
         }
     }
 

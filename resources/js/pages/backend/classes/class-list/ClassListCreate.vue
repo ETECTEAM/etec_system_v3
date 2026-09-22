@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import axios from 'axios';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { PageHero } from '@/components/ui/page-hero';
@@ -14,6 +15,7 @@ const props = defineProps({
   times: Array,
   rooms: Array,
   classTypes: Array,
+  scheduleGroups: Array,
 });
 
 const form = useForm({
@@ -42,13 +44,42 @@ const optionLabel = (item) => {
 const toOptions = (items, valueKey = 'id') =>
   (items || []).map((item) => ({ label: optionLabel(item), value: String(item[valueKey]) }));
 
-const teacherOptions = computed(() => toOptions(props.teachers));
 const courseOptions = computed(() => toOptions(props.courses));
-const lessonOptions = computed(() => toOptions(props.lessons));
-const termOptions = computed(() => toOptions(props.terms));
-const timeOptions = computed(() => toOptions(props.times));
-const roomOptions = computed(() => toOptions(props.rooms));
+const lessonOptions = computed(() => toOptions((props.lessons || []).filter((lesson) => String(lesson.course_id) === String(form.course_id))));
+const selectedScheduleGroup = computed(() => (props.scheduleGroups || []).find((group) => String(group.class_type_id) === String(form.class_type_id)));
+const selectedSchedule = computed(() => selectedScheduleGroup.value?.schedules?.find((schedule) => String(schedule.term_id) === String(form.term_id)));
+const termOptions = computed(() => toOptions((selectedScheduleGroup.value?.schedules || []).map((schedule) => ({ id: schedule.term_id, term_name: schedule.term_name }))));
+const timeOptions = computed(() => toOptions((selectedSchedule.value?.times || []).map((time) => ({ id: time.id, time_name: time.time_name }))));
+const availableTeachers = ref([]);
+const availableRooms = ref([]);
+const loadingAvailability = ref(false);
+const teacherOptions = computed(() => toOptions(availableTeachers.value));
+const roomOptions = computed(() => toOptions(availableRooms.value));
 const classTypeOptions = computed(() => toOptions(props.classTypes, 'class_type_id'));
+
+watch(() => form.course_id, () => { form.lesson_id = ''; form.time_id = ''; form.teacher_id = ''; form.room_id = ''; });
+watch(() => form.class_type_id, () => { form.term_id = ''; form.time_id = ''; form.teacher_id = ''; form.room_id = ''; });
+watch(() => form.term_id, () => { form.time_id = ''; form.teacher_id = ''; form.room_id = ''; });
+watch(() => form.time_id, async (timeId) => {
+  form.teacher_id = '';
+  form.room_id = '';
+  availableTeachers.value = [];
+  availableRooms.value = [];
+  if (!form.term_id || !timeId) return;
+
+  loadingAvailability.value = true;
+  try {
+    const params = { course_id: form.course_id, term_id: form.term_id, time_id: timeId };
+    const [teachers, rooms] = await Promise.all([
+      axios.get('/dashboard/enroll/instructors/available', { params }),
+      axios.get('/dashboard/enroll/rooms/available', { params }),
+    ]);
+    availableTeachers.value = teachers.data;
+    availableRooms.value = rooms.data;
+  } finally {
+    loadingAvailability.value = false;
+  }
+});
 
 const statusOptions = [
   { label: 'Upcoming', value: 'upcoming' },
@@ -79,17 +110,6 @@ const submit = () => {
       <div class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-900">
         <form @submit.prevent="submit" class="grid gap-6 lg:grid-cols-2">
           <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Teacher') }} <span class="text-xs font-normal text-slate-400">{{ $t('(optional)') }}</span></span>
-            <SelectSearch
-              v-model="form.teacher_id"
-              :options="teacherOptions"
-              :placeholder="$t('Select teacher')"
-              :button-class="selectClass"
-            />
-            <span v-if="form.errors.teacher_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.teacher_id }}</span>
-          </label>
-
-          <label class="block">
             <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Course') }}</span>
             <SelectSearch
               v-model="form.course_id"
@@ -105,10 +125,17 @@ const submit = () => {
             <SelectSearch
               v-model="form.lesson_id"
               :options="lessonOptions"
-              :placeholder="$t('Select lesson')"
+              :disabled="!form.course_id"
+              :placeholder="$t(form.course_id ? 'Select lesson' : 'Select course first')"
               :button-class="selectClass"
             />
             <span v-if="form.errors.lesson_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.lesson_id }}</span>
+          </label>
+
+          <label class="block">
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Class Type') }}</span>
+            <SelectSearch v-model="form.class_type_id" :options="classTypeOptions" :placeholder="$t('Select class type')" :button-class="selectClass" />
+            <span v-if="form.errors.class_type_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.class_type_id }}</span>
           </label>
 
           <label class="block">
@@ -116,7 +143,8 @@ const submit = () => {
             <SelectSearch
               v-model="form.term_id"
               :options="termOptions"
-              :placeholder="$t('Select term')"
+              :disabled="!form.class_type_id"
+              :placeholder="$t(form.class_type_id ? 'Select term' : 'Select class type first')"
               :button-class="selectClass"
             />
             <span v-if="form.errors.term_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.term_id }}</span>
@@ -127,10 +155,23 @@ const submit = () => {
             <SelectSearch
               v-model="form.time_id"
               :options="timeOptions"
-              :placeholder="$t('Select time')"
+              :disabled="!form.term_id"
+              :placeholder="$t(form.term_id ? 'Select time' : 'Select term first')"
               :button-class="selectClass"
             />
             <span v-if="form.errors.time_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.time_id }}</span>
+          </label>
+
+          <label class="block">
+            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Teacher') }} <span class="text-xs font-normal text-slate-400">{{ $t('(optional)') }}</span></span>
+            <SelectSearch
+              v-model="form.teacher_id"
+              :options="teacherOptions"
+              :disabled="loadingAvailability || !form.time_id"
+              :placeholder="$t(form.time_id ? 'Select teacher' : 'Select time first')"
+              :button-class="selectClass"
+            />
+            <span v-if="form.errors.teacher_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.teacher_id }}</span>
           </label>
 
           <label class="block">
@@ -138,21 +179,11 @@ const submit = () => {
             <SelectSearch
               v-model="form.room_id"
               :options="roomOptions"
-              :placeholder="$t('Select room')"
+              :disabled="loadingAvailability || !form.time_id"
+              :placeholder="$t(form.time_id ? 'Select room' : 'Select time first')"
               :button-class="selectClass"
             />
             <span v-if="form.errors.room_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.room_id }}</span>
-          </label>
-
-          <label class="block">
-            <span class="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-200">{{ $t('Class Type') }}</span>
-            <SelectSearch
-              v-model="form.class_type_id"
-              :options="classTypeOptions"
-              :placeholder="$t('Select class type')"
-              :button-class="selectClass"
-            />
-            <span v-if="form.errors.class_type_id" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.class_type_id }}</span>
           </label>
 
           <label class="block">

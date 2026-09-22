@@ -91,10 +91,12 @@ const options = computed(() => ({
 const floors = ref([...options.value.floors]);
 const rooms = ref([...options.value.rooms]);
 const lessons = ref([...options.value.lessons]);
+const availableTeachers = ref([...options.value.teachers]);
 const loading = ref({
   floors: false,
   rooms: false,
   lessons: false,
+  teachers: false,
 });
 
 const selectedScheduleType = ref("");
@@ -145,7 +147,7 @@ const lessonOptions = computed(() =>
 );
 
 const teacherOptions = computed(() =>
-  options.value.teachers.map((teacher) => ({ label: teacher.name, value: String(teacher.id) }))
+  availableTeachers.value.map((teacher) => ({ label: teacher.name, value: String(teacher.id) }))
 );
 
 const buildingOptions = computed(() =>
@@ -302,6 +304,34 @@ watch(
       loading.value.lessons = false;
     }
   }
+);
+
+watch(
+  () => [form.course_id, form.term_id, form.time_id],
+  async ([courseId, termId, timeId], previous) => {
+    availableTeachers.value = [];
+    if (!courseId || !termId || !timeId) return;
+
+    if (previous && previous.some((value, index) => value !== [courseId, termId, timeId][index])) {
+      form.teacher_id = "";
+    }
+
+    loading.value.teachers = true;
+    try {
+      const response = await axios.get("/dashboard/enroll/instructors/available", {
+        params: {
+          course_id: courseId,
+          term_id: termId,
+          time_id: timeId,
+          ...(props.mode === "edit" ? { except_class_id: props.classData.id } : {}),
+        },
+      });
+      availableTeachers.value = response.data;
+    } finally {
+      loading.value.teachers = false;
+    }
+  },
+  { immediate: true }
 );
 
 watch(
@@ -532,7 +562,8 @@ function submit(copy = false) {
         <SelectSearch
           v-model="form.teacher_id"
           :options="teacherOptions"
-          :placeholder="$t('Select Instructor')"
+          :disabled="loading.teachers || !form.course_id || !form.term_id || !form.time_id"
+          :placeholder="$t(form.time_id ? 'Select Instructor' : 'Select course, term, and time first')"
           :button-class="selectClass"
         />
         <p v-if="form.errors.teacher_id" class="mt-1 text-xs text-red-600">{{ form.errors.teacher_id }}</p>
