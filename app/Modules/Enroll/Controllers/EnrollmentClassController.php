@@ -553,6 +553,7 @@ class EnrollmentClassController extends Controller
         $data = $request->validate([
             'term_id' => ['required', 'integer', 'exists:terms,id'],
             'time_id' => ['required', 'integer', 'exists:times,id'],
+            'floor_id' => ['nullable', 'integer', 'exists:floors,id'],
             'except_class_id' => ['nullable', 'integer', 'exists:study_classes,id'],
         ]);
 
@@ -565,6 +566,7 @@ class EnrollmentClassController extends Controller
         $rooms = Room::query()
             ->with('floor.building')
             ->where('status', 'available')
+            ->when($data['floor_id'] ?? null, fn ($query, $floorId) => $query->where('floor_id', $floorId))
             ->get()
             ->filter(fn (Room $room): bool => $availability->unavailableReason(
                 $room->id,

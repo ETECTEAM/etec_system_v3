@@ -71,7 +71,9 @@ watch(() => form.time_id, async (timeId) => {
   try {
     const params = { course_id: form.course_id, term_id: form.term_id, time_id: timeId };
     const [teachers, rooms] = await Promise.all([
-      axios.get('/dashboard/enroll/instructors/available', { params }),
+      form.course_id
+        ? axios.get('/dashboard/enroll/instructors/available', { params })
+        : Promise.resolve({ data: [] }),
       axios.get('/dashboard/enroll/rooms/available', { params }),
     ]);
     availableTeachers.value = teachers.data;
