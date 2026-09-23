@@ -33,4 +33,11 @@ Route::middleware(['auth', 'active', 'role:super_admin|admin'])
         Route::post('/{block}/approve', [InstructorAttendanceBlockController::class, 'approve'])
             ->middleware('throttle:20,1')
             ->name('approve');
+
+        // Route to unblock an instructor whose leave/permission claim is accepted -
+        // same unblock, plus a backfill of EVERY stuck session across their classes
+        // (not just the triggering one). See docs/instructor-attendance-block-approve-after-permission.md.
+        Route::post('/{block}/approve-after-permission', [InstructorAttendanceBlockController::class, 'approveAfterPermission'])
+            ->middleware('throttle:20,1')
+            ->name('approve-after-permission');
     });

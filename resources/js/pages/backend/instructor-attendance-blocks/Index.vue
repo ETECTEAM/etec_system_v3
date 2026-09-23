@@ -1,5 +1,6 @@
 <script setup>
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
+import { TriangleAlert } from '@lucide/vue'
 import { router } from '@inertiajs/vue3'
 import { onMounted, ref, watch } from 'vue'
 import Breadcrumbs from '../../../components/ui/breadcrumbs/Breadcrumbs.vue'
@@ -56,9 +57,19 @@ watch(status, applyFilters)
 onMounted(() => fetchBlocks())
 
 const approveTarget = ref(null)
+const approvePermissionTarget = ref(null)
 
 function submit(url, body = {}, done = () => {}) {
   router.post(url, body, { preserveScroll: true, onSuccess: () => { done(); fetchBlocks() } })
+}
+
+const reasonBadge = {
+  general: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+  permission: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+}
+const reasonLabel = {
+  general: 'General claim',
+  permission: 'Permission claim',
 }
 
 const breadcrumbItems = [
@@ -108,7 +119,16 @@ const breadcrumbItems = [
                   <div class="font-medium text-slate-900 dark:text-gray-100">{{ b.instructor?.name ?? '-' }}</div>
                   <div class="text-xs text-slate-500 dark:text-gray-400">{{ b.instructor?.instructor_data?.phone ?? '-' }}</div>
                 </td>
-                <td class="px-6 py-4 max-w-sm text-slate-600 dark:text-gray-400">{{ b.reason }}</td>
+                <td class="px-6 py-4 max-w-sm text-slate-600 dark:text-gray-400">
+                  <div>{{ b.reason }}</div>
+                  <span
+                    v-if="b.unblock_reason_type"
+                    class="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                    :class="reasonBadge[b.unblock_reason_type]"
+                  >
+                    {{ $t(reasonLabel[b.unblock_reason_type]) }}
+                  </span>
+                </td>
                 <td class="px-6 py-4">
                   <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusBadge[b.status]">
                     {{ $t(statusLabel[b.status] ?? b.status) }}
@@ -123,11 +143,16 @@ const breadcrumbItems = [
                   <span v-else>—</span>
                 </td>
                 <td class="px-6 py-4 text-right">
-                  <button
-                    v-if="b.status !== 'approved_unblock'"
-                    @click="approveTarget = b"
-                    class="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs text-green-700 hover:bg-green-100 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-400"
-                  >{{ $t('Approve') }}</button>
+                  <div v-if="b.status !== 'approved_unblock'" class="flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      @click="approveTarget = b"
+                      class="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs text-green-700 hover:bg-green-100 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-400"
+                    >{{ $t('Approve') }}</button>
+                    <button
+                      @click="approvePermissionTarget = b"
+                      class="rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs text-violet-700 hover:bg-violet-100 dark:border-violet-900/40 dark:bg-violet-900/20 dark:text-violet-400"
+                    >{{ $t('Approve After Permission') }}</button>
+                  </div>
                   <span v-else class="text-xs text-slate-400">—</span>
                 </td>
               </tr>
@@ -165,6 +190,35 @@ const breadcrumbItems = [
           <div class="flex justify-end gap-3">
             <button @click="approveTarget = null" class="rounded-lg border border-slate-300 px-4 py-2 text-sm dark:border-gray-600 dark:text-gray-300">{{ $t('Cancel') }}</button>
             <button @click="submit(`/dashboard/instructor-attendance-blocks/${approveTarget.id}/approve`, {}, () => approveTarget = null)" class="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700">{{ $t('Approve') }}</button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Approve After Permission -->
+    <transition name="fade">
+      <div v-if="approvePermissionTarget" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="approvePermissionTarget = null">
+        <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-lg dark:bg-gray-900">
+          <h3 class="mb-2 text-lg font-semibold text-slate-900 dark:text-gray-100">{{ $t('Approve after permission') }}</h3>
+          <p class="mb-2 text-sm text-slate-600 dark:text-gray-400">
+            {{ $t(':name said they missed this session because they had approved permission/leave. Approving restores attendance tracking and backfills EVERY stuck session across all their classes from last week\'s attendance — not just the one shown here.', { name: approvePermissionTarget?.instructor?.name ?? '' }) }}
+          </p>
+          <div class="mb-6 flex items-start gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-600 dark:bg-gray-800 dark:text-gray-300">
+            <TriangleAlert class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+            <span>
+              {{ $t('Per student, per class: attendance is copied from 7 days earlier. A student who ends up absent may still trigger a separate student absence block.') }}
+            </span>
+          </div>
+          <p v-if="approvePermissionTarget?.unblock_reason_type" class="mb-2 text-xs text-slate-500 dark:text-gray-400">
+            {{ $t('Instructor\'s stated claim') }}:
+            <span
+              class="ml-1 inline-block rounded-full px-2 py-0.5 font-semibold"
+              :class="reasonBadge[approvePermissionTarget.unblock_reason_type]"
+            >{{ $t(reasonLabel[approvePermissionTarget.unblock_reason_type]) }}</span>
+          </p>
+          <div class="flex justify-end gap-3">
+            <button @click="approvePermissionTarget = null" class="rounded-lg border border-slate-300 px-4 py-2 text-sm dark:border-gray-600 dark:text-gray-300">{{ $t('Cancel') }}</button>
+            <button @click="submit(`/dashboard/instructor-attendance-blocks/${approvePermissionTarget.id}/approve-after-permission`, {}, () => approvePermissionTarget = null)" class="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700">{{ $t('Approve After Permission') }}</button>
           </div>
         </div>
       </div>

@@ -196,7 +196,11 @@ class InstructorClassController extends Controller
 
     public function requestAttendanceUnblock(Request $request): RedirectResponse
     {
-        $this->instructorClasses->requestAttendanceUnblock($request->user());
+        $validated = $request->validate([
+            'reason_type' => ['nullable', 'string', Rule::in(InstructorAttendanceBlock::UNBLOCK_REASONS)],
+        ]);
+
+        $this->instructorClasses->requestAttendanceUnblock($request->user(), $validated['reason_type'] ?? null);
 
         return back()->with('success', 'Your request has been sent to the admin team for review.');
     }

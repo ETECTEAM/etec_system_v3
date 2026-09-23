@@ -16,15 +16,29 @@ class InstructorAttendanceBlock extends Model
     /** Every status except this one still blocks attendance tracking. */
     public const BLOCKING_STATUSES = [self::STATUS_ACTIVE, self::STATUS_PENDING_REVIEW];
 
+    /**
+     * Instructor's claim when requesting an unblock, and the reason an admin
+     * actually approved the block under (see docs/instructor-attendance-block-approve-after-permission.md).
+     */
+    public const REASON_GENERAL = 'general';
+
+    public const REASON_PERMISSION = 'permission';
+
+    public const UNBLOCK_REASONS = [self::REASON_GENERAL, self::REASON_PERMISSION];
+
+    public const REVIEWED_REASONS = [self::REASON_GENERAL, self::REASON_PERMISSION];
+
     protected $fillable = [
         'instructor_id',
         'triggered_by_session_id',
         'reason',
+        'unblock_reason_type',
         'status',
         'blocked_at',
         'unblock_requested_at',
         'reviewed_by',
         'reviewed_at',
+        'reviewed_reason_type',
         'note',
     ];
 

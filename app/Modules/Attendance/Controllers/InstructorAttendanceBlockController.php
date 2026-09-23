@@ -48,8 +48,16 @@ class InstructorAttendanceBlockController extends Controller
 
     public function approve(InstructorAttendanceBlock $block, Request $request, ApproveInstructorAttendanceBlock $action): RedirectResponse
     {
-        $action->handle($block, $request->user());
+        $action->handle($block, $request->user(), InstructorAttendanceBlock::REASON_GENERAL);
 
         return back()->with('success', 'Instructor unblocked. Attendance tracking restored on all classes.');
+    }
+
+    /** Approve after the instructor's leave/permission claim — backfills every stuck session the block left behind. */
+    public function approveAfterPermission(InstructorAttendanceBlock $block, Request $request, ApproveInstructorAttendanceBlock $action): RedirectResponse
+    {
+        $action->handle($block, $request->user(), InstructorAttendanceBlock::REASON_PERMISSION);
+
+        return back()->with('success', 'Instructor unblocked. Every stuck session was backfilled from last week\'s attendance.');
     }
 }

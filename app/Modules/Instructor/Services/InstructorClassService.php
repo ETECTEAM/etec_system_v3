@@ -172,9 +172,22 @@ class InstructorClassService
         ];
     }
 
-    /** Instructor's self-service "request to track again" - sends their current block to admin review. */
-    public function requestAttendanceUnblock(User $instructor): InstructorAttendanceBlock
+    /**
+     * Instructor's self-service "request to track again" - sends their current block to
+     * admin review. The instructor states whether they missed it for a plain reason or
+     * an approved leave/permission claim; the admin's Approve After Permission button
+     * relies on that claim (see docs/instructor-attendance-block-approve-after-permission.md).
+     */
+    public function requestAttendanceUnblock(User $instructor, ?string $reasonType = null): InstructorAttendanceBlock
     {
+        $reason = $reasonType ?? InstructorAttendanceBlock::REASON_GENERAL;
+
+        if (! in_array($reason, InstructorAttendanceBlock::UNBLOCK_REASONS, true)) {
+            throw ValidationException::withMessages([
+                'reason_type' => 'The unblock reason type is invalid.',
+            ]);
+        }
+
         $block = $this->findActiveBlock->handle($instructor->id);
 
         if (! $block) {
@@ -187,7 +200,12 @@ class InstructorClassService
             $block->update([
                 'status' => InstructorAttendanceBlock::STATUS_PENDING_REVIEW,
                 'unblock_requested_at' => now(),
+                'unblock_reason_type' => $reason,
             ]);
+        } else {
+            // Already pending review - just refresh the stated reason so a resubmit
+            // (or a corrected claim) stays in sync without touching the review state.
+            $block->update(['unblock_reason_type' => $reason]);
         }
 
         return $block;

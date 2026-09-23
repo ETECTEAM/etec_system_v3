@@ -49,6 +49,7 @@ const props = defineProps({
 const page = usePage();
 const search = ref("");
 const requestingUnblock = ref(false);
+const unblockReason = ref("general");
 const csvInput = ref(null);
 const csvClass = ref(null);
 const csvImporting = ref(false);
@@ -56,7 +57,9 @@ const csvImporting = ref(false);
 function requestAttendanceUnblock() {
   requestingUnblock.value = true;
 
-  router.post("/dashboard/instructor/attendance-block/request", {}, {
+  router.post("/dashboard/instructor/attendance-block/request", {
+    reason_type: unblockReason.value,
+  }, {
     preserveScroll: true,
     onFinish: () => {
       requestingUnblock.value = false;
@@ -219,18 +222,44 @@ function actionItems(classData) {
             <p class="mt-0.5 text-red-700 dark:text-red-400">{{ attendanceBlock.reason }}</p>
           </div>
         </div>
-        <button
-          v-if="!attendanceBlock.pending_review"
-          type="button"
-          :disabled="requestingUnblock"
-          class="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-red-700 px-4 text-sm font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-red-600 dark:hover:bg-red-500"
-          @click="requestAttendanceUnblock"
-        >
-          {{ $t("Request to track again") }}
-        </button>
-        <span v-else class="shrink-0 rounded-lg bg-red-100 px-4 py-2 text-sm font-semibold text-red-800 dark:bg-red-500/20 dark:text-red-300">
-          {{ $t("Request pending admin review") }}
-        </span>
+        <div class="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <label class="flex cursor-pointer items-center gap-1.5 text-sm">
+              <input
+                v-model="unblockReason"
+                type="radio"
+                name="unblock_reason"
+                value="general"
+                class="h-3.5 w-3.5 accent-red-700"
+              />
+              {{ $t("Plain miss") }}
+            </label>
+            <label class="flex cursor-pointer items-center gap-1.5 text-sm">
+              <input
+                v-model="unblockReason"
+                type="radio"
+                name="unblock_reason"
+                value="permission"
+                class="h-3.5 w-3.5 accent-red-700"
+              />
+              {{ $t("I had approved permission / leave") }}
+            </label>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <button
+              v-if="!attendanceBlock.pending_review"
+              type="button"
+              :disabled="requestingUnblock"
+              class="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-red-700 px-4 text-sm font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-red-600 dark:hover:bg-red-500"
+              @click="requestAttendanceUnblock"
+            >
+              {{ $t("Request to track again") }}
+            </button>
+            <span v-else class="shrink-0 rounded-lg bg-red-100 px-4 py-2 text-sm font-semibold text-red-800 dark:bg-red-500/20 dark:text-red-300">
+              {{ $t("Request pending admin review") }}
+            </span>
+          </div>
+        </div>
       </div>
 
       <div
