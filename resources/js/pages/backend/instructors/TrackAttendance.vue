@@ -197,7 +197,7 @@ const liveVerification = reactive(
 );
 const displayedStudents = computed(() => (
   isPreAttendance.value
-    ? props.students.filter((student) => !student.attendance?.is_tracked)
+    ? props.students.filter((student) => !student.attendance?.is_tracked || student.attendance?.is_locked)
     : props.students
 ));
 const statuses = [
@@ -448,7 +448,7 @@ function queueAutoSave() {
 
 function buildRecords(includeUntouched = true) {
   return props.students
-    .filter((student) => includeUntouched || isStudentDirty(student.id))
+    .filter((student) => includeUntouched || isStudentDirty(student.id) || isStudentLocked(student))
     .map((student) => ({
       student_id: student.id,
       enrollment_id: student.enrollment_id,
@@ -643,7 +643,7 @@ const submit = (options = {}) => {
                       v-if="isStudentLocked(student)"
                       class="mt-1 flex max-w-xs items-start gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-bold text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300"
                     >
-                      🔒 {{ student.attendance?.lock_reason || 'Attendance locked - see the school office.' }}
+                      🔒 Blocked — waiting for admin approval. Recorded as absent until unblocked.
                     </p>
                   </td>
                   <td class="border-b border-slate-100 px-4 py-3 dark:border-gray-800">

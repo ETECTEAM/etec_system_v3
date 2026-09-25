@@ -2000,11 +2000,11 @@ function saveFreeAfterPrint() {
                             </thead>
                             <tbody>
                                 <tr
-                                    v-for="student in students"
+                                    v-for="(student, index) in students"
                                     :key="student.id"
                                     :class="{ 'printed-student-row': student.is_printed }"
                                 >
-                                    <td><span class="student-id">{{ student.id }}</span></td>
+                                    <td><span class="student-id">{{ index + 1 }}</span></td>
                                     <td>
                                         <div class="student-name">
                                             <strong>{{ student.name }}</strong>
@@ -2094,8 +2094,8 @@ function saveFreeAfterPrint() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="student in studentDrafts" :key="student.id">
-                                        <td>{{ student.id }}</td>
+                                    <tr v-for="(student, index) in studentDrafts" :key="student.id">
+                                        <td>{{ index + 1 }}</td>
                                         <td><input v-model="student.draft_name" /></td>
                                         <td>{{ student.gender }}</td>
                                         <td>

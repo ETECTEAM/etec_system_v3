@@ -6,6 +6,7 @@ use App\Models\StudentAttendance;
 use App\Models\StudentAttendanceBlock;
 use App\Models\User;
 use App\Modules\AbsenceBlock\Services\AbsenceBlockAudit;
+use App\Modules\Certificate\Actions\AddUnblockedStudentToPendingCertificateRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -17,7 +18,10 @@ use Illuminate\Validation\ValidationException;
  */
 class ApproveAbsenceBlock
 {
-    public function __construct(private readonly AbsenceBlockAudit $audit) {}
+    public function __construct(
+        private readonly AbsenceBlockAudit $audit,
+        private readonly AddUnblockedStudentToPendingCertificateRequest $addUnblockedStudentToCertificateRequest,
+    ) {}
 
     /** @return int number of blocks approved */
     public function handle(StudentAttendanceBlock $block, User $actor): int
@@ -59,6 +63,10 @@ class ApproveAbsenceBlock
             StudentAttendance::query()
                 ->whereIn('locked_block_id', $ids)
                 ->update(['locked' => false, 'lock_reason' => null, 'locked_block_id' => null]);
+
+            foreach ($open as $row) {
+                $this->addUnblockedStudentToCertificateRequest->handle($row);
+            }
 
             return $open->count();
         });

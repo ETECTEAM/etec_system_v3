@@ -498,14 +498,18 @@ class InstructorClassService
                     ]);
                 }
 
-                if ($existingPreAttendanceRows->has($enrollmentId)) {
-                    continue;
-                }
-
                 // Absence-block enforcement. A locked student is forced 'absent'
                 // regardless of what the instructor submitted; an over-quota
                 // manual permission is recorded as an absence.
                 $lock = $lockEvaluator->evaluate($studentId, $studyClassId, $attendanceDate);
+
+                // Pre-attendance recovery normally leaves already-saved rows intact.
+                // A student who remains blocked is the exception: refresh that row
+                // as absent until an admin clears the block.
+                if ($existingPreAttendanceRows->has($enrollmentId) && ! $lock->locked) {
+                    continue;
+                }
+
                 $status = $record['status'];
                 $note = $record['note'] ?? null;
 
@@ -966,10 +970,7 @@ class InstructorClassService
 
     private function certificateRequestTypesForClass(stdClass $class): array
     {
-        return match ($this->certificateRequestTypeForClass($class)) {
-            'internship' => ['internship'],
-            default => ['normal'],
-        };
+        return [$this->certificateRequestTypeForClass($class)];
     }
 
     private function certificateRequestTypesFromCsv(?string $types): array
@@ -988,15 +989,26 @@ class InstructorClassService
 
     private function certificateRequestTypeForClass(stdClass $class): string
     {
-        $text = strtolower(collect([
-            $class->class_type_name ?? null,
-            $class->course_title ?? null,
-            $class->lesson_title ?? null,
-            $class->title ?? null,
-        ])->filter()->implode(' '));
+        $text = strtolower((string) ($class->class_type_name ?? ''));
+
+        if (str_contains($text, 'free')) {
+            return 'free';
+        }
+
+        if (str_contains($text, 'scholar')) {
+            return 'scholarship';
+        }
 
         if (str_contains($text, 'internship') || str_contains($text, 'intership')) {
             return 'internship';
+        }
+
+        if (str_contains($text, 'intern')) {
+            return 'internship';
+        }
+
+        if (str_contains($text, 'microsoft office') || str_contains($text, 'office')) {
+            return 'office';
         }
 
         return 'normal';

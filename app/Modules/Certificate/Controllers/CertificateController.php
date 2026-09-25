@@ -25,7 +25,8 @@ class CertificateController extends Controller
     private const SPECIAL_CLASS_KEYWORDS = [
         'free' => ['free'],
         'scholarship' => ['scholar'],
-        'internship' => ['internship', 'intership'],
+        'internship' => ['internship', 'intern', 'intership'],
+        'office' => ['microsoft office', 'office'],
     ];
 
     public function index(Request $request): Response
@@ -67,8 +68,8 @@ class CertificateController extends Controller
             ->when($track !== '' && $track !== 'all', fn (Builder $query) => $query
                 ->whereHas('course.track', fn (Builder $trackQuery) => $trackQuery->where('name', $track))
             )
-            ->when(in_array($type, ['normal', 'office'], true), fn (Builder $query) => $this->whereRegularCertificateClass($query))
-            ->when(! in_array($type, ['normal', 'office'], true), fn (Builder $query) => $this->whereTypedCertificateClass($query, $type))
+            ->when($type === 'normal', fn (Builder $query) => $this->whereRegularCertificateClass($query))
+            ->when($type !== 'normal', fn (Builder $query) => $this->whereTypedCertificateClass($query, $type))
             ->latest('id')
             ->get();
 
@@ -354,7 +355,7 @@ class CertificateController extends Controller
 
     private function applyCertificateClassTypeFilter(Builder $query, string $type): void
     {
-        if ($type === 'normal' || $type === 'office') {
+        if ($type === 'normal') {
             $this->whereRegularCertificateClass($query);
 
             return;
@@ -431,14 +432,18 @@ class CertificateController extends Controller
     private function whereRegularCertificateClass(Builder $query): Builder
     {
         return $query->where(function (Builder $regular): void {
-            $this->whereNotMatchingClassKeywords($regular, self::SPECIAL_CLASS_KEYWORDS['internship']);
+            $this->whereNotMatchingClassKeywords($regular, array_merge(
+                self::SPECIAL_CLASS_KEYWORDS['free'],
+                self::SPECIAL_CLASS_KEYWORDS['scholarship'],
+                self::SPECIAL_CLASS_KEYWORDS['internship'],
+                self::SPECIAL_CLASS_KEYWORDS['office'],
+            ));
         });
     }
 
     private function whereTypedCertificateClass(Builder $query, string $type): Builder
     {
         $keywords = match ($type) {
-            'meal' => self::SPECIAL_CLASS_KEYWORDS['internship'],
             default => self::SPECIAL_CLASS_KEYWORDS[$type] ?? [$type],
         };
 
@@ -460,11 +465,6 @@ class CertificateController extends Controller
     private function requestTypesForPageType(string $type): array
     {
         return match ($type) {
-            // Legacy non-internship requests may have been saved as free or scholarship.
-            // The current rule is: every non-internship class belongs to Regular.
-            // Office uses the exact same class list and request types as Regular.
-            'normal', 'office' => ['normal', 'free', 'scholarship'],
-            'meal' => ['meal', 'internship'],
             default => [$type],
         };
     }
@@ -484,33 +484,15 @@ class CertificateController extends Controller
     private function whereMatchingClassKeywords(Builder $query, array $keywords): void
     {
         foreach ($keywords as $keyword) {
-            $query
-                ->orWhereHas('classType', fn (Builder $classType) => $classType
-                    ->where('type_name', 'like', "%{$keyword}%")
-                )
-                ->orWhereHas('course', fn (Builder $course) => $course
-                    ->where('title', 'like', "%{$keyword}%")
-                )
-                ->orWhereHas('course.track', fn (Builder $track) => $track
-                    ->where('name', 'like', "%{$keyword}%")
-                )
-                ->orWhereHas('course.track.subCategory', fn (Builder $subCategory) => $subCategory
-                    ->where('name', 'like', "%{$keyword}%")
-                )
-                ->orWhereHas('course.track.subCategory.category', fn (Builder $category) => $category
-                    ->where('name', 'like', "%{$keyword}%")
-                );
+            $query->orWhereHas('classType', fn (Builder $classType) => $classType
+                ->where('type_name', 'like', "%{$keyword}%")
+            );
         }
     }
 
     private function whereNotMatchingClassKeywords(Builder $query, array $keywords): void
     {
-        $query
-            ->whereDoesntHave('classType', fn (Builder $classType) => $this->whereNameMatchesKeywords($classType, 'type_name', $keywords))
-            ->whereDoesntHave('course', fn (Builder $course) => $this->whereNameMatchesKeywords($course, 'title', $keywords))
-            ->whereDoesntHave('course.track', fn (Builder $track) => $this->whereNameMatchesKeywords($track, 'name', $keywords))
-            ->whereDoesntHave('course.track.subCategory', fn (Builder $subCategory) => $this->whereNameMatchesKeywords($subCategory, 'name', $keywords))
-            ->whereDoesntHave('course.track.subCategory.category', fn (Builder $category) => $this->whereNameMatchesKeywords($category, 'name', $keywords));
+        $query->whereDoesntHave('classType', fn (Builder $classType) => $this->whereNameMatchesKeywords($classType, 'type_name', $keywords));
     }
 
     private function whereNameMatchesKeywords(Builder $query, string $column, array $keywords): void
@@ -527,13 +509,9 @@ class CertificateController extends Controller
         return in_array($type, self::TYPES, true) ? $type : 'free';
     }
 
-    /**
-     * Office certificates share the regular certificate storage,
-     * so a student printed from either page is marked printed on both.
-     */
     private function storageTypeFor(string $type): string
     {
-        return $type === 'office' ? 'normal' : $type;
+        return $type;
     }
 
     private function classTime(StudyClass $studyClass): string
