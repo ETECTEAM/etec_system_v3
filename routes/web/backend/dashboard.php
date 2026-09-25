@@ -52,7 +52,8 @@ Route::middleware(['auth', 'active', 'onboarding', 'permission:dashboard.view'])
         }
 
         return inertia('backend/Home', [
-            'report' => $dashboardReport->handle(request()),
+            // Revenue / payment figures are super_admin only; admins get enrollment data.
+            'report' => $dashboardReport->handle(request(), $user->hasRole('super_admin')),
         ]);
     })->name('dashboard');
 });

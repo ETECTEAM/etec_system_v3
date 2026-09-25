@@ -32,12 +32,20 @@ const datePeriodOptions = [
   { value: "custom", label: "Custom Range" },
 ];
 
-const summaryCards = computed(() => [
-  { label: "Total Students Enrolled", value: numberFormat(props.report.summary.total_students_enrolled), change: props.report.summary.enrollment_change_percent, icon: Users, tone: "blue" },
-  { label: "Total Revenue Collected", value: moneyFormat(props.report.summary.total_revenue_collected), change: props.report.summary.revenue_change_percent, icon: DollarSign, tone: "emerald" },
-  { label: "New Enrollments", value: numberFormat(props.report.summary.new_enrollments), change: props.report.summary.new_enrollment_change_percent, icon: GraduationCap, tone: "violet" },
-  { label: "Average Revenue Per Enrollment", value: moneyFormat(props.report.summary.average_revenue_per_enrollment), change: props.report.summary.average_revenue_change_percent, icon: Activity, tone: "amber" },
-]);
+// Revenue and payment data is only sent to super_admin; admins never receive it.
+const canViewFinancials = computed(() => Boolean(props.report.canViewFinancials));
+
+const summaryCards = computed(() => {
+  const summary = props.report.summary;
+  const cards = [
+    { label: "Total Students Enrolled", value: numberFormat(summary.total_students_enrolled), change: summary.enrollment_change_percent, icon: Users, tone: "blue" },
+    { label: "Total Revenue Collected", value: moneyFormat(summary.total_revenue_collected), change: summary.revenue_change_percent, icon: DollarSign, tone: "emerald", financial: true },
+    { label: "New Enrollments", value: numberFormat(summary.new_enrollments), change: summary.new_enrollment_change_percent, icon: GraduationCap, tone: "violet" },
+    { label: "Average Revenue Per Enrollment", value: moneyFormat(summary.average_revenue_per_enrollment), change: summary.average_revenue_change_percent, icon: Activity, tone: "amber", financial: true },
+  ];
+
+  return canViewFinancials.value ? cards : cards.filter((card) => !card.financial);
+});
 
 const isCustomRange = computed(() => filters.quick === "custom");
 const today = new Date();
@@ -181,7 +189,7 @@ function donutOffset(index) {
       <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 class="text-2xl font-black text-slate-950 dark:text-gray-100">{{ $t('Report Overview') }}</h1>
-          <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ $t('Student enrollment and revenue summary') }}</p>
+          <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">{{ canViewFinancials ? $t('Student enrollment and revenue summary') : $t('Student enrollment summary') }}</p>
         </div>
         <div class="inline-flex h-10 items-center gap-2 self-start rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
           <CalendarDays class="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -239,7 +247,7 @@ function donutOffset(index) {
       
       </div>
 
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div class="grid gap-4 md:grid-cols-2" :class="{ 'xl:grid-cols-4': canViewFinancials }">
         <article v-for="card in summaryCards" :key="card.label" class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div class="flex items-start gap-4">
             <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg" :class="toneClass(card.tone)">
@@ -257,7 +265,7 @@ function donutOffset(index) {
         </article>
       </div>
 
-      <div class="grid gap-4 xl:grid-cols-2">
+      <div class="grid gap-4" :class="{ 'xl:grid-cols-2': canViewFinancials }">
         <article class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div class="mb-4 flex items-center justify-between gap-3">
             <h2 class="text-base font-black text-slate-950 dark:text-gray-100">{{ $t('Student Enrollment Trend') }}</h2>
@@ -275,7 +283,7 @@ function donutOffset(index) {
           </svg>
         </article>
 
-        <article class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <article v-if="canViewFinancials" class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div class="mb-4 flex items-center justify-between gap-3">
             <h2 class="text-base font-black text-slate-950 dark:text-gray-100">{{ $t('Revenue Overview') }}</h2>
             <DollarSign class="h-5 w-5 text-emerald-500" />
@@ -289,7 +297,7 @@ function donutOffset(index) {
         </article>
       </div>
 
-      <div class="grid gap-4 xl:grid-cols-2">
+      <div class="grid gap-4" :class="{ 'xl:grid-cols-2': canViewFinancials }">
         <article class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div class="mb-3 flex items-center justify-between gap-3">
             <h2 class="text-base font-black text-slate-950 dark:text-gray-100">{{ $t('Top Courses by Enrollment') }}</h2>
@@ -301,8 +309,8 @@ function donutOffset(index) {
                 <tr class="bg-slate-50 text-xs font-bold text-slate-500 dark:bg-gray-800/80 dark:text-gray-400">
                   <th class="rounded-l-lg px-4 py-3">#</th>
                   <th class="px-4 py-3">{{ $t('Course') }}</th>
-                  <th class="px-4 py-3">{{ $t('Enrollments') }}</th>
-                  <th class="rounded-r-lg px-4 py-3">{{ $t('Revenue') }}</th>
+                  <th class="px-4 py-3" :class="{ 'rounded-r-lg': !canViewFinancials }">{{ $t('Enrollments') }}</th>
+                  <th v-if="canViewFinancials" class="rounded-r-lg px-4 py-3">{{ $t('Revenue') }}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 dark:divide-gray-800">
@@ -312,7 +320,7 @@ function donutOffset(index) {
                   </td>
                   <td class="px-4 py-3 font-semibold text-slate-950 dark:text-gray-100">{{ course.course_title }}</td>
                   <td class="px-4 py-3 font-semibold">{{ numberFormat(course.enrollments) }}</td>
-                  <td class="px-4 py-3 font-semibold">{{ moneyFormat(course.revenue) }}</td>
+                  <td v-if="canViewFinancials" class="px-4 py-3 font-semibold">{{ moneyFormat(course.revenue) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -323,7 +331,7 @@ function donutOffset(index) {
           </div>
         </article>
 
-        <article class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <article v-if="canViewFinancials" class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <h2 class="mb-3 text-base font-black text-slate-950 dark:text-gray-100">{{ $t('Payment Status') }}</h2>
           <div class="grid gap-5 sm:grid-cols-[190px_1fr] sm:items-center">
             <div class="relative mx-auto h-[190px] w-[190px]">

@@ -5,6 +5,7 @@ namespace App\Modules\AbsenceBlock\Actions;
 use App\Models\StudentAttendance;
 use App\Models\StudentAttendanceBlock;
 use App\Models\User;
+use App\Modules\Certificate\Actions\AddUnblockedStudentToPendingCertificateRequest;
 use App\Modules\AbsenceBlock\Services\AbsenceBlockAudit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -17,7 +18,10 @@ use Illuminate\Validation\ValidationException;
  */
 class UnlockHardLock
 {
-    public function __construct(private readonly AbsenceBlockAudit $audit) {}
+    public function __construct(
+        private readonly AbsenceBlockAudit $audit,
+        private readonly AddUnblockedStudentToPendingCertificateRequest $addUnblockedStudentToCertificateRequest,
+    ) {}
 
     public function handle(StudentAttendanceBlock $block, User $actor): void
     {
@@ -56,6 +60,8 @@ class UnlockHardLock
                     'student_attendances.lock_reason' => null,
                     'student_attendances.locked_block_id' => null,
                 ]);
+
+            $this->addUnblockedStudentToCertificateRequest->handle($fresh);
 
             $this->audit->log('hard_lock.unlocked', $actor, [
                 'block_id' => $fresh->id,

@@ -55,18 +55,20 @@ const rows = reactive(
   props.students.map((student) => ({
     ...student,
     name: student.name,
-    approved: props.certificateRequest?.student_ids?.includes(student.id) ?? false,
+    approved: !student.attendance?.is_locked && (props.certificateRequest?.student_ids?.includes(student.id) ?? false),
     saving: false,
   }))
 );
 
-const approvedRows = computed(() => rows.filter((row) => row.approved));
+const eligibleRows = computed(() => rows.filter((row) => !row.attendance?.is_locked));
+const approvedRows = computed(() => eligibleRows.value.filter((row) => row.approved));
+const blockedRows = computed(() => rows.filter((row) => row.attendance?.is_locked));
 const hasPendingRequest = computed(() => props.certificateRequest?.status === "pending");
-const allRowsApproved = computed(() => rows.length > 0 && approvedRows.value.length === rows.length);
+const allRowsApproved = computed(() => eligibleRows.value.length > 0 && approvedRows.value.length === eligibleRows.value.length);
 const requestStatusLabel = computed(() => props.certificateRequest?.status_label ?? "Draft");
 
 function toggleApprove(row) {
-  if (!props.canRequestCertificate || hasPendingRequest.value) {
+  if (!props.canRequestCertificate || hasPendingRequest.value || row.attendance?.is_locked) {
     return;
   }
 
@@ -78,7 +80,7 @@ function approveAll() {
     return;
   }
 
-  rows.forEach((row) => {
+  eligibleRows.value.forEach((row) => {
     row.approved = true;
   });
 }
@@ -193,13 +195,14 @@ function submitCertificateRequest() {
             </h2>
             <p class="mt-1 text-sm font-semibold text-slate-500 dark:text-gray-400">
               {{ approvedRows.length }} of {{ rows.length }} students selected
+              <span v-if="blockedRows.length"> · {{ blockedRows.length }} blocked by system</span>
             </p>
           </div>
 
           <div class="flex flex-wrap gap-2">
             <button
               type="button"
-              :disabled="!rows.length || allRowsApproved || hasPendingRequest || !canRequestCertificate"
+              :disabled="!eligibleRows.length || allRowsApproved || hasPendingRequest || !canRequestCertificate"
               @click="approveAll"
               class="inline-flex h-9 items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-black text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
             >
@@ -242,6 +245,7 @@ function submitCertificateRequest() {
                 :key="student.id"
                 :class="[
                   'align-middle transition hover:bg-slate-50/80 dark:hover:bg-gray-800/50',
+                  student.attendance?.is_locked ? 'bg-rose-50/60 dark:bg-rose-500/5' : '',
                   student.approved ? 'bg-emerald-50/60 dark:bg-emerald-500/5' : '',
                 ]"
               >
@@ -269,28 +273,32 @@ function submitCertificateRequest() {
                   <span
                     :class="[
                       'inline-flex h-7 w-32 items-center justify-center gap-1.5 rounded-full border px-3 text-xs font-black',
-                      student.approved
+                      student.attendance?.is_locked
+                        ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300'
+                        : student.approved
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300'
                         : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-400',
                     ]"
                   >
-                    {{ student.approved ? "Approved" : "Not Approved" }}
+                    {{ student.attendance?.is_locked ? "Blocked — Admin must unblock" : student.approved ? "Approved" : "Not Approved" }}
                   </span>
                 </td>
                 <td class="border-b border-slate-100 px-4 py-3 text-center dark:border-gray-800">
                   <button
                     type="button"
-                    :disabled="student.saving || hasPendingRequest || !canRequestCertificate"
+                    :disabled="student.saving || student.attendance?.is_locked || hasPendingRequest || !canRequestCertificate"
                     @click="toggleApprove(student)"
                     :class="[
                       'inline-flex h-9 w-24 items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-60',
-                      student.approved
+                      student.attendance?.is_locked
+                        ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300'
+                        : student.approved
                         ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300'
                         : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300',
                     ]"
                   >
-                    <component :is="student.approved ? XCircle : CheckCircle2" class="h-3.5 w-3.5" />
-                    {{ student.saving ? "Saving..." : student.approved ? "Cancel" : "Approve" }}
+                    <component :is="student.attendance?.is_locked ? XCircle : student.approved ? XCircle : CheckCircle2" class="h-3.5 w-3.5" />
+                    {{ student.saving ? "Saving..." : student.attendance?.is_locked ? "Blocked" : student.approved ? "Cancel" : "Approve" }}
                   </button>
                 </td>
               </tr>

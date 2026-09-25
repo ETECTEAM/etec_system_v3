@@ -8,21 +8,31 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardReportService
 {
-    public function handle(Request $request): array
+    /**
+     * @param  bool  $includeFinancials  revenue, payment and outstanding figures are only
+     *                                   built (and sent to the browser) when true - super_admin only.
+     */
+    public function handle(Request $request, bool $includeFinancials = false): array
     {
         $filters = $this->filters($request);
         $current = $this->period($filters);
         $previous = $this->previousPeriod($current['start'], $current['end']);
 
-        return [
+        $report = [
             'filters' => $filters,
             'filterOptions' => $this->filterOptions(),
-            'summary' => $this->summary($current, $previous, $filters),
+            'canViewFinancials' => $includeFinancials,
+            'summary' => $this->summary($current, $previous, $filters, $includeFinancials),
             'enrollmentTrend' => $this->enrollmentTrend($current, $filters),
-            'revenueTrend' => $this->revenueTrend($current, $filters),
-            'courseStats' => $this->courseStats($current, $filters),
-            'paymentStatus' => $this->paymentStatus($current, $filters),
+            'courseStats' => $this->courseStats($current, $filters, $includeFinancials),
         ];
+
+        if ($includeFinancials) {
+            $report['revenueTrend'] = $this->revenueTrend($current, $filters);
+            $report['paymentStatus'] = $this->paymentStatus($current, $filters);
+        }
+
+        return $report;
     }
 
     private function filters(Request $request): array
@@ -89,19 +99,37 @@ class DashboardReportService
         ];
     }
 
-    private function summary(array $current, array $previous, array $filters): array
+    private function summary(array $current, array $previous, array $filters, bool $includeFinancials): array
     {
         $enrollments = $this->enrollmentBase($filters);
-        $revenue = $this->revenueBase($filters);
 
         $totalEnrolled = (clone $enrollments)->whereBetween('student_enrollments.enrolled_at', [$current['start'], $current['end']])->count();
         $previousEnrolled = (clone $this->enrollmentBase($filters))->whereBetween('student_enrollments.enrolled_at', [$previous['start'], $previous['end']])->count();
         $newEnrollments = (clone $enrollments)->whereBetween('student_enrollments.created_at', [$current['start'], $current['end']])->count();
+        $previousNewEnrollments = (clone $this->enrollmentBase($filters))->whereBetween('student_enrollments.created_at', [$previous['start'], $previous['end']])->count();
+
+        $summary = [
+            'period_label' => $current['start']->format('M d, Y').' - '.$current['end']->format('M d, Y'),
+            'total_students_enrolled' => $totalEnrolled,
+            'new_enrollments' => $newEnrollments,
+            'enrollment_change_percent' => $this->percentChange($totalEnrolled, $previousEnrolled),
+            'new_enrollment_change_percent' => $this->percentChange($newEnrollments, $previousNewEnrollments),
+        ];
+
+        return $includeFinancials
+            ? $summary + $this->financialSummary($current, $previous, $filters)
+            : $summary;
+    }
+
+    private function financialSummary(array $current, array $previous, array $filters): array
+    {
+        $enrollments = $this->enrollmentBase($filters);
+        $revenue = $this->revenueBase($filters);
+
         $totalRevenue = (float) (clone $revenue)->whereBetween('student_enrollments.paid_at', [$current['start'], $current['end']])->sum('student_enrollments.amount_paid');
         $previousRevenue = (float) (clone $this->revenueBase($filters))->whereBetween('student_enrollments.paid_at', [$previous['start'], $previous['end']])->sum('student_enrollments.amount_paid');
         $paidEnrollments = (clone $revenue)->whereBetween('student_enrollments.paid_at', [$current['start'], $current['end']])->count();
         $previousPaidEnrollments = (clone $this->revenueBase($filters))->whereBetween('student_enrollments.paid_at', [$previous['start'], $previous['end']])->count();
-        $previousNewEnrollments = (clone $this->enrollmentBase($filters))->whereBetween('student_enrollments.created_at', [$previous['start'], $previous['end']])->count();
         $averageRevenue = $paidEnrollments > 0 ? round($totalRevenue / $paidEnrollments, 2) : 0;
         $previousAverageRevenue = $previousPaidEnrollments > 0 ? round($previousRevenue / $previousPaidEnrollments, 2) : 0;
         $outstanding = (float) (clone $enrollments)
@@ -110,16 +138,11 @@ class DashboardReportService
             ->sum(DB::raw('GREATEST((student_enrollments.fee_amount + student_enrollments.document_fee_amount) - student_enrollments.amount_paid, 0)'));
 
         return [
-            'period_label' => $current['start']->format('M d, Y').' - '.$current['end']->format('M d, Y'),
-            'total_students_enrolled' => $totalEnrolled,
             'total_revenue_collected' => $totalRevenue,
-            'new_enrollments' => $newEnrollments,
             'average_revenue_per_enrollment' => $averageRevenue,
             'outstanding_amount' => $outstanding,
             'paid_enrollments' => $paidEnrollments,
-            'enrollment_change_percent' => $this->percentChange($totalEnrolled, $previousEnrolled),
             'revenue_change_percent' => $this->percentChange($totalRevenue, $previousRevenue),
-            'new_enrollment_change_percent' => $this->percentChange($newEnrollments, $previousNewEnrollments),
             'average_revenue_change_percent' => $this->percentChange($averageRevenue, $previousAverageRevenue),
         ];
     }
@@ -158,16 +181,21 @@ class DashboardReportService
             ->all();
     }
 
-    private function courseStats(array $period, array $filters): array
+    private function courseStats(array $period, array $filters, bool $includeFinancials): array
     {
-        return $this->enrollmentBase($filters)
+        $query = $this->enrollmentBase($filters)
             ->whereBetween('student_enrollments.enrolled_at', [$period['start'], $period['end']])
             ->selectRaw('COALESCE(enrollment_courses.title, class_courses.title, "Unassigned") as course_title')
-            ->selectRaw('COUNT(*) as enrollments')
-            ->selectRaw(
+            ->selectRaw('COUNT(*) as enrollments');
+
+        if ($includeFinancials) {
+            $query->selectRaw(
                 'SUM(CASE WHEN student_enrollments.payment_status IN ("paid", "partial") AND student_enrollments.paid_at BETWEEN ? AND ? THEN student_enrollments.amount_paid ELSE 0 END) as revenue',
                 [$period['start'], $period['end']]
-            )
+            );
+        }
+
+        return $query
             ->groupBy('course_title')
             ->orderByDesc('enrollments')
             ->limit(5)
@@ -175,8 +203,7 @@ class DashboardReportService
             ->map(fn ($row) => [
                 'course_title' => $row->course_title,
                 'enrollments' => (int) $row->enrollments,
-                'revenue' => round((float) $row->revenue, 2),
-            ])
+            ] + ($includeFinancials ? ['revenue' => round((float) $row->revenue, 2)] : []))
             ->all();
     }
 

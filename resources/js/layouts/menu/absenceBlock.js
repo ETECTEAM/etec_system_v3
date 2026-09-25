@@ -1,7 +1,15 @@
 export const key = "absenceBlock";
 
+// The Blocklist page itself (exactly /dashboard/absence-blocks) lives under Daily Work
+// (see absenceBlocklist.js), so it must not open or highlight this group.
+function isGroupPath(path) {
+  const pathOnly = path.split("?")[0].replace(/\/+$/, "");
+
+  return pathOnly.startsWith("/dashboard/absence-blocks/");
+}
+
 export function isRoute(path) {
-  return path.split("?")[0].startsWith("/dashboard/absence-blocks");
+  return isGroupPath(path);
 }
 
 export function build(ctx) {
@@ -10,14 +18,6 @@ export function build(ctx) {
   if (!ctx.isSuperAdmin && !ctx.isAdmin) return null;
 
   const children = [
-    {
-      label: "Blocklist",
-      labelKey: "navigation.absenceBlocklist",
-      href: "/dashboard/absence-blocks",
-      match: ["/dashboard/absence-blocks"],
-      exact: true,
-      isActive: (path) => path === "/dashboard/absence-blocks",
-    },
     {
       label: "Attendance Rules",
       labelKey: "navigation.attendanceRules",
@@ -57,6 +57,7 @@ export function build(ctx) {
     labelKey: "navigation.absenceBlocks",
     key,
     match: ["/dashboard/absence-blocks"],
+    isActive: isGroupPath,
     icon: "absence_block",
     section: "system",
     children,

@@ -6,6 +6,7 @@ export const backendFinalTranslations = {
     "Enroll Config": "កំណត់ការចុះឈ្មោះ",
     "Report Overview": "ទិដ្ឋភាពទូទៅរបាយការណ៍",
     "Student enrollment and revenue summary": "សេចក្តីសង្ខេបការចុះឈ្មោះសិស្ស និងចំណូល",
+    "Student enrollment summary": "សេចក្តីសង្ខេបការចុះឈ្មោះសិស្ស",
     "Date Range": "ចន្លោះកាលបរិច្ឆេទ",
     "Year": "ឆ្នាំ",
     "Start Date": "ថ្ងៃចាប់ផ្តើម",
