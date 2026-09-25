@@ -8,6 +8,7 @@ import * as certificate from "./certificate";
 import * as course from "./course";
 import * as profile from "./profile";
 import * as attendance from "./attendance";
+import * as attendanceReport from "./attendanceReport";
 import * as user from "./user";
 import * as instructorScheduleBlocks from "./instructorScheduleBlocks";
 import * as instructorAvailability from "./instructorAvailability";
@@ -30,6 +31,7 @@ export const menuDomains = [
   instructorAvailability,
   roomAvailability,
   attendance,
+  attendanceReport,
   absenceBlocklist,
   officialLeave,
   classHistory,

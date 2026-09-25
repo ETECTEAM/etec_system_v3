@@ -16,6 +16,7 @@ use App\Modules\Attendance\Actions\OverrideAttendanceRecord;
 use App\Modules\Attendance\Queries\FindActiveInstructorAttendanceBlock;
 use App\Modules\Attendance\Queries\GetSessionBanner;
 use App\Modules\Attendance\Services\AttendanceQrService;
+use App\Modules\AbsenceBlock\Services\AbsenceBlockEvaluator;
 use App\Modules\Enroll\Queries\GetClassFormOptions;
 use App\Modules\Enroll\Services\InstructorClassTermResolver;
 use App\Modules\Instructor\Events\StudentTransferred;
@@ -232,12 +233,9 @@ class InstructorClassController extends Controller
             return back()->with('warning', 'Certificates can only be requested while the class is active.');
         }
 
-        $types = $this->instructorClasses->requestCertificates($class, $request->user());
-        $label = in_array('internship', $types, true)
-            ? 'Internship and meal certificate request sent successfully.'
-            : 'Regular certificate request sent successfully.';
+        $this->instructorClasses->requestCertificates($class, $request->user());
 
-        return back()->with('success', $label);
+        return back()->with('success', 'Certificate request sent successfully.');
     }
 
     public function trackAttendance(Request $request, string $studyClass): Response|RedirectResponse
@@ -380,6 +378,19 @@ class InstructorClassController extends Controller
         if ($requestedStudentIds->diff($activeStudentIds)->isNotEmpty()) {
             throw ValidationException::withMessages([
                 'student_ids' => 'Certificate requests can only include active students from this class.',
+            ]);
+        }
+
+        $blockedStudentIds = collect(app(AbsenceBlockEvaluator::class)
+            ->lockStateForRoster($class->id, $requestedStudentIds->all()))
+            ->filter(fn ($lockState): bool => $lockState->locked)
+            ->keys()
+            ->map(fn ($studentId): int => (int) $studentId)
+            ->values();
+
+        if ($blockedStudentIds->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'student_ids' => 'Blocked students cannot request certificates. An admin must unblock them first.',
             ]);
         }
 
@@ -694,15 +705,26 @@ class InstructorClassController extends Controller
 
     private function certificateTypeForClass(stdClass $class): string
     {
-        $text = strtolower(collect([
-            $class->class_type_name ?? null,
-            $class->course_title ?? null,
-            $class->lesson_title ?? null,
-            $class->title ?? null,
-        ])->filter()->implode(' '));
+        $text = strtolower((string) ($class->class_type_name ?? ''));
+
+        if (str_contains($text, 'free')) {
+            return 'free';
+        }
+
+        if (str_contains($text, 'scholar')) {
+            return 'scholarship';
+        }
 
         if (str_contains($text, 'internship') || str_contains($text, 'intership')) {
             return 'internship';
+        }
+
+        if (str_contains($text, 'intern')) {
+            return 'internship';
+        }
+
+        if (str_contains($text, 'microsoft office') || str_contains($text, 'office')) {
+            return 'office';
         }
 
         return 'normal';
