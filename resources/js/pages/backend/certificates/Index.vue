@@ -301,8 +301,19 @@ watch([selectedTrack, selectedMonth, selectedYear, selectedReportType, selectedR
     if (isClassListPage.value) loadClasses()
 })
 
+// ← / → flip through the Print All preview, unless the user is typing in a field.
+function handlePreviewKeys(event) {
+    if (modalMode.value !== 'print' || !isPrintAllMode.value) return
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+    if (event.target.closest?.('input, textarea, select, [contenteditable="true"]')) return
+
+    event.preventDefault()
+    goToPreviewSlide(previewIndex.value + (event.key === 'ArrowRight' ? 1 : -1))
+}
+
 onMounted(() => {
     if (isClassListPage.value) loadClasses()
+    window.addEventListener('keydown', handlePreviewKeys)
 })
 
 let freePrintStyleElement = null
@@ -415,6 +426,7 @@ watchEffect(() => {
 })
 
 onUnmounted(() => {
+    window.removeEventListener('keydown', handlePreviewKeys)
     document.body.classList.remove('free-certificate-print')
     document.body.classList.remove('normal-certificate-print')
     freePrintStyleElement?.remove()
@@ -621,6 +633,26 @@ async function openPrintModal(student) {
     resetCertificateDefaults()
     await refreshId('normal')
     modalMode.value = 'print'
+}
+
+// Cover-flow layout: distance from the centre card decides its offset and size (cards stay fully bright).
+// Only the cards near the centre are rendered, so large classes stay light.
+const coverflowSlides = computed(() => studentDrafts.value
+    .map((draft, index) => ({ draft, index }))
+    .filter(({ index }) => Math.abs(index - previewIndex.value) <= 3))
+
+function coverflowStyle(index) {
+    const distance = index - previewIndex.value
+    const steps = Math.abs(distance)
+    const offset = steps === 0 ? 0 : Math.sign(distance) * (170 + (steps - 1) * 105)
+    const scale = 1 - Math.min(steps, 3) * 0.12
+
+    return {
+        transform: `translateX(calc(-50% + ${offset}px)) scale(${scale})`,
+        zIndex: 10 - steps,
+        opacity: steps > 2 ? 0 : 1,
+        pointerEvents: steps > 2 ? 'none' : 'auto',
+    }
 }
 
 // Preview slider for Print All: keep the typed name on the slide we leave,
@@ -2473,21 +2505,65 @@ function saveFreeAfterPrint() {
                         </aside>
 
                         <section class="preview-zone">
-                            <div class="preview-head no-print">
+                            <div class="preview-head no-print" :class="{ 'is-wide': isPrintAllMode && studentDrafts.length > 1 }">
                                 <span>{{ t('certificatePage.modal.preview') }}</span>
                                 <div v-if="isPrintAllMode && studentDrafts.length > 1" class="preview-slider">
-                                    <button type="button" :disabled="previewIndex === 0" aria-label="Previous certificate" @click="goToPreviewSlide(previewIndex - 1)">
-                                        <ChevronLeft class="h-4 w-4" />
-                                    </button>
                                     <em>{{ previewIndex + 1 }} / {{ studentDrafts.length }}</em>
-                                    <button type="button" :disabled="previewIndex >= studentDrafts.length - 1" aria-label="Next certificate" @click="goToPreviewSlide(previewIndex + 1)">
-                                        <ChevronRight class="h-4 w-4" />
-                                    </button>
                                     <small v-if="studentDrafts[previewIndex]?.is_printed" class="preview-printed-tag">Already printed</small>
                                 </div>
                                 <strong>{{ isPrintAllMode ? t('certificatePage.modal.certificatesReady', { count: studentDrafts.length || 1 }) : t('certificatePage.modal.singleCertificate') }}</strong>
                             </div>
-                            <component :is="classCertificatePreview" :certificate="currentCertificate" />
+
+                            <!-- Print All: cover-flow. The centre card is live; neighbours are smaller and dimmed, and clickable. -->
+                            <div v-if="isPrintAllMode && studentDrafts.length > 1" class="coverflow">
+                                <button
+                                    type="button"
+                                    class="coverflow-arrow coverflow-arrow-prev"
+                                    :disabled="previewIndex === 0"
+                                    aria-label="Previous certificate"
+                                    @click="goToPreviewSlide(previewIndex - 1)"
+                                >
+                                    <ChevronLeft class="h-9 w-9" />
+                                </button>
+
+                                <div class="coverflow-stage">
+                                    <div
+                                        v-for="slide in coverflowSlides"
+                                        :key="slide.draft.id"
+                                        class="coverflow-card"
+                                        :class="{ 'is-center': slide.index === previewIndex }"
+                                        :style="coverflowStyle(slide.index)"
+                                        @click="slide.index !== previewIndex && goToPreviewSlide(slide.index)"
+                                    >
+                                        <component
+                                            :is="classCertificatePreview"
+                                            :certificate="slide.index === previewIndex ? currentCertificate : certificateFromStudent(slide.draft)"
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    class="coverflow-arrow coverflow-arrow-next"
+                                    :disabled="previewIndex >= studentDrafts.length - 1"
+                                    aria-label="Next certificate"
+                                    @click="goToPreviewSlide(previewIndex + 1)"
+                                >
+                                    <ChevronRight class="h-9 w-9" />
+                                </button>
+                            </div>
+                            <component :is="classCertificatePreview" v-else :certificate="currentCertificate" />
+
+                            <div
+                                v-if="isPrintAllMode && studentDrafts.length > 1"
+                                class="coverflow-progress"
+                                role="progressbar"
+                                aria-valuemin="1"
+                                :aria-valuemax="studentDrafts.length"
+                                :aria-valuenow="previewIndex + 1"
+                            >
+                                <span :style="{ width: `${((previewIndex + 1) / studentDrafts.length) * 100}%` }"></span>
+                            </div>
                         </section>
                     </div>
 
@@ -4769,6 +4845,8 @@ table {
     align-content: start;
     min-height: 760px;
     padding: 18px 32px 30px;
+    /* The sliding certificate must not add a horizontal scrollbar while it moves. */
+    overflow-x: clip;
 }
 
 :global(.dark) .preview-zone {
@@ -4778,12 +4856,32 @@ table {
 }
 
 .preview-head {
-    display: flex;
+    /* Left / centre / right slots; a missing middle item leaves its slot empty. */
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
     width: min(560px, 100%);
     margin: 0 0 13px;
     color: #838386;
+}
+
+.preview-head.is-wide {
+    width: 100%;
+}
+
+.preview-head > span {
+    grid-column: 1;
+    justify-self: start;
+}
+
+.preview-head > .preview-slider {
+    grid-column: 2;
+    justify-self: center;
+}
+
+.preview-head > strong {
+    grid-column: 3;
+    justify-self: end;
 }
 
 .is-dark-theme .preview-head {
@@ -4824,30 +4922,93 @@ table {
     gap: 8px;
 }
 
-.preview-slider button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border: 1px solid #d6dce7;
-    border-radius: 999px;
-    background: #fff;
-    color: #2d2e83;
-    cursor: pointer;
-}
-
-.preview-slider button:disabled {
-    cursor: not-allowed;
-    opacity: .4;
-}
-
 .preview-slider em {
     min-width: 54px;
     text-align: center;
     font-size: 13px;
     font-style: normal;
     font-weight: 900;
+}
+
+.coverflow {
+    position: relative;
+    width: 100%;
+    margin-top: 6px;
+    padding: 18px 0;
+    overflow: hidden;
+    border-radius: 18px;
+    /* Light neutral desk under the papers in every theme, so no dark background shows between them. */
+    background: #e6e9f0;
+}
+
+.coverflow-stage {
+    position: relative;
+    height: 770px;
+}
+
+.coverflow-card {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 552px;
+    transform-origin: center center;
+    transition: transform .45s cubic-bezier(.22, .8, .3, 1), opacity .35s ease;
+}
+
+.coverflow-card:not(.is-center) {
+    cursor: pointer;
+}
+
+.coverflow-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, .55);
+    color: #fff;
+    backdrop-filter: blur(4px);
+    transform: translateY(-50%);
+    transition: background-color .15s ease, transform .15s ease, opacity .15s ease;
+}
+
+.coverflow-arrow-prev { left: 0; }
+.coverflow-arrow-next { right: 0; }
+
+.coverflow-arrow:hover:not(:disabled) {
+    background: rgba(45, 46, 131, .9);
+    transform: translateY(-50%) scale(1.08);
+}
+
+.coverflow-arrow:disabled {
+    opacity: .25;
+}
+
+.coverflow-progress {
+    width: min(560px, 100%);
+    height: 8px;
+    margin-top: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, .35);
+}
+
+.coverflow-progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    transition: width .45s cubic-bezier(.22, .8, .3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .coverflow-card,
+    .coverflow-progress span {
+        transition: none;
+    }
 }
 
 .preview-printed-tag {
@@ -4857,12 +5018,6 @@ table {
     padding: 4px 10px;
     font-size: 11px;
     font-weight: 900;
-}
-
-.is-dark-theme .preview-slider button {
-    border-color: #263244;
-    background: #111827;
-    color: #bfdbfe;
 }
 
 .include-printed-toggle {
