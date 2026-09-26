@@ -32,6 +32,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -349,6 +350,11 @@ class InstructorClassController extends Controller
 
     public function storeCertificateRequest(Request $request, string $studyClass): RedirectResponse
     {
+        return DB::transaction(fn (): RedirectResponse => $this->saveCertificateRequest($request, $studyClass));
+    }
+
+    private function saveCertificateRequest(Request $request, string $studyClass): RedirectResponse
+    {
         $class = $this->instructorClasses->findForInstructor($request->user(), (int) $studyClass);
 
         if (($class->class_status ?? null) !== 'active') {
@@ -385,8 +391,20 @@ class InstructorClassController extends Controller
             ]);
         }
 
+        $existing = ClassCertificateRequest::query()
+            ->where('study_class_id', $class->id)
+            ->lockForUpdate()
+            ->first();
+
+        $previousIds = collect($existing?->requested_student_ids ?? [])->map(fn ($id): int => (int) $id);
+        $printedIds = $existing
+            ? $this->printedStudentIds($class->id, $existing->certificate_type)
+            : collect();
+
+        // Only students newly added to the request are checked against blocks; a student who was
+        // already requested (and maybe printed) must not make a later update fail.
         $blockedStudentIds = collect(app(AbsenceBlockEvaluator::class)
-            ->lockStateForRoster($class->id, $requestedStudentIds->all()))
+            ->lockStateForRoster($class->id, $requestedStudentIds->diff($previousIds)->values()->all()))
             ->filter(fn ($lockState): bool => $lockState->locked)
             ->keys()
             ->map(fn ($studentId): int => (int) $studentId)
@@ -396,6 +414,18 @@ class InstructorClassController extends Controller
             throw ValidationException::withMessages([
                 'student_ids' => 'Blocked students cannot request certificates. An admin must unblock them first.',
             ]);
+        }
+
+        if ($existing) {
+            return $this->updateCertificateRequest(
+                $existing,
+                $class,
+                $activeStudentIds,
+                $requestedStudentIds,
+                $previousIds,
+                $printedIds,
+                $validated['note'] ?? null,
+            );
         }
 
         ClassCertificateRequest::query()->updateOrCreate(
@@ -734,6 +764,60 @@ class InstructorClassController extends Controller
         return 'normal';
     }
 
+    /** Students in this class who already have a printed certificate of the given type. */
+    private function printedStudentIds(int $studyClassId, string $certificateType): Collection
+    {
+        return DB::table('student_certificate_normal')
+            ->where('study_class_id', $studyClassId)
+            ->where('certificate_type', $certificateType)
+            ->pluck('student_id')
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * An instructor may update a pending request (e.g. add a forgotten student), but never take back a
+     * student whose certificate is already printed, and not once every student has one.
+     */
+    private function updateCertificateRequest(
+        ClassCertificateRequest $existing,
+        stdClass $class,
+        Collection $activeStudentIds,
+        Collection $requestedStudentIds,
+        Collection $previousIds,
+        Collection $printedIds,
+        ?string $note,
+    ): RedirectResponse {
+        if ($activeStudentIds->diff($printedIds)->isEmpty()) {
+            return back()->with('warning', 'Every student in this class already has a certificate.');
+        }
+
+        if ($printedIds->intersect($activeStudentIds)->diff($requestedStudentIds)->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'student_ids' => 'Students who already have a certificate cannot be removed from the request.',
+            ]);
+        }
+
+        if ($requestedStudentIds->sort()->values()->all() === $previousIds->sort()->values()->all()) {
+            return back()->with('warning', 'Nothing changed in the certificate request.');
+        }
+
+        // requested_at and requested_by stay as first submitted so the admin's month filter and history do not move.
+        $existing->update([
+            'status' => 'pending',
+            'student_count' => $requestedStudentIds->count(),
+            'requested_student_ids' => $requestedStudentIds->all(),
+            'note' => $note ?? $existing->note,
+            'reviewed_by' => null,
+            'reviewed_at' => null,
+        ]);
+
+        return redirect()
+            ->route('instructor.classes.attendance', $class->id)
+            ->with('success', 'Certificate request updated successfully.');
+    }
+
     private function certificateRequestData(int $studyClassId): ?array
     {
         $request = ClassCertificateRequest::query()
@@ -745,9 +829,19 @@ class InstructorClassController extends Controller
             return null;
         }
 
+        $printedIds = $this->printedStudentIds($studyClassId, $request->certificate_type);
+        $activeIds = DB::table('student_enrollments')
+            ->where('study_class_id', $studyClassId)
+            ->where('enrollment_status', 'active')
+            ->pluck('student_id')
+            ->map(fn ($id): int => (int) $id);
+
         return [
             'id' => $request->id,
             'certificate_type' => $request->certificate_type,
+            'printed_student_ids' => $printedIds->all(),
+            // Still open for the instructor: pending and at least one active student has no certificate yet.
+            'can_update' => $request->status === 'pending' && $activeIds->diff($printedIds)->isNotEmpty(),
             'status' => $request->status,
             'status_label' => ucfirst(str_replace('_', ' ', $request->status)),
             'student_count' => (int) $request->student_count,

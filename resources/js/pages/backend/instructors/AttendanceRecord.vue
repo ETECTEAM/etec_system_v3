@@ -71,7 +71,10 @@ const rosterStudents = ref([]);
 const pendingRequests = ref([]);
 const classLifecycleStatus = computed(() => String(props.classData?.class_status ?? "").toLowerCase());
 const isActiveClass = computed(() => classLifecycleStatus.value === "active");
-const canRequestCertificate = computed(() => isActiveClass.value && props.certificateRequest?.status !== "pending");
+// A pending request stays open while some student has no certificate yet, so the instructor can update it.
+const canRequestCertificate = computed(
+  () => isActiveClass.value && (props.certificateRequest?.status !== "pending" || props.certificateRequest?.can_update === true),
+);
 
 const totalPresent = computed(() =>
   rosterStudents.value.reduce((total, student) => total + Number(student.attendance?.present ?? 0), 0),
@@ -386,9 +389,11 @@ async function openCertificateRequestPage() {
   }
 
   const accepted = await confirm({
-    title: "Request Certificate?",
-    message: "This will open the certificate request page for this class.",
-    confirmText: "Request",
+    title: props.certificateRequest?.status === "pending" ? "Update Certificate Request?" : "Request Certificate?",
+    message: props.certificateRequest?.status === "pending"
+      ? "This will open the certificate request page so you can add students who do not have a certificate yet."
+      : "This will open the certificate request page for this class.",
+    confirmText: props.certificateRequest?.status === "pending" ? "Update" : "Request",
     cancelText: "Cancel",
   });
 
@@ -505,7 +510,7 @@ async function approveAllPendingRegistrations() {
             @click="openCertificateRequestPage"
           >
             <FileText class="h-4 w-4" />
-            {{ certificateRequest?.status === 'pending' ? 'Certificate Requested' : 'Request Certificate' }}
+            {{ certificateRequest?.status === 'pending' ? (certificateRequest?.can_update ? 'Update Certificate Request' : 'Certificate Requested') : 'Request Certificate' }}
           </button>
           <span
             v-if="certificateRequest"

@@ -51,24 +51,62 @@ const breadcrumbItems = computed(() => [
 
 // Local editable copy of the roster so names can be updated and each
 // student can be individually approved / un-approved.
+const printedIds = props.certificateRequest?.printed_student_ids ?? [];
+
 const rows = reactive(
-  props.students.map((student) => ({
-    ...student,
-    name: student.name,
-    approved: !student.attendance?.is_locked && (props.certificateRequest?.student_ids?.includes(student.id) ?? false),
-    saving: false,
-  }))
+  props.students.map((student) => {
+    const printed = printedIds.includes(student.id);
+
+    return {
+      ...student,
+      name: student.name,
+      // Students who already have a printed certificate stay in the request and cannot be taken out.
+      printed,
+      approved: printed || (!student.attendance?.is_locked && (props.certificateRequest?.student_ids?.includes(student.id) ?? false)),
+      saving: false,
+    };
+  })
 );
 
 const eligibleRows = computed(() => rows.filter((row) => !row.attendance?.is_locked));
+const editableRows = computed(() => eligibleRows.value.filter((row) => !row.printed));
 const approvedRows = computed(() => eligibleRows.value.filter((row) => row.approved));
 const blockedRows = computed(() => rows.filter((row) => row.attendance?.is_locked));
+const printedRows = computed(() => rows.filter((row) => row.printed));
 const hasPendingRequest = computed(() => props.certificateRequest?.status === "pending");
-const allRowsApproved = computed(() => eligibleRows.value.length > 0 && approvedRows.value.length === eligibleRows.value.length);
+// A sent request stays editable while some student has no certificate yet (e.g. to add a forgotten student).
+const canEditRequest = computed(() => props.canRequestCertificate && (!hasPendingRequest.value || props.certificateRequest?.can_update === true));
+const allRowsApproved = computed(() => editableRows.value.length > 0 && editableRows.value.every((row) => row.approved));
 const requestStatusLabel = computed(() => props.certificateRequest?.status_label ?? "Draft");
+const hasChanges = computed(() => {
+  const current = approvedRows.value.map((row) => row.id).sort((a, b) => a - b);
+  const original = [...(props.certificateRequest?.student_ids ?? [])].sort((a, b) => a - b);
+
+  return current.length !== original.length || current.some((id, index) => id !== original[index]);
+});
+const submitLabel = computed(() => {
+  if (requestSubmitting.value) {
+    return hasPendingRequest.value ? "Updating..." : "Requesting...";
+  }
+
+  if (!hasPendingRequest.value) {
+    return `Request (${approvedRows.value.length})`;
+  }
+
+  return canEditRequest.value ? `Update request (${approvedRows.value.length})` : "Requested";
+});
+const requestNotice = computed(() => {
+  if (!hasPendingRequest.value || !props.canRequestCertificate) {
+    return null;
+  }
+
+  return props.certificateRequest?.can_update
+    ? "This request was already sent. You can add students who do not have a certificate yet. Printed students stay in the request."
+    : "Every student in this class already has a certificate.";
+});
 
 function toggleApprove(row) {
-  if (!props.canRequestCertificate || hasPendingRequest.value || row.attendance?.is_locked) {
+  if (!canEditRequest.value || row.attendance?.is_locked || row.printed) {
     return;
   }
 
@@ -76,21 +114,21 @@ function toggleApprove(row) {
 }
 
 function approveAll() {
-  if (!props.canRequestCertificate || hasPendingRequest.value) {
+  if (!canEditRequest.value) {
     return;
   }
 
-  eligibleRows.value.forEach((row) => {
+  editableRows.value.forEach((row) => {
     row.approved = true;
   });
 }
 
 function clearApproved() {
-  if (!props.canRequestCertificate || hasPendingRequest.value) {
+  if (!canEditRequest.value) {
     return;
   }
 
-  rows.forEach((row) => {
+  editableRows.value.forEach((row) => {
     row.approved = false;
   });
 }
@@ -118,7 +156,7 @@ function updateName(row) {
 }
 
 function submitCertificateRequest() {
-  if (!props.canRequestCertificate || !approvedRows.value.length || requestSubmitting.value) {
+  if (!canEditRequest.value || !approvedRows.value.length || requestSubmitting.value || (hasPendingRequest.value && !hasChanges.value)) {
     return;
   }
 
@@ -170,11 +208,11 @@ function submitCertificateRequest() {
           </Link>
           <button
             type="button"
-            :disabled="requestSubmitting || hasPendingRequest || !approvedRows.length || !canRequestCertificate"
+            :disabled="requestSubmitting || !canEditRequest || !approvedRows.length || (hasPendingRequest && !hasChanges)"
             @click="submitCertificateRequest"
             class="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {{ requestSubmitting ? "Requesting..." : hasPendingRequest ? "Requested" : `Request (${approvedRows.length})` }}
+            {{ submitLabel }}
           </button>
         </div>
       </div>
@@ -186,6 +224,13 @@ function submitCertificateRequest() {
         {{ requestUnavailableReason }}
       </div>
 
+      <div
+        v-if="requestNotice"
+        class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-800 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300"
+      >
+        {{ requestNotice }}
+      </div>
+
       <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 dark:border-gray-800 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -195,6 +240,7 @@ function submitCertificateRequest() {
             </h2>
             <p class="mt-1 text-sm font-semibold text-slate-500 dark:text-gray-400">
               {{ approvedRows.length }} of {{ rows.length }} students selected
+              <span v-if="printedRows.length"> · {{ printedRows.length }} already printed</span>
               <span v-if="blockedRows.length"> · {{ blockedRows.length }} blocked by system</span>
             </p>
           </div>
@@ -202,7 +248,7 @@ function submitCertificateRequest() {
           <div class="flex flex-wrap gap-2">
             <button
               type="button"
-              :disabled="!eligibleRows.length || allRowsApproved || hasPendingRequest || !canRequestCertificate"
+              :disabled="!editableRows.length || allRowsApproved || !canEditRequest"
               @click="approveAll"
               class="inline-flex h-9 items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-black text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
             >
@@ -211,7 +257,7 @@ function submitCertificateRequest() {
             </button>
             <button
               type="button"
-              :disabled="!approvedRows.length || hasPendingRequest || !canRequestCertificate"
+              :disabled="!editableRows.some((row) => row.approved) || !canEditRequest"
               @click="clearApproved"
               class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
             >
@@ -275,30 +321,34 @@ function submitCertificateRequest() {
                       'inline-flex h-7 w-32 items-center justify-center gap-1.5 rounded-full border px-3 text-xs font-black',
                       student.attendance?.is_locked
                         ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300'
+                        : student.printed
+                        ? 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300'
                         : student.approved
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300'
                         : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-400',
                     ]"
                   >
-                    {{ student.attendance?.is_locked ? "Blocked — Admin must unblock" : student.approved ? "Approved" : "Not Approved" }}
+                    {{ student.attendance?.is_locked ? "Blocked — Admin must unblock" : student.printed ? "Printed" : student.approved ? "Approved" : "Not Approved" }}
                   </span>
                 </td>
                 <td class="border-b border-slate-100 px-4 py-3 text-center dark:border-gray-800">
                   <button
                     type="button"
-                    :disabled="student.saving || student.attendance?.is_locked || hasPendingRequest || !canRequestCertificate"
+                    :disabled="student.saving || student.attendance?.is_locked || student.printed || !canEditRequest"
                     @click="toggleApprove(student)"
                     :class="[
                       'inline-flex h-9 w-24 items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-60',
                       student.attendance?.is_locked
                         ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300'
+                        : student.printed
+                        ? 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300'
                         : student.approved
                         ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300'
                         : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300',
                     ]"
                   >
-                    <component :is="student.attendance?.is_locked ? XCircle : student.approved ? XCircle : CheckCircle2" class="h-3.5 w-3.5" />
-                    {{ student.saving ? "Saving..." : student.attendance?.is_locked ? "Blocked" : student.approved ? "Cancel" : "Approve" }}
+                    <component :is="student.attendance?.is_locked ? XCircle : student.printed ? CheckCircle2 : student.approved ? XCircle : CheckCircle2" class="h-3.5 w-3.5" />
+                    {{ student.saving ? "Saving..." : student.attendance?.is_locked ? "Blocked" : student.printed ? "Printed" : student.approved ? "Cancel" : "Approve" }}
                   </button>
                 </td>
               </tr>
