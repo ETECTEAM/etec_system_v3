@@ -12,12 +12,15 @@ import {
     ChevronRight,
     CalendarDays,
     Loader2,
+    Maximize2,
     Pencil,
     Printer,
     RotateCcw,
     User,
     Users,
     X,
+    ZoomIn,
+    ZoomOut,
 } from '@lucide/vue'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
@@ -303,6 +306,11 @@ watch([selectedTrack, selectedMonth, selectedYear, selectedReportType, selectedR
 
 // ← / → flip through the Print All preview, unless the user is typing in a field.
 function handlePreviewKeys(event) {
+    if (zoomOpen.value && event.key === 'Escape') {
+        closeZoom()
+        return
+    }
+
     if (modalMode.value !== 'print' || !isPrintAllMode.value) return
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
     if (event.target.closest?.('input, textarea, select, [contenteditable="true"]')) return
@@ -314,6 +322,7 @@ function handlePreviewKeys(event) {
 onMounted(() => {
     if (isClassListPage.value) loadClasses()
     window.addEventListener('keydown', handlePreviewKeys)
+    window.addEventListener('resize', updateViewportHeight)
 })
 
 let freePrintStyleElement = null
@@ -427,6 +436,7 @@ watchEffect(() => {
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handlePreviewKeys)
+    window.removeEventListener('resize', updateViewportHeight)
     document.body.classList.remove('free-certificate-print')
     document.body.classList.remove('normal-certificate-print')
     freePrintStyleElement?.remove()
@@ -635,6 +645,58 @@ async function openPrintModal(student) {
     modalMode.value = 'print'
 }
 
+// The carousel scales with the window height so the preview fits the modal without a vertical scrollbar:
+// full size on tall windows, smaller on short ones. 310px covers the modal chrome around the stage
+// (header, footer, preview header, panel padding and the progress bar).
+const COVERFLOW_HEIGHT = 770
+const viewportHeight = ref(typeof window === 'undefined' ? 900 : window.innerHeight)
+const viewportWidth = ref(typeof window === 'undefined' ? 1400 : window.innerWidth)
+const updateViewportHeight = () => {
+    viewportHeight.value = window.innerHeight
+    viewportWidth.value = window.innerWidth
+}
+const coverflowScale = computed(() => Math.min(1, Math.max(0.42, (viewportHeight.value * 0.92 - 310) / COVERFLOW_HEIGHT)))
+
+// Full-screen zoom viewer. `zoomLevel` null means "fit to screen"; otherwise it is a fixed scale.
+const ZOOM_MIN = 0.3
+const ZOOM_MAX = 3
+const zoomOpen = ref(false)
+const zoomLevel = ref(null)
+const zoomInner = ref(null)
+const zoomNatural = reactive({ width: 552, height: 770 })
+const zoomFit = computed(() => Math.max(ZOOM_MIN, Math.min(
+    (viewportWidth.value - 48) / zoomNatural.width,
+    (viewportHeight.value - 96) / zoomNatural.height,
+)))
+const zoomScale = computed(() => zoomLevel.value ?? zoomFit.value)
+
+// The paper's unscaled size (transforms do not change offsetWidth/Height) drives the fit maths.
+function measureZoom() {
+    if (!zoomInner.value) return
+
+    zoomNatural.width = zoomInner.value.offsetWidth
+    zoomNatural.height = zoomInner.value.offsetHeight
+}
+
+async function openZoom() {
+    zoomLevel.value = null
+    zoomOpen.value = true
+    await nextTick()
+    measureZoom()
+}
+
+watch([previewIndex, () => modalMode.value], () => {
+    if (zoomOpen.value) nextTick(measureZoom)
+})
+
+function closeZoom() {
+    zoomOpen.value = false
+}
+
+function stepZoom(delta) {
+    zoomLevel.value = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((zoomScale.value + delta) * 100) / 100))
+}
+
 // Cover-flow layout: distance from the centre card decides its offset and size (cards stay fully bright).
 // Only the cards near the centre are rendered, so large classes stay light.
 const coverflowSlides = computed(() => studentDrafts.value
@@ -644,11 +706,13 @@ const coverflowSlides = computed(() => studentDrafts.value
 function coverflowStyle(index) {
     const distance = index - previewIndex.value
     const steps = Math.abs(distance)
-    const offset = steps === 0 ? 0 : Math.sign(distance) * (170 + (steps - 1) * 105)
-    const scale = 1 - Math.min(steps, 3) * 0.12
+    const fit = coverflowScale.value
+    const offset = steps === 0 ? 0 : Math.sign(distance) * (170 + (steps - 1) * 105) * fit
+    const scale = (1 - Math.min(steps, 3) * 0.12) * fit
 
     return {
-        transform: `translateX(calc(-50% + ${offset}px)) scale(${scale})`,
+        // Cards are centred on the stage (top 50%), so shrinking them keeps them vertically centred.
+        transform: `translate(calc(-50% + ${offset}px), -50%) scale(${scale})`,
         zIndex: 10 - steps,
         opacity: steps > 2 ? 0 : 1,
         pointerEvents: steps > 2 ? 'none' : 'auto',
@@ -2504,14 +2568,19 @@ function saveFreeAfterPrint() {
                             </template>
                         </aside>
 
-                        <section class="preview-zone">
+                        <section class="preview-zone" :class="{ 'is-fit': isPrintAllMode && studentDrafts.length > 1 }">
                             <div class="preview-head no-print" :class="{ 'is-wide': isPrintAllMode && studentDrafts.length > 1 }">
                                 <span>{{ t('certificatePage.modal.preview') }}</span>
                                 <div v-if="isPrintAllMode && studentDrafts.length > 1" class="preview-slider">
                                     <em>{{ previewIndex + 1 }} / {{ studentDrafts.length }}</em>
                                     <small v-if="studentDrafts[previewIndex]?.is_printed" class="preview-printed-tag">Already printed</small>
                                 </div>
-                                <strong>{{ isPrintAllMode ? t('certificatePage.modal.certificatesReady', { count: studentDrafts.length || 1 }) : t('certificatePage.modal.singleCertificate') }}</strong>
+                                <div class="preview-head-right">
+                                    <button type="button" class="preview-zoom-btn" title="Zoom" aria-label="Zoom certificate" @click="openZoom">
+                                        <Maximize2 class="h-4 w-4" />
+                                    </button>
+                                    <strong>{{ isPrintAllMode ? t('certificatePage.modal.certificatesReady', { count: studentDrafts.length || 1 }) : t('certificatePage.modal.singleCertificate') }}</strong>
+                                </div>
                             </div>
 
                             <!-- Print All: cover-flow. The centre card is live; neighbours are smaller and dimmed, and clickable. -->
@@ -2526,14 +2595,14 @@ function saveFreeAfterPrint() {
                                     <ChevronLeft class="h-9 w-9" />
                                 </button>
 
-                                <div class="coverflow-stage">
+                                <div class="coverflow-stage" :style="{ height: `${COVERFLOW_HEIGHT * coverflowScale}px` }">
                                     <div
                                         v-for="slide in coverflowSlides"
                                         :key="slide.draft.id"
                                         class="coverflow-card"
                                         :class="{ 'is-center': slide.index === previewIndex }"
                                         :style="coverflowStyle(slide.index)"
-                                        @click="slide.index !== previewIndex && goToPreviewSlide(slide.index)"
+                                        @click="slide.index !== previewIndex ? goToPreviewSlide(slide.index) : openZoom()"
                                     >
                                         <component
                                             :is="classCertificatePreview"
@@ -2691,6 +2760,39 @@ function saveFreeAfterPrint() {
         </section>
 
         <Teleport to="body">
+            <Transition name="zoom-fade">
+                <div v-if="zoomOpen" class="zoom-overlay no-print" role="dialog" aria-modal="true" aria-label="Certificate preview" @click.self="closeZoom">
+                    <div class="zoom-toolbar">
+                        <span class="zoom-title">
+                            <template v-if="isPrintAllMode">{{ previewIndex + 1 }} / {{ studentDrafts.length }} · </template>{{ currentCertificate.student_name }}
+                        </span>
+                        <div class="zoom-actions">
+                            <button type="button" class="zoom-btn" aria-label="Zoom out" :disabled="zoomScale <= ZOOM_MIN" @click="stepZoom(-0.15)"><ZoomOut class="h-5 w-5" /></button>
+                            <button type="button" class="zoom-percent" title="Fit to screen" @click="zoomLevel = null">
+                                {{ zoomLevel === null ? 'Fit' : `${Math.round(zoomScale * 100)}%` }}
+                            </button>
+                            <button type="button" class="zoom-btn" aria-label="Zoom in" :disabled="zoomScale >= ZOOM_MAX" @click="stepZoom(0.15)"><ZoomIn class="h-5 w-5" /></button>
+                            <button type="button" class="zoom-btn" aria-label="Close" @click="closeZoom"><X class="h-5 w-5" /></button>
+                        </div>
+                    </div>
+
+                    <button v-if="isPrintAllMode && studentDrafts.length > 1" type="button" class="zoom-arrow zoom-arrow-prev" aria-label="Previous certificate" :disabled="previewIndex === 0" @click="goToPreviewSlide(previewIndex - 1)">
+                        <ChevronLeft class="h-8 w-8" />
+                    </button>
+                    <button v-if="isPrintAllMode && studentDrafts.length > 1" type="button" class="zoom-arrow zoom-arrow-next" aria-label="Next certificate" :disabled="previewIndex >= studentDrafts.length - 1" @click="goToPreviewSlide(previewIndex + 1)">
+                        <ChevronRight class="h-8 w-8" />
+                    </button>
+
+                    <div class="zoom-stage" @click.self="closeZoom">
+                        <div class="zoom-sizer" :style="{ width: `${zoomNatural.width * zoomScale}px`, height: `${zoomNatural.height * zoomScale}px` }">
+                            <div ref="zoomInner" class="zoom-paper" :style="{ transform: `scale(${zoomScale})` }">
+                                <component :is="classCertificatePreview" :certificate="currentCertificate" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+
             <div
                 v-if="isPrintRootReady"
                 id="normal-cert-print"
@@ -4879,9 +4981,41 @@ table {
     justify-self: center;
 }
 
-.preview-head > strong {
+.preview-head > .preview-head-right {
+    display: flex;
     grid-column: 3;
+    align-items: center;
+    gap: 8px;
     justify-self: end;
+}
+
+.preview-zoom-btn {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #eef0ff;
+    color: #2d2e83;
+    transition: background-color .15s ease, transform .15s ease;
+}
+
+.preview-zoom-btn:hover {
+    background: #dfe3ff;
+    transform: scale(1.06);
+}
+
+.is-dark-theme .preview-zoom-btn {
+    background: rgba(96, 165, 250, .18);
+    color: #dbeafe;
+}
+
+.is-dark-theme .preview-zoom-btn:hover {
+    background: rgba(96, 165, 250, .3);
+}
+
+.coverflow-card.is-center {
+    cursor: zoom-in;
 }
 
 .is-dark-theme .preview-head {
@@ -4944,11 +5078,17 @@ table {
 .coverflow-stage {
     position: relative;
     height: 770px;
+    transition: height .2s ease;
+}
+
+.preview-zone.is-fit {
+    /* The carousel sizes itself to the window, so it must not force the zone (and modal body) taller. */
+    min-height: 0;
 }
 
 .coverflow-card {
     position: absolute;
-    top: 0;
+    top: 50%;
     left: 50%;
     width: 552px;
     transform-origin: center center;
@@ -4975,8 +5115,9 @@ table {
     transition: background-color .15s ease, transform .15s ease, opacity .15s ease;
 }
 
-.coverflow-arrow-prev { left: 0; }
-.coverflow-arrow-next { right: 0; }
+/* Inset from the panel edge: the panel crops overflow, so the hover scale needs room to grow. */
+.coverflow-arrow-prev { left: 12px; }
+.coverflow-arrow-next { right: 12px; }
 
 .coverflow-arrow:hover:not(:disabled) {
     background: rgba(45, 46, 131, .9);
@@ -4985,6 +5126,113 @@ table {
 
 .coverflow-arrow:disabled {
     opacity: .25;
+}
+
+.zoom-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    background: rgba(2, 6, 23, .9);
+    backdrop-filter: blur(6px);
+}
+
+.zoom-toolbar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    padding: 0 20px;
+    color: #e2e8f0;
+}
+
+.zoom-title {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.zoom-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.zoom-btn,
+.zoom-percent,
+.zoom-arrow {
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, .12);
+    color: #fff;
+    transition: background-color .15s ease, opacity .15s ease;
+}
+
+.zoom-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+}
+
+.zoom-percent {
+    min-width: 64px;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.zoom-btn:hover:not(:disabled),
+.zoom-percent:hover,
+.zoom-arrow:hover:not(:disabled) {
+    background: rgba(255, 255, 255, .24);
+}
+
+.zoom-btn:disabled,
+.zoom-arrow:disabled {
+    opacity: .3;
+}
+
+.zoom-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    transform: translateY(-50%);
+}
+
+.zoom-arrow-prev { left: 20px; }
+.zoom-arrow-next { right: 20px; }
+
+.zoom-stage {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 8px 24px 24px;
+}
+
+.zoom-sizer {
+    flex: none;
+    margin: auto;
+}
+
+.zoom-paper {
+    width: 552px;
+    transform-origin: top left;
+}
+
+.zoom-fade-enter-active,
+.zoom-fade-leave-active {
+    transition: opacity .18s ease;
+}
+
+.zoom-fade-enter-from,
+.zoom-fade-leave-to {
+    opacity: 0;
 }
 
 .coverflow-progress {
