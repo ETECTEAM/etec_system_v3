@@ -6,13 +6,15 @@ import {
     Award,
     Bookmark,
     BookOpen,
+    Check,
     CheckCircle2,
     ChevronLeft,
     ChevronRight,
     CalendarDays,
     Loader2,
+    Pencil,
     Printer,
-    Trash2,
+    RotateCcw,
     User,
     Users,
     X,
@@ -20,9 +22,11 @@ import {
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
 import { SelectSearch } from '@/components/ui/select-search'
+import { DatePicker } from '@/components/ui/date-picker'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import { useTheme } from '../../../composables/useTheme'
 import { useConfirm } from '../../../composables/useConfirm'
+import { useToast } from '../../../composables/useToast'
 import { useI18n } from '@/i18n'
 import RealCertificatePreview from './CertificatePreview.vue'
 import FreeCertificatePreview from './FreeCertificatePreview.vue'
@@ -32,6 +36,7 @@ const props = defineProps({
     freeCertificates: { type: Object, default: () => ({ data: [], meta: {}, course_filter: '' }) },
     freeCourses: { type: Array, default: () => [] },
     normalCourses: { type: Array, default: () => [] },
+    canEditCourseNames: { type: Boolean, default: false },
     generatedIds: { type: Object, default: () => ({ free: '', normal: '' }) },
 })
 
@@ -46,6 +51,7 @@ const isReport = computed(() => certificateType.value === 'report')
 const isClassListPage = computed(() => isClassCertificate.value || isReport.value)
 const { resolvedTheme } = useTheme()
 const { confirm } = useConfirm()
+const toast = useToast()
 const { t } = useI18n()
 const isDarkTheme = computed(() => resolvedTheme.value === 'dark')
 
@@ -96,6 +102,12 @@ const batchStudents = computed(() => (includePrinted.value || isSinglePrintOnlyT
     ? students.value
     : students.value.filter((student) => !student.is_printed))
 const hasPrintedStudents = computed(() => students.value.some((student) => student.is_printed))
+const printedStudentCount = computed(() => students.value.filter((student) => student.is_printed).length)
+
+// Step 1 of Print All: which names were changed, and whether any was left blank.
+const isNameEdited = (student) => (student.draft_name || '').trim() !== student.name
+const editedNameCount = computed(() => studentDrafts.value.filter(isNameEdited).length)
+const hasEmptyDraftName = computed(() => studentDrafts.value.some((student) => !(student.draft_name || '').trim()))
 const studentsLoading = ref(false)
 const modalMode = ref(null)
 const isPrintAllMode = ref(false)
@@ -179,24 +191,29 @@ const reportStatusOptions = computed(() => [
 
 // Same look as the text inputs in the certificate modal (42px, 9px radius).
 const modalSelectClass = 'flex h-[42px] w-full items-center justify-between rounded-[9px] border border-[#d2daea] bg-white px-[13px] text-left text-[13px] text-slate-900 transition focus:border-[#2c2d86] focus:outline-none focus:ring-2 focus:ring-[#2c2d86]/15 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-200'
+// Text box of the date picker: same 42px look as the other fields in the modal sidebar.
+const modalInputClass = 'h-[42px] w-full cursor-pointer rounded-[9px] border border-[#d2daea] bg-white pl-[13px] pr-9 text-[13px] text-slate-900 outline-none transition focus:border-[#2c2d86] focus:ring-2 focus:ring-[#2c2d86]/15 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-200'
 const filterSelectClass = 'flex h-[38px] w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-3 text-left text-sm transition focus:border-[#2c2d86] focus:outline-none focus:ring-2 focus:ring-[#2c2d86]/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200'
 
-// SelectSearch works with string values; month and year are kept as numbers in state.
+// SelectSearch works with string values; month is kept as a number in state.
 const trackSelectOptions = computed(() => categories.value.map((category) => ({
     value: category,
     label: category === 'all' ? t('certificatePage.filters.all') : category,
 })))
 const monthSelectOptions = computed(() => monthOptions.value.map((month) => ({ ...month, value: String(month.value) })))
-const yearSelectOptions = computed(() => yearOptions.value.map((year) => ({ value: String(year), label: String(year) })))
+const firstYear = computed(() => yearOptions.value[0])
+const lastYear = computed(() => yearOptions.value[yearOptions.value.length - 1])
 const monthModel = computed({
     get: () => String(selectedMonth.value),
     set: (value) => { selectedMonth.value = value === 'all' ? 'all' : Number(value) },
 })
-const yearModel = computed({
-    get: () => String(selectedYear.value),
-    set: (value) => { selectedYear.value = Number(value) },
-})
 
+// The wording a certificate starts with: the course's certificate-only name when set, else its title.
+function defaultCourseName(studyClass) {
+    return studyClass?.certificate_course || studyClass?.course || ''
+}
+
+// Dropdown: only the certificate names that someone saved on a course (not the plain course titles).
 const savedCourseOptions = computed(() => savedCourses.value.map((course) => ({
     value: course.course_name,
     label: course.course_name,
@@ -227,12 +244,19 @@ const pagedGroups = computed(() => Object.entries(groupedClasses.value).reduce((
 
 const totalRequested = computed(() => filteredClasses.value.reduce((sum, item) => sum + Number(item.total_students || 0), 0))
 const totalPrinted = computed(() => filteredClasses.value.reduce((sum, item) => sum + Number(item.printed_students || 0), 0))
-const totalFinishedCourses = computed(() => filteredClasses.value.length)
+const totalClasses = computed(() => filteredClasses.value.length)
+const totalRemaining = computed(() => filteredClasses.value.reduce((sum, item) => sum + remainingStudents(item), 0))
+
+function classCountLabel(category) {
+    const count = groupedClasses.value[category]?.length ?? 0
+
+    return `${count} ${count === 1 ? t('class') : t('classes')}`
+}
 
 const currentCertificate = computed(() => ({
     certificate_type: activeCertificateType.value,
     student_name: printForm.student_name || 'STUDENT NAME',
-    course: printForm.course || selectedClass.value?.course || 'COURSE NAME',
+    course: printForm.course || defaultCourseName(selectedClass.value) || 'COURSE NAME',
     granted_date: formatReadableDate(printForm.granted_date),
     certificate_id: printForm.certificate_id || normalCertificateId.value || '0000000 ETEC',
     director: printForm.director || 'Mr. HENG PHEAKNA',
@@ -246,7 +270,7 @@ function certificateFromStudent(student) {
         student_name: selectedStudent.value?.id === student.id
             ? printForm.student_name
             : student.draft_name || student.name,
-        course: printForm.course || selectedClass.value?.course || 'COURSE NAME',
+        course: printForm.course || defaultCourseName(selectedClass.value) || 'COURSE NAME',
         granted_date: formatReadableDate(printForm.granted_date),
         certificate_id: student.certificate_id || normalCertificateId.value || '0000000 ETEC',
         director: printForm.director,
@@ -506,7 +530,7 @@ function openBlankCertificateModal(studyClass = null) {
     studentDrafts.value = []
     isPrintAllMode.value = false
     printForm.student_name = 'STUDENT NAME'
-    printForm.course = studyClass?.course || 'COURSE NAME'
+    printForm.course = defaultCourseName(studyClass) || 'COURSE NAME'
     printForm.granted_date = new Date().toISOString().slice(0, 10)
     printForm.director = 'Mr. HENG PHEAKNA'
     printForm.team_lead_name = 'Mr. SRIN NALEN'
@@ -532,42 +556,70 @@ function backToClasses() {
     closeModal()
 }
 
-function openCreateModal() {
-    if (!selectedClass.value) return
+const today = () => new Date().toISOString().slice(0, 10)
+
+function resetCertificateDefaults() {
+    printForm.course = defaultCourseName(selectedClass.value)
+    printForm.granted_date = today()
+    printForm.director = 'Mr. HENG PHEAKNA'
+    printForm.team_lead_name = 'Mr. SRIN NALEN'
+    printForm.team_lead_title = 'Team Leader, KRU IT Solution'
+}
+
+// Print All, step 1: list every student so wrong names can be fixed before previewing.
+function openPrintAll() {
+    if (!selectedClass.value || !batchStudents.value.length) return
+
+    if (isSinglePrintOnlyType.value) {
+        openPrintModal(students.value[0])
+        return
+    }
 
     studentDrafts.value = batchStudents.value.map((student) => ({
         ...student,
         draft_name: student.name,
     }))
-    printForm.course = selectedClass.value.course || ''
-    printForm.granted_date = new Date().toISOString().slice(0, 10)
-    modalMode.value = 'create'
+    selectedStudent.value = null
+    isPrintAllMode.value = true
+    previewIndex.value = 0
+    resetCertificateDefaults()
+    modalMode.value = 'names'
 }
 
-async function openPrintModal(student, printAll = false) {
-    const shouldPrintAll = printAll && !isSinglePrintOnlyType.value
-    selectedStudent.value = student
-    isPrintAllMode.value = shouldPrintAll
-    studentDrafts.value = shouldPrintAll
-        ? batchStudents.value.map((item) => ({ ...item, draft_name: item.name }))
-        : []
-    previewIndex.value = Math.max(studentDrafts.value.findIndex((item) => item.id === student.id), 0)
-    printForm.student_name = student.name
-    printForm.course = selectedClass.value?.course || ''
-    printForm.granted_date = new Date().toISOString().slice(0, 10)
-    printForm.director = 'Mr. HENG PHEAKNA'
-    printForm.team_lead_name = 'Mr. SRIN NALEN'
-    printForm.team_lead_title = 'Team Leader, KRU IT Solution'
+// Print All, step 2: flip through the certificates (with the names as edited) and print.
+async function goToPreview() {
+    if (!studentDrafts.value.length) return
+
+    previewIndex.value = 0
+    printForm.student_name = studentDrafts.value[0].draft_name || studentDrafts.value[0].name
     await refreshId('normal')
 
-    if (shouldPrintAll && studentDrafts.value.length) {
-        // Give every slide its own ID so the preview matches what will be printed.
-        const ids = buildCertificateIds(printForm.certificate_id, studentDrafts.value.length)
-        studentDrafts.value = studentDrafts.value.map((item, index) => ({ ...item, certificate_id: ids[index] }))
-        selectedStudent.value = studentDrafts.value[previewIndex.value]
-        printForm.certificate_id = selectedStudent.value.certificate_id
-    }
+    // Give every slide its own ID so the preview matches what will be printed.
+    const ids = buildCertificateIds(printForm.certificate_id, studentDrafts.value.length)
+    studentDrafts.value = studentDrafts.value.map((item, index) => ({ ...item, certificate_id: ids[index] }))
+    selectedStudent.value = studentDrafts.value[0]
+    printForm.certificate_id = selectedStudent.value.certificate_id
+    modalMode.value = 'print'
+}
 
+// Back from the preview to the names list, keeping the name typed on the current slide.
+function backToNames() {
+    const current = studentDrafts.value[previewIndex.value]
+    if (current) current.draft_name = printForm.student_name
+
+    selectedStudent.value = null
+    modalMode.value = 'names'
+}
+
+// One student (row Print / class-row Create button): straight to a single certificate.
+async function openPrintModal(student) {
+    selectedStudent.value = student
+    isPrintAllMode.value = false
+    studentDrafts.value = []
+    previewIndex.value = 0
+    printForm.student_name = student.name
+    resetCertificateDefaults()
+    await refreshId('normal')
     modalMode.value = 'print'
 }
 
@@ -601,30 +653,70 @@ function applySavedCourse(courseName) {
     }
 }
 
+const courseNameSaving = ref(false)
+
+// A certificate name belongs to the course, so every loaded class of that course picks it up.
+function applyCertificateName(courseId, name, isCustom) {
+    const apply = (row) => {
+        if (row && row.course_id === courseId) {
+            row.certificate_course = name
+            row.has_certificate_name = isCustom
+        }
+    }
+
+    classRows.value.forEach(apply)
+    apply(selectedClass.value)
+}
+
+function courseNameError(error, fallback) {
+    const errors = error.response?.data?.errors
+    const message = errors ? Object.values(errors).flat()[0] : error.response?.data?.message
+
+    toast.error(message || fallback)
+}
+
 async function saveCourse() {
-    if (!printForm.course.trim()) return
+    const courseId = selectedClass.value?.course_id
+    const name = printForm.course.trim()
+    if (!name || !courseId || !props.canEditCourseNames || courseNameSaving.value) return
 
-    await axios.post('/dashboard/certificates/courses', {
-        course_name: printForm.course.trim(),
-        scope: 'normal',
-    })
+    courseNameSaving.value = true
+    try {
+        const { data } = await axios.post('/dashboard/certificates/courses', {
+            scope: 'normal',
+            course_id: courseId,
+            course_name: name,
+        })
 
-    if (!savedCourses.value.some((item) => item.course_name === printForm.course.trim())) {
-        savedCourses.value.push({ course_name: printForm.course.trim() })
+        savedCourses.value = data.names
+        applyCertificateName(courseId, data.certificate_course, data.is_custom)
+        toast.success(data.is_custom ? 'Certificate name saved for this course.' : 'Same as the course title, so nothing to save.')
+    } catch (error) {
+        courseNameError(error, 'Could not save the certificate name.')
+    } finally {
+        courseNameSaving.value = false
     }
 }
 
-async function deleteSavedCourse() {
-    if (!printForm.course.trim()) return
+async function resetCourseName() {
+    const courseId = selectedClass.value?.course_id
+    if (!courseId || !props.canEditCourseNames || courseNameSaving.value) return
 
-    await axios.delete('/dashboard/certificates/courses', {
-        data: {
-            course_name: printForm.course.trim(),
-            scope: 'normal',
-        },
-    })
+    courseNameSaving.value = true
+    try {
+        const { data } = await axios.delete('/dashboard/certificates/courses', {
+            data: { scope: 'normal', course_id: courseId },
+        })
 
-    savedCourses.value = savedCourses.value.filter((item) => item.course_name !== printForm.course.trim())
+        savedCourses.value = data.names
+        applyCertificateName(courseId, data.certificate_course, false)
+        printForm.course = data.certificate_course
+        toast.success('Certificate name reset to the course title.')
+    } catch (error) {
+        courseNameError(error, 'Could not reset the certificate name.')
+    } finally {
+        courseNameSaving.value = false
+    }
 }
 
 async function savePrintedStudent(student, studentName = student.name) {
@@ -648,10 +740,6 @@ async function savePrintedStudent(student, studentName = student.name) {
     if (listed) listed.is_printed = true
     normalCertificateId.value = certificateId
     printForm.certificate_id = certificateId
-}
-
-async function saveDraftStudent(student) {
-    await savePrintedStudent(student, student.draft_name)
 }
 
 function beginNormalPrint(batch = false) {
@@ -1889,6 +1977,7 @@ function saveFreeAfterPrint() {
                 <header class="normal-toolbar normal-toolbar-actions no-print">
                     <div class="normal-actions" :class="{ 'report-actions': isReport }">
                         <div v-if="isReport" class="filter-select-wrap filter-select-wrap-status">
+                            <span class="filter-label">{{ t('Type') }}</span>
                             <SelectSearch
                                 v-model="selectedReportType"
                                 :options="certificateTypeOptions"
@@ -1900,6 +1989,7 @@ function saveFreeAfterPrint() {
                         </div>
 
                         <div class="filter-select-wrap">
+                            <span class="filter-label">{{ t('Track') }}</span>
                             <SelectSearch
                                 v-model="selectedTrack"
                                 :options="trackSelectOptions"
@@ -1910,6 +2000,7 @@ function saveFreeAfterPrint() {
                         </div>
 
                         <div class="filter-select-wrap filter-select-wrap-small">
+                            <span class="filter-label">{{ t('Month') }}</span>
                             <SelectSearch
                                 v-model="monthModel"
                                 :options="monthSelectOptions"
@@ -1922,17 +2013,20 @@ function saveFreeAfterPrint() {
                         </div>
 
                         <div class="filter-select-wrap filter-select-wrap-small">
-                            <SelectSearch
-                                v-model="yearModel"
-                                :options="yearSelectOptions"
-                                :placeholder="String(selectedYear)"
-                                :button-class="filterSelectClass"
-                                :clearable="false"
-                                :searchable="false"
-                            />
+                            <span class="filter-label">{{ t('Year') }}</span>
+                            <div class="year-stepper" role="group" :aria-label="t('Year')">
+                                <button type="button" :disabled="selectedYear <= firstYear" :aria-label="t('Previous year')" @click="selectedYear -= 1">
+                                    <ChevronLeft class="h-4 w-4" />
+                                </button>
+                                <strong>{{ selectedYear }}</strong>
+                                <button type="button" :disabled="selectedYear >= lastYear" :aria-label="t('Next year')" @click="selectedYear += 1">
+                                    <ChevronRight class="h-4 w-4" />
+                                </button>
+                            </div>
                         </div>
 
                         <div class="filter-select-wrap filter-select-wrap-status">
+                            <span class="filter-label">{{ t('Status') }}</span>
                             <SelectSearch
                                 v-if="isReport"
                                 v-model="selectedReportStatus"
@@ -1960,6 +2054,37 @@ function saveFreeAfterPrint() {
                     </div>
                 </header>
 
+                <div v-if="!isReport && !classLoading && filteredClasses.length" class="normal-summary no-print">
+                    <article>
+                        <span><BookOpen class="h-5 w-5" /></span>
+                        <div>
+                            <p>{{ t('Classes') }}</p>
+                            <strong>{{ totalClasses }}</strong>
+                        </div>
+                    </article>
+                    <article>
+                        <span><Users class="h-5 w-5" /></span>
+                        <div>
+                            <p>{{ t('Students requested') }}</p>
+                            <strong>{{ totalRequested }}</strong>
+                        </div>
+                    </article>
+                    <article class="summary-green">
+                        <span><CheckCircle2 class="h-5 w-5" /></span>
+                        <div>
+                            <p>{{ t('Printed') }}</p>
+                            <strong>{{ totalPrinted }}</strong>
+                        </div>
+                    </article>
+                    <article class="summary-amber">
+                        <span><Printer class="h-5 w-5" /></span>
+                        <div>
+                            <p>{{ t('Remaining') }}</p>
+                            <strong>{{ totalRemaining }}</strong>
+                        </div>
+                    </article>
+                </div>
+
                 <div v-if="classLoading" class="loading-card no-print">
                     <Loader2 class="h-6 w-6 animate-spin" />
                     {{ t('certificatePage.states.loadingData') }}
@@ -1971,7 +2096,10 @@ function saveFreeAfterPrint() {
 
                 <div v-else class="category-stack no-print">
                     <article v-for="(group, category) in pagedGroups" :key="category" class="category-card">
-                        <h2>{{ t('certificatePage.sections.courseType', { category }) }}</h2>
+                        <h2>
+                            {{ t('certificatePage.sections.courseType', { category }) }}
+                            <span class="category-count">{{ classCountLabel(category) }}</span>
+                        </h2>
 
                         <div class="table-wrap">
                             <table class="class-table" :class="isReport ? 'report-table' : 'list-table'">
@@ -2059,15 +2187,11 @@ function saveFreeAfterPrint() {
                     <div v-if="!isReport" class="detail-buttons">
                         <label v-if="!isSinglePrintOnlyType && hasPrintedStudents" class="include-printed-toggle">
                             <input v-model="includePrinted" type="checkbox" />
-                            Include already printed
+                            Check to print again
                         </label>
-                        <button class="green-action" type="button" :disabled="studentsLoading || !batchStudents.length" @click="openPrintModal(batchStudents[0], !isSinglePrintOnlyType)">
+                        <button class="green-action" type="button" :disabled="studentsLoading || !batchStudents.length" @click="openPrintAll">
                             <Printer class="h-5 w-5" />
                             {{ t('certificatePage.actions.printAll') }}
-                        </button>
-                        <button class="purple-action" type="button" :disabled="studentsLoading || !batchStudents.length" @click="openCreateModal">
-                            <Award class="h-5 w-5" />
-                            {{ t('certificatePage.actions.createCertificate') }}
                         </button>
                     </div>
                 </div>
@@ -2103,7 +2227,10 @@ function saveFreeAfterPrint() {
                                 <h2>{{ t('certificatePage.sections.studentListKh') }}</h2>
                             </div>
                         </div>
-                        <strong>{{ t('certificatePage.studentsCount', { count: students.length }) }}</strong>
+                        <div class="header-chips">
+                            <strong>{{ t('certificatePage.studentsCount', { count: students.length }) }}</strong>
+                            <strong v-if="students.length" class="chip-green">{{ printedStudentCount }} / {{ students.length }} {{ t('Printed').toLowerCase() }}</strong>
+                        </div>
                     </header>
 
                     <div v-if="studentsLoading" class="loading-card">
@@ -2119,16 +2246,12 @@ function saveFreeAfterPrint() {
                                     <th>{{ t('certificatePage.table.studentName') }}</th>
                                     <th>{{ t('certificatePage.table.gender') }}</th>
                                     <th>{{ t('certificatePage.table.phone') }}</th>
-                                    <th>{{ t('certificatePage.table.course') }}</th>
+                                    <th>{{ t('certificatePage.table.status') }}</th>
                                     <th>{{ t('certificatePage.table.actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr
-                                    v-for="(student, index) in students"
-                                    :key="student.id"
-                                    :class="{ 'printed-student-row': student.is_printed }"
-                                >
+                                <tr v-for="(student, index) in students" :key="student.id">
                                     <td><span class="student-id">{{ index + 1 }}</span></td>
                                     <td>
                                         <div class="student-name">
@@ -2136,14 +2259,14 @@ function saveFreeAfterPrint() {
                                         </div>
                                     </td>
                                     <td><span class="gender-pill" :class="genderClass(student.gender)">{{ student.gender }}</span></td>
-                                    <td>{{ student.tel }}</td>
-                                    <td>{{ selectedClass.course }}</td>
+                                    <td class="student-phone">{{ student.tel }}</td>
+                                    <td>
+                                        <span class="report-status" :class="student.is_printed ? 'printed' : 'not-printed'">
+                                            {{ reportStatusLabel(student.is_printed ? 'printed' : 'not_printed') }}
+                                        </span>
+                                    </td>
                                     <td>
                                         <div class="student-print-actions">
-                                            <span v-if="student.is_printed" class="printed-status">
-                                                <CheckCircle2 class="h-4 w-4" />
-                                                Printed
-                                            </span>
                                             <button
                                                 class="print-button"
                                                 :class="{ 'reprint-button': student.is_printed }"
@@ -2162,10 +2285,14 @@ function saveFreeAfterPrint() {
                 </article>
             </template>
 
-            <div v-if="modalMode === 'create'" class="modal-shell no-print">
+            <div v-if="modalMode === 'names'" class="modal-shell no-print">
                 <div class="certificate-modal create-modal">
                     <header class="modal-header">
                         <h2><Printer class="h-6 w-6" /> {{ t('certificatePage.modal.printCertificate') }}</h2>
+                        <ol class="modal-stepper" aria-label="Progress">
+                            <li class="is-active"><span>1</span> Check names</li>
+                            <li><span>2</span> Preview and print</li>
+                        </ol>
                         <button type="button" @click="closeModal"><X class="h-7 w-7" /></button>
                     </header>
 
@@ -2176,12 +2303,19 @@ function saveFreeAfterPrint() {
                                 {{ t('certificatePage.form.course') }}
                                 <textarea v-model="printForm.course" rows="4" />
                             </label>
-                            <button class="save-course-button" type="button" :disabled="!printForm.course.trim()" @click="saveCourse">
-                                <Bookmark class="h-4 w-4" /> {{ t('certificatePage.actions.saveCourse') }}
+                            <button
+                                v-if="canEditCourseNames"
+                                class="save-course-button"
+                                type="button"
+                                :disabled="!printForm.course.trim() || !selectedClass?.course_id || courseNameSaving"
+                                :title="selectedClass?.course_id ? 'Use this wording on every certificate of this course' : 'This class has no course to save a certificate name for'"
+                                @click="saveCourse"
+                            >
+                                <Bookmark class="h-4 w-4" /> {{ t('Save as certificate name') }}
                             </button>
                             <label>
                                 <span class="saved-course-title">
-                                    {{ t('certificatePage.form.savedCourses') }}
+                                    {{ t('Certificate names') }}
                                     <span class="saved-course-count">{{ savedCourses.length }}</span>
                                 </span>
                                 <div class="saved-course-row">
@@ -2195,12 +2329,21 @@ function saveFreeAfterPrint() {
                                             @update:model-value="applySavedCourse"
                                         />
                                     </div>
-                                    <button type="button" @click="deleteSavedCourse"><Trash2 class="h-5 w-5" /></button>
+                                    <button
+                                        v-if="canEditCourseNames"
+                                        class="reset-course-button"
+                                        type="button"
+                                        title="Reset to the course title"
+                                        :disabled="!selectedClass?.has_certificate_name || courseNameSaving"
+                                        @click="resetCourseName"
+                                    >
+                                        <RotateCcw class="h-5 w-5" />
+                                    </button>
                                 </div>
                             </label>
                             <label>
                                 {{ t('certificatePage.form.grantedDate') }}
-                                <input v-model="printForm.granted_date" type="date" />
+                                <DatePicker v-model="printForm.granted_date" :input-class="modalInputClass" />
                             </label>
                             <template v-if="activeCertificateType === 'internship'">
                                 <label>
@@ -2215,24 +2358,34 @@ function saveFreeAfterPrint() {
                         </aside>
 
                         <section class="draft-table-wrap">
-                            <p class="draft-title"><Users class="h-5 w-5" /> {{ t('certificatePage.modal.studentsReady') }}</p>
+                            <div class="draft-head">
+                                <div>
+                                    <p class="draft-title"><Users class="h-5 w-5" /> {{ t('certificatePage.modal.studentsReady') }}</p>
+                                    <p class="draft-hint">Fix any wrong name below, then continue to preview each certificate.</p>
+                                </div>
+                                <div class="draft-chips">
+                                    <span class="draft-chip">{{ studentDrafts.length }} {{ studentDrafts.length === 1 ? t('student') : t('students') }}</span>
+                                    <span v-if="editedNameCount" class="draft-chip draft-chip-amber">{{ editedNameCount }} {{ t('edited') }}</span>
+                                </div>
+                            </div>
                             <table class="draft-table">
                                 <thead>
                                     <tr>
                                         <th>{{ t('certificatePage.table.no') }}</th>
                                         <th>{{ t('certificatePage.table.studentName') }}</th>
                                         <th>{{ t('certificatePage.table.gender') }}</th>
-                                        <th>{{ t('certificatePage.table.actions') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-for="(student, index) in studentDrafts" :key="student.id">
-                                        <td>{{ index + 1 }}</td>
-                                        <td><input v-model="student.draft_name" /></td>
-                                        <td><span class="gender-pill" :class="genderClass(student.gender)">{{ student.gender }}</span></td>
+                                        <td><span class="draft-index">{{ index + 1 }}</span></td>
                                         <td>
-                                            <button type="button" class="save-row" @click="saveDraftStudent(student)">Save</button>
+                                            <div class="name-field" :class="{ 'is-edited': isNameEdited(student), 'is-empty': !(student.draft_name || '').trim() }">
+                                                <input v-model="student.draft_name" :aria-label="`Name of student ${index + 1}`" />
+                                                <Pencil class="name-field-icon" />
+                                            </div>
                                         </td>
+                                        <td><span class="gender-pill" :class="genderClass(student.gender)">{{ student.gender }}</span></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -2240,11 +2393,13 @@ function saveFreeAfterPrint() {
                     </div>
 
                     <footer class="modal-footer">
+                        <span class="footer-note" :class="{ 'is-warning': hasEmptyDraftName }">
+                            {{ hasEmptyDraftName ? 'A student name is empty. Fill it in to continue.' : `${studentDrafts.length} certificate${studentDrafts.length === 1 ? '' : 's'} will be printed` }}
+                        </span>
                         <button class="light-action" type="button" @click="closeModal"><X class="h-4 w-4" /> {{ t('certificatePage.actions.close') }}</button>
-                        <button class="green-action" type="button" :disabled="printSaving" @click="isSinglePrintOnlyType && students.length ? openPrintModal(students[0]) : printAllDrafts()">
-                            <Loader2 v-if="printSaving" class="h-5 w-5 animate-spin" />
-                            <Printer v-else class="h-5 w-5" />
-                            {{ isSinglePrintOnlyType ? t('certificatePage.actions.startPrint') : t('certificatePage.actions.printAll') }}
+                        <button class="green-action" type="button" :disabled="!studentDrafts.length || hasEmptyDraftName" @click="goToPreview">
+                            {{ t('Next: preview') }}
+                            <ChevronRight class="h-5 w-5" />
                         </button>
                     </footer>
                 </div>
@@ -2254,6 +2409,10 @@ function saveFreeAfterPrint() {
                 <div class="certificate-modal print-modal certificate-studio">
                     <header class="modal-header no-print">
                         <h2><Printer class="h-6 w-6" /> {{ t('certificatePage.modal.printCertificate') }}</h2>
+                        <ol v-if="isPrintAllMode" class="modal-stepper" aria-label="Progress">
+                            <li class="is-done"><span><Check class="h-3.5 w-3.5" /></span> Check names</li>
+                            <li class="is-active"><span>2</span> Preview and print</li>
+                        </ol>
                         <button type="button" @click="closeModal"><X class="h-7 w-7" /></button>
                     </header>
 
@@ -2268,12 +2427,19 @@ function saveFreeAfterPrint() {
                             </div>
                             <label>{{ t('certificatePage.form.studentName') }}<input v-model="printForm.student_name" /></label>
                             <label>{{ t('certificatePage.form.course') }}<textarea v-model="printForm.course" rows="4" /></label>
-                            <button class="save-course-button" type="button" :disabled="!printForm.course.trim()" @click="saveCourse">
-                                <Bookmark class="h-4 w-4" /> {{ t('certificatePage.actions.saveCourse') }}
+                            <button
+                                v-if="canEditCourseNames"
+                                class="save-course-button"
+                                type="button"
+                                :disabled="!printForm.course.trim() || !selectedClass?.course_id || courseNameSaving"
+                                :title="selectedClass?.course_id ? 'Use this wording on every certificate of this course' : 'This class has no course to save a certificate name for'"
+                                @click="saveCourse"
+                            >
+                                <Bookmark class="h-4 w-4" /> {{ t('Save as certificate name') }}
                             </button>
                             <label>
                                 <span class="saved-course-title">
-                                    {{ t('certificatePage.form.savedCourses') }}
+                                    {{ t('Certificate names') }}
                                     <span class="saved-course-count">{{ savedCourses.length }}</span>
                                 </span>
                                 <div class="saved-course-row">
@@ -2287,10 +2453,19 @@ function saveFreeAfterPrint() {
                                             @update:model-value="applySavedCourse"
                                         />
                                     </div>
-                                    <button type="button" @click="deleteSavedCourse"><Trash2 class="h-5 w-5" /></button>
+                                    <button
+                                        v-if="canEditCourseNames"
+                                        class="reset-course-button"
+                                        type="button"
+                                        title="Reset to the course title"
+                                        :disabled="!selectedClass?.has_certificate_name || courseNameSaving"
+                                        @click="resetCourseName"
+                                    >
+                                        <RotateCcw class="h-5 w-5" />
+                                    </button>
                                 </div>
                             </label>
-                            <label>{{ t('certificatePage.form.grantedDate') }}<input v-model="printForm.granted_date" type="date" /></label>
+                            <label>{{ t('certificatePage.form.grantedDate') }}<DatePicker v-model="printForm.granted_date" :input-class="modalInputClass" /></label>
                             <template v-if="activeCertificateType === 'internship'">
                                 <label>Team Lead Name<input v-model="printForm.team_lead_name" /></label>
                                 <label>Team Lead Title<input v-model="printForm.team_lead_title" /></label>
@@ -2317,7 +2492,10 @@ function saveFreeAfterPrint() {
                     </div>
 
                     <footer class="modal-footer no-print">
-                        <button class="light-action" type="button" @click="closeModal"><X class="h-4 w-4" /> {{ t('certificatePage.actions.close') }}</button>
+                        <button v-if="isPrintAllMode" class="light-action" type="button" :disabled="printSaving" @click="backToNames">
+                            <ChevronLeft class="h-4 w-4" /> {{ t('Back to names') }}
+                        </button>
+                        <!-- <button class="light-action" type="button" @click="closeModal"><X class="h-4 w-4" /> {{ t('certificatePage.actions.close') }}</button> -->
                         <button class="green-action" type="button" :disabled="printSaving" @click="isPrintAllMode && !isSinglePrintOnlyType ? printAllDrafts() : printSingle()">
                             <Loader2 v-if="printSaving" class="h-5 w-5 animate-spin" />
                             <Printer v-else class="h-5 w-5" />
@@ -2325,7 +2503,7 @@ function saveFreeAfterPrint() {
                         </button>
                         <button class="purple-action" type="button" :disabled="printSaving" @click="printSingle">
                             <Printer class="h-5 w-5" />
-                            {{ t('certificatePage.actions.print') }}
+                            {{ isPrintAllMode ? t('Print this one') : t('certificatePage.actions.print') }}
                         </button>
                     </footer>
                 </div>
@@ -2592,7 +2770,7 @@ const LegacyCertificatePreview = {
 }
 
 .normal-toolbar-actions {
-    justify-content: flex-end;
+    justify-content: flex-start;
     margin-top: 14px;
 }
 
@@ -2632,8 +2810,13 @@ const LegacyCertificatePreview = {
 .normal-actions {
     flex: 1 1 560px;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
+    align-items: flex-end;
     min-width: 0;
+}
+
+.normal-actions .blue-action {
+    margin-left: auto;
 }
 
 .report-actions {
@@ -2642,8 +2825,74 @@ const LegacyCertificatePreview = {
 }
 
 .filter-select-wrap {
+    display: grid;
+    gap: 5px;
     flex: 0 0 250px;
     width: 250px;
+}
+
+.year-stepper {
+    display: grid;
+    grid-template-columns: 36px 1fr 36px;
+    align-items: center;
+    height: 38px;
+    overflow: hidden;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.year-stepper strong {
+    text-align: center;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.year-stepper button {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    background: transparent;
+    color: #2c2d86;
+    transition: background-color .15s ease;
+}
+
+.year-stepper button:hover:not(:disabled) {
+    background: rgba(44, 45, 134, .08);
+}
+
+.year-stepper button:disabled {
+    opacity: .35;
+}
+
+.is-dark-theme .year-stepper {
+    border-color: #374151;
+    background: #111827;
+}
+
+.is-dark-theme .year-stepper strong {
+    color: #e5e7eb;
+}
+
+.is-dark-theme .year-stepper button {
+    color: #bfdbfe;
+}
+
+.is-dark-theme .year-stepper button:hover:not(:disabled) {
+    background: rgba(96, 165, 250, .14);
+}
+
+.filter-label {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.is-dark-theme .filter-label {
+    color: #94a3b8;
 }
 
 .filter-select-wrap-small {
@@ -2732,9 +2981,9 @@ button:disabled {
 
 .normal-summary {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     gap: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .normal-summary article {
@@ -2816,6 +3065,26 @@ button:disabled {
     color: #2d2e83;
     font-size: 27px;
     line-height: 1;
+}
+
+.normal-summary .summary-green span {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.normal-summary .summary-amber span {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.is-dark-theme .normal-summary .summary-green span {
+    background: rgba(34, 197, 94, .14) !important;
+    color: #86efac !important;
+}
+
+.is-dark-theme .normal-summary .summary-amber span {
+    background: rgba(245, 158, 11, .14) !important;
+    color: #fcd34d !important;
 }
 
 :global(.dark) .normal-summary strong {
@@ -3124,6 +3393,68 @@ table {
     line-height: 1.3;
 }
 
+/* Table polish: horizontal dividers, quiet uppercase headers, row hover. */
+.category-card .class-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.category-card .class-table th,
+.category-card .class-table td {
+    border: 0;
+    border-bottom: 1px solid #e8edf5;
+    padding: 12px 14px;
+}
+
+.category-card .class-table th {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.category-card .class-table td {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.category-card .class-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.category-card .class-table tbody tr:hover td {
+    background: #f5f8ff;
+}
+
+.is-dark-theme .category-card .class-table th,
+.is-dark-theme .category-card .class-table td,
+.is-dark-theme .category-card .class-table th,
+.is-dark-theme .category-card .class-table td {
+    border-bottom-color: #263244;
+}
+
+.is-dark-theme .category-card .class-table tbody tr:hover td {
+    background: rgba(148, 163, 184, .07);
+}
+
+.category-card h2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 18px;
+    font-size: 16px;
+}
+
+.category-count {
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .16);
+    padding: 3px 11px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .02em;
+}
+
 .count-badge {
     display: inline-flex;
     align-items: center;
@@ -3152,7 +3483,7 @@ table {
     color: #64748b;
 }
 
-:global(.dark) .count-badge.muted {
+.is-dark-theme .count-badge.muted {
     background: #1f2937;
     color: #9ca3af;
 }
@@ -3234,7 +3565,7 @@ table {
     font-size: 14px;
 }
 
-:global(.dark) .back-button {
+.is-dark-theme .back-button {
     border-color: #374151;
     background: #111827;
     color: #bfdbfe;
@@ -3353,7 +3684,14 @@ table {
     gap: 10px;
 }
 
-.students-card header > strong {
+.header-chips {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.students-card header .header-chips strong {
     border-radius: 999px;
     background: #eef2ff;
     color: #2d2e83;
@@ -3361,14 +3699,23 @@ table {
     font-size: 13px;
 }
 
-:global(.dark) .students-card header > strong,
-.is-dark-theme .students-card header > strong {
+.students-card header .header-chips strong.chip-green {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.is-dark-theme .students-card header .header-chips strong {
     background: rgba(96, 165, 250, .14);
     color: #bfdbfe;
 }
 
+.is-dark-theme .students-card header .header-chips strong.chip-green {
+    background: rgba(34, 197, 94, .16);
+    color: #86efac;
+}
+
 .student-table {
-    min-width: 940px;
+    min-width: 820px;
     table-layout: fixed;
 }
 
@@ -3379,7 +3726,6 @@ table {
 
 .student-table th:nth-child(2),
 .student-table td:nth-child(2) {
-    width: 20%;
     text-align: left;
 }
 
@@ -3390,17 +3736,17 @@ table {
 
 .student-table th:nth-child(4),
 .student-table td:nth-child(4) {
-    width: 150px;
+    width: 170px;
 }
 
 .student-table th:nth-child(5),
 .student-table td:nth-child(5) {
-    text-align: left;
+    width: 150px;
 }
 
 .student-table th:nth-child(6),
 .student-table td:nth-child(6) {
-    width: 260px;
+    width: 170px;
 }
 
 .student-table th {
@@ -3416,26 +3762,16 @@ table {
     font-size: 14px;
 }
 
-.printed-student-row {
-    background: #f7f7fb;
-    color: #4b5563;
+.student-phone {
+    font-variant-numeric: tabular-nums;
 }
 
-:global(.dark) .printed-student-row,
-.is-dark-theme .printed-student-row {
-    background: rgba(30, 41, 59, .58);
-    color: #9ca3af;
+.student-table tbody tr:hover td {
+    background: #f5f8ff;
 }
 
-.printed-student-row td:nth-child(n + 2):nth-child(-n + 5) {
-    color: #4b5563;
-    text-decoration: line-through;
-    text-decoration-thickness: 1px;
-}
-
-:global(.dark) .printed-student-row td:nth-child(n + 2):nth-child(-n + 5),
-.is-dark-theme .printed-student-row td:nth-child(n + 2):nth-child(-n + 5) {
-    color: #9ca3af !important;
+.is-dark-theme .student-table tbody tr:hover td {
+    background: rgba(148, 163, 184, .07);
 }
 
 .student-id {
@@ -3468,7 +3804,7 @@ table {
     font-weight: 900;
 }
 
-:global(.dark) .gender-pill {
+.is-dark-theme .gender-pill {
     background: rgba(96, 165, 250, .14);
     color: #bfdbfe;
 }
@@ -3487,12 +3823,12 @@ table {
     color: #be185d;
 }
 
-:global(.dark) .gender-pill.gender-male {
+.is-dark-theme .gender-pill.gender-male {
     background: rgba(59, 130, 246, .18);
     color: #93c5fd;
 }
 
-:global(.dark) .gender-pill.gender-female {
+.is-dark-theme .gender-pill.gender-female {
     background: rgba(236, 72, 153, .18);
     color: #f9a8d4;
 }
@@ -3512,23 +3848,20 @@ table {
     gap: 8px;
 }
 
-.printed-status {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    min-height: 32px;
-    border-radius: 6px;
-    background: #56aa7e;
-    color: #fff;
-    padding: 0 12px;
-    font-size: 13px;
-    font-weight: 800;
+.print-button.reprint-button {
+    border: 1px solid #bfdbfe;
+    background: transparent;
+    color: #2563eb;
+    box-shadow: none;
 }
 
-.print-button.reprint-button {
-    background: #3b82f6;
-    box-shadow: 0 7px 14px rgba(59, 130, 246, .18);
+.print-button.reprint-button:hover {
+    background: rgba(59, 130, 246, .08);
+}
+
+.is-dark-theme .print-button.reprint-button {
+    border-color: rgba(96, 165, 250, .4);
+    color: #93c5fd;
 }
 
 .loading-card {
@@ -3628,7 +3961,7 @@ table {
     background: linear-gradient(90deg, #f6f8fe 0 350px, transparent 350px);
 }
 
-:global(.dark) .create-grid {
+.is-dark-theme .create-grid {
     background: linear-gradient(90deg, #111827 0 350px, transparent 350px);
 }
 
@@ -3660,8 +3993,12 @@ table {
     top: 0;
     align-self: start;
     max-height: calc(92vh - 138px);
+    overflow-x: hidden;
     overflow-y: auto;
     display: grid;
+    /* Lock the single column to the sidebar width; otherwise a long value (e.g. the course
+       title selected in the dropdown) stretches the column and the sidebar scrolls sideways. */
+    grid-template-columns: minmax(0, 1fr);
     align-content: start;
     gap: 19px;
     min-height: min(625px, calc(92vh - 138px));
@@ -3786,6 +4123,9 @@ table {
 
 .modal-editor label {
     display: grid;
+    /* Same lock as the sidebar column: long select values must truncate, not widen the field. */
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
     gap: 8px;
     color: #707692;
     font-size: 11px;
@@ -3880,28 +4220,35 @@ table {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    height: 38px;
+    height: 40px;
     margin-top: -9px;
     border: 1px solid #2d2e83;
     border-radius: 9px;
-    background: transparent;
+    background: #eef0ff;
     color: #2d2e83;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 800;
-    transition: background-color .15s ease, opacity .15s ease;
+    transition: background-color .15s ease, color .15s ease, opacity .15s ease;
 }
 
 .save-course-button:hover:not(:disabled) {
-    background: rgba(45, 46, 131, .08);
+    background: #2d2e83;
+    color: #fff;
 }
 
 .save-course-button:disabled {
-    opacity: .45;
+    opacity: .5;
 }
 
-:global(.dark) .save-course-button {
+.is-dark-theme .save-course-button {
     border-color: #60a5fa;
-    color: #bfdbfe;
+    background: rgba(96, 165, 250, .16);
+    color: #dbeafe;
+}
+
+.is-dark-theme .save-course-button:hover:not(:disabled) {
+    background: #3b82f6;
+    color: #fff;
 }
 
 .saved-course-select {
@@ -3916,19 +4263,302 @@ table {
     height: 42px;
     min-width: 42px;
     border-radius: 10px;
-    background: linear-gradient(180deg, #f43f5e, #e83248);
+    background: linear-gradient(180deg, #64748b, #475569);
     color: #fff;
-    box-shadow: 0 10px 20px rgba(232, 50, 72, .24);
+    box-shadow: 0 10px 20px rgba(71, 85, 105, .24);
     transition: transform .15s ease, box-shadow .15s ease;
 }
 
-.saved-course-row button:hover {
+.saved-course-row button:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 14px 24px rgba(232, 50, 72, .3);
+    box-shadow: 0 14px 24px rgba(71, 85, 105, .3);
+}
+
+.saved-course-row button:disabled {
+    opacity: .45;
+    transform: none;
 }
 
 .draft-table-wrap {
     padding: 24px 20px;
+}
+
+.modal-stepper {
+    display: flex;
+    align-items: center;
+    margin: 0 auto 0 28px;
+    padding: 0;
+    list-style: none;
+}
+
+.modal-stepper li {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, .6);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.modal-stepper li + li::before {
+    width: 32px;
+    height: 2px;
+    margin: 0 12px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, .28);
+    content: "";
+}
+
+.modal-stepper li span {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .18);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.modal-stepper li.is-active {
+    color: #fff;
+}
+
+.modal-stepper li.is-active span {
+    background: #fff;
+    color: #2d2e83;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, .18);
+}
+
+.modal-stepper li.is-done {
+    color: rgba(255, 255, 255, .85);
+}
+
+.modal-stepper li.is-done span {
+    background: #22c55e;
+}
+
+.draft-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.draft-head .draft-title {
+    margin-bottom: 0;
+}
+
+.draft-hint {
+    margin: 4px 0 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.is-dark-theme .draft-hint {
+    color: #94a3b8;
+}
+
+.draft-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.draft-chip {
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #2d2e83;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.draft-chip-amber {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.is-dark-theme .draft-chip {
+    background: rgba(96, 165, 250, .16);
+    color: #bfdbfe;
+}
+
+.is-dark-theme .draft-chip-amber {
+    background: rgba(245, 158, 11, .18);
+    color: #fcd34d;
+}
+
+/* Names table (Print All step 1): quiet rows, borderless inputs that light up on hover/focus. */
+.create-modal .draft-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+}
+
+.is-dark-theme .create-modal .draft-table {
+    border-color: #263244;
+}
+
+.create-modal .draft-table th,
+.create-modal .draft-table td {
+    border: 0;
+    border-bottom: 1px solid #eef1f6;
+    padding: 8px 14px;
+}
+
+.is-dark-theme .create-modal .draft-table th,
+.is-dark-theme .create-modal .draft-table td {
+    border-bottom-color: #1f2a3c !important;
+}
+
+.create-modal .draft-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.create-modal .draft-table th {
+    padding: 12px 14px;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.create-modal .draft-table th:nth-child(1),
+.create-modal .draft-table td:nth-child(1) {
+    width: 72px;
+}
+
+.create-modal .draft-table th:nth-child(3),
+.create-modal .draft-table td:nth-child(3) {
+    width: 130px;
+}
+
+.create-modal .draft-table td {
+    font-size: 14px;
+}
+
+.create-modal .draft-table tbody tr:hover td {
+    background: rgba(45, 46, 131, .04);
+}
+
+.is-dark-theme .create-modal .draft-table tbody tr:hover td {
+    background: rgba(148, 163, 184, .06);
+}
+
+.draft-index {
+    display: inline-grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #eef0ff;
+    color: #2d2e83;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.is-dark-theme .draft-index {
+    background: rgba(96, 165, 250, .16);
+    color: #bfdbfe;
+}
+
+.name-field {
+    position: relative;
+}
+
+.create-modal .name-field input {
+    height: 42px;
+    border-color: transparent;
+    border-radius: 10px;
+    background: transparent;
+    padding: 0 40px 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.create-modal .name-field input:hover {
+    border-color: #d6dce7;
+}
+
+.create-modal .name-field input:focus {
+    border-color: #2c2d86;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(44, 45, 134, .14);
+}
+
+.create-modal .name-field.is-edited input {
+    border-color: rgba(245, 158, 11, .55);
+    background: rgba(245, 158, 11, .07);
+}
+
+.create-modal .name-field.is-empty input {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, .06);
+}
+
+.is-dark-theme .create-modal .name-field input {
+    border-color: transparent !important;
+    background: transparent !important;
+    color: #e5e7eb !important;
+}
+
+.is-dark-theme .create-modal .name-field input:hover {
+    border-color: #374151 !important;
+}
+
+.is-dark-theme .create-modal .name-field input:focus {
+    border-color: #60a5fa !important;
+    background: #0f172a !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, .2);
+}
+
+.is-dark-theme .create-modal .name-field.is-edited input {
+    border-color: rgba(245, 158, 11, .55) !important;
+    background: rgba(245, 158, 11, .1) !important;
+}
+
+.is-dark-theme .create-modal .name-field.is-empty input {
+    border-color: #ef4444 !important;
+    background: rgba(239, 68, 68, .1) !important;
+}
+
+.name-field-icon {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    width: 15px;
+    height: 15px;
+    color: #94a3b8;
+    opacity: .55;
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
+.footer-note {
+    margin-right: auto;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.footer-note.is-warning {
+    color: #d97706;
+}
+
+.is-dark-theme .footer-note {
+    color: #94a3b8;
+}
+
+.is-dark-theme .footer-note.is-warning {
+    color: #fbbf24;
 }
 
 .draft-title {
@@ -4116,8 +4746,8 @@ table {
     font-size: 16px;
 }
 
-:global(.dark) .light-action,
-:global(.dark) .outline-action {
+.is-dark-theme .light-action,
+.is-dark-theme .outline-action {
     border-color: #374151;
     background: #111827;
     color: #d1d5db;
@@ -4128,7 +4758,7 @@ table {
     color: #2d2e83;
 }
 
-:global(.dark) .outline-action {
+.is-dark-theme .outline-action {
     border-color: #60a5fa;
     color: #bfdbfe;
 }
@@ -4156,8 +4786,12 @@ table {
     color: #838386;
 }
 
-:global(.dark) .preview-head {
-    color: #a3a3a3;
+.is-dark-theme .preview-head {
+    color: #cbd5e1;
+}
+
+.is-dark-theme .preview-head span {
+    color: #cbd5e1 !important;
 }
 
 .preview-head span {
@@ -4174,9 +4808,14 @@ table {
     font-size: 12px;
 }
 
-:global(.dark) .preview-head strong {
-    background: rgba(96, 165, 250, .14);
-    color: #bfdbfe;
+.is-dark-theme .preview-head strong {
+    background: rgba(96, 165, 250, .18);
+    color: #dbeafe;
+}
+
+.is-dark-theme .preview-printed-tag {
+    background: rgba(245, 158, 11, .2);
+    color: #fcd34d;
 }
 
 .preview-slider {
@@ -4220,7 +4859,7 @@ table {
     font-weight: 900;
 }
 
-:global(.dark) .preview-slider button {
+.is-dark-theme .preview-slider button {
     border-color: #263244;
     background: #111827;
     color: #bfdbfe;
@@ -4230,9 +4869,28 @@ table {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    min-height: 38px;
+    border: 1px solid #d6dce7;
+    border-radius: 8px;
+    background: #fff;
+    padding: 0 12px;
+    color: #334155;
     font-size: 13px;
-    font-weight: 800;
+    font-weight: 700;
     cursor: pointer;
+}
+
+.include-printed-toggle input {
+    width: 16px;
+    height: 16px;
+    accent-color: #2d2e83;
+    cursor: pointer;
+}
+
+.is-dark-theme .include-printed-toggle {
+    border-color: #374151;
+    background: #111827;
+    color: #e5e7eb;
 }
 
 .print-batch {

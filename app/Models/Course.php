@@ -36,6 +36,7 @@ class Course extends Model
     protected $fillable = [
         'course_track_id',
         'title',
+        'course_cert_custom_name',
         'slug',
         'level',
         'thumbnail',

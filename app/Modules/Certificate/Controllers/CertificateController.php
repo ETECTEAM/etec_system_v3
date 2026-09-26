@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,7 +38,9 @@ class CertificateController extends Controller
             'type' => $type,
             'freeCertificates' => fn () => $this->freeCertificates($request),
             'freeCourses' => fn () => $this->customCourses('course_custom'),
-            'normalCourses' => fn () => $this->customCourses('course_custom_normal'),
+            // Certificate wording set on courses (courses.course_cert_custom_name), offered as shortcuts.
+            'normalCourses' => fn () => $this->certificateCourseNames(),
+            'canEditCourseNames' => $this->canEditCourseNames($request),
             'generatedIds' => [
                 'free' => $this->generateFreeId(),
                 'normal' => $this->generateNormalId(),
@@ -52,7 +55,7 @@ class CertificateController extends Controller
 
         $classes = StudyClass::query()
             ->with([
-                'course:id,title,course_track_id',
+                'course:id,title,course_cert_custom_name,course_track_id',
                 'course.track:id,name,sub_category_id',
                 'course.track.subCategory:id,name,category_id',
                 'course.track.subCategory.category:id,name',
@@ -95,10 +98,17 @@ class CertificateController extends Controller
                 $requestedStudents = (int) ($classRequest?->student_count ?: $studyClass->total_students);
                 $printedStudents = (int) ($printedCounts[$studyClass->id] ?? 0);
 
+                $courseTitle = $studyClass->course?->title ?? $studyClass->title;
+                $customName = $studyClass->course?->course_cert_custom_name;
+
                 return [
                     'id' => $studyClass->id,
                     'category' => $studyClass->course?->track?->name ?? 'Other',
-                    'course' => $studyClass->course?->title ?? $studyClass->title,
+                    'course_id' => $studyClass->course?->id,
+                    'course' => $courseTitle,
+                    // What the certificate says: the certificate-only name when set, else the course title.
+                    'certificate_course' => filled($customName) ? $customName : $courseTitle,
+                    'has_certificate_name' => filled($customName),
                     'teacher_name' => $this->instructorDisplayName($studyClass->teacher?->name),
                     'time' => $studyClass->time?->time_name ?? $this->classTime($studyClass),
                     'class_type' => $studyClass->classType?->type_name ?? $studyClass->classTypeValue(),
@@ -294,29 +304,68 @@ class CertificateController extends Controller
         $validated = $request->validate([
             'course_name' => ['required', 'string', 'min:2', 'max:100'],
             'scope' => ['nullable', Rule::in(['free', 'normal'])],
+            'course_id' => ['nullable', 'integer', 'exists:courses,id'],
         ]);
 
-        DB::table(($validated['scope'] ?? 'normal') === 'free' ? 'course_custom' : 'course_custom_normal')
-            ->updateOrInsert(
+        if (($validated['scope'] ?? 'normal') === 'free') {
+            DB::table('course_custom')->updateOrInsert(
                 ['course_name' => trim($validated['course_name'])],
                 ['updated_at' => now(), 'created_at' => now()]
             );
 
-        return response()->json(['success' => true]);
+            return response()->json(['success' => true]);
+        }
+
+        abort_unless($this->canEditCourseNames($request), 403);
+        $course = $this->courseForCertificateName($validated['course_id'] ?? null);
+        $name = trim($validated['course_name']);
+
+        // Wording identical to the real title is just the default, so store nothing.
+        $custom = $name === $course->title ? null : $name;
+
+        DB::table('courses')->where('id', $course->id)->update([
+            'course_cert_custom_name' => $custom,
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'certificate_course' => $custom ?? $course->title,
+            'is_custom' => $custom !== null,
+            'names' => $this->certificateCourseNames(),
+        ]);
     }
 
     public function deleteCourse(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'course_name' => ['required', 'string', 'min:2', 'max:100'],
             'scope' => ['nullable', Rule::in(['free', 'normal'])],
+            'course_id' => ['nullable', 'integer', 'exists:courses,id'],
+            'course_name' => ['nullable', 'string', 'max:100'],
         ]);
 
-        DB::table(($validated['scope'] ?? 'normal') === 'free' ? 'course_custom' : 'course_custom_normal')
-            ->where('course_name', trim($validated['course_name']))
-            ->delete();
+        if (($validated['scope'] ?? 'normal') === 'free') {
+            DB::table('course_custom')
+                ->where('course_name', trim((string) ($validated['course_name'] ?? '')))
+                ->delete();
 
-        return response()->json(['success' => true]);
+            return response()->json(['success' => true]);
+        }
+
+        abort_unless($this->canEditCourseNames($request), 403);
+        $course = $this->courseForCertificateName($validated['course_id'] ?? null);
+
+        DB::table('courses')->where('id', $course->id)->update([
+            'course_cert_custom_name' => null,
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'certificate_course' => $course->title,
+            'is_custom' => false,
+            'names' => $this->certificateCourseNames(),
+        ]);
     }
 
     public function generateId(Request $request): JsonResponse
@@ -347,6 +396,38 @@ class CertificateController extends Controller
             ],
             'course_filter' => $course,
         ];
+    }
+
+    /** Only admins may change the wording printed on every certificate of a course. */
+    private function canEditCourseNames(Request $request): bool
+    {
+        return (bool) $request->user()?->hasAnyRole(['super_admin', 'admin']);
+    }
+
+    private function courseForCertificateName(?int $courseId): object
+    {
+        $course = $courseId ? DB::table('courses')->where('id', $courseId)->first(['id', 'title']) : null;
+
+        if (! $course) {
+            throw ValidationException::withMessages([
+                'course_id' => 'This class has no course to save a certificate name for.',
+            ]);
+        }
+
+        return $course;
+    }
+
+    /** Distinct certificate-only names set on courses, for the modal's dropdown. */
+    private function certificateCourseNames(): array
+    {
+        return DB::table('courses')
+            ->whereNotNull('course_cert_custom_name')
+            ->where('course_cert_custom_name', '!=', '')
+            ->distinct()
+            ->orderBy('course_cert_custom_name')
+            ->pluck('course_cert_custom_name')
+            ->map(fn (string $name): array => ['course_name' => $name])
+            ->all();
     }
 
     private function customCourses(string $table): array
