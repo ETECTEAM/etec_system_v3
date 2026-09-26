@@ -228,10 +228,10 @@ onBeforeUnmount(() => {
       :disabled="disabled"
       @click="toggleDropdown"
     >
-      <span :class="selectedLabel ? 'text-slate-700 dark:text-gray-200' : 'text-slate-400 dark:text-gray-500'">
+      <span class="min-w-0 flex-1 truncate" :class="selectedLabel ? 'text-slate-700 dark:text-gray-200' : 'text-slate-400 dark:text-gray-500'">
         {{ selectedLabel || t(placeholder) }}
       </span>
-      <span class="text-slate-500 transition-transform duration-200 dark:text-gray-400" :class="open ? 'rotate-180' : ''">▾</span>
+      <span class="shrink-0 text-slate-500 transition-transform duration-200 dark:text-gray-400" :class="open ? 'rotate-180' : ''">▾</span>
     </button>
 
     <Teleport to="body">
@@ -269,8 +269,8 @@ onBeforeUnmount(() => {
             class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
             @click="selectOption(option)"
           >
-            <span>{{ t(option.label) }}</span>
-            <span v-if="option.value === modelValue" class="text-blue-600 dark:text-blue-400">✓</span>
+            <span class="min-w-0 flex-1 truncate">{{ t(option.label) }}</span>
+            <span v-if="option.value === modelValue" class="shrink-0 text-blue-600 dark:text-blue-400">✓</span>
           </button>
 
           <div v-if="filteredOptions.length === 0" class="px-4 py-3 text-sm text-slate-400 dark:text-gray-500">

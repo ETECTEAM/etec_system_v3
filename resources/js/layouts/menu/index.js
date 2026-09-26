@@ -34,6 +34,7 @@ export const menuDomains = [
   attendanceReport,
   absenceBlocklist,
   officialLeave,
+  certificate,
   classHistory,
   profile,
   instructorScheduleBlocks,
@@ -42,7 +43,6 @@ export const menuDomains = [
   schedule,
   building,
   holiday,
-  certificate,
   // Rules & security
   absenceBlock,
   user,

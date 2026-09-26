@@ -5,11 +5,11 @@
 | Frontend Home Routes
 |--------------------------------------------------------------------------
 |
-| The public site currently only has the student self-registration page, so
-| the root URL just sends visitors straight there.
+| The root URL sends visitors to the dashboard; unauthenticated visitors get
+| bounced to login from there by the 'auth' middleware as usual.
 |
 */
 
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/student-register');
+Route::redirect('/', '/dashboard');
