@@ -250,13 +250,15 @@ const internshipCourseName = computed(() => {
     display: flex;
     justify-content: center;
     width: 100%;
-    background: #e0e0e0;
-    padding: 5px;
+    /* No grey frame: the paper sits directly on the preview stage. Padding leaves
+       room for the paper's shadow, which the scrolling preview would otherwise clip. */
+    background: transparent;
+    padding: 4px 16px 28px;
     box-sizing: border-box;
 }
 
 :global(.dark) .certificate-wrap {
-    background: #e0e0e0;
+    background: transparent;
 }
 
 .certificate {
@@ -265,6 +267,7 @@ const internshipCourseName = computed(() => {
     background: #fff;
     padding: 10px;
     box-sizing: border-box;
+    box-shadow: 0 18px 44px rgba(15, 23, 42, .18), 0 2px 6px rgba(15, 23, 42, .08);
 }
 
 :global(.dark) .certificate,

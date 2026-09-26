@@ -12,7 +12,6 @@ import {
     CalendarDays,
     Loader2,
     Printer,
-    Save,
     Trash2,
     User,
     Users,
@@ -404,6 +403,12 @@ function remainingStudents(item) {
     if (item.remaining_students !== undefined) return Number(item.remaining_students || 0)
 
     return Math.max(Number(item.total_students || 0) - Number(item.printed_students || 0), 0)
+}
+
+function genderClass(gender) {
+    const value = String(gender || '').toLowerCase()
+
+    return value === 'male' ? 'gender-male' : value === 'female' ? 'gender-female' : ''
 }
 
 function certificateTypeLabel(type) {
@@ -1872,9 +1877,9 @@ function saveFreeAfterPrint() {
             class="normal-certificate-page"
             :class="{ 'is-dark-theme': isDarkTheme }"
         >
-            <Breadcrumbs class="no-print" :items="breadcrumbItems" />
+            <Breadcrumbs class="certificate-crumbs no-print" :items="breadcrumbItems" />
             <PageHero
-                class="no-print"
+                class="certificate-hero no-print"
                 :eyebrow="t('Certificate Management')"
                 :title="pageTitle"
                 :description="pageDescription"
@@ -2130,7 +2135,7 @@ function saveFreeAfterPrint() {
                                             <strong>{{ student.name }}</strong>
                                         </div>
                                     </td>
-                                    <td><span class="gender-pill">{{ student.gender }}</span></td>
+                                    <td><span class="gender-pill" :class="genderClass(student.gender)">{{ student.gender }}</span></td>
                                     <td>{{ student.tel }}</td>
                                     <td>{{ selectedClass.course }}</td>
                                     <td>
@@ -2171,6 +2176,9 @@ function saveFreeAfterPrint() {
                                 {{ t('certificatePage.form.course') }}
                                 <textarea v-model="printForm.course" rows="4" />
                             </label>
+                            <button class="save-course-button" type="button" :disabled="!printForm.course.trim()" @click="saveCourse">
+                                <Bookmark class="h-4 w-4" /> {{ t('certificatePage.actions.saveCourse') }}
+                            </button>
                             <label>
                                 <span class="saved-course-title">
                                     {{ t('certificatePage.form.savedCourses') }}
@@ -2221,7 +2229,7 @@ function saveFreeAfterPrint() {
                                     <tr v-for="(student, index) in studentDrafts" :key="student.id">
                                         <td>{{ index + 1 }}</td>
                                         <td><input v-model="student.draft_name" /></td>
-                                        <td>{{ student.gender }}</td>
+                                        <td><span class="gender-pill" :class="genderClass(student.gender)">{{ student.gender }}</span></td>
                                         <td>
                                             <button type="button" class="save-row" @click="saveDraftStudent(student)">Save</button>
                                         </td>
@@ -2233,7 +2241,6 @@ function saveFreeAfterPrint() {
 
                     <footer class="modal-footer">
                         <button class="light-action" type="button" @click="closeModal"><X class="h-4 w-4" /> {{ t('certificatePage.actions.close') }}</button>
-                        <button class="outline-action" type="button" @click="saveCourse"><Bookmark class="h-5 w-5" /> {{ t('certificatePage.actions.saveCourse') }}</button>
                         <button class="green-action" type="button" :disabled="printSaving" @click="isSinglePrintOnlyType && students.length ? openPrintModal(students[0]) : printAllDrafts()">
                             <Loader2 v-if="printSaving" class="h-5 w-5 animate-spin" />
                             <Printer v-else class="h-5 w-5" />
@@ -2261,6 +2268,9 @@ function saveFreeAfterPrint() {
                             </div>
                             <label>{{ t('certificatePage.form.studentName') }}<input v-model="printForm.student_name" /></label>
                             <label>{{ t('certificatePage.form.course') }}<textarea v-model="printForm.course" rows="4" /></label>
+                            <button class="save-course-button" type="button" :disabled="!printForm.course.trim()" @click="saveCourse">
+                                <Bookmark class="h-4 w-4" /> {{ t('certificatePage.actions.saveCourse') }}
+                            </button>
                             <label>
                                 <span class="saved-course-title">
                                     {{ t('certificatePage.form.savedCourses') }}
@@ -2313,7 +2323,6 @@ function saveFreeAfterPrint() {
                             <Printer v-else class="h-5 w-5" />
                             {{ isPrintAllMode && !isSinglePrintOnlyType ? t('certificatePage.actions.startPrintAll') : t('certificatePage.actions.startPrint') }}
                         </button>
-                        <button class="outline-action" type="button" @click="saveCourse"><Save class="h-5 w-5" /> {{ t('certificatePage.actions.saveCourse') }}</button>
                         <button class="purple-action" type="button" :disabled="printSaving" @click="printSingle">
                             <Printer class="h-5 w-5" />
                             {{ t('certificatePage.actions.print') }}
@@ -2328,9 +2337,9 @@ function saveFreeAfterPrint() {
             class="legacy-certificate-page"
             :class="{ 'is-dark-theme': isDarkTheme }"
         >
-            <Breadcrumbs class="no-print" :items="breadcrumbItems" />
+            <Breadcrumbs class="certificate-crumbs no-print" :items="breadcrumbItems" />
             <PageHero
-                class="no-print"
+                class="certificate-hero no-print"
                 :eyebrow="t('Certificate Management')"
                 :title="pageTitle"
                 :description="pageDescription"
@@ -2528,9 +2537,31 @@ const LegacyCertificatePreview = {
     color: #0f172a;
 }
 
-.normal-certificate-page :deep(.page-hero),
-.legacy-certificate-page :deep(.page-hero) {
+/* Header block: breadcrumb, eyebrow, title and description spaced as one tidy group. */
+.certificate-crumbs {
     margin-bottom: 18px;
+}
+
+.certificate-hero {
+    gap: 6px;
+    margin-bottom: 26px;
+}
+
+.certificate-hero :deep(p:first-child) {
+    font-size: 11px;
+    letter-spacing: .2em;
+}
+
+.certificate-hero :deep(h1) {
+    font-size: clamp(26px, 3vw, 32px);
+    line-height: 1.2;
+    letter-spacing: -.01em;
+}
+
+.certificate-hero :deep(p:last-child:not(:first-child)) {
+    max-width: 60ch;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 :global(.dark) .normal-certificate-page {
@@ -3442,6 +3473,30 @@ table {
     color: #bfdbfe;
 }
 
+.gender-pill {
+    text-transform: capitalize;
+}
+
+.gender-pill.gender-male {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.gender-pill.gender-female {
+    background: #fce7f3;
+    color: #be185d;
+}
+
+:global(.dark) .gender-pill.gender-male {
+    background: rgba(59, 130, 246, .18);
+    color: #93c5fd;
+}
+
+:global(.dark) .gender-pill.gender-female {
+    background: rgba(236, 72, 153, .18);
+    color: #f9a8d4;
+}
+
 .print-button {
     min-height: 32px;
     background: #0ca34f;
@@ -3569,14 +3624,21 @@ table {
 .create-grid {
     display: grid;
     grid-template-columns: 350px 1fr;
+    /* Keeps the sidebar column tinted below the sticky editor when the table is taller. */
+    background: linear-gradient(90deg, #f6f8fe 0 350px, transparent 350px);
+}
+
+:global(.dark) .create-grid {
+    background: linear-gradient(90deg, #111827 0 350px, transparent 350px);
 }
 
 .print-grid {
     display: grid;
     grid-template-columns: 310px minmax(0, 1fr);
+    /* Sidebar tint + one flat, neutral stage for the certificate (no muddy gradient). */
     background:
         linear-gradient(90deg, #f8f9ff 0 310px, transparent 310px),
-        radial-gradient(circle at 50% 8%, rgba(255, 255, 255, .92), rgba(222, 224, 232, .94) 48%, #d7d8de 100%);
+        #eceef4;
 }
 
 :global(.dark) .print-grid {
@@ -3593,10 +3655,16 @@ table {
 }
 
 .modal-editor {
+    /* Sticky: stays in view while the preview / student table scrolls beside it. */
+    position: sticky;
+    top: 0;
+    align-self: start;
+    max-height: calc(92vh - 138px);
+    overflow-y: auto;
     display: grid;
     align-content: start;
     gap: 19px;
-    min-height: 625px;
+    min-height: min(625px, calc(92vh - 138px));
     border-right: 1px solid #dbe1ef;
     background:
         radial-gradient(circle at 0 0, rgba(45, 46, 131, .08), transparent 34%),
@@ -3805,6 +3873,35 @@ table {
 .saved-course-row {
     align-items: stretch;
     gap: 10px;
+}
+
+.save-course-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 38px;
+    margin-top: -9px;
+    border: 1px solid #2d2e83;
+    border-radius: 9px;
+    background: transparent;
+    color: #2d2e83;
+    font-size: 13px;
+    font-weight: 800;
+    transition: background-color .15s ease, opacity .15s ease;
+}
+
+.save-course-button:hover:not(:disabled) {
+    background: rgba(45, 46, 131, .08);
+}
+
+.save-course-button:disabled {
+    opacity: .45;
+}
+
+:global(.dark) .save-course-button {
+    border-color: #60a5fa;
+    color: #bfdbfe;
 }
 
 .saved-course-select {
@@ -4190,7 +4287,7 @@ table {
 }
 
 .is-dark-theme :deep(.certificate-wrap) {
-    background: #e0e0e0 !important;
+    background: transparent !important;
 }
 
 .is-dark-theme :deep(.certificate),
@@ -4785,6 +4882,9 @@ table {
     }
 
     .modal-editor {
+        position: static;
+        max-height: none;
+        overflow-y: visible;
         min-height: auto;
         border-right: 0;
         border-bottom: 1px solid #dbe1ef;
