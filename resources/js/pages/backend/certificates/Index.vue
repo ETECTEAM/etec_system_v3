@@ -8,6 +8,7 @@ import {
     BookOpen,
     CheckCircle2,
     ChevronLeft,
+    ChevronRight,
     CalendarDays,
     Loader2,
     Printer,
@@ -19,6 +20,7 @@ import {
 } from '@lucide/vue'
 import { Breadcrumbs } from '../../../components/ui/breadcrumbs'
 import { PageHero } from '../../../components/ui/page-hero'
+import { SelectSearch } from '@/components/ui/select-search'
 import DashboardLayout from '../../../layouts/DashboardLayout.vue'
 import { useTheme } from '../../../composables/useTheme'
 import { useConfirm } from '../../../composables/useConfirm'
@@ -81,6 +83,7 @@ const selectedMonth = ref('all')
 const selectedYear = ref(currentClassFilterDate.getFullYear())
 const selectedReportType = ref('all')
 const selectedReportStatus = ref('all')
+const selectedListStatus = ref('all')
 const trackOptions = ref([])
 const categoryPages = reactive({})
 const selectedClass = ref(null)
@@ -89,6 +92,11 @@ const classCertificatePreview = computed(() => activeCertificateType.value === '
 const isSinglePrintOnlyType = computed(() => ['free', 'internship'].includes(activeCertificateType.value))
 const selectedStudent = ref(null)
 const students = ref([])
+// Print All skips students who already have a certificate unless the admin opts in.
+const batchStudents = computed(() => (includePrinted.value || isSinglePrintOnlyType.value)
+    ? students.value
+    : students.value.filter((student) => !student.is_printed))
+const hasPrintedStudents = computed(() => students.value.some((student) => student.is_printed))
 const studentsLoading = ref(false)
 const modalMode = ref(null)
 const isPrintAllMode = ref(false)
@@ -98,6 +106,8 @@ const printSaving = ref(false)
 const normalCertificateId = ref(props.generatedIds.normal)
 const savedCourses = ref([...props.normalCourses])
 const studentDrafts = ref([])
+const previewIndex = ref(0)
+const includePrinted = ref(false)
 const printQueue = ref([])
 
 function confirmPrintedSuccessfully() {
@@ -167,6 +177,31 @@ const reportStatusOptions = computed(() => [
     { value: 'not_printed', label: t('certificatePage.status.notPrinted') },
     { value: 'printed', label: t('certificatePage.status.printed') },
 ])
+
+// Same look as the text inputs in the certificate modal (42px, 9px radius).
+const modalSelectClass = 'flex h-[42px] w-full items-center justify-between rounded-[9px] border border-[#d2daea] bg-white px-[13px] text-left text-[13px] text-slate-900 transition focus:border-[#2c2d86] focus:outline-none focus:ring-2 focus:ring-[#2c2d86]/15 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-200'
+const filterSelectClass = 'flex h-[38px] w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-3 text-left text-sm transition focus:border-[#2c2d86] focus:outline-none focus:ring-2 focus:ring-[#2c2d86]/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200'
+
+// SelectSearch works with string values; month and year are kept as numbers in state.
+const trackSelectOptions = computed(() => categories.value.map((category) => ({
+    value: category,
+    label: category === 'all' ? t('certificatePage.filters.all') : category,
+})))
+const monthSelectOptions = computed(() => monthOptions.value.map((month) => ({ ...month, value: String(month.value) })))
+const yearSelectOptions = computed(() => yearOptions.value.map((year) => ({ value: String(year), label: String(year) })))
+const monthModel = computed({
+    get: () => String(selectedMonth.value),
+    set: (value) => { selectedMonth.value = value === 'all' ? 'all' : Number(value) },
+})
+const yearModel = computed({
+    get: () => String(selectedYear.value),
+    set: (value) => { selectedYear.value = Number(value) },
+})
+
+const savedCourseOptions = computed(() => savedCourses.value.map((course) => ({
+    value: course.course_name,
+    label: course.course_name,
+})))
 
 const filteredClasses = computed(() => classRows.value)
 
@@ -239,7 +274,7 @@ watch(() => props.type, () => {
     if (isClassListPage.value) loadClasses()
 })
 
-watch([selectedTrack, selectedMonth, selectedYear, selectedReportType, selectedReportStatus], () => {
+watch([selectedTrack, selectedMonth, selectedYear, selectedReportType, selectedReportStatus, selectedListStatus], () => {
     if (isClassListPage.value) loadClasses()
 })
 
@@ -416,6 +451,7 @@ async function loadClasses() {
                 year: selectedYear.value,
             } : {
                 type: certificateType.value,
+                status: selectedListStatus.value,
                 track: selectedTrack.value,
                 month: selectedMonth.value,
                 year: selectedYear.value,
@@ -431,6 +467,7 @@ async function loadClasses() {
 
 async function openStudents(studyClass) {
     selectedClass.value = studyClass
+    includePrinted.value = false
     students.value = []
     studentsLoading.value = true
 
@@ -447,7 +484,8 @@ async function openStudents(studyClass) {
 }
 
 async function openFirstClassForCreate() {
-    const firstClass = filteredClasses.value[0]
+    // Finished classes stay in the list now, so start from one that still has students to print.
+    const firstClass = filteredClasses.value.find((item) => remainingStudents(item) > 0)
     if (!firstClass) {
         openBlankCertificateModal()
         return
@@ -492,7 +530,7 @@ function backToClasses() {
 function openCreateModal() {
     if (!selectedClass.value) return
 
-    studentDrafts.value = students.value.map((student) => ({
+    studentDrafts.value = batchStudents.value.map((student) => ({
         ...student,
         draft_name: student.name,
     }))
@@ -506,11 +544,9 @@ async function openPrintModal(student, printAll = false) {
     selectedStudent.value = student
     isPrintAllMode.value = shouldPrintAll
     studentDrafts.value = shouldPrintAll
-        ? students.value.map((item) => ({
-            ...item,
-            draft_name: item.id === student.id ? printForm.student_name || item.name : item.name,
-        }))
+        ? batchStudents.value.map((item) => ({ ...item, draft_name: item.name }))
         : []
+    previewIndex.value = Math.max(studentDrafts.value.findIndex((item) => item.id === student.id), 0)
     printForm.student_name = student.name
     printForm.course = selectedClass.value?.course || ''
     printForm.granted_date = new Date().toISOString().slice(0, 10)
@@ -518,7 +554,32 @@ async function openPrintModal(student, printAll = false) {
     printForm.team_lead_name = 'Mr. SRIN NALEN'
     printForm.team_lead_title = 'Team Leader, KRU IT Solution'
     await refreshId('normal')
+
+    if (shouldPrintAll && studentDrafts.value.length) {
+        // Give every slide its own ID so the preview matches what will be printed.
+        const ids = buildCertificateIds(printForm.certificate_id, studentDrafts.value.length)
+        studentDrafts.value = studentDrafts.value.map((item, index) => ({ ...item, certificate_id: ids[index] }))
+        selectedStudent.value = studentDrafts.value[previewIndex.value]
+        printForm.certificate_id = selectedStudent.value.certificate_id
+    }
+
     modalMode.value = 'print'
+}
+
+// Preview slider for Print All: keep the typed name on the slide we leave,
+// then load the next student's name and ID into the shared form.
+function goToPreviewSlide(index) {
+    const total = studentDrafts.value.length
+    if (!isPrintAllMode.value || index < 0 || index >= total || index === previewIndex.value) return
+
+    const current = studentDrafts.value[previewIndex.value]
+    if (current) current.draft_name = printForm.student_name
+
+    previewIndex.value = index
+    const target = studentDrafts.value[index]
+    selectedStudent.value = target
+    printForm.student_name = target.draft_name
+    printForm.certificate_id = target.certificate_id || printForm.certificate_id
 }
 
 function closeModal() {
@@ -526,6 +587,7 @@ function closeModal() {
     selectedStudent.value = null
     isPrintAllMode.value = false
     studentDrafts.value = []
+    previewIndex.value = 0
 }
 
 function applySavedCourse(courseName) {
@@ -576,6 +638,9 @@ async function savePrintedStudent(student, studentName = student.name) {
     })
 
     student.is_printed = true
+    // Drafts are copies, so mirror the flag onto the class roster too.
+    const listed = students.value.find((item) => item.id === student.id)
+    if (listed) listed.is_printed = true
     normalCertificateId.value = certificateId
     printForm.certificate_id = certificateId
 }
@@ -1023,6 +1088,27 @@ function beginNormalPrint(batch = false) {
                 print-color-adjust: exact !important;
                 -webkit-print-color-adjust: exact !important;
             }
+            ${batch ? `
+            /* Batch: let certificates flow onto as many A4 pages as needed instead of clipping to the first. */
+            html {
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            body.normal-certificate-print.batch-certificate-print {
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            body.normal-certificate-print.batch-certificate-print #normal-cert-print {
+                position: static !important;
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }` : ''}
         }
     `
     document.head.appendChild(normalPrintStyleElement)
@@ -1797,35 +1883,70 @@ function saveFreeAfterPrint() {
             <template v-if="!selectedClass">
                 <header class="normal-toolbar normal-toolbar-actions no-print">
                     <div class="normal-actions" :class="{ 'report-actions': isReport }">
-                        <select v-if="isReport" v-model="selectedReportType" class="filter-select report-filter-select">
-                            <option v-for="type in certificateTypeOptions" :key="type.value" :value="type.value">
-                                {{ type.label }}
-                            </option>
-                        </select>
+                        <div v-if="isReport" class="filter-select-wrap filter-select-wrap-status">
+                            <SelectSearch
+                                v-model="selectedReportType"
+                                :options="certificateTypeOptions"
+                                :placeholder="t('certificatePage.filters.allTypes')"
+                                :button-class="filterSelectClass"
+                                :clearable="false"
+                                :searchable="false"
+                            />
+                        </div>
 
-                        <select v-model="selectedTrack" class="filter-select">
-                            <option v-for="category in categories" :key="category" :value="category">
-                                {{ category === 'all' ? t('certificatePage.filters.all') : category }}
-                            </option>
-                        </select>
+                        <div class="filter-select-wrap">
+                            <SelectSearch
+                                v-model="selectedTrack"
+                                :options="trackSelectOptions"
+                                :placeholder="t('certificatePage.filters.all')"
+                                :button-class="filterSelectClass"
+                                :clearable="false"
+                            />
+                        </div>
 
-                        <select v-model="selectedMonth" class="filter-select filter-select-small">
-                            <option v-for="month in monthOptions" :key="month.value" :value="month.value">
-                                {{ month.label }}
-                            </option>
-                        </select>
+                        <div class="filter-select-wrap filter-select-wrap-small">
+                            <SelectSearch
+                                v-model="monthModel"
+                                :options="monthSelectOptions"
+                                :placeholder="t('certificatePage.filters.allMonth')"
+                                :button-class="filterSelectClass"
+                                list-class="max-h-none"
+                                :clearable="false"
+                                :searchable="false"
+                            />
+                        </div>
 
-                        <select v-model.number="selectedYear" class="filter-select filter-select-small">
-                            <option v-for="year in yearOptions" :key="year" :value="year">
-                                {{ year }}
-                            </option>
-                        </select>
+                        <div class="filter-select-wrap filter-select-wrap-small">
+                            <SelectSearch
+                                v-model="yearModel"
+                                :options="yearSelectOptions"
+                                :placeholder="String(selectedYear)"
+                                :button-class="filterSelectClass"
+                                :clearable="false"
+                                :searchable="false"
+                            />
+                        </div>
 
-                        <select v-if="isReport" v-model="selectedReportStatus" class="filter-select report-filter-select">
-                            <option v-for="status in reportStatusOptions" :key="status.value" :value="status.value">
-                                {{ status.label }}
-                            </option>
-                        </select>
+                        <div class="filter-select-wrap filter-select-wrap-status">
+                            <SelectSearch
+                                v-if="isReport"
+                                v-model="selectedReportStatus"
+                                :options="reportStatusOptions"
+                                :placeholder="t('certificatePage.filters.allStatus')"
+                                :button-class="filterSelectClass"
+                                :clearable="false"
+                                :searchable="false"
+                            />
+                            <SelectSearch
+                                v-else
+                                v-model="selectedListStatus"
+                                :options="reportStatusOptions"
+                                :placeholder="t('certificatePage.filters.allStatus')"
+                                :button-class="filterSelectClass"
+                                :clearable="false"
+                                :searchable="false"
+                            />
+                        </div>
 
                         <button v-if="!isReport" class="blue-action" type="button" @click="openFirstClassForCreate">
                             <Award class="h-5 w-5" />
@@ -1848,39 +1969,38 @@ function saveFreeAfterPrint() {
                         <h2>{{ t('certificatePage.sections.courseType', { category }) }}</h2>
 
                         <div class="table-wrap">
-                            <table class="class-table" :class="{ 'report-table': isReport }">
+                            <table class="class-table" :class="isReport ? 'report-table' : 'list-table'">
                                 <thead>
                                     <tr>
+                                        <th>{{ t('certificatePage.table.no') }}</th>
                                         <th>ID</th>
                                         <th v-if="isReport">{{ t('certificatePage.table.type') }}</th>
                                         <th>{{ t('certificatePage.table.teacher') }}</th>
                                         <th>{{ t('certificatePage.table.course') }}</th>
                                         <th>{{ t('certificatePage.table.time') }}</th>
-                                        <th v-if="isReport">{{ t('certificatePage.table.requestedAt') }}</th>
-                                        <th v-if="isReport">{{ t('certificatePage.table.printedStudents') }}</th>
+                                        <th>{{ t('certificatePage.table.requestedAt') }}</th>
+                                        <th>{{ t('certificatePage.table.printedStudents') }}</th>
                                         <th>{{ t('certificatePage.table.remainingStudents') }}</th>
-                                        <th v-if="isReport">{{ t('certificatePage.table.status') }}</th>
+                                        <th>{{ t('certificatePage.table.status') }}</th>
                                         <th>{{ t('certificatePage.table.students') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="item in group.items" :key="`${item.id}-${item.certificate_type || certificateType}`">
+                                    <tr v-for="(item, index) in group.items" :key="`${item.id}-${item.certificate_type || certificateType}`">
+                                        <td>{{ (group.page - 1) * perPage + index + 1 }}</td>
                                         <td>{{ item.id }}</td>
                                         <td v-if="isReport">{{ certificateTypeLabel(item.certificate_type) }}</td>
                                         <td>{{ item.teacher_name }}</td>
                                         <td>{{ item.course }}</td>
                                         <td>{{ item.time }}</td>
-                                        <td v-if="isReport">{{ item.requested_at }}</td>
-                                        <td v-if="isReport">
-                                            <span class="count-badge done">{{ item.printed_students }}</span>
+                                        <td>{{ item.requested_at }}</td>
+                                        <td>
+                                            <span :class="['count-badge', Number(item.printed_students) > 0 ? 'done' : 'muted']">{{ item.printed_students }}</span>
                                         </td>
                                         <td>
-                                            <span :class="['count-badge', remainingStudents(item) === 0 ? 'done' : 'pending']">
-                                                {{ remainingStudents(item) }}
-                                                <CheckCircle2 v-if="remainingStudents(item) === 0" class="h-3 w-3" />
-                                            </span>
+                                            <span :class="['count-badge', remainingStudents(item) === 0 ? 'muted' : 'pending']">{{ remainingStudents(item) }}</span>
                                         </td>
-                                        <td v-if="isReport">
+                                        <td>
                                             <span :class="['report-status', item.print_status === 'printed' ? 'printed' : 'not-printed']">
                                                 {{ reportStatusLabel(item.print_status) }}
                                             </span>
@@ -1891,14 +2011,10 @@ function saveFreeAfterPrint() {
                                                     <Users class="h-4 w-4" />
                                                     {{ t('certificatePage.actions.viewStudents') }}
                                                 </button>
-                                                <button v-if="!isReport" class="view-students make-cert" type="button" @click="openClassCertificateModal(item)">
+                                                <button v-if="!isReport && remainingStudents(item) > 0" class="view-students make-cert" type="button" @click="openClassCertificateModal(item)">
                                                     <Award class="h-4 w-4" />
                                                     {{ t('certificatePage.actions.create') }}
                                                 </button>
-                                                <span v-if="!isReport && remainingStudents(item) === 0" class="complete-mark">
-                                                    <CheckCircle2 class="h-4 w-4" />
-                                                    <CheckCircle2 class="h-4 w-4" />
-                                                </span>
                                             </div>
                                         </td>
                                     </tr>
@@ -1936,11 +2052,15 @@ function saveFreeAfterPrint() {
                     </button>
 
                     <div v-if="!isReport" class="detail-buttons">
-                        <button class="green-action" type="button" :disabled="studentsLoading || !students.length" @click="openPrintModal(students[0], !isSinglePrintOnlyType)">
+                        <label v-if="!isSinglePrintOnlyType && hasPrintedStudents" class="include-printed-toggle">
+                            <input v-model="includePrinted" type="checkbox" />
+                            Include already printed
+                        </label>
+                        <button class="green-action" type="button" :disabled="studentsLoading || !batchStudents.length" @click="openPrintModal(batchStudents[0], !isSinglePrintOnlyType)">
                             <Printer class="h-5 w-5" />
                             {{ t('certificatePage.actions.printAll') }}
                         </button>
-                        <button class="purple-action" type="button" :disabled="studentsLoading || !students.length" @click="openCreateModal">
+                        <button class="purple-action" type="button" :disabled="studentsLoading || !batchStudents.length" @click="openCreateModal">
                             <Award class="h-5 w-5" />
                             {{ t('certificatePage.actions.createCertificate') }}
                         </button>
@@ -2057,12 +2177,16 @@ function saveFreeAfterPrint() {
                                     <span class="saved-course-count">{{ savedCourses.length }}</span>
                                 </span>
                                 <div class="saved-course-row">
-                                    <select :value="printForm.course" @change="applySavedCourse($event.target.value)">
-                                        <option value="">-- {{ t('certificatePage.form.selectCourse') }} --</option>
-                                        <option v-for="course in savedCourses" :key="course.course_name" :value="course.course_name">
-                                            {{ course.course_name }}
-                                        </option>
-                                    </select>
+                                    <div class="saved-course-select">
+                                        <SelectSearch
+                                            :model-value="printForm.course"
+                                            :options="savedCourseOptions"
+                                            :placeholder="`-- ${t('certificatePage.form.selectCourse')} --`"
+                                            :button-class="modalSelectClass"
+                                            :clearable="false"
+                                            @update:model-value="applySavedCourse"
+                                        />
+                                    </div>
                                     <button type="button" @click="deleteSavedCourse"><Trash2 class="h-5 w-5" /></button>
                                 </div>
                             </label>
@@ -2143,12 +2267,16 @@ function saveFreeAfterPrint() {
                                     <span class="saved-course-count">{{ savedCourses.length }}</span>
                                 </span>
                                 <div class="saved-course-row">
-                                    <select :value="printForm.course" @change="applySavedCourse($event.target.value)">
-                                        <option value="">-- {{ t('certificatePage.form.selectCourse') }} --</option>
-                                        <option v-for="course in savedCourses" :key="course.course_name" :value="course.course_name">
-                                            {{ course.course_name }}
-                                        </option>
-                                    </select>
+                                    <div class="saved-course-select">
+                                        <SelectSearch
+                                            :model-value="printForm.course"
+                                            :options="savedCourseOptions"
+                                            :placeholder="`-- ${t('certificatePage.form.selectCourse')} --`"
+                                            :button-class="modalSelectClass"
+                                            :clearable="false"
+                                            @update:model-value="applySavedCourse"
+                                        />
+                                    </div>
                                     <button type="button" @click="deleteSavedCourse"><Trash2 class="h-5 w-5" /></button>
                                 </div>
                             </label>
@@ -2162,6 +2290,16 @@ function saveFreeAfterPrint() {
                         <section class="preview-zone">
                             <div class="preview-head no-print">
                                 <span>{{ t('certificatePage.modal.preview') }}</span>
+                                <div v-if="isPrintAllMode && studentDrafts.length > 1" class="preview-slider">
+                                    <button type="button" :disabled="previewIndex === 0" aria-label="Previous certificate" @click="goToPreviewSlide(previewIndex - 1)">
+                                        <ChevronLeft class="h-4 w-4" />
+                                    </button>
+                                    <em>{{ previewIndex + 1 }} / {{ studentDrafts.length }}</em>
+                                    <button type="button" :disabled="previewIndex >= studentDrafts.length - 1" aria-label="Next certificate" @click="goToPreviewSlide(previewIndex + 1)">
+                                        <ChevronRight class="h-4 w-4" />
+                                    </button>
+                                    <small v-if="studentDrafts[previewIndex]?.is_printed" class="preview-printed-tag">Already printed</small>
+                                </div>
                                 <strong>{{ isPrintAllMode ? t('certificatePage.modal.certificatesReady', { count: studentDrafts.length || 1 }) : t('certificatePage.modal.singleCertificate') }}</strong>
                             </div>
                             <component :is="classCertificatePreview" :certificate="currentCertificate" />
@@ -2424,6 +2562,7 @@ const LegacyCertificatePreview = {
 
 .normal-toolbar-actions {
     justify-content: flex-end;
+    margin-top: 14px;
 }
 
 .normal-toolbar h1 {
@@ -2471,43 +2610,21 @@ const LegacyCertificatePreview = {
     min-width: 0;
 }
 
-.filter-select {
+.filter-select-wrap {
     flex: 0 0 250px;
     width: 250px;
-    height: 38px;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    background: #fff;
-    color: #334155;
-    padding: 0 12px;
-    font-size: 14px;
-    outline: none;
 }
 
-.filter-select-small {
-    flex-basis: 124px;
-    width: 124px;
+.filter-select-wrap-small {
+    flex-basis: 140px;
+    width: 140px;
 }
 
-.report-filter-select {
-    flex: 1 1 172px;
-    min-width: 150px;
-    width: auto;
+.filter-select-wrap-status {
+    flex-basis: 180px;
+    width: 180px;
 }
 
-:global(.dark) .filter-select {
-    border-color: #374151;
-    background: #111827;
-    color: #e5e7eb;
-}
-
-.is-dark-theme .filter-select {
-    border-color: #374151 !important;
-    background: #111827 !important;
-    color: #e5e7eb !important;
-}
-
-.filter-select:focus,
 .modal-editor input:focus,
 .modal-editor textarea:focus,
 .modal-editor select:focus,
@@ -2744,7 +2861,7 @@ table {
 }
 
 .report-table {
-    min-width: 1180px;
+    min-width: 1240px;
 }
 
 .class-table th:nth-child(1),
@@ -2777,51 +2894,134 @@ table {
     width: 16%;
 }
 
-.report-table th:nth-child(1),
-.report-table td:nth-child(1) {
-    width: 52px;
-}
-
 .report-table th:nth-child(2),
 .report-table td:nth-child(2) {
-    width: 95px;
+    width: 52px;
 }
 
 .report-table th:nth-child(3),
 .report-table td:nth-child(3) {
-    width: 18%;
+    width: 95px;
 }
 
 .report-table th:nth-child(4),
 .report-table td:nth-child(4) {
-    width: 22%;
+    width: 18%;
 }
 
 .report-table th:nth-child(5),
 .report-table td:nth-child(5) {
-    width: 130px;
+    width: 22%;
 }
 
 .report-table th:nth-child(6),
 .report-table td:nth-child(6) {
-    width: 138px;
+    width: 130px;
 }
 
 .report-table th:nth-child(7),
-.report-table td:nth-child(7),
-.report-table th:nth-child(8),
-.report-table td:nth-child(8) {
-    width: 92px;
+.report-table td:nth-child(7) {
+    width: 138px;
 }
 
+.report-table th:nth-child(8),
+.report-table td:nth-child(8),
 .report-table th:nth-child(9),
 .report-table td:nth-child(9) {
-    width: 116px;
+    width: 92px;
 }
 
 .report-table th:nth-child(10),
 .report-table td:nth-child(10) {
+    width: 116px;
+}
+
+.report-table th:nth-child(11),
+.report-table td:nth-child(11) {
     width: 128px;
+}
+
+.report-table th:nth-child(1),
+.report-table td:nth-child(1) {
+    width: 56px;
+}
+
+.list-table {
+    min-width: 1240px;
+}
+
+.list-table th:nth-child(1),
+.list-table td:nth-child(1) {
+    width: 56px;
+}
+
+.list-table th:nth-child(2),
+.list-table td:nth-child(2) {
+    width: 52px;
+}
+
+.list-table th:nth-child(3),
+.list-table td:nth-child(3) {
+    width: 16%;
+}
+
+.list-table th:nth-child(4),
+.list-table td:nth-child(4) {
+    width: 22%;
+}
+
+.list-table th:nth-child(5),
+.list-table td:nth-child(5) {
+    width: 170px;
+}
+
+.list-table th:nth-child(6),
+.list-table td:nth-child(6) {
+    width: 156px;
+}
+
+.list-table th,
+.list-table td {
+    padding: 10px 12px;
+}
+
+.list-table th {
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.list-table td {
+    font-weight: 500;
+}
+
+/* Instructor and course read better left-aligned when long names wrap. */
+.list-table th:nth-child(3),
+.list-table td:nth-child(3),
+.list-table th:nth-child(4),
+.list-table td:nth-child(4) {
+    text-align: left;
+}
+
+.list-table td:nth-child(5),
+.list-table td:nth-child(6) {
+    white-space: nowrap;
+}
+
+.list-table th:nth-child(7),
+.list-table td:nth-child(7),
+.list-table th:nth-child(8),
+.list-table td:nth-child(8) {
+    width: 92px;
+}
+
+.list-table th:nth-child(9),
+.list-table td:nth-child(9) {
+    width: 116px;
+}
+
+.list-table th:nth-child(10),
+.list-table td:nth-child(10) {
+    width: 200px;
 }
 
 .class-table th,
@@ -2916,6 +3116,16 @@ table {
     color: #fff;
 }
 
+.count-badge.muted {
+    background: #eef1f6;
+    color: #64748b;
+}
+
+:global(.dark) .count-badge.muted {
+    background: #1f2937;
+    color: #9ca3af;
+}
+
 .report-status {
     display: inline-flex;
     align-items: center;
@@ -2954,16 +3164,6 @@ table {
 
 .report-table .row-actions {
     flex-wrap: wrap;
-}
-
-.complete-mark {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border-radius: 5px;
-    background: #66b995;
-    color: #eafff4;
-    padding: 7px 10px;
 }
 
 .pagination-row {
@@ -3607,11 +3807,9 @@ table {
     gap: 10px;
 }
 
-.saved-course-row select {
+.saved-course-select {
     flex: 1;
-    height: 42px;
-    min-height: 42px;
-    border-radius: 9px;
+    min-width: 0;
 }
 
 .saved-course-row button {
@@ -3757,7 +3955,6 @@ table {
     box-shadow: 0 20px 48px rgba(0, 0, 0, .34) !important;
 }
 
-.certificate-dark-ui .filter-select,
 .certificate-dark-ui .free-field input,
 .certificate-dark-ui .free-field select {
     border-color: #374151 !important;
@@ -3883,6 +4080,62 @@ table {
 :global(.dark) .preview-head strong {
     background: rgba(96, 165, 250, .14);
     color: #bfdbfe;
+}
+
+.preview-slider {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.preview-slider button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid #d6dce7;
+    border-radius: 999px;
+    background: #fff;
+    color: #2d2e83;
+    cursor: pointer;
+}
+
+.preview-slider button:disabled {
+    cursor: not-allowed;
+    opacity: .4;
+}
+
+.preview-slider em {
+    min-width: 54px;
+    text-align: center;
+    font-size: 13px;
+    font-style: normal;
+    font-weight: 900;
+}
+
+.preview-printed-tag {
+    border-radius: 999px;
+    background: rgba(245, 158, 11, .16);
+    color: #b45309;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+:global(.dark) .preview-slider button {
+    border-color: #263244;
+    background: #111827;
+    color: #bfdbfe;
+}
+
+.include-printed-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
 }
 
 .print-batch {
@@ -4516,8 +4769,9 @@ table {
         width: 100%;
     }
 
-    .filter-select,
-    .filter-select-small,
+    .filter-select-wrap,
+    .filter-select-wrap-small,
+    .filter-select-wrap-status,
     .blue-action {
         flex: 0 0 auto;
         width: 100%;

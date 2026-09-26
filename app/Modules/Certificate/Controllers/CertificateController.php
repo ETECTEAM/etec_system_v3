@@ -74,11 +74,13 @@ class CertificateController extends Controller
             ->get();
 
         $requestTypes = $this->requestTypesForPageType($type);
+        $status = $this->normaliseReportStatus($request->query('status', 'all'));
 
-        $requestCounts = DB::table('class_certificate_requests')
+        $classRequests = DB::table('class_certificate_requests')
             ->whereIn('certificate_type', $requestTypes)
             ->whereIn('study_class_id', $classes->pluck('id'))
-            ->pluck('student_count', 'study_class_id');
+            ->get(['study_class_id', 'student_count', 'requested_at'])
+            ->keyBy('study_class_id');
 
         $printedCounts = DB::table('student_certificate_normal')
             ->select('study_class_id', DB::raw('COUNT(DISTINCT student_id) as printed_students'))
@@ -88,8 +90,9 @@ class CertificateController extends Controller
             ->pluck('printed_students', 'study_class_id');
 
         $classes = $classes
-            ->map(function (StudyClass $studyClass) use ($printedCounts, $requestCounts): array {
-                $requestedStudents = (int) ($requestCounts[$studyClass->id] ?: $studyClass->total_students);
+            ->map(function (StudyClass $studyClass) use ($printedCounts, $classRequests): array {
+                $classRequest = $classRequests[$studyClass->id] ?? null;
+                $requestedStudents = (int) ($classRequest?->student_count ?: $studyClass->total_students);
                 $printedStudents = (int) ($printedCounts[$studyClass->id] ?? 0);
 
                 return [
@@ -99,12 +102,15 @@ class CertificateController extends Controller
                     'teacher_name' => $this->instructorDisplayName($studyClass->teacher?->name),
                     'time' => $studyClass->time?->time_name ?? $this->classTime($studyClass),
                     'class_type' => $studyClass->classType?->type_name ?? $studyClass->classTypeValue(),
-                    'total_students' => $requestedStudents,
-                    'printed_students' => $printedStudents,
-                    'remaining_students' => max($requestedStudents - $printedStudents, 0),
+                    'requested_at' => $classRequest?->requested_at
+                        ? Carbon::parse($classRequest->requested_at)->format('Y-m-d h:i A')
+                        : '-',
+                    ...$this->printProgress($requestedStudents, $printedStudents),
                 ];
             })
-            ->filter(fn (array $studyClass): bool => $studyClass['remaining_students'] > 0)
+            ->when($status !== 'all', fn ($classes) => $classes->filter(fn (array $class): bool => $class['print_status'] === $status))
+            // Unprinted classes first so finished ones never push pending work down.
+            ->sortBy(fn (array $class): int => $class['print_status'] === 'printed' ? 1 : 0)
             ->values();
 
         return response()->json([
@@ -165,8 +171,6 @@ class CertificateController extends Controller
 
                 $requestedStudents = (int) ($request->student_count ?: $studyClass->total_students);
                 $printedStudents = (int) ($printedCounts[$studyClass->id.'|'.$request->certificate_type]->printed_students ?? 0);
-                $remainingStudents = max($requestedStudents - $printedStudents, 0);
-                $printStatus = $requestedStudents > 0 && $remainingStudents === 0 ? 'printed' : 'not_printed';
 
                 return [
                     'id' => $studyClass->id,
@@ -177,10 +181,7 @@ class CertificateController extends Controller
                     'time' => $studyClass->time?->time_name ?? $this->classTime($studyClass),
                     'class_type' => $studyClass->classType?->type_name ?? $studyClass->classTypeValue(),
                     'requested_at' => $request->requested_at?->format('Y-m-d h:i A') ?? '-',
-                    'total_students' => $requestedStudents,
-                    'printed_students' => $printedStudents,
-                    'remaining_students' => $remainingStudents,
-                    'print_status' => $printStatus,
+                    ...$this->printProgress($requestedStudents, $printedStudents),
                 ];
             })
             ->filter()
@@ -407,6 +408,22 @@ class CertificateController extends Controller
         }
 
         return [$track, $month, $year];
+    }
+
+    /**
+     * Shared by the class list and the report so both screens always agree on
+     * what "printed" means.
+     */
+    private function printProgress(int $requestedStudents, int $printedStudents): array
+    {
+        $remainingStudents = max($requestedStudents - $printedStudents, 0);
+
+        return [
+            'total_students' => $requestedStudents,
+            'printed_students' => $printedStudents,
+            'remaining_students' => $remainingStudents,
+            'print_status' => $requestedStudents > 0 && $remainingStudents === 0 ? 'printed' : 'not_printed',
+        ];
     }
 
     private function instructorDisplayName(?string $name): string

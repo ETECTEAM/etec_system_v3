@@ -48,6 +48,12 @@ const props = defineProps({
     type: Number,
     default: 6,
   },
+  // Height cap of the option list; the default scrolls after ~5 options.
+  // Pass 'max-h-none' to show a short fixed list (e.g. 12 months) in full.
+  listClass: {
+    type: String,
+    default: 'max-h-48',
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -252,7 +258,7 @@ onBeforeUnmount(() => {
           />
         </div>
 
-        <div class="max-h-48 overflow-y-auto py-1">
+        <div class="overflow-y-auto py-1" :class="listClass">
           <button
             v-if="clearable && modelValue !== ''"
             type="button"
